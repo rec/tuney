@@ -1,2 +1,3 @@
 # tuney
-Turn characters into musical notes
+
+Turn text into musical notes
