@@ -1,5 +1,12 @@
-from tuney.note import Note
+import pytest
+
+from tuney.note import canonical, Note
+
+NOTES = ["C", "C#", "G♯", "C-2", "F♭10"]
 
 
-def test_note():
-    assert str(Note.make("C")) == "C"
+@pytest.mark.parametrize("note", NOTES)
+def test_note(note):
+    actual = str(Note.make(note))
+
+    assert actual == canonical(note)
