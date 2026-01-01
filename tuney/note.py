@@ -11,7 +11,7 @@ class Note:
 
     def __repr__(self) -> str:
         octave = "" if self.octave is None else self.octave
-        return f"{self.note}{self.accidental}{octave}"
+        return f"{self.name}{self.accidental}{octave}"
 
     @staticmethod
     def make(note_name: str) -> Note:

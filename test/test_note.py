@@ -1,2 +1,5 @@
+from tuney.note import Note
+
+
 def test_note():
-    pass
+    assert str(Note.make("C")) == "C"
