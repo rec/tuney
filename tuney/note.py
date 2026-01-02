@@ -13,17 +13,18 @@ NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
 
 NOTES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
+MIDI_ZERO_OCTAVE = -1
+"""
+0 would be Yamaha, but we'll account for that elsewhere.
+Standard: 60 = C3, C-1 == 0
+Yamaha: 60 = C4, C0 == 0
+"""
+
 
 def canonical(s: str) -> str:
     for k, v in ACCIDENTAL_DICT.items():
         s = s.replace(k, v)
     return s
-
-
-"""
-Standard: 60 = C3, C-1 == 0
-Yamaha: 60 = C4, C0 == 0
-"""
 
 
 @dc.dataclass(frozen=True)
@@ -49,6 +50,7 @@ class Note:
 
     @cached_property
     def offset(self) -> int:
+        """In semitones from C"""
         return NOTES[self.name] + sum(-1 + 2 * (a == "♯") for a in self.accidentals)
 
 
@@ -70,4 +72,4 @@ class NoteOctave(Note):
 
     @cached_property
     def note_number(self) -> int:
-        return 12 * self.octave + self.offset
+        return 12 * (self.octave - MIDI_ZERO_OCTAVE) + self.offset
