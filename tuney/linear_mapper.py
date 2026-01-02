@@ -12,16 +12,18 @@ class LetterNote(NamedTuple):
 
 @dc.dataclass(frozen=True)
 class LinearMapper:
-    input_alphabet: str = ""
+    alphabet_in: str | None = None
     note_name: str = "C"
     length: int = 0
     case_sensitive: bool = False
+    invert: bool = False
+    offset: int = 0
 
     @cached_property
     def alphabet(self) -> str:
-        return self.input_alphabet or (
-            ascii_letters if self.case_sensitive else ascii_lowercase
-        )
+        if self.alphabet_in is None:
+            return ascii_letters if self.case_sensitive else ascii_lowercase
+        return self.alphabet_in
 
     @cached_property
     def note(self) -> Note:
@@ -29,24 +31,26 @@ class LinearMapper:
 
     def __call__(self, letters: Iterable[str]) -> Iterator[LetterNote]:
         for letter in letters:
-            yield LetterNote(letter, self._get(letter))
+            yield LetterNote(letter, self.letter_to_note(letter))
 
-    def _get(self, letter: str) -> Note | None:
+    def letter_to_note(self, letter: str) -> Note | None:
         assert len(letter) == 1, letter
         letter = letter if self.case_sensitive else letter.lower()
         try:
             index = self.alphabet.index(letter)
         except ValueError:
             return None
+        if self.invert:
+            index = len(self.alphabet) - index - 1
         if self.length:
             index = index % self.length
-        return self.note.add(index)
+        return self.note.add(index + self.offset)
 
 
 if __name__ == "__main__":
     import sys
 
-    mapper = LinearMapper(note_name="C4", case_sensitive=True)
+    mapper = LinearMapper(note_name="C4", case_sensitive=True, invert=True)
     while line := input("... "):
         for letter, note in mapper(line):
             print(letter, note)
