@@ -5,20 +5,28 @@ import dataclasses as dc
 import re
 
 
-ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
-ACCIDENTALS = "".join(ACCIDENTAL_DICT)
-CANONICALS = "♭♯"
-
-NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
-
-NOTES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
-
 MIDI_ZERO_OCTAVE = -1
 """
 0 would be Yamaha, but we'll account for that elsewhere.
 Standard: 60 = C3, C-1 == 0
 Yamaha: 60 = C4, C0 == 0
 """
+
+ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
+ACCIDENTALS = "#b♭♯"
+assert ACCIDENTALS == "".join(sorted(ACCIDENTAL_DICT))
+
+FLAT, SHARP = "♭", "♯"
+CANONICALS = FLAT + SHARP
+assert CANONICALS == ACCIDENTALS[2:]
+
+NOTE_TO_NUMBER = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+NUMBER_TO_NOTES = {
+    FLAT: ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"),
+    SHARP: ("C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"),
+}
+
+NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
 
 
 def canonical(s: str) -> str:
@@ -33,7 +41,7 @@ class Note:
     accidentals: str = ""
 
     @staticmethod
-    def make(note_name: str) -> Note:
+    def from_name(note_name: str) -> Note:
         if not (m := NOTE_RE.match(note_name)):
             raise ValueError(f"Cannot understand note {note_name}")
 
@@ -42,16 +50,21 @@ class Note:
         return NoteOctave(name, acc, int(octave)) if octave else Note(name, acc)
 
     def __post_init__(self):
-        assert self.name in NOTES, self
+        assert self.name in NOTE_TO_NUMBER, self
         assert all(a in CANONICALS for a in self.accidentals), self
 
     def __repr__(self) -> str:
         return self.name + self.accidentals
 
+    def add(self, offset: int, accidental: str = FLAT) -> Note:
+        name = NUMBER_TO_NOTES[accidental][(offset + self.offset) % 12]
+        return Note(name[0], name[1:])
+
     @cached_property
     def offset(self) -> int:
         """In semitones from C"""
-        return NOTES[self.name] + sum(-1 + 2 * (a == "♯") for a in self.accidentals)
+        accidentals = sum(1 if a == SHARP else -1 for a in self.accidentals)
+        return NOTE_TO_NUMBER[self.name] + accidentals
 
 
 @dc.dataclass(frozen=True)
@@ -61,14 +74,27 @@ class NoteOctave(Note):
     def __repr__(self) -> str:
         return f"{super().__repr__()}{self.octave}"
 
+    @staticmethod
+    def from_note_number(note_number: int, accidental: str = FLAT) -> NoteOctave:
+        assert accidental in NUMBER_TO_NOTES, accidental
+
+        octave, number = divmod(note_number, 12)
+        octave += MIDI_ZERO_OCTAVE
+        name = NUMBER_TO_NOTES[accidental][number]
+
+        return NoteOctave(name=name[0], accidentals=name[1:], octave=octave)
+
     def closest(self, n: Note) -> NoteOctave:
-        """Octave version of n which is closest as possible to self"""
+        """Octaved version of n which is as close possible to self"""
         if isinstance(n, NoteOctave):
             return n
         off = self.offset - n.offset
         delta = 1 if off <= -5 else 0 if off <= 5 else -1
         assert -11 <= off <= 11, (off, n, delta)
         return NoteOctave(octave=self.octave + delta, **dc.asdict(n))
+
+    def add(self, offset: int, accidental: str = FLAT) -> NoteOctave:
+        return self.from_note_number(self.note_number + offset, accidental)
 
     @cached_property
     def note_number(self) -> int:
