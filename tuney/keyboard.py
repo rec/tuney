@@ -1,56 +1,86 @@
-import io
-import sys
 from queue import Queue
 import dataclasses as dc
 
-from contextlib import redirect_stderr
-from functools import cached_property
+from functools import cached_property, wraps
 from pynput import keyboard
-from typing import TypeAlias
+from typing import Any, Callable, Iterator, TypeAlias
 
 OptionalKey: TypeAlias = keyboard.Key | keyboard.KeyCode | None
 
 
-@dc.dataclass
+@dc.dataclass(frozen=True)
 class KeyAction:
-    char: str
-    is_press: bool
+    char: str = ""
+    is_press: bool = False
+
+    def __bool__(self) -> bool:
+        return bool(self.char)
 
 
 @dc.dataclass
-class Keyboard:
-    queue: Queue[KeyAction] = dc.field(default_factory=Queue)
-
-    def on_press(self, key: OptionalKey) -> None:
-        self._append(key, True)
-
-    def on_release(self, key: OptionalKey) -> None:
-        self._append(key, False)
+class KeyboardListener:
+    action: Callable[[KeyAction], Any]
 
     @cached_property
     def listener(self) -> keyboard.Listener:
-        return keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        return _make_listener(self)
 
-    def _append(self, key: OptionalKey, is_press: bool) -> None:
-        print(key, is_press)
+    def on_press(self, key: OptionalKey) -> Any:
+        return self._on(key, True)
+
+    def on_release(self, key: OptionalKey) -> Any:
+        return self._on(key, False)
+
+    def join(self) -> None:
+        with self.listener:
+            try:
+                self.listener.join()
+            finally:
+                self.action(KeyAction())
+
+    def _on(self, key: OptionalKey, is_press: bool) -> Any:
         if char := getattr(key, "char", ""):
-            self.queue.put(KeyAction(char, is_press))
-
-    def receive(self) -> None:
-        r = redirect_stderr(s := io.StringIO())
-        r.__enter__()
-
-        with self.listener as listener:
-            r.__exit__(None, None, None)
-            if s.getvalue().replace(ERROR, "").strip():
-                print(s.getvalue(), file=sys.stderr)
-            listener.join()
+            return self.action(KeyAction(char, is_press))
 
 
-ERROR = (
-    "This process is not trusted! Input event monitoring will not be possible"
-    " until it is added to accessibility clients."
-)
+class KeyboardQueue:
+    @cached_property
+    def queue(self) -> Queue[KeyAction]:
+        return Queue()
 
-if __name__ == '__main__':
-    Keyboard().receive()
+    @cached_property
+    def listener(self) -> KeyboardListener:
+        return KeyboardListener(self.queue.put)
+
+    def get_all(self) -> Iterator[KeyAction]:
+        while key_action := self.queue.get():
+            yield key_action
+        yield KeyAction()
+
+    def join(self) -> None:
+        self.listener.join()
+
+
+def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
+    listener = keyboard.Listener(on_press=kl.on_press, on_release=kl.on_release)
+    log = getattr(listener, "_log", None)
+    if not (log and hasattr(listener, "IS_TRUSTED")):
+        return listener
+    # Work around a bogus warning in pynput and Darwin
+    BOGUS_WARNING = (
+        "This process is not trusted! Input event monitoring will not be possible"
+        " until it is added to accessibility clients."
+    )
+    warning_ = log.warning
+
+    @wraps(warning_)
+    def warning(a: str, *args: Any, **kwargs: Any) -> None:
+        if not a.strip() or a.replace(BOGUS_WARNING, "").strip() or args or kwargs:
+            warning_(a, *args, **kwargs)
+
+    log.warning = warning
+    return listener
+
+
+if __name__ == "__main__":
+    KeyboardListener(print).join()
