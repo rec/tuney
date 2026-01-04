@@ -20,8 +20,9 @@ class PlaybackBase:
     device: int | str = 0
     sample_rate: int = 0
 
-    _current_frame: int = 0
+    _chunk_count: int = 0
     _event: threading.Event = dc.field(default_factory=threading.Event)
+    _frame_count: int = 0
     _running: bool = False
 
     @abstractmethod
@@ -31,15 +32,15 @@ class PlaybackBase:
         if status:
             print("Playback", status)  # TODO:
         chunk = self.next_chunk(frames)
-        self._current_frame += len(chunk)
-
         out[: len(chunk)] = chunk
         if len(chunk) < frames:
             out[len(chunk) : frames] = 0
             self._running = False
 
+        self._chunk_count += 1
+        self._frame_count += len(chunk)
         if not self._running:
-            raise CallbackStop()
+            raise CallbackStop
 
     def run(self):
         self._running = True
@@ -62,10 +63,10 @@ class PlaybackBase:
 
 @dc.dataclass
 class DataPlayback(PlaybackBase):
-    data: Data = dc.field(default_factory=Data)
+    data: Data
 
     def next_chunk(self, frames: int) -> Data:
-        return self.data.data[self._current_frame : self._current_frame + frames]
+        return self.data.data[self._frame_count : self._frame_count + frames]
 
     @staticmethod
     def from_file(filename: str, device: int | str = 0) -> DataPlayback:
@@ -78,7 +79,6 @@ class DataPlayback(PlaybackBase):
 @dc.dataclass
 class SynthPlayback(PlaybackBase):
     _queue: Queue = dc.field(default_factory=Queue)
-    # @cached_property
 
 
 if __name__ == "__main__":
