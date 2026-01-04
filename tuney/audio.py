@@ -2,31 +2,30 @@ from __future__ import annotations
 
 import dataclasses as dc
 import threading
-from abc import abstractmethod
 from functools import cached_property
-from typing import TypeAlias
+from typing import Protocol, TypeAlias
 from queue import Queue
 
 from sounddevice import CallbackStop, OutputStream
-import soundfile as sf
+import soundfile
 import numpy as np
 
 Data: TypeAlias = np.ndarray
 
 
+class DataChunker(Protocol):
+    def __call__(self, frames: int) -> Data: ...
+
+
 @dc.dataclass
-class PlaybackBase:
-    channels: int = 1
-    device: int | str = 0
-    sample_rate: int = 0
+class Playback:
+    channels: int
+    device: int | str
+    next_chunk: DataChunker
+    sample_rate: int
 
-    _chunk_count: int = 0
     _event: threading.Event = dc.field(default_factory=threading.Event)
-    _frame_count: int = 0
     _running: bool = False
-
-    @abstractmethod
-    def next_chunk(self, frames: int) -> Data: ...
 
     def callback(self, out: Data, frames: int, time: float, status: str) -> None:
         if status:
@@ -37,8 +36,6 @@ class PlaybackBase:
             out[len(chunk) : frames] = 0
             self._running = False
 
-        self._chunk_count += 1
-        self._frame_count += len(chunk)
         if not self._running:
             raise CallbackStop
 
@@ -48,7 +45,10 @@ class PlaybackBase:
             with self.stream:
                 self._event.wait()
         finally:
-            self._running = False
+            self.stop()
+
+    def stop(self):
+        self._running = False
 
     @cached_property
     def stream(self) -> OutputStream:
@@ -62,22 +62,52 @@ class PlaybackBase:
 
 
 @dc.dataclass
-class DataPlayback(PlaybackBase):
+class SampleData:
     data: Data
-
-    def next_chunk(self, frames: int) -> Data:
-        return self.data.data[self._frame_count : self._frame_count + frames]
+    sample_rate: int
 
     @staticmethod
-    def from_file(filename: str, device: int | str = 0) -> DataPlayback:
-        data, sample_rate = sf.read(filename, always_2d=True)
-        return DataPlayback(
-            channels=data.shape[1], data=data, device=device, sample_rate=sample_rate
-        )
+    def make(filename: str) -> SampleData:
+        return SampleData(*soundfile.read(filename, always_2d=True))
+
+    @cached_property
+    def channels(self) -> int:
+        return self.data.shape[1]
 
 
 @dc.dataclass
-class SynthPlayback(PlaybackBase):
+class FilePlayback:
+    filename: str
+    device: str | int = 0
+
+    chunk_count: int = 0
+    frame_count: int = 0
+
+    @cached_property
+    def data(self) -> SampleData:
+        return SampleData.make(self.filename)
+
+    @cached_property
+    def playback(self) -> Playback:
+        return Playback(
+            channels=self.data.channels,
+            device=self.device,
+            next_chunk=self.next_chunk,
+            sample_rate=self.data.sample_rate,
+        )
+
+    def next_chunk(self, frames: int) -> Data:
+        chunk = self.data.data[self.frame_count : self.frame_count + frames]
+        self.frame_count += len(chunk)
+        self.chunk_count += 1
+        return chunk
+
+    def run(self) -> None:
+        self.playback.run()
+
+
+@dc.dataclass
+class SynthPlayback:
     _queue: Queue = dc.field(default_factory=Queue)
 
 
@@ -86,4 +116,4 @@ if __name__ == "__main__":
 
     for a in sys.argv[1:]:
         print("open", a)
-        DataPlayback.from_file(a).run()
+        FilePlayback(a).run()
