@@ -75,7 +75,7 @@ class NoteOctave(Note):
         return f"{super().__repr__()}{self.octave}"
 
     @staticmethod
-    def from_note_number(note_number: int, accidental: str = FLAT) -> NoteOctave:
+    def from_note_number(note_number: int, accidental: str = SHARP) -> NoteOctave:
         assert accidental in NUMBER_TO_NOTES, accidental
 
         octave, number = divmod(note_number, 12)
@@ -93,7 +93,7 @@ class NoteOctave(Note):
         assert -11 <= off <= 11, (off, n, delta)
         return NoteOctave(octave=self.octave + delta, **dc.asdict(n))
 
-    def add(self, offset: int, accidental: str = FLAT) -> NoteOctave:
+    def add(self, offset: int, accidental: str = SHARP) -> NoteOctave:
         return self.from_note_number(self.note_number + offset, accidental)
 
     @cached_property

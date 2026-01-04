@@ -4,7 +4,6 @@ import dataclasses as dc
 import threading
 from functools import cached_property
 from typing import Protocol, TypeAlias
-from queue import Queue
 
 from sounddevice import CallbackStop, OutputStream
 import soundfile
@@ -70,6 +69,13 @@ class SampleData:
     def make(filename: str) -> SampleData:
         return SampleData(*soundfile.read(filename, always_2d=True))
 
+    def cut_to(self, time: float) -> SampleData:
+        count = round(time * self.sample_rate)
+        if (to_cut := len(self.data) - count) <= 0:
+            return self
+        half = to_cut // 2
+        return SampleData(self.data[half: count + half], self.sample_rate)
+
     @cached_property
     def channels(self) -> int:
         return self.data.shape[1]
@@ -83,32 +89,28 @@ class FilePlayback:
     chunk_count: int = 0
     frame_count: int = 0
 
-    @cached_property
-    def data(self) -> SampleData:
-        return SampleData.make(self.filename)
+    def run(self) -> None:
+        self._playback.run()
 
     @cached_property
-    def playback(self) -> Playback:
-        return Playback(
-            channels=self.data.channels,
-            device=self.device,
-            next_chunk=self.next_chunk,
-            sample_rate=self.data.sample_rate,
-        )
+    def _data(self) -> SampleData:
+        return SampleData.make(self.filename).cut_to(1.5)
 
-    def next_chunk(self, frames: int) -> Data:
-        chunk = self.data.data[self.frame_count : self.frame_count + frames]
+    def _next_chunk(self, frames: int) -> Data:
+        chunk = self._data.data[self.frame_count : self.frame_count + frames]
         self.frame_count += len(chunk)
         self.chunk_count += 1
         return chunk
 
-    def run(self) -> None:
-        self.playback.run()
-
-
-@dc.dataclass
-class SynthPlayback:
-    _queue: Queue = dc.field(default_factory=Queue)
+    @cached_property
+    def _playback(self) -> Playback:
+        print(self._data.data.shape, self._data.sample_rate)
+        return Playback(
+            channels=self._data.channels,
+            device=self.device,
+            next_chunk=self._next_chunk,
+            sample_rate=self._data.sample_rate,
+        )
 
 
 if __name__ == "__main__":
