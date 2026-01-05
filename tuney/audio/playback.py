@@ -8,6 +8,8 @@ from typing import Protocol, TypeAlias
 from sounddevice import CallbackStop, OutputStream
 import numpy as np
 
+from . import DeviceConfig
+
 Data: TypeAlias = np.ndarray
 
 
@@ -17,10 +19,8 @@ class DataChunker(Protocol):
 
 @dc.dataclass
 class Playback:
-    channels: int
-    device: int | str
+    config: DeviceConfig
     next_chunk: DataChunker
-    sample_rate: int
 
     _event: threading.Event = dc.field(default_factory=threading.Event)
     _running: bool = False
@@ -32,7 +32,7 @@ class Playback:
         out[: len(chunk)] = chunk
         if len(chunk) < frames:
             out[len(chunk) : frames] = 0
-            self._running = False
+            self.stop()
 
         if not self._running:
             raise CallbackStop
@@ -50,10 +50,10 @@ class Playback:
 
     @cached_property
     def stream(self) -> OutputStream:
+        kwargs = dc.asdict(self.config)
         return OutputStream(
             callback=self.callback,
-            channels=self.channels,
-            device=self.device,
-            samplerate=self.sample_rate,
             finished_callback=self._event.set,
+            samplerate=kwargs.pop("sample_rate"),
+            **kwargs,
         )

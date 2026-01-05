@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
-
 from .playback import Playback
 from .sample_data import Data, SampleData
 
@@ -32,10 +31,8 @@ class FilePlayback:
     @cached_property
     def _playback(self) -> Playback:
         return Playback(
-            channels=self._data.channels,
-            device=self.device,
+            config=self._data.config(self.device),
             next_chunk=self._next_chunk,
-            sample_rate=self._data.sample_rate,
         )
 
 

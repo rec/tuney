@@ -7,6 +7,8 @@ from typing import TypeAlias
 import soundfile
 import numpy as np
 
+from . import DeviceConfig
+
 Data: TypeAlias = np.ndarray
 
 
@@ -14,6 +16,9 @@ Data: TypeAlias = np.ndarray
 class SampleData:
     data: Data
     sample_rate: int
+
+    def config(self, device: int | str) -> DeviceConfig:
+        return DeviceConfig(self.channels, device, self.sample_rate)
 
     @staticmethod
     def make(filename: str) -> SampleData:
