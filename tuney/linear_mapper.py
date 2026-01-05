@@ -49,7 +49,7 @@ class LinearMapper:
 
 def test():
     from .keyboard import KeyboardQueue
-    from .audio import FilePlayback
+    from .audio.file_playback import FilePlayback
 
     mapper = LinearMapper(note_name="C3", case_sensitive=False, invert=False)
 
