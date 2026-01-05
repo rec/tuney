@@ -12,9 +12,6 @@ class FilePlayback:
     filename: str
     device: str | int = 0
 
-    chunk_count: int = 0
-    frame_count: int = 0
-
     def run(self) -> None:
         self._playback.run()
 
@@ -23,17 +20,13 @@ class FilePlayback:
         return SampleData.make(self.filename).cut_to(1.5)
 
     def _next_chunk(self, frames: int) -> Data:
-        chunk = self._data.data[self.frame_count : self.frame_count + frames]
-        self.frame_count += len(chunk)
-        self.chunk_count += 1
-        return chunk
+        frame_count = self._playback.frame_count
+        return self._data.data[frame_count : frame_count + frames]
 
     @cached_property
     def _playback(self) -> Playback:
-        return Playback(
-            config=self._data.config(self.device),
-            next_chunk=self._next_chunk,
-        )
+        config = self._data.config(self.device)
+        return Playback(config=config, next_chunk=self._next_chunk)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,9 @@ class Playback:
     config: DeviceConfig
     next_chunk: DataChunker
 
+    chunk_count: int = 0
+    frame_count: int = 0
+
     _event: threading.Event = dc.field(default_factory=threading.Event)
     _running: bool = False
 
@@ -29,6 +32,8 @@ class Playback:
         if status:
             print("Playback", status)  # TODO:
         chunk = self.next_chunk(frames)
+        self.frame_count += len(chunk)
+        self.chunk_count += 1
         out[: len(chunk)] = chunk
         if len(chunk) < frames:
             out[len(chunk) : frames] = 0
