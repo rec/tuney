@@ -11,26 +11,22 @@ from . import Data, DeviceConfig
 from .runnable import Runnable
 
 
-class DataChunker(Protocol):
-    def __call__(self, frames: int) -> Data: ...
+class Filler(Protocol):
+    def __call__(self, out: Data, frame_size: int) -> bool: ...
 
 
 class Playback(Runnable):
-    def __init__(self, config: DeviceConfig, next_chunk: DataChunker) -> None:
+    def __init__(self, config: DeviceConfig, fill: Filler) -> None:
         self.config = config
-        self.next_chunk = next_chunk
+        self.fill = fill
         self._event = threading.Event()
 
-    def callback(self, out: Data, frames: int, time: float, status: str) -> None:
+    def callback(self, out: Data, frame_size: int, time: float, status: str) -> None:
         if status:
             print("Playback", status)  # TODO:
-        chunk = self.next_chunk(frames)
-        out[: len(chunk)] = chunk
-        if len(chunk) < frames:
-            out[len(chunk) : frames] = 0
-            self.stop()
 
-        if not self.is_running:
+        if not self.fill(out, frame_size) or not self.is_running:
+            self.stop()
             raise CallbackStop
 
     def _run(self):

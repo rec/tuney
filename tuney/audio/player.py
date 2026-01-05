@@ -9,29 +9,31 @@ from .playback import Playback
 
 
 class Player(ABC):
-    config: DeviceConfig
     chunk_count: int = 0
-    frame_count: int = 0
+    frame_size: int = 0
 
-    @cached_property
-    def config(self) -> DeviceConfig:
-        return self._config()
+    config: DeviceConfig
 
-    def next_chunk(self, frames: int) -> Data:
-        chunk = self._next_chunk(frames)
-        self.frame_count += len(chunk)
+    def fill(self, out: Data, frame_size: int) -> bool:
+        if self.frame_size and frame_size != self.frame_size:
+            # Hope this never happens
+            print("framesize change", self.frame_size, frame_size)
+        self.frame_size = frame_size
+        success = self._fill(out)
         self.chunk_count += 1
-        return chunk
+        return success
 
     @abstractmethod
-    def _config(self) -> DeviceConfig: ...
+    def _fill(self, out: Data) -> bool:
+        pass
 
-    @abstractmethod
-    def _next_chunk(self, frames: int) -> Data: ...
+    @property
+    def frame_count(self) -> int:
+        return self.frame_size * self.chunk_count
 
     @cached_property
     def _playback(self) -> Playback:
-        return Playback(config=self.config, next_chunk=self.next_chunk)
+        return Playback(config=self.config, fill=self.fill)
 
     def run(self) -> None:
         self._playback.run()

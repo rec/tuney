@@ -16,11 +16,17 @@ class FilePlayer(Player):
     def _data(self) -> SampleData:
         return SampleData.make(self.filename).cut_to(1.5)
 
-    def _next_chunk(self, frames: int) -> Data:
-        return self._data.data[self.frame_count : self.frame_count + frames]
-
-    def _config(self) -> DeviceConfig:
+    @cached_property
+    def config(self) -> DeviceConfig:  # pyrefly: ignore[bad-override]
         return self._data.config(self.device)
+
+    def _fill(self, out: Data) -> bool:
+        chunk = self._data.data[self.frame_count : self.frame_count + self.frame_size]
+        out[: len(chunk)] = chunk
+        success = len(chunk) == self.frame_size
+        if not success:
+            out[len(chunk) : self.frame_size] = 0
+        return success
 
 
 if __name__ == "__main__":

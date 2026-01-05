@@ -1,4 +1,4 @@
-from .audio.file_playback import FilePlayer
+from .audio.file_player import FilePlayer
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
 
