@@ -1,4 +1,4 @@
-from .audio.file_playback import FilePlayback
+from .audio.file_playback import FilePlayer
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
 
@@ -12,7 +12,7 @@ def main():
                 if note is not None:
                     print(note, "", end="", flush=True)
                     name = str(note).replace("♯", "#")
-                    FilePlayback(f"assets/piano/{name}.mp3").run()
+                    FilePlayer(f"assets/piano/{name}.mp3").run()
 
     kq = KeyboardQueue(callback)
     kq.start()

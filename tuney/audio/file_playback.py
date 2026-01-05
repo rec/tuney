@@ -1,32 +1,26 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from functools import cached_property
 
-from .playback import Playback
-from .sample_data import Data, SampleData
+from . import Data, DeviceConfig
+from .player import Player
+from .sample_data import SampleData
 
 
-@dc.dataclass
-class FilePlayback:
-    filename: str
-    device: str | int = 0
-
-    def run(self) -> None:
-        self._playback.run()
+class FilePlayer(Player):
+    def __init__(self, filename: str, device: str | int = 0) -> None:
+        self.filename = filename
+        self.device = device
 
     @cached_property
     def _data(self) -> SampleData:
         return SampleData.make(self.filename).cut_to(1.5)
 
     def _next_chunk(self, frames: int) -> Data:
-        frame_count = self._playback.frame_count
-        return self._data.data[frame_count : frame_count + frames]
+        return self._data.data[self.frame_count : self.frame_count + frames]
 
-    @cached_property
-    def _playback(self) -> Playback:
-        config = self._data.config(self.device)
-        return Playback(config=config, next_chunk=self._next_chunk)
+    def _config(self) -> DeviceConfig:
+        return self._data.config(self.device)
 
 
 if __name__ == "__main__":
@@ -34,4 +28,4 @@ if __name__ == "__main__":
 
     for a in sys.argv[1:]:
         print("open", a)
-        FilePlayback(a).run()
+        FilePlayer(a).run()

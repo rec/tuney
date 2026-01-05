@@ -3,55 +3,39 @@ from __future__ import annotations
 import dataclasses as dc
 import threading
 from functools import cached_property
-from typing import Protocol, TypeAlias
+from typing import Protocol
 
 from sounddevice import CallbackStop, OutputStream
-import numpy as np
 
-from . import DeviceConfig
-
-Data: TypeAlias = np.ndarray
+from . import Data, DeviceConfig
+from .runnable import Runnable
 
 
 class DataChunker(Protocol):
     def __call__(self, frames: int) -> Data: ...
 
 
-@dc.dataclass
-class Playback:
-    config: DeviceConfig
-    next_chunk: DataChunker
-
-    chunk_count: int = 0
-    frame_count: int = 0
-
-    _event: threading.Event = dc.field(default_factory=threading.Event)
-    _running: bool = False
+class Playback(Runnable):
+    def __init__(self, config: DeviceConfig, next_chunk: DataChunker) -> None:
+        self.config = config
+        self.next_chunk = next_chunk
+        self._event = threading.Event()
 
     def callback(self, out: Data, frames: int, time: float, status: str) -> None:
         if status:
             print("Playback", status)  # TODO:
         chunk = self.next_chunk(frames)
-        self.frame_count += len(chunk)
-        self.chunk_count += 1
         out[: len(chunk)] = chunk
         if len(chunk) < frames:
             out[len(chunk) : frames] = 0
             self.stop()
 
-        if not self._running:
+        if not self.is_running:
             raise CallbackStop
 
-    def run(self):
-        self._running = True
-        try:
-            with self.stream:
-                self._event.wait()
-        finally:
-            self.stop()
-
-    def stop(self):
-        self._running = False
+    def _run(self):
+        with self.stream:
+            self._event.wait()
 
     @cached_property
     def stream(self) -> OutputStream:
