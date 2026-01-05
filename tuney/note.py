@@ -11,6 +11,7 @@ MIDI_ZERO_OCTAVE = -1
 Standard: 60 = C3, C-1 == 0
 Yamaha: 60 = C4, C0 == 0
 """
+A4 = 69
 
 ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
 ACCIDENTALS = "#b♭♯"
@@ -99,3 +100,7 @@ class NoteOctave(Note):
     @cached_property
     def note_number(self) -> int:
         return 12 * (self.octave - MIDI_ZERO_OCTAVE) + self.offset
+
+    @cached_property
+    def frequency(self) -> float:
+        return 440.0 * 2 ** ((self.note_number - A4) / 12)

@@ -74,7 +74,7 @@ class SampleData:
         if (to_cut := len(self.data) - count) <= 0:
             return self
         half = to_cut // 2
-        return SampleData(self.data[half: count + half], self.sample_rate)
+        return SampleData(self.data[half : count + half], self.sample_rate)
 
     @cached_property
     def channels(self) -> int:
@@ -104,7 +104,6 @@ class FilePlayback:
 
     @cached_property
     def _playback(self) -> Playback:
-        print(self._data.data.shape, self._data.sample_rate)
         return Playback(
             channels=self._data.channels,
             device=self.device,

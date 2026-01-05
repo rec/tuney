@@ -1,5 +1,4 @@
 import dataclasses as dc
-import sys
 from functools import cached_property
 from string import ascii_letters, ascii_lowercase
 from typing import Iterable, Iterator, NamedTuple
@@ -49,8 +48,8 @@ class LinearMapper:
 
 
 def test():
-    from . keyboard import KeyboardQueue
-    from . audio import FilePlayback
+    from .keyboard import KeyboardQueue
+    from .audio import FilePlayback
 
     mapper = LinearMapper(note_name="C3", case_sensitive=False, invert=False)
 
@@ -60,7 +59,7 @@ def test():
                 if note is not None:
                     print(note, "", end="", flush=True)
                     name = str(note).replace("♯", "#")
-                    FilePlayback(f'assets/piano/{name}.mp3').run()
+                    FilePlayback(f"assets/piano/{name}.mp3").run()
 
     kq = KeyboardQueue(callback)
     kq.start()
