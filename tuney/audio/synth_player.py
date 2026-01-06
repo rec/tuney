@@ -2,37 +2,74 @@ from __future__ import annotations
 
 import dataclasses as dc
 from abc import ABC, abstractmethod
+from contextlib import suppress
 from functools import cached_property
+import numbers
 from queue import Queue
 from threading import Lock
-from typing import Protocol
+from typing import Any, Callable, Protocol, TypeAlias
 
 import numpy as np
 
 from . import Data, DeviceConfig
 from .player import Player
 
-
-class Synthesis(Protocol):
-    def __call__(self, out: Data, sample_offset: int) -> None: ...
+if True:
+    Number: TypeAlias = int | float
+else:
+    Number: TypeAlias = numbers.Number
 
 
 @dc.dataclass(frozen=True)
-class Update:
-    frame_count: int
-    offset: int
-
-    def __int__(self) -> int:
-        return self.frame_count + self.offset
+class SoundDesc:
+    period: Number
+    intensity: Number = 1.0
 
 
+class Synth(Protocol):
+    def __call__(self, out: Data, offset: Number, desc: SoundDesc) -> None: ...
+
+
+Function: TypeAlias = Callable[..., Any]
+
+
+@dc.dataclass(frozen=True)
+class Periodic(Synth):
+    function: Function = np.sin
+    period: Number = 2 * np.pi
+
+    def __call__(self, out: Data, offset: Number, desc: SoundDesc) -> None:
+        start = offset % desc.period
+        end = start + len(out)
+        ratio = self.period / desc.period
+        wave = np.linspace(start * ratio, end * ratio, len(out))
+        wave = self.function(wave, out=wave)
+
+        intensity = desc.intensity
+        with suppress(ValueError):
+            # Scale up from [-1, 1] for int types only
+            intensity *= np.iinfo(out.dtype).max
+        wave *= intensity
+
+        out[:] = np.asarray(wave, dtype=out.dtype)
+
+
+@dc.dataclass
 class SynthPlayer(Player, ABC):
-    def __init__(
-        self, synthesis: Synthesis, config: DeviceConfig, buffer_count: int = 3
-    ) -> None:
-        super().__init__()
-        self.config = config
-        self.synthesis = synthesis
+    config: DeviceConfig
+    desc: SoundDesc
+    synth: Synth
+
+    @classmethod
+    def make(
+        cls,
+        config: DeviceConfig,
+        synth: Synth,
+        frequency: Number,
+        intensity: Number = 0.75,
+    ) -> SynthPlayer:
+        period = config.sample_rate / frequency
+        return cls(config, SoundDesc(period, intensity), synth)
 
     @abstractmethod
     def _fill(self, out: Data) -> bool: ...
@@ -40,8 +77,12 @@ class SynthPlayer(Player, ABC):
 
 class SimpleSynthPlayer(SynthPlayer):
     def _fill(self, out: Data) -> bool:
-        self.synthesis(out, self.frame_count)
+        self.synth(out, self.frame_count, self.desc)
         return True
+
+
+if __name__ == "__main__":
+    pass
 
 
 class BufferedSynthPlayer(SynthPlayer):
@@ -81,7 +122,3 @@ class BufferedSynthPlayer(SynthPlayer):
     def _target(self) -> None:
         # while self._queue:
         pass
-
-
-#    @abstractmethod
-#   def fill(self,
