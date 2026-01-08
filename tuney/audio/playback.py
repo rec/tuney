@@ -43,6 +43,5 @@ class Playback(Runnable):
         return OutputStream(
             callback=self.callback,
             finished_callback=self._event.set,
-            samplerate=kwargs.pop("sample_rate"),
             **kwargs,
         )
