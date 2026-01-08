@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 
 
-from . import Data, DeviceConfig
-from .playback import Playback
+from .device_config import DeviceConfig
+from .playback import Data, Playback
 
 
 class Player(ABC):
@@ -37,3 +37,6 @@ class Player(ABC):
 
     def run(self) -> None:
         self._playback.run()
+
+    def stop(self) -> None:
+        self._playback.stop()

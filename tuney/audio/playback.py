@@ -3,12 +3,16 @@ from __future__ import annotations
 import dataclasses as dc
 import threading
 from functools import cached_property
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 from sounddevice import CallbackStop, OutputStream
 
-from . import Data, DeviceConfig
+from .device_config import DeviceConfig
 from .runnable import Runnable
+
+import numpy as np
+
+Data: TypeAlias = np.ndarray
 
 
 class Filler(Protocol):

@@ -5,28 +5,31 @@ from functools import cached_property
 
 import soundfile
 
-from . import Data, DeviceConfig
+from .device_config import DeviceConfig
+from .playback import Data
 
 
 @dc.dataclass
 class SampleData:
     data: Data
-    sample_rate: int
+    samplerate: int
 
-    def config(self, device: int | str) -> DeviceConfig:
-        return DeviceConfig(self.channels, device, self.sample_rate)
+    def config(self, device: int | str | None) -> DeviceConfig:
+        return DeviceConfig(
+            channels=self.channels, device=device, samplerate=self.samplerate
+        )
 
     @staticmethod
     def make(filename: str) -> SampleData:
         return SampleData(*soundfile.read(filename, always_2d=True))
 
     def cut_to(self, time: float) -> SampleData:
-        count = round(time * self.sample_rate)
+        count = round(time * self.samplerate)
         to_cut = len(self.data) - count
         if to_cut <= 0:
             return self
         half = to_cut // 2
-        return SampleData(self.data[half : count + half], self.sample_rate)
+        return SampleData(self.data[half : count + half], self.samplerate)
 
     @cached_property
     def channels(self) -> int:

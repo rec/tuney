@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from . import Data, DeviceConfig
+from .device_config import DeviceConfig
 from .player import Player
+from .playback import Data
 from .sample_data import SampleData
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import cached_property
+from functools import cache, cached_property
 import dataclasses as dc
 import re
 
@@ -38,10 +38,12 @@ def canonical(s: str) -> str:
 
 @dc.dataclass(frozen=True)
 class Note:
+    # TODO: get rid of the string format, base everything around note number
     name: str
     accidentals: str = ""
 
     @staticmethod
+    @cache
     def from_name(note_name: str) -> Note:
         if not (m := NOTE_RE.match(note_name)):
             raise ValueError(f"Cannot understand note {note_name}")
@@ -76,6 +78,7 @@ class NoteOctave(Note):
         return f"{super().__repr__()}{self.octave}"
 
     @staticmethod
+    @cache
     def from_note_number(note_number: int, accidental: str = SHARP) -> NoteOctave:
         assert accidental in NUMBER_TO_NOTES, accidental
 
