@@ -85,7 +85,7 @@ class OscillatorController:
 
 
 def _timestamp():
-    return datetime.datetime.now().strftime(f'%Y%m%d-%H%M%S')
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
 def demo():

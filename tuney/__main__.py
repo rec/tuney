@@ -1,18 +1,28 @@
 from .audio.file_player import FilePlayer
+from .audio.synth_player import OscillatorController
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
+from .note import NoteOctave
+
+USE_FILE = not True
 
 
 def main():
     mapper = LinearMapper(note_name="C3", case_sensitive=False, invert=False)
+    oc = OscillatorController()
 
     def callback(key_action):
-        if key_action.is_press:
-            for letter, note in mapper(key_action.char):
-                if note is not None:
-                    print(note, "", end="", flush=True)
-                    name = str(note).replace("♯", "#")
-                    FilePlayer(f"assets/piano/{name}.mp3").run()
+        for letter, note in mapper(key_action.char):
+            if not isinstance(note, NoteOctave):
+                continue
+            elif not USE_FILE:
+                if key_action.is_press:
+                    oc.start(note)
+                else:
+                    oc.stop(note)
+            elif key_action.is_press:
+                name = str(note).replace("♯", "#")
+                FilePlayer(f"assets/piano/{name}.mp3").run()
 
     kq = KeyboardQueue(callback)
     kq.start()
