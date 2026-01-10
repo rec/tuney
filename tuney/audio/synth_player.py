@@ -9,6 +9,7 @@ from typing import Any, Callable, TypeAlias
 import numpy as np
 
 from .device_config import DeviceConfig
+from ..note import NoteOctave
 from .playback import Data
 from .player import Player
 
@@ -20,7 +21,7 @@ INTENSITY = 0.1
 
 @dc.dataclass(frozen=True)
 class Sound:
-    period: Number
+    period: Number = 0x100
     intensity: Number = INTENSITY
 
 
@@ -32,9 +33,8 @@ class Oscillator:
 
 @dc.dataclass
 class OscillatorPlayer(Player):
-    config: DeviceConfig  # pyrefly: ignore[bad-override]
-    oscillator: Oscillator
-    sound: Sound
+    sound: Sound = dc.field(default_factory=Sound)
+    oscillator: Oscillator = dc.field(default_factory=Oscillator)
 
     def _fill(self, out: Data) -> bool:
         start = self.frame_count % self.sound.period
@@ -56,31 +56,51 @@ class OscillatorPlayer(Player):
 
 @dc.dataclass(frozen=True)
 class OscillatorController:
-    config: DeviceConfig
-    oscillator: Oscillator
-
+    config: DeviceConfig = dc.field(default_factory=DeviceConfig)
+    oscillator: Oscillator = dc.field(default_factory=Oscillator)
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
 
-    def start(self, note_number: int, frequency: float) -> bool:
-        if note_number in self.players:
+    def start(self, note: NoteOctave) -> bool:
+        if note.note_number in self.players:
             return False
-        assert self.config.samplerate is not None
-        period = self.config.samplerate / frequency
-        op = OscillatorPlayer(self.config, self.oscillator, Sound(period))
+        # assert self.config.samplerate is not None
+        period = (self.config.samplerate or 48_000) / note.frequency
+        op = OscillatorPlayer(
+            config=self.config, oscillator=self.oscillator, sound=Sound(period)
+        )
+        print("starting", note, period)
         Thread(target=op.run).start()
-        self.players[note_number] = op
+        self.players[note.note_number] = op
         return True
 
-    def stop(self, note_number: int) -> bool:
-        op = self.players.pop(note_number, None)
-        if op is not None:
+    def stop(self, note: NoteOctave) -> bool:
+        if (op := self.players.pop(note.note_number, None)) is not None:
             op.stop()
-        return bool(op)
+        return bool(op)  # pyrefly: ignore[unbound-name]
+
+    def stop_all(self) -> None:
+        for player in self.players.values():
+            player.stop()
+        self.players.clear()
 
 
 def demo():
-    s1 = OscillatorPlayer(DeviceConfig(), Oscillator(), Sound(48_000.0 / 440.0))
-    s2 = OscillatorPlayer(DeviceConfig(), Oscillator(), Sound(48_000.0 / 660.0))
+    from ..note import NoteOctave
+
+    oc = OscillatorController()
+
+    oc.start(NoteOctave.from_name("C4"))
+    time.sleep(0.5)
+    oc.start(NoteOctave.from_name("E4"))
+    time.sleep(0.5)
+    oc.start(NoteOctave.from_name("E4"))
+    time.sleep(0.5)
+    oc.stop_all()
+
+
+def demo1():
+    s1 = OscillatorPlayer(sound=Sound(48_000.0 / 440.0))
+    s2 = OscillatorPlayer(sound=Sound(48_000.0 / 660.0))
 
     def target():
         time.sleep(0.5)
@@ -103,4 +123,4 @@ def demo():
 
 
 if __name__ == "__main__":
-    demo()
+    demo1()
