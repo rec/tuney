@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses as dc
 from abc import ABC, abstractmethod
 from functools import cached_property
 
@@ -7,19 +8,20 @@ from .device_config import DeviceConfig
 from .playback import Data, Playback
 
 
+@dc.dataclass
 class Player(ABC):
-    chunk_count: int = 0
-    frame_size: int = 0
+    config: DeviceConfig = dc.field(default_factory=DeviceConfig)
 
-    config: DeviceConfig
+    _chunk_count: int = 0
+    _frame_size: int = 0
 
     def fill(self, out: Data, frame_size: int) -> bool:
-        if self.frame_size and frame_size != self.frame_size:
+        if self._frame_size and frame_size != self._frame_size:
             # Hope this never happens
-            print("framesize change", self.frame_size, frame_size)
-        self.frame_size = frame_size
+            print("framesize change", self._frame_size, frame_size)
+        self._frame_size = frame_size
         success = self._fill(out)
-        self.chunk_count += 1
+        self._chunk_count += 1
         return success
 
     @abstractmethod
@@ -28,7 +30,11 @@ class Player(ABC):
 
     @property
     def frame_count(self) -> int:
-        return self.frame_size * self.chunk_count
+        return self._frame_size * self._chunk_count
+
+    @property
+    def frame_size(self) -> int:
+        return self._frame_size
 
     @cached_property
     def _playback(self) -> Playback:
