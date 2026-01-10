@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses as dc
+import datetime
 import time
 from contextlib import suppress
 from threading import Thread
@@ -68,7 +69,6 @@ class OscillatorController:
         op = OscillatorPlayer(
             config=self.config, oscillator=self.oscillator, sound=Sound(period)
         )
-        print("starting", note, period)
         Thread(target=op.run).start()
         self.players[note.note_number] = op
         return True
@@ -84,18 +84,34 @@ class OscillatorController:
         self.players.clear()
 
 
+def _timestamp():
+    return datetime.datetime.now().strftime(f'%Y%m%d-%H%M%S')
+
+
 def demo():
     from ..note import NoteOctave
 
     oc = OscillatorController()
 
-    oc.start(NoteOctave.from_name("C4"))
-    time.sleep(0.5)
-    oc.start(NoteOctave.from_name("E4"))
-    time.sleep(0.5)
-    oc.start(NoteOctave.from_name("E4"))
-    time.sleep(0.5)
-    oc.stop_all()
+    stack = []
+    o1 = "C4", "E4", "D5", "Eb3", "G3", "C3", "E3", "D4", "Eb2", "G2"
+    o2 = "C2", "E2", "D3", "Eb1", "G1", "C1", "E1", "D2", "Eb0", "G0"
+
+    o1 = "C3", "E3", "D4", "Eb2", "G2"
+    o2 = "C1", "E1", "D2", "Eb0", "G0"
+    for note in o1 + o2:
+        print("on", note)
+        stack.append(NoteOctave.from_name(note))
+        if not oc.start(stack[-1]):
+            print("oops", stack[-1])
+        time.sleep(1.0)
+
+    while stack:
+        note = stack.pop()
+        print("off", _timestamp(), note)
+        if not oc.stop(note):
+            print("oops off", note)
+        time.sleep(0.5)
 
 
 def demo1():
@@ -123,4 +139,4 @@ def demo1():
 
 
 if __name__ == "__main__":
-    demo1()
+    demo()
