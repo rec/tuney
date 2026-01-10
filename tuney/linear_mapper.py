@@ -27,7 +27,7 @@ class LinearMapper:
 
     @cached_property
     def note(self) -> Note:
-        return Note.from_name(self.note_name)
+        return Note.make(self.note_name)
 
     def __call__(self, letters: Iterable[str]) -> Iterator[LetterNote]:
         for letter in letters:

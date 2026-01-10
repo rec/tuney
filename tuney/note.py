@@ -44,7 +44,7 @@ class Note:
 
     @staticmethod
     @cache
-    def from_name(note_name: str) -> Note:
+    def make(note_name: str) -> Note:
         if not (m := NOTE_RE.match(note_name)):
             raise ValueError(f"Cannot understand note {note_name}")
 
@@ -76,6 +76,12 @@ class NoteOctave(Note):
 
     def __repr__(self) -> str:
         return f"{super().__repr__()}{self.octave}"
+
+    @staticmethod
+    def from_name(note_name: str) -> NoteOctave:  # pyrefly: ignore[bad-overide]
+        note = Note.make(note_name)
+        assert isinstance(note, NoteOctave)
+        return note
 
     @staticmethod
     @cache
