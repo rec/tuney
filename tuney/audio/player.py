@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 
 from .device_config import DeviceConfig
-from .playback import Data, Playback
+from .playback import Playback
+from .sample_data import Data
 
 
 @dc.dataclass

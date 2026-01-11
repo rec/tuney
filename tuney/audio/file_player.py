@@ -4,8 +4,7 @@ from functools import cached_property
 
 from .device_config import DeviceConfig
 from .player import Player
-from .playback import Data
-from .sample_data import SampleData
+from .sample_data import Data, SampleData
 
 
 class FilePlayer(Player):

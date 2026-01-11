@@ -11,8 +11,8 @@ import numpy as np
 
 from .device_config import DeviceConfig
 from ..note import NoteOctave
-from .playback import Data
 from .player import Player
+from .sample_data import Data
 
 Number: TypeAlias = int | float
 Function: TypeAlias = Callable[..., Any]
