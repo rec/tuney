@@ -2,18 +2,18 @@ from .audio.file_player import FilePlayer
 from .audio.synth_player import OscillatorController
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
-from .note import NoteOctave
+from .note import Note
 
 USE_FILE = not True
 
 
 def main():
-    mapper = LinearMapper(note_name="C3", case_sensitive=False, invert=False)
+    mapper = LinearMapper(note_name="C2", case_sensitive=True, invert=False)
     oc = OscillatorController()
 
     def callback(key_action):
         for letter, note in mapper(key_action.char):
-            if not isinstance(note, NoteOctave):
+            if not isinstance(note, Note):
                 continue
             elif not USE_FILE:
                 if key_action.is_press:

@@ -10,7 +10,7 @@ from typing import Any, Callable, TypeAlias
 import numpy as np
 
 from .device_config import DeviceConfig
-from ..note import NoteOctave
+from ..note import Note
 from .player import Player
 from .sample_data import Data
 
@@ -100,7 +100,7 @@ class OscillatorController:
     oscillator: Oscillator = dc.field(default_factory=Oscillator)
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
 
-    def start(self, note: NoteOctave) -> bool:
+    def start(self, note: Note) -> bool:
         if note.note_number in self.players:
             return False
         # assert self.config.samplerate is not None
@@ -112,7 +112,7 @@ class OscillatorController:
         self.players[note.note_number] = op
         return True
 
-    def stop(self, note: NoteOctave) -> bool:
+    def stop(self, note: Note) -> bool:
         if (op := self.players.pop(note.note_number, None)) is not None:
             op.stop()
         return bool(op)  # pyrefly: ignore[unbound-name]
@@ -128,7 +128,7 @@ def _timestamp():
 
 
 def demo():
-    from ..note import NoteOctave
+    from ..note import Note
 
     oc = OscillatorController()
 
@@ -142,7 +142,7 @@ def demo():
     o2 = "C1", "E1", "D2", "Eb0", "G0"
     for note in (o1 + o2)[0]:
         print("on", note)
-        stack.append(NoteOctave.from_name(note))
+        stack.append(Note.from_name(note))
         if not oc.start(stack[-1]):
             print("oops", stack[-1])
         time.sleep(DT)

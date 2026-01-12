@@ -37,20 +37,11 @@ def canonical(s: str) -> str:
 
 
 @dc.dataclass(frozen=True)
-class Note:
-    # TODO: get rid of the string format, base everything around note number
+class NoteName:
+    """A note without an octave"""
+
     name: str
     accidentals: str = ""
-
-    @staticmethod
-    @cache
-    def make(note_name: str) -> Note:
-        if not (m := NOTE_RE.match(note_name)):
-            raise ValueError(f"Cannot understand note {note_name}")
-
-        name, accidentals, octave = m.groups()
-        acc = canonical(accidentals)
-        return NoteOctave(name, acc, int(octave)) if octave else Note(name, acc)
 
     def __post_init__(self):
         assert self.name in NOTE_TO_NUMBER, self
@@ -59,9 +50,9 @@ class Note:
     def __repr__(self) -> str:
         return self.name + self.accidentals
 
-    def add(self, offset: int, accidental: str = FLAT) -> Note:
+    def add(self, offset: int, accidental: str = FLAT) -> NoteName:
         name = NUMBER_TO_NOTES[accidental][(offset + self.offset) % 12]
-        return Note(name[0], name[1:])
+        return NoteName(name[0], name[1:])
 
     @cached_property
     def offset(self) -> int:
@@ -70,40 +61,51 @@ class Note:
         return NOTE_TO_NUMBER[self.name] + accidentals
 
 
+@cache
+def make_note(note_name: str) -> NoteName:
+    if not (m := NOTE_RE.match(note_name)):
+        raise ValueError(f"Cannot understand note {note_name}")
+
+    name, accidentals, octave = m.groups()
+    acc = canonical(accidentals)
+    return Note(name, acc, int(octave)) if octave else NoteName(name, acc)
+
+
+# TODO: get rid of the string format, base everything around note number
 @dc.dataclass(frozen=True)
-class NoteOctave(Note):
+class Note(NoteName):
     octave: int = 0
 
     def __repr__(self) -> str:
         return f"{super().__repr__()}{self.octave}"
 
     @staticmethod
-    def from_name(note_name: str) -> NoteOctave:  # pyrefly: ignore[bad-overide]
-        note = Note.make(note_name)
-        assert isinstance(note, NoteOctave)
+    def from_name(note_name: str) -> Note:  # pyrefly: ignore[bad-overide]
+        note = make_note(note_name)
+        assert isinstance(note, Note)
         return note
 
     @staticmethod
     @cache
-    def from_note_number(note_number: int, accidental: str = SHARP) -> NoteOctave:
+    def from_note_number(note_number: int, accidental: str = SHARP) -> Note:
         assert accidental in NUMBER_TO_NOTES, accidental
 
         octave, number = divmod(note_number, 12)
         octave += MIDI_ZERO_OCTAVE
         name = NUMBER_TO_NOTES[accidental][number]
 
-        return NoteOctave(name=name[0], accidentals=name[1:], octave=octave)
+        return Note(name=name[0], accidentals=name[1:], octave=octave)
 
-    def closest(self, n: Note) -> NoteOctave:
+    def closest(self, n: NoteName) -> Note:
         """Octaved version of n which is as close possible to self"""
-        if isinstance(n, NoteOctave):
+        if isinstance(n, Note):
             return n
         off = self.offset - n.offset
         delta = 1 if off <= -5 else 0 if off <= 5 else -1
         assert -11 <= off <= 11, (off, n, delta)
-        return NoteOctave(octave=self.octave + delta, **dc.asdict(n))
+        return Note(octave=self.octave + delta, **dc.asdict(n))
 
-    def add(self, offset: int, accidental: str = SHARP) -> NoteOctave:
+    def add(self, offset: int, accidental: str = SHARP) -> Note:
         return self.from_note_number(self.note_number + offset, accidental)
 
     @cached_property

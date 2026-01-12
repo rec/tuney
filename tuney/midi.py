@@ -1,5 +1,5 @@
 import dataclasses as dc
-from .note import NoteOctave
+from .note import Note
 
 import mido
 
@@ -12,7 +12,7 @@ class NoteMaker:
     velocity: int = 0x40
     note_offset: int = 0
 
-    def message(self, note: NoteOctave, is_press: bool) -> mido.Message:
+    def message(self, note: Note, is_press: bool) -> mido.Message:
         return mido.Message(
             channel=self.channel,
             note=(note.note_number + self.note_offset) % 128,
