@@ -100,8 +100,8 @@ class KeyboardQueue:
 
 def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
     listener = keyboard.Listener(
-        on_press=kl.on_press,  # pyrefly: ignore[bad-argument-type]
-        on_release=kl.on_release,  # pyrefly: ignore[bad-argument-type]
+        on_press=kl.on_press,
+        on_release=kl.on_release,
     )
     log = getattr(listener, "_log", None)
     if not (log and hasattr(listener, "IS_TRUSTED")):

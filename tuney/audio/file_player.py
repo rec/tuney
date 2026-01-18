@@ -17,7 +17,7 @@ class FilePlayer(Player):
         return SampleData.make(self.filename).cut_to(1.5)
 
     @cached_property
-    def config(self) -> DeviceConfig:  # pyrefly: ignore[bad-override]
+    def config(self) -> DeviceConfig:
         return self._data.config(self.device)
 
     def _fill(self, out: Data) -> bool:

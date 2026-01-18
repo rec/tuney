@@ -115,7 +115,7 @@ class OscillatorController:
     def stop(self, note: Note) -> bool:
         if (op := self.players.pop(note.note_number, None)) is not None:
             op.stop()
-        return bool(op)  # pyrefly: ignore[unbound-name]
+        return bool(op)
 
     def stop_all(self) -> None:
         for player in self.players.values():

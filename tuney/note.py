@@ -80,7 +80,7 @@ class Note(NoteName):
         return f"{super().__repr__()}{self.octave}"
 
     @staticmethod
-    def from_name(note_name: str) -> Note:  # pyrefly: ignore[bad-overide]
+    def from_name(note_name: str) -> Note:
         note = make_note(note_name)
         assert isinstance(note, Note)
         return note
