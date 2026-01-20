@@ -15,8 +15,3 @@ class NamedScale(NamedTuple):
     scale: Scale
     name_to_number: NameToNumber
     number_to_name: NumberToName
-
-
-class NoteFrequency(NamedTuple):
-    number: NoteNumber
-    frequency: Frequency
