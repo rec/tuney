@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 
-from .scale import NamedScale, NoteNumber
+from .scale import NoteNumber, Scale
 from .. import note
 
 
-def scale(note_number: NoteNumber) -> float:
+def tuning(note_number: NoteNumber) -> float:
     return 440.0 * 2 ** ((note_number - note.A4) / 12)
 
 
@@ -18,4 +18,4 @@ def number_to_name(number: NoteNumber, use_sharp: bool = True) -> str:
     return str(note.Note.from_note_number(number, accidental))
 
 
-TWELVE_TET = NamedScale(scale, name_to_number, number_to_name)
+TWELVE_TET = Scale(tuning, name_to_number, number_to_name)

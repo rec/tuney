@@ -12,6 +12,6 @@ def test_scale():
 
 
 def test_nearest_note():
-    actual = [nearest_note(tt.scale, i) for i in range(400, 500, 20)]
+    actual = [nearest_note(tt.tuning, i) for i in range(400, 500, 20)]
     expected = [(67, 68), (68, 69), 69, (69, 70), (70, 71)]
     assert actual == expected
