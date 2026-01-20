@@ -4,11 +4,26 @@ import re
 
 from .scale import NoteNumber, Scale
 
-A4 = 69
+A440 = 69
+
+MIDI_ZERO_OCTAVE = -1
+ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
+ACCIDENTALS = "#b♭♯"
+FLAT, SHARP = "♭", "♯"
+CANONICALS = FLAT + SHARP
+NOTE_TO_NUMBER = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+NUMBER_TO_NOTES = {
+    FLAT: ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"),
+    SHARP: ("C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"),
+}
+NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
+
+assert ACCIDENTALS == "".join(sorted(ACCIDENTAL_DICT))
+assert CANONICALS == ACCIDENTALS[2:]
 
 
 def tuning(note_number: NoteNumber) -> float:
-    return 440.0 * 2 ** ((note_number - A4) / 12)
+    return 440.0 * 2 ** ((note_number - A440) / 12)
 
 
 def name_to_number(name: str) -> int:
@@ -26,17 +41,8 @@ def number_to_name(number: NoteNumber, use_sharp: bool = True) -> str:
 
 TWELVE_TET = Scale(tuning, name_to_number, number_to_name)
 
-MIDI_ZERO_OCTAVE = -1
-ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
-ACCIDENTALS = "#b♭♯"
-FLAT, SHARP = "♭", "♯"
-CANONICALS = FLAT + SHARP
-NOTE_TO_NUMBER = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
-NUMBER_TO_NOTES = {
-    FLAT: ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"),
-    SHARP: ("C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"),
-}
-NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
 
-assert ACCIDENTALS == "".join(sorted(ACCIDENTAL_DICT))
-assert CANONICALS == ACCIDENTALS[2:]
+def canonical(s: str) -> str:
+    for k, v in ACCIDENTAL_DICT.items():
+        s = s.replace(k, v)
+    return s

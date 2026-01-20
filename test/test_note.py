@@ -1,6 +1,7 @@
 import pytest
 
-from tuney.note import canonical, make_note, Note
+from tuney.note import make_note, Note
+from tuney.scale.twelve_tet import canonical
 from tuney.scale import twelve_tet as tt
 
 NOTES = ["C", "C#", "G♯", "C-2", "F♭10"]

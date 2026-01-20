@@ -4,15 +4,14 @@ from functools import cache, cached_property
 import dataclasses as dc
 
 from tuney.scale.twelve_tet import (
-    A4,
-    ACCIDENTAL_DICT,
+    A440,
     CANONICALS,
-    FLAT,
     MIDI_ZERO_OCTAVE,
     NOTE_RE,
     NOTE_TO_NUMBER,
     NUMBER_TO_NOTES,
     SHARP,
+    canonical,
 )
 
 """
@@ -20,12 +19,6 @@ from tuney.scale.twelve_tet import (
 Standard: 60 = C3, C-1 == 0
 Yamaha: 60 = C4, C0 == 0
 """
-
-
-def canonical(s: str) -> str:
-    for k, v in ACCIDENTAL_DICT.items():
-        s = s.replace(k, v)
-    return s
 
 
 @dc.dataclass(frozen=True)
@@ -41,10 +34,6 @@ class NoteName:
 
     def __repr__(self) -> str:
         return self.name + self.accidentals
-
-    def add(self, offset: int, accidental: str = FLAT) -> NoteName:
-        name = NUMBER_TO_NOTES[accidental][(offset + self.offset) % 12]
-        return NoteName(name[0], name[1:])
 
     @cached_property
     def offset(self) -> int:
@@ -97,13 +86,10 @@ class Note(NoteName):
         assert -11 <= off <= 11, (off, n, delta)
         return Note(octave=self.octave + delta, **dc.asdict(n))
 
-    def add(self, offset: int, accidental: str = SHARP) -> Note:
-        return self.from_note_number(self.note_number + offset, accidental)
-
     @cached_property
     def note_number(self) -> int:
         return 12 * (self.octave - MIDI_ZERO_OCTAVE) + self.offset
 
     @cached_property
     def frequency(self) -> float:
-        return 440.0 * 2 ** ((self.note_number - A4) / 12)
+        return 440.0 * 2 ** ((self.note_number - A440) / 12)

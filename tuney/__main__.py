@@ -1,12 +1,10 @@
 from typing import Any, Callable
 
-from .audio.file_player import FilePlayer
 from .audio.synth_player import OscillatorController
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
 from .note import make_note
 
-USE_FILE = not True
 NOTE_NAME = make_note("C3")
 OC = OscillatorController()
 
@@ -28,15 +26,8 @@ def synth(note_number: int, is_press: bool) -> None:
         OC.stop(note_number)
 
 
-def file(note_number: int, is_press: bool) -> None:
-    if is_press:
-        note = NOTE_NAME.add(note_number)
-        name = str(note).replace("♯", "#")
-        FilePlayer(f"assets/piano/{name}.mp3").run()
-
-
 def main():
-    map_keyboard(file if USE_FILE else synth)
+    map_keyboard(synth)
 
 
 if __name__ == "__main__":
