@@ -132,10 +132,7 @@ class OscillatorController:
 
 
 def run_many_notes():
-    from ..note import Note
-
     oc = OscillatorController()
-
     DT = 0.2
 
     stack = []
@@ -143,13 +140,13 @@ def run_many_notes():
     o2 = "C2", "E2", "D3", "Eb1", "G1", "C1", "E1", "D2", "Eb0", "G0"
 
     for name in (o1 + o2)[0]:
-        stack.append(note := Note.from_name(name))
-        if not oc.start(note.note_number):
+        stack.append(note := TWELVE_TET.name_to_number(name))
+        if not oc.start(note):
             print("oops", name)
         time.sleep(DT)
 
     while stack:
-        if not oc.stop((note := stack.pop()).note_number):
+        if not oc.stop(note := stack.pop()):
             print("oops off", note)
         time.sleep(DT / 2)
 

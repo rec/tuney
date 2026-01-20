@@ -2,32 +2,24 @@ from __future__ import annotations
 
 from functools import cache, cached_property
 import dataclasses as dc
-import re
 
+from tuney.scale.twelve_tet import (
+    A4,
+    ACCIDENTAL_DICT,
+    CANONICALS,
+    FLAT,
+    MIDI_ZERO_OCTAVE,
+    NOTE_RE,
+    NOTE_TO_NUMBER,
+    NUMBER_TO_NOTES,
+    SHARP,
+)
 
-MIDI_ZERO_OCTAVE = -1
 """
 0 would be Yamaha, but we'll account for that elsewhere.
 Standard: 60 = C3, C-1 == 0
 Yamaha: 60 = C4, C0 == 0
 """
-A4 = 69
-
-ACCIDENTAL_DICT = {"#": "♯", "b": "♭", "♭": "♭", "♯": "♯"}
-ACCIDENTALS = "#b♭♯"
-assert ACCIDENTALS == "".join(sorted(ACCIDENTAL_DICT))
-
-FLAT, SHARP = "♭", "♯"
-CANONICALS = FLAT + SHARP
-assert CANONICALS == ACCIDENTALS[2:]
-
-NOTE_TO_NUMBER = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
-NUMBER_TO_NOTES = {
-    FLAT: ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"),
-    SHARP: ("C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"),
-}
-
-NOTE_RE = re.compile(rf"([A-G])([{ACCIDENTALS}]*)(-?\d*)")
 
 
 def canonical(s: str) -> str:

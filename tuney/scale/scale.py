@@ -16,14 +16,16 @@ class Scale(NamedTuple):
     name_to_number: NameToNumber
     number_to_name: NumberToName
 
-    class XNote(NamedTuple):
-        scale: Scale
-        number: NoteNumber
-        name: str
 
-    def make_note(self, n: NoteNumber | str) -> XNote:
+class XNote(NamedTuple):  # The future of Note
+    scale: Scale
+    number: NoteNumber
+    name: str
+
+    @staticmethod
+    def make(scale: Scale, n: NoteNumber | str) -> XNote:
         if isinstance(n, str):
-            name, number = n, self.name_to_number(n)
+            name, number = n, scale.name_to_number(n)
         else:
-            name, number = self.number_to_name(n), n  # ty: ignore[missing-argument]
-        return Scale.XNote(self, number, name)
+            name, number = scale.number_to_name(n), n  # ty: ignore[missing-argument]
+        return XNote(scale, number, name)

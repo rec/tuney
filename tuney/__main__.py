@@ -4,7 +4,7 @@ from .audio.file_player import FilePlayer
 from .audio.synth_player import OscillatorController
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
-from .note import make_note, Note
+from .note import make_note
 
 USE_FILE = not True
 NOTE_NAME = make_note("C3")
