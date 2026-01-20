@@ -3,9 +3,7 @@ from typing import Any, Callable
 from .audio.synth_player import OscillatorController
 from .keyboard import KeyboardQueue
 from .linear_mapper import LinearMapper
-from .note import make_note
 
-NOTE_NAME = make_note("C3")
 OC = OscillatorController()
 
 

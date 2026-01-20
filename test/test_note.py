@@ -1,22 +1,20 @@
 import pytest
 
-from tuney.note import make_note, Note
-from tuney.scale.twelve_tet import canonical
 from tuney.scale import twelve_tet as tt
 
-NOTES = ["C", "C#", "G♯", "C-2", "F♭10"]
+NOTES = ["C1", "C#3", "G♯5", "C-2", "F♭10"]
 
 
-@pytest.mark.parametrize("note", NOTES)
-def test_note(note):
-    actual = str(make_note(note))
-
-    assert actual == canonical(note)
+def canonical(s: str) -> str:
+    for k, v in tt.ACCIDENTAL_DICT.items():
+        s = s.replace(k, v)
+    return s
 
 
 @pytest.mark.parametrize("note", NOTES)
 def test_twelve_tet(note):
-    if isinstance((n := make_note(note)), Note):
-        actual = n.note_number
-        expected = tt.name_to_number(note)
-        assert actual == expected
+    number = tt.name_to_number(note)
+    name = tt.number_to_name(number)
+    assert tt.name_to_number(name) == number
+
+    assert note == "F♭10" or name == canonical(note)
