@@ -1,24 +1,12 @@
 from __future__ import annotations
 
-
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
+from typing import Any
 
-
-type NoteNumber = int  # May be negative
-
-
-class NoteNamer(ABC):
-    @abstractmethod
-    def to_number(self, name: str) -> int: ...
-
-    @abstractmethod
-    def to_name(self, number: NoteNumber, **kwargs: Any) -> str | None: ...
+from . import NoteNumber
 
 
 class Scale(ABC):
-    namers: Sequence[NoteNamer]
-
     @abstractmethod
     def number_to_frequency(self, note_number: NoteNumber) -> float: ...
 
@@ -39,8 +27,12 @@ class Scale(ABC):
                 above = mid
         return below, above
 
-    def to_name(self, note_number: NoteNumber, **kwargs: Any) -> str:
-        for n in self.namers:
-            if (s := n.to_name(note_number, **kwargs)) is not None:
-                return s
-        raise ValueError(f"Can't name {note_number=}, {kwargs=}")
+
+class NoteNamer(ABC):
+    scale: Scale
+
+    @abstractmethod
+    def to_number(self, name: str) -> int: ...
+
+    @abstractmethod
+    def to_name(self, number: NoteNumber, **kwargs: Any) -> str: ...

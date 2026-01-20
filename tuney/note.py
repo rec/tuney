@@ -81,9 +81,9 @@ class Note(NoteName):
 
     @staticmethod
     def from_name(note_name: str) -> Note:
-        note = make_note(note_name)
-        assert isinstance(note, Note)
-        return note
+        if isinstance((note := make_note(note_name)), Note):
+            return note
+        raise ValueError(f"Do not understand '{note_name}'")
 
     @staticmethod
     @cache
