@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses as dc
-import datetime
 import time
 from contextlib import suppress
 from threading import Thread
@@ -10,9 +9,10 @@ from typing import Any, Callable, TypeAlias
 import numpy as np
 
 from .device_config import DeviceConfig
-from ..note import Note
 from .player import Player
 from .sample_data import Data
+from ..scale.scale import NoteNumber, Scale
+from ..scale.twelve_tet import TWELVE_TET
 
 Number: TypeAlias = int | float
 Function: TypeAlias = Callable[..., Any]
@@ -99,21 +99,23 @@ class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator: Oscillator = dc.field(default_factory=Oscillator)
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
+    scale: Scale = TWELVE_TET
 
-    def start(self, note: Note) -> bool:
-        if note.note_number in self.players:
+    def start(self, note_number: NoteNumber) -> bool:
+        if note_number in self.players:
             return False
         # assert self.config.samplerate is not None
-        period = (self.config.samplerate or 48_000) / note.frequency
+        frequency = self.scale.tuning(note_number)
+        period = (self.config.samplerate or 48_000) / frequency
         op = OscillatorPlayer(
             config=self.config, oscillator=self.oscillator, sound=Sound(period)
         )
         Thread(target=op.run).start()
-        self.players[note.note_number] = op
+        self.players[note_number] = op
         return True
 
-    def stop(self, note: Note) -> bool:
-        if (op := self.players.pop(note.note_number, None)) is not None:
+    def stop(self, note_number: NoteNumber) -> bool:
+        if (op := self.players.pop(note_number, None)) is not None:
             op.stop()
         return bool(op)
 
@@ -123,11 +125,7 @@ class OscillatorController:
         self.players.clear()
 
 
-def _timestamp():
-    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-
-def demo():
+def run_many_notes():
     from ..note import Note
 
     oc = OscillatorController()
@@ -138,46 +136,17 @@ def demo():
     o1 = "C4", "E4", "D5", "Eb3", "G3", "C3", "E3", "D4", "Eb2", "G2"
     o2 = "C2", "E2", "D3", "Eb1", "G1", "C1", "E1", "D2", "Eb0", "G0"
 
-    o1 = "C3", "E3", "D4", "Eb2", "G2"
-    o2 = "C1", "E1", "D2", "Eb0", "G0"
-    for note in (o1 + o2)[0]:
-        print("on", note)
-        stack.append(Note.from_name(note))
-        if not oc.start(stack[-1]):
-            print("oops", stack[-1])
+    for name in (o1 + o2)[0]:
+        stack.append(note := Note.from_name(name))
+        if not oc.start(note.note_number):
+            print("oops", name)
         time.sleep(DT)
 
     while stack:
-        note = stack.pop()
-        print("off", _timestamp(), note)
-        if not oc.stop(note):
+        if not oc.stop((note := stack.pop()).note_number):
             print("oops off", note)
         time.sleep(DT / 2)
 
 
-def demo1():
-    s1 = OscillatorPlayer(sound=Sound(48_000.0 / 440.0))
-    s2 = OscillatorPlayer(sound=Sound(48_000.0 / 660.0))
-
-    def target():
-        time.sleep(0.5)
-        s2.run()
-
-    Thread(target=s1.run).start()
-    Thread(target=target).start()
-    time.sleep(1.5)
-    s1.stop()
-    s2.stop()
-
-
-# class Synth(Protocol):
-#     def __call__(self, out: Data, offset: Number, sound: Sound) -> None: ...
-#
-# @dc.dataclass
-# class SynthDevice:
-#     synth: Synth
-#     config: DeviceConfig
-
-
 if __name__ == "__main__":
-    demo()
+    run_many_notes()

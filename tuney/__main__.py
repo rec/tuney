@@ -25,7 +25,7 @@ def synth(note_number: int, is_press: bool) -> None:
     note = NOTE_NAME.add(note_number)
     assert isinstance(note, Note)
     cmd = OC.start if is_press else OC.stop
-    cmd(note)
+    cmd(note.note_number)
 
 
 def file(note_number: int, is_press: bool) -> None:
