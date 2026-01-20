@@ -1,4 +1,4 @@
-from . import Scale
+from .scale import Scale
 
 EPSILON = 1e-6
 

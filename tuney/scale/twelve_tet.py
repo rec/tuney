@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from . import NamedScale, NoteNumber
+from .scale import NamedScale, NoteNumber
 from .. import note
 
 
