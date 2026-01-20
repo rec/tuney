@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 import time
 from contextlib import suppress
+from functools import cached_property
 from threading import Thread
 from typing import Any, Callable, TypeAlias
 
@@ -100,12 +101,13 @@ class OscillatorController:
     oscillator: Oscillator = dc.field(default_factory=Oscillator)
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
     scale: Scale = TWELVE_TET
+    start_note_name: str = "C3"
 
     def start(self, note_number: NoteNumber) -> bool:
         if note_number in self.players:
             return False
         # assert self.config.samplerate is not None
-        frequency = self.scale.tuning(note_number)
+        frequency = self.scale.tuning(note_number + self.start_note_number)
         period = (self.config.samplerate or 48_000) / frequency
         op = OscillatorPlayer(
             config=self.config, oscillator=self.oscillator, sound=Sound(period)
@@ -123,6 +125,10 @@ class OscillatorController:
         for player in self.players.values():
             player.stop()
         self.players.clear()
+
+    @cached_property
+    def start_note_number(self) -> int:
+        return self.scale.name_to_number(self.start_note_name)
 
 
 def run_many_notes():
