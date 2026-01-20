@@ -8,7 +8,7 @@ USE_FILE = not True
 
 
 def main():
-    mapper = LinearMapper(note_name="C2", case_sensitive=True, invert=False)
+    mapper = LinearMapper(note="C3", case_sensitive=True, invert=False)
     oc = OscillatorController()
 
     def callback(key_action):

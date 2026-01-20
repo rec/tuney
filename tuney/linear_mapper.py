@@ -13,7 +13,7 @@ class LetterNote(NamedTuple):
 @dc.dataclass(frozen=True)
 class LinearMapper:
     alphabet_in: str | None = None
-    note_name: str = "C"
+    note: str = "C4"
     length: int = 0
     case_sensitive: bool = False
     invert: bool = False
@@ -26,8 +26,8 @@ class LinearMapper:
         return self.alphabet_in
 
     @cached_property
-    def note(self) -> NoteName:
-        return make_note(self.note_name)
+    def note_name(self) -> NoteName:
+        return make_note(self.note)
 
     def __call__(self, letters: Iterable[str]) -> Iterator[LetterNote]:
         for letter in letters:
@@ -44,4 +44,4 @@ class LinearMapper:
             index = len(self.alphabet) - index - 1
         if self.length:
             index = index % self.length
-        return self.note.add(index + self.offset)
+        return self.note_name.add(index + self.offset)
