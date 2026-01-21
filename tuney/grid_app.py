@@ -30,33 +30,34 @@ Static {{
 """
 
 
-class NoteGridBase(App):
-    theme = 'textual-light'
+class NoteGrid(App):
+    theme = "textual-light"
     text_items: Sequence[str]
 
     def compose(self) -> ComposeResult:
         for t in self.text_items:
-            yield Static(t, classes="on" if t == "C" else "off")
+            label = "\n".join((t, t))
+            yield Static(label, classes="on" if t == "C" else "off")
 
 
 def to_columns_rows(n: int) -> tuple[int, int]:
-    rows = int(n ** 0.5)
+    rows = int(n**0.5)
     columns = n // rows
     return columns + ((rows * columns) < n), rows
 
 
 def make_app(items: Sequence[str]) -> App:
     columns, rows = to_columns_rows(len(items))
+    css = CSS.format(columns=columns, rows=rows)
 
-    class NoteGrid(NoteGridBase):
-        CSS = CSS.format(columns=columns, rows=rows)
-        text_items = items
-
-    return NoteGrid()
+    g = NoteGrid()
+    g.CSS = css  # ty: ignore[invalid-attribute-access]
+    g.text_items = items
+    return g
 
 
 if __name__ == "__main__":
     import sys
 
-    app = make_app((FLAT * 100)[:int(sys.argv[1])])
+    app = make_app((FLAT * 100)[: int(sys.argv[1])])
     app.run()
