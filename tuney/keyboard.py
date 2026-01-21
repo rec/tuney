@@ -18,9 +18,6 @@ class KeyAction:
     char: str = ""
     is_press: bool = False
 
-    def __bool__(self) -> bool:
-        return bool(self.char)
-
 
 Callback: TypeAlias = Callable[[KeyAction], None]
 
@@ -50,6 +47,7 @@ class KeyboardListener:
                 self.callback(KeyAction())
 
     def _on(self, key: OptionalKey, is_press: bool) -> None:
+        print(key, vars(key))
         if char := getattr(key, "char", ""):
             self.callback(KeyAction(char, is_press))
 
