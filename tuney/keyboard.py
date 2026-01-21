@@ -47,7 +47,6 @@ class KeyboardListener:
                 self.callback(KeyAction())
 
     def _on(self, key: OptionalKey, is_press: bool) -> None:
-        print(key, vars(key))
         if char := getattr(key, "char", ""):
             self.callback(KeyAction(char, is_press))
 
