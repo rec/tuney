@@ -8,7 +8,7 @@ from string import ascii_uppercase as UPPER
 
 
 @cache
-def count_scales(tones: int) -> tuple[str]:
+def count_scales(tones: int) -> tuple[str, ...]:
     if tones <= 0:
         return ()
     if tones == 1:
