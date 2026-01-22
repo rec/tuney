@@ -1,6 +1,6 @@
-from typing import Generic, get_args, TypeVar
-
 import dataclasses as dc
+from typing import Generic, TypeVar, get_args
+
 import sounddevice as sd
 
 _T = TypeVar("_T", bound=sd._StreamBase)

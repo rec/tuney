@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 from .scale import NoteNumber, Scale
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0

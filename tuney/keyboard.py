@@ -4,11 +4,11 @@ import dataclasses as dc
 import sys
 import threading
 import traceback
-
 from functools import cached_property, wraps
-from pynput import keyboard
 from queue import Empty, Queue
 from typing import Any, Callable, TypeAlias
+
+from pynput import keyboard
 
 OptionalKey: TypeAlias = keyboard.Key | keyboard.KeyCode | None
 

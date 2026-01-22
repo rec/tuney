@@ -1,10 +1,10 @@
 import dataclasses as dc
 import math
+from typing import Any, Sequence
 
 from textual.app import App, ComposeResult
-from textual.widgets import Static
 from textual.color import Color
-from typing import Any, Sequence
+from textual.widgets import Static
 
 RED, GREY = Color.parse("orange"), Color.parse("grey")
 

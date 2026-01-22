@@ -8,13 +8,12 @@ from threading import Thread
 
 import numpy as np
 
-from . import Data, Number
-from .device_config import DeviceConfig
-from .player import Player
-from .oscillator import Oscillator
 from ..scale.scale import NoteNumber, Scale
 from ..scale.twelve_tet import TWELVE_TET
-
+from . import Data, Number
+from .device_config import DeviceConfig
+from .oscillator import Oscillator
+from .player import Player
 
 INTENSITY = 0.1
 FADE = 0  # 0x40000

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-import numpy as np
 import dataclasses as dc
-from . import Function, Number
+from typing import Any, Callable, TypeAlias
+
+import numpy as np
+
+from . import Number
+
+Function: TypeAlias = Callable[..., Any]
 
 
 @dc.dataclass(frozen=True)
