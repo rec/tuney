@@ -7,9 +7,9 @@ from typing import Protocol
 
 from sounddevice import CallbackStop, OutputStream
 
+from . import Data
 from .device_config import DeviceConfig
 from .runnable import Runnable
-from .sample_data import Data
 
 
 class Filler(Protocol):

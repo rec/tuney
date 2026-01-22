@@ -5,18 +5,16 @@ import time
 from contextlib import suppress
 from functools import cached_property
 from threading import Thread
-from typing import Any, Callable, TypeAlias
 
 import numpy as np
 
+from . import Data, Number
 from .device_config import DeviceConfig
 from .player import Player
-from .sample_data import Data
+from .oscillator import Oscillator
 from ..scale.scale import NoteNumber, Scale
 from ..scale.twelve_tet import TWELVE_TET
 
-Number: TypeAlias = int | float
-Function: TypeAlias = Callable[..., Any]
 
 INTENSITY = 0.1
 FADE = 0  # 0x40000
@@ -29,12 +27,6 @@ class Sound:
     intensity: Number = INTENSITY
     fade_in_samples: Number = 0x1000
     fade_out_samples: Number = 0x1000
-
-
-@dc.dataclass(frozen=True)
-class Oscillator:
-    function: Function = np.sin
-    period: Number = 2 * np.pi
 
 
 @dc.dataclass
@@ -66,15 +58,9 @@ class OscillatorPlayer(Player):
             intensity *= np.iinfo(out.dtype).max
         wave *= intensity
 
-        def clamp(x: float) -> float:
-            return max(0.0, min(1.0, x))
-
-        def fade(wave: np.ndarray, start: float, length: float) -> None:
-            wave *= np.linspace(clamp(start), clamp(start + length), len(wave))
-
         fade_in = self.sound.fade_in_samples
         if self.frame_count < fade_in and not self._stopping:
-            fade(wave, self.frame_count / fade_in, len(out) / fade_in)
+            _fade(wave, self.frame_count / fade_in, len(out) / fade_in)
 
         elif self._stopping:
             if self._fade_frame is None:
@@ -88,7 +74,7 @@ class OscillatorPlayer(Player):
                 super().stop()
                 return False
 
-            fade(wave, start, -len(out) / fade_out)
+            _fade(wave, start, -len(out) / fade_out)
 
         wave = wave.reshape((len(wave), 1))
         out[:] = np.asarray(wave, dtype=out.dtype)
@@ -129,6 +115,14 @@ class OscillatorController:
     @cached_property
     def start_note_number(self) -> int:
         return self.scale.name_to_number(self.start_note_name)
+
+
+def _clamp(x: Number) -> Number:
+    return max(0.0, min(1.0, x))
+
+
+def _fade(wave: Data, start: Number, length: Number) -> None:
+    wave *= np.linspace(_clamp(start), _clamp(start + length), len(wave))
 
 
 def run_many_notes():

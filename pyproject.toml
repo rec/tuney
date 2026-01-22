@@ -11,6 +11,7 @@ dependencies = [
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
     "textual>=7.3.0",
+    "ty>=0.0.13",
     "typer>=0.20.1",
 ]
 

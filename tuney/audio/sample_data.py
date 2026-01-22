@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import dataclasses as dc
 from functools import cached_property
-from typing import TypeAlias
 
 import soundfile
 
+from . import Data
 from .device_config import DeviceConfig
-
-import numpy as np
-
-Data: TypeAlias = np.ndarray
 
 
 @dc.dataclass
