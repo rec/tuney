@@ -11,12 +11,13 @@ import numpy as np
 from ..scale.scale import NoteNumber, Scale
 from ..scale.twelve_tet import TWELVE_TET
 from . import Data, Number
+from . import oscillator as osc
 from .device_config import DeviceConfig
-from .oscillator import Oscillator
 from .player import Player
 
 INTENSITY = 0.1
 FADE = 0  # 0x40000
+OSC = osc.sawtooth
 
 
 # TODO: relieve the tension between human units (frequency, time) and sample units.
@@ -31,7 +32,7 @@ class Sound:
 @dc.dataclass
 class OscillatorPlayer(Player):
     sound: Sound = dc.field(default_factory=Sound)
-    oscillator: Oscillator = dc.field(default_factory=Oscillator)
+    oscillator: osc.Oscillator = OSC
 
     _stopping: bool = False
 
@@ -83,7 +84,7 @@ class OscillatorPlayer(Player):
 @dc.dataclass(frozen=True)
 class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
-    oscillator: Oscillator = dc.field(default_factory=Oscillator)
+    oscillator: osc.Oscillator = OSC
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
     scale: Scale = TWELVE_TET
     start_note_name: str = "C3"
