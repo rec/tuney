@@ -1,12 +1,9 @@
 import dataclasses as dc
 import math
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
 from textual.app import App, ComposeResult
-from textual.color import Color
 from textual.widgets import Static
-
-RED, GREY = Color.parse("orange"), Color.parse("grey")
 
 FLAT = ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B")
 
@@ -19,9 +16,9 @@ class Text:
 
 class NoteGrid(App):
     theme = "textual-light"
-    texts: Sequence[Text]
+    texts: Iterable[Text]
 
-    def __init__(self, texts: Sequence[Text], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, texts: Iterable[Text], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.texts = texts
         css = CSS.format(columns=int(math.ceil(len(texts) ** 0.5)))
