@@ -31,8 +31,10 @@ class KeyboardListener:
         self._on(key, False)
 
     def start(self) -> None:
-        with self.listener:
-            self.listener.join()
+        self.listener.__enter__()
+
+    def join(self) -> None:
+        self.listener.join()
 
     def _on(self, key: Key | None, is_press: bool) -> None:
         if char := getattr(key, "char", ""):

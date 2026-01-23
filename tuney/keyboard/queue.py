@@ -22,14 +22,14 @@ class KeyboardQueue:
 
     def start(self) -> None:
         self.running = True
-        try:
-            self._thread.start()
-            self._listener.start()
-        finally:
-            self.running = False
+        self._thread.start()
+        self._listener.start()
 
     def join(self) -> None:
-        self._thread.join()
+        try:
+            self._listener.join()
+        finally:
+            self.running = False
 
     @cached_property
     def _listener(self) -> KeyboardListener:
