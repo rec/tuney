@@ -32,6 +32,9 @@ class NoteGrid(App):
         for t in self.texts:
             yield Static("\n".join(t.labels), classes="on" if t.on else "off")
 
+    def stop(self) -> Any:
+        return self.exit()
+
 
 CSS = """
 Screen {{

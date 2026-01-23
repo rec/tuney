@@ -1,3 +1,4 @@
+from threading import Thread
 from typing import Any, Callable
 
 from .audio.synth_player import OscillatorController
@@ -25,8 +26,12 @@ def main() -> None:
             grid.render()
 
     kq = KeyboardQueue(key_callback)
-    kq.start()
-    kq.join()
+
+    try:
+        kq.start()
+        grid.run()
+    finally:
+        kq.join()
 
 
 if __name__ == "__main__":
