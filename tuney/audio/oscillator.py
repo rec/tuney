@@ -19,7 +19,6 @@ class Oscillator:
     def function(self, x: Data, out: Data) -> Data: ...
 
 
-
 class Sine(Oscillator):
     @override
     def function(self, x: Data, out: Data) -> Data:
@@ -45,8 +44,6 @@ class OldSawtooth(Oscillator):
 
 class Sawtooth(Triangle):
     width: Number = 0
-
-
 
 
 sawtooth, sine, triangle = Sawtooth(), Sine(), Triangle()

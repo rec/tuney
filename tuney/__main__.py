@@ -1,31 +1,32 @@
 from typing import Any, Callable
 
 from .audio.synth_player import OscillatorController
-from .keyboard import KeyboardQueue
+from .keyboard import KeyAction, KeyboardQueue
 from .linear_mapper import LinearMapper
+from .note_grid import NoteGrid, Text
+from .scale import twelve_tet as tt
 
-OC = OscillatorController()
 
-
-def map_keyboard(callback: Callable[[int, bool], Any]) -> None:
+def main() -> None:
     mapper = LinearMapper(case_sensitive=True, invert=False)
+    items = mapper.char_to_number.items()
+    texts = {n: Text((tt.number_to_name(n), c)) for c, n in items}
+    grid = NoteGrid(texts.values())
+
+    oc = OscillatorController()
 
     def key_callback(k):
         if (note_number := mapper(k.char)) is not None:
-            callback(note_number, k.is_press)
+            if k.is_press:
+                oc.start(note_number)
+            else:
+                oc.stop(note_number)
+            texts[note_number].on = k.is_press
+            grid.render()
 
-    KeyboardQueue(key_callback).start()
-
-
-def synth(note_number: int, is_press: bool) -> None:
-    if is_press:
-        OC.start(note_number)
-    else:
-        OC.stop(note_number)
-
-
-def main():
-    map_keyboard(synth)
+    kq = KeyboardQueue(key_callback)
+    kq.start()
+    kq.join()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import dataclasses as dc
 import math
-from typing import Any, Iterable, Sequence
+from collections.abc import Collection, Sequence
+from typing import Any, Iterable
 
 from textual.app import App, ComposeResult
 from textual.widgets import Static
@@ -16,13 +17,16 @@ class Text:
 
 class NoteGrid(App):
     theme = "textual-light"
-    texts: Iterable[Text]
+    texts: Collection[Text]
 
-    def __init__(self, texts: Iterable[Text], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, texts: Collection[Text], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.texts = texts
-        css = CSS.format(columns=int(math.ceil(len(texts) ** 0.5)))
-        self.CSS = css  # ty: ignore[invalid-attribute-access]
+        cols = int(math.ceil(len(self.texts) ** 0.5))
+        if True:
+            self.CSS = CSS.format(columns=cols)  # ty: ignore[invalid-attribute-access]
+        else:
+            self.styles.grid_size_columns = cols  # Does nothing.
 
     def compose(self) -> ComposeResult:
         for t in self.texts:
@@ -51,12 +55,16 @@ Static {{
 }}"""
 
 
+def _text(i: int) -> Text:
+    s = FLAT[i % len(FLAT)]
+    return Text((s, s), len(s) > 1)
+
+
+TEXTS = [_text(i) for i in range(len(FLAT))]
+
+
 if __name__ == "__main__":
     import sys
 
-    def text(i: int) -> Text:
-        s = FLAT[i % len(FLAT)]
-        return Text((s, s), len(s) > 1)
-
     count = int(sys.argv[1])
-    NoteGrid([text(i) for i in range(count)]).run()
+    NoteGrid([_text(i) for i in range(count)]).run()

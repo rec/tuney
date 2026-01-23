@@ -92,7 +92,6 @@ class OscillatorController:
     def start(self, note_number: NoteNumber) -> bool:
         if note_number in self.players:
             return False
-        # assert self.config.samplerate is not None
         frequency = self.scale.tuning(note_number + self.start_note_number)
         period = (self.config.samplerate or 48_000) / frequency
         op = OscillatorPlayer(

@@ -10,8 +10,6 @@ from typing import Any, Callable, TypeAlias
 
 from pynput import keyboard
 
-OptionalKey: TypeAlias = keyboard.Key | keyboard.KeyCode | None
-
 
 @dc.dataclass(frozen=True)
 class KeyAction:
@@ -19,6 +17,7 @@ class KeyAction:
     is_press: bool = False
 
 
+Key: TypeAlias = keyboard.Key | keyboard.KeyCode
 Callback: TypeAlias = Callable[[KeyAction], None]
 
 
@@ -31,12 +30,12 @@ class KeyboardListener:
     def listener(self) -> keyboard.Listener:
         return _make_listener(self)
 
-    def on_press(self, key: OptionalKey) -> bool | None:
+    def on_press(self, key: Key | None) -> bool | None:
         if key == self.stop_key:
             return False
         self._on(key, True)
 
-    def on_release(self, key: OptionalKey) -> None:
+    def on_release(self, key: Key | None) -> None:
         self._on(key, False)
 
     def start(self) -> None:
@@ -46,7 +45,7 @@ class KeyboardListener:
             finally:
                 self.callback(KeyAction())
 
-    def _on(self, key: OptionalKey, is_press: bool) -> None:
+    def _on(self, key: Key | None, is_press: bool) -> None:
         if char := getattr(key, "char", ""):
             self.callback(KeyAction(char, is_press))
 
@@ -65,6 +64,7 @@ class KeyboardQueue:
         finally:
             self.running = False
 
+    def join(self) -> None:
         self._thread.join()
 
     @cached_property
