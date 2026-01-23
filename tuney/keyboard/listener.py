@@ -32,10 +32,7 @@ class KeyboardListener:
 
     def start(self) -> None:
         with self.listener:
-            try:
-                self.listener.join()
-            finally:
-                self.callback(KeyAction())
+            self.listener.join()
 
     def _on(self, key: Key | None, is_press: bool) -> None:
         if char := getattr(key, "char", ""):
