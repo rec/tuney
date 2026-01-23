@@ -5,31 +5,25 @@ from string import ascii_letters, ascii_lowercase
 
 @dc.dataclass(frozen=True)
 class LinearMapper:
-    alphabet_in: str | None = None
+    alphabet: str | None = None
     length: int = 0
     case_sensitive: bool = False
     invert: bool = False
     offset: int = 0
 
+    def __call__(self, k: str) -> int | None:
+        return self.char_to_number.get(k if self.case_sensitive else k.lower())
+
     @cached_property
-    def alphabet(self) -> str:
-        if self.alphabet_in is None:
-            return ascii_letters if self.case_sensitive else ascii_lowercase
-        return self.alphabet_in
+    def char_to_number(self) -> dict[str, int]:
+        if not (alphabet := self.alphabet):
+            alphabet = ascii_letters if self.case_sensitive else ascii_lowercase
 
-    def __call__(self, letter: str) -> int | None:
-        if len(letter) > 1:
-            return None
+        def char_to_number(index: int, c: str) -> int:
+            if self.invert:
+                index = len(alphabet) - index - 1
+            if self.length:
+                index %= self.length
+            return index + self.offset
 
-        letter = letter if self.case_sensitive else letter.lower()
-        try:
-            index = self.alphabet.index(letter)
-        except ValueError:
-            return None
-
-        if self.invert:
-            index = len(self.alphabet) - index - 1
-        if self.length:
-            index = index % self.length
-
-        return index + self.offset
+        return {a: char_to_number(i, a) for i, a in enumerate(alphabet)}
