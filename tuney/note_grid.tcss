@@ -1,0 +1,18 @@
+Screen {
+    layout: grid;
+    background: white;
+}
+Static {
+    height: 100%;
+    content-align-horizontal: center;
+    content-align-vertical: middle;
+}
+.on {
+    border: solid green;
+    color: orange;
+    text-style: bold;
+}
+.off {
+    border: solid lightblue;
+    color: lightgrey;
+}

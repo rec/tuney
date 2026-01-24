@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses as dc
 import sys
 import threading
-import traceback
 from functools import cached_property, wraps
 from queue import Empty, Queue
 from typing import Any, Callable, TypeAlias

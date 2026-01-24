@@ -7,6 +7,8 @@ from .linear_mapper import LinearMapper
 from .note_grid import NoteGrid, Text
 from .scale import twelve_tet as tt
 
+USE_GRID = not False
+
 
 def main() -> None:
     mapper = LinearMapper(case_sensitive=True, invert=False)
@@ -18,18 +20,16 @@ def main() -> None:
 
     def key_callback(k):
         if (note_number := mapper(k.char)) is not None:
-            if k.is_press:
-                oc.start(note_number)
-            else:
-                oc.stop(note_number)
-            texts[note_number].on = k.is_press
-            grid.render()
+            if oc.note(note_number, k.is_press):
+                texts[note_number].on = k.is_press
+                grid.redraw()
 
     kq = KeyboardQueue(key_callback)
 
     try:
         kq.start()
-        grid.run()
+        if USE_GRID:
+            grid.run()
     finally:
         kq.join()
 

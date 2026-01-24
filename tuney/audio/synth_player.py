@@ -89,6 +89,9 @@ class OscillatorController:
     scale: Scale = TWELVE_TET
     start_note_name: str = "C3"
 
+    def note(self, note_number: NoteNumber, is_press: bool) -> bool:
+        return self.start(note_number) if is_press else self.stop(note_number)
+
     def start(self, note_number: NoteNumber) -> bool:
         if note_number in self.players:
             return False
