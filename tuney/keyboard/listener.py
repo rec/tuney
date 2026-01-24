@@ -15,14 +15,16 @@ from . import Callback, Key, KeyAction
 @dc.dataclass
 class KeyboardListener:
     callback: Callback
-    stop_key: keyboard.Key = keyboard.Key.esc
+    stop_key: keyboard.Key | None = None
+
+    _running: bool = False
 
     @cached_property
     def listener(self) -> keyboard.Listener:
         return _make_listener(self)
 
     def on_press(self, key: Key | None) -> bool | None:
-        if key == self.stop_key:
+        if not self._running or key == self.stop_key:
             return False
         self._on(key, True)
 
@@ -30,10 +32,15 @@ class KeyboardListener:
         self._on(key, False)
 
     def start(self) -> None:
+        self._running = True
         self.listener.__enter__()
 
     def join(self) -> None:
         self.listener.join()
+
+    def stop(self) -> None:
+        self._running = False
+        self.listener.stop()
 
     def _on(self, key: Key | None, is_press: bool) -> None:
         if char := getattr(key, "char", ""):

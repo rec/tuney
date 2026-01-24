@@ -22,14 +22,19 @@ class KeyboardQueue:
 
     def start(self) -> None:
         self.running = True
-        self._thread.start()
+        threading.Thread(target=self._target).start()
         self._listener.start()
 
+    def stop(self) -> None:
+        self.running = False
+        self._listener.stop()
+
     def join(self) -> None:
+        # TODO: shouldn't I stop first?
         try:
             self._listener.join()
         finally:
-            self.running = False
+            self.stop()
 
     @cached_property
     def _listener(self) -> KeyboardListener:
@@ -49,10 +54,6 @@ class KeyboardQueue:
         except Exception:
             print("THREAD TERMINATED", file=sys.stderr)
             traceback.print_exc()
-
-    @cached_property
-    def _thread(self) -> threading.Thread:
-        return threading.Thread(target=self._target)
 
     @cached_property
     def _queue(self) -> Queue[KeyAction]:

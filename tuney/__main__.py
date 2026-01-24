@@ -13,7 +13,7 @@ USE_GRID = not False
 def main() -> None:
     mapper = LinearMapper(case_sensitive=True, invert=False)
     items = mapper.char_to_number.items()
-    texts = {n: Text((tt.number_to_name(n), c)) for c, n in items}
+    texts = {n: Text((tt.number_to_name(n), " " + c)) for c, n in items}
     grid = NoteGrid(texts.values())
 
     oc = OscillatorController()
@@ -31,6 +31,8 @@ def main() -> None:
         if USE_GRID:
             grid.run()
     finally:
+        grid.stop()
+        kq.stop()
         kq.join()
 
 
