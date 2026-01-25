@@ -13,6 +13,25 @@ from . import Callback, Key, KeyAction
 
 
 @dc.dataclass
+class Modifiers:
+    alt: int = 0
+    cmd: int = 0
+    ctrl: int = 0
+    shift: int = 0
+
+    def apply(self, key: keyboard.Key, is_press: bool) -> None:
+        name = key.name.partition("_")[0]
+        if (value := vars(self).get(name)) is not None:
+            value += (1 if is_press else -1)
+            assert 0 <= value <= 2, (self, key, is_press, value)
+            setattr(self, name, value)
+
+    @property
+    def is_printable(self) -> bool:
+        return not (self.alt or self.cmd or self.ctrl)
+
+
+@dc.dataclass
 class KeyboardListener:
     callback: Callback
     stop_key: keyboard.Key | None = None
@@ -22,6 +41,10 @@ class KeyboardListener:
     @cached_property
     def listener(self) -> keyboard.Listener:
         return _make_listener(self)
+
+    @cached_property
+    def modifiers(self) -> Modifiers:
+        return Modifiers()
 
     def on_press(self, key: Key | None) -> bool | None:
         if not self._running or key == self.stop_key:
@@ -43,7 +66,9 @@ class KeyboardListener:
         self.listener.stop()
 
     def _on(self, key: Key | None, is_press: bool) -> None:
-        if char := getattr(key, "char", ""):
+        if isinstance(key, keyboard.Key):
+            self.modifiers.apply(key, is_press)
+        if self.modifiers.is_printable and (char := getattr(key, "char", "")):
             self.callback(KeyAction(char, is_press))
 
 

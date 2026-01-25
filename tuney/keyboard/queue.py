@@ -70,7 +70,19 @@ def time_keyboard() -> None:
 
     now = time.time()
     kq = KeyboardQueue(key_callback)
+    kq.start()
+
+
+def report() -> None:
+    def key_callback(k):
+        if k.is_press:
+            print(k)
+
+    now = time.time()
+    kq = KeyboardQueue(key_callback)
+    kq.start()
 
 
 if __name__ == "__main__":
-    time_keyboard()
+    report()
+    # time_keyboard()
