@@ -22,8 +22,7 @@ class Modifiers:
     def apply(self, key: keyboard.Key, is_press: bool) -> None:
         name = key.name.partition("_")[0]
         if (value := vars(self).get(name)) is not None:
-            value += 1 if is_press else -1
-            assert 0 <= value <= 2, (self, key, is_press, value)
+            value = max(0, min(2, value + (1 if is_press else -1)))
             setattr(self, name, value)
 
     @property

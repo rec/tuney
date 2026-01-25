@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import dataclasses as dc
+from functools import cached_property
 from threading import Thread
 from typing import Any, Callable
 
@@ -7,33 +11,60 @@ from .linear_mapper import LinearMapper
 from .note_grid import NoteGrid, Text
 from .scale import twelve_tet as tt
 
-USE_GRID = not False
+
+@dc.dataclass
+class Controller:
+    mapper: LinearMapper = LinearMapper()
+    oc: OscillatorController = OscillatorController()
+
+    @cached_property
+    def grid(self) -> NoteGrid:
+        items = self.mapper.char_to_number.items()
+        texts = {n: Text((tt.number_to_name(n), " " + c)) for c, n in items}
+        return NoteGrid(list(texts.values()))
+
+    def on_note(self, note_number: int, is_press: bool) -> None:
+        if self.oc.note(note_number, is_press):
+            self.grid.texts[note_number].on = is_press
+            self.grid.redraw()
+
+    def run(self) -> None:
+        self.grid.run()
+
+    def stop(self) -> None:
+        self.grid.stop()
+
+    def __enter__(self) -> Controller:
+        self.run()
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.stop()
+
+
+@dc.dataclass
+class KeyboardController(Controller):
+    def key_callback(self, k: KeyAction) -> None:
+        if (note_number := self.mapper(k.char)) is not None:
+            self.on_note(note_number, k.is_press)
+
+    @cached_property
+    def keyboard_queue(self) -> KeyboardQueue:
+        return KeyboardQueue(self.key_callback)
+
+    def run(self) -> None:
+        self.keyboard_queue.start()
+        super().run()
+
+    def stop(self) -> None:
+        super().stop()
+        self.keyboard_queue.stop()
+        self.keyboard_queue.join()
 
 
 def main() -> None:
-    mapper = LinearMapper(case_sensitive=True, invert=False)
-    items = mapper.char_to_number.items()
-    texts = {n: Text((tt.number_to_name(n), " " + c)) for c, n in items}
-    grid = NoteGrid(texts.values())
-
-    oc = OscillatorController()
-
-    def key_callback(k):
-        if (note_number := mapper(k.char)) is not None:
-            if oc.note(note_number, k.is_press):
-                texts[note_number].on = k.is_press
-                grid.redraw()
-
-    kq = KeyboardQueue(key_callback)
-
-    try:
-        kq.start()
-        if USE_GRID:
-            grid.run()
-    finally:
-        grid.stop()
-        kq.stop()
-        kq.join()
+    with KeyboardController():
+        pass
 
 
 if __name__ == "__main__":

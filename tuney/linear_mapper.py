@@ -7,7 +7,7 @@ from string import ascii_letters, ascii_lowercase
 class LinearMapper:
     alphabet: str | None = None
     length: int = 0
-    case_sensitive: bool = False
+    case_sensitive: bool = True
     invert: bool = False
     offset: int = 0
 

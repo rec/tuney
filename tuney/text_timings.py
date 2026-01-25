@@ -26,6 +26,7 @@ class TextTimings:
     overlap: Milliseconds = 20
     random_seed: int | None = None
     alpha_only: bool = True
+    strip_accents: bool = True
 
     other: dict[str, Milliseconds] = dc.field(default_factory=dict)
     timings: Collection[Milliseconds] | None = None
@@ -46,9 +47,10 @@ class TextTimings:
     def char_to_time(self) -> dict[str, Milliseconds]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def lines_to_times(self, lines: str) -> Iterator[CharBeginEnd]:
+    def lines_to_times(self, text: str) -> Iterator[CharBeginEnd]:
         time = 0
-        for char in _filter_chars(_strip_accents(lines)):
+        chars = _strip_accents(text) if self.strip_accents else text
+        for char in _filter_chars(chars):
             dt = self.char_to_time.get(char)
             if char.isalpha() or not (dt is None and self.alpha_only):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)

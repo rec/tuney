@@ -1,6 +1,6 @@
 import dataclasses as dc
 import math
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from functools import cached_property
 from typing import Any, Iterable, NamedTuple
 
@@ -28,9 +28,9 @@ class NoteGrid(App):
 
     version = reactive(0, recompose=True)
 
-    texts: Collection[Text]
+    texts: Sequence[Text]
 
-    def __init__(self, texts: Collection[Text], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, texts: Sequence[Text], *args: Any, **kwargs: Any) -> None:
         self.texts = texts
         super().__init__(*args, **kwargs)
 
@@ -52,7 +52,6 @@ class NoteGrid(App):
 
     def resize_grid(self) -> None:
         # From https://textual.textualize.io/styles/grid/grid_size/#python
-        # Does nothing
         self.screen.styles.grid_size_columns = self.shape[0]
         self.screen.styles.grid_size_rows = self.shape[1]
 
