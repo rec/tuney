@@ -1,34 +1,21 @@
 from tuney.text_timings import TextTimings
 
+
+def test_text_timings():
+    tt = TextTimings(other={"!": 2000}, random_seed=23)
+    # actual = [int(i.time) for i in tt.lines_to_times(TEXT)]
+    letters, begins, ends = zip(*tt.lines_to_times(TEXT))
+    text = "".join(letters)
+    begins = [int(i) for i in begins]
+    ends = [int(i) for i in ends]
+    assert text == "One, .\nThree!"
+    assert (begins, ends) == (BEGINS, ENDS)
+
+
 TEXT = """\
-One, two.
+One, 2.
 
 Three!
 """
-
-
-def test_text_timings():
-    tt = TextTimings(other={"!": 2000}, seed=23)
-    # actual = [int(i.time) for i in tt.lines_to_times(TEXT)]
-    letters, times = zip(*tt.lines_to_times(TEXT))
-    text = "".join(letters)
-    times = [int(i) for i in times]
-    assert text == "One, two.\nThree!"
-    assert times == [
-        127,
-        77,
-        62,
-        399,
-        231,
-        164,
-        153,
-        184,
-        448,
-        1088,
-        317,
-        97,
-        116,
-        169,
-        61,
-        2104,
-    ]
+BEGINS = [0, 107, 165, 208, 587, 798, 1242, 2376, 2541, 2669, 2738, 3035, 3113]
+ENDS = [127, 185, 228, 607, 818, 1262, 2396, 2561, 2689, 2758, 3055, 3133, 5229]

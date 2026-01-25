@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 import random
 from functools import cached_property
-from typing import Collection, Iterator, NamedTuple, TypeAlias
+from typing import Collection, Iterable, Iterator, NamedTuple, TypeAlias
 
 Time: TypeAlias = float  # In milliseconds
 
@@ -31,12 +31,13 @@ TIMINGS = (
 )
 
 
-class CharTime(NamedTuple):
+class CharBeginEnd(NamedTuple):
     char: str
-    time: Time
+    begin: Time
+    end: Time
 
 
-@dc.dataclass
+@dc.dataclass(frozen=True)
 class TextTimings:
     space: Time = 100
     period: Time = 300
@@ -44,8 +45,10 @@ class TextTimings:
     colon: Time = 400
     semicolon: Time = 400
     blank_line: Time = 1000
-    scale: float = 1.0
-    seed: int | None = None
+
+    overlap: Time = 20
+    random_seed: int | None = None
+    alpha_only: bool = True
 
     other: dict[str, Time] = dc.field(default_factory=dict)
     timings: Collection[Time] = TIMINGS
@@ -56,17 +59,37 @@ class TextTimings:
 
     @cached_property
     def random(self):
-        return random.Random(self.seed)
+        return random.Random(self.random_seed)
 
     @cached_property
     def char_to_time(self) -> dict[str, Time]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def lines_to_times(self, lines: str) -> Iterator[CharTime]:
-        for line in lines.splitlines():
-            for char in line or "\n":
-                time = self.random.choice(self.timings) + self.char_to_time.get(char, 0)
-                yield CharTime(char, self.scale * time)
+    def lines_to_times(self, lines: str) -> Iterator[CharBeginEnd]:
+        time = 0
+        for char in _filter_chars(lines):
+            dt = self.char_to_time.get(char)
+            if dt is None and self.alpha_only and not char.isalpha():
+                continue
+            dt = (dt or 0.0) + self.random.choice(self.timings)
+            yield CharBeginEnd(char, time, time + dt)
+            time += max(0, dt - self.overlap)
+
+
+def _filter_chars(it: Iterable[str]) -> Iterator[str]:
+    # Filter out the first `\n', so each \n means an actual new line,
+    # and any spaces after the first one.
+    previous = ""
+    for c in it:
+        if not c.isspace():
+            yield c
+        elif c not in " \n":
+            continue
+        elif c == "\n" == previous:
+            yield c
+        elif c == " " and previous not in " \n":
+            yield c
+        previous = c
 
 
 _CHARS = {
