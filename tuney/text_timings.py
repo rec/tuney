@@ -48,7 +48,7 @@ class TextTimings:
 
     def lines_to_times(self, lines: str) -> Iterator[CharBeginEnd]:
         time = 0
-        for char in _filter_chars(lines):
+        for char in _filter_chars(_strip_accents(lines)):
             dt = self.char_to_time.get(char)
             if char.isalpha() or not (dt is None and self.alpha_only):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
@@ -70,6 +70,13 @@ def _filter_chars(it: Iterable[str]) -> Iterator[str]:
         elif c == " " and previous not in " \n":
             yield c
         previous = c
+
+
+def _strip_accents(s: str) -> Iterator[str]:
+    # https://stackoverflow.com/questions/517923/
+    from unicodedata import category, normalize
+
+    yield from (c for c in normalize("NFD", s) if category(c) != "Mn")
 
 
 _CHARS = {
