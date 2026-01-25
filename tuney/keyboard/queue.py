@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 import sys
 import threading
+import time
 import traceback
 from functools import cached_property, wraps
 from queue import Empty, Queue
@@ -58,3 +59,18 @@ class KeyboardQueue:
     @cached_property
     def _queue(self) -> Queue[KeyAction]:
         return Queue()
+
+
+def time_keyboard() -> None:
+    def key_callback(k):
+        if k.is_press:
+            nonlocal now
+            old, now = now, time.time()
+            print(now - old)
+
+    now = time.time()
+    kq = KeyboardQueue(key_callback)
+
+
+if __name__ == "__main__":
+    time_keyboard()
