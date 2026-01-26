@@ -1,4 +1,4 @@
-from .ui.controller import KeyboardController
+from .ui.keyboard_controller import KeyboardController
 
 
 def main() -> None:
