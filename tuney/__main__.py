@@ -8,8 +8,8 @@ from typing import Any, Callable
 from .audio.synth_player import OscillatorController
 from .keyboard import KeyAction, KeyboardQueue
 from .linear_mapper import LinearMapper
-from .note_grid import NoteGrid, Text
 from .scale import twelve_tet as tt
+from .ui.note_grid import NoteGrid, Text
 
 
 @dc.dataclass
