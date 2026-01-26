@@ -1,4 +1,4 @@
-from tuney.text_timings import TextTimings
+from tuney.time.text_timings import TextTimings
 
 
 def test_text_timings():
