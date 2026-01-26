@@ -5,11 +5,11 @@ from functools import cached_property
 from threading import Thread
 from typing import Any, Callable
 
-from .audio.synth_player import OscillatorController
-from .keyboard import KeyAction, KeyboardQueue
-from .linear_mapper import LinearMapper
-from .scale import twelve_tet as tt
-from .ui.note_grid import NoteGrid, Text
+from ..audio.synth_player import OscillatorController
+from ..keyboard import KeyAction, KeyboardQueue
+from ..linear_mapper import LinearMapper
+from ..scale import twelve_tet as tt
+from .note_grid import NoteGrid, Text
 
 
 @dc.dataclass
@@ -60,12 +60,3 @@ class KeyboardController(Controller):
         super().stop()
         self.keyboard_queue.stop()
         self.keyboard_queue.join()
-
-
-def main() -> None:
-    with KeyboardController():
-        pass
-
-
-if __name__ == "__main__":
-    main()
