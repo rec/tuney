@@ -21,3 +21,13 @@ dev = [
     "ruff>=0.14.10",
     "ty>=0.0.8",
 ]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+tuney = "tuney.__main__:main"
