@@ -23,8 +23,12 @@ class Controller:
         texts = {n: Text((tt.number_to_name(n), " " + c)) for c, n in items}
         return NoteGrid(list(texts.values()))
 
+    def key_callback(self, k: KeyAction) -> None:
+        if (note_number := self.mapper(k.char)) is not None:
+            self.on_note(note_number, k.is_press)
+
     def on_note(self, note_number: int, is_press: bool) -> None:
-        if self.oc.note(note_number, is_press):
+        if self.oc.note(note_number, is_press) and False:
             self.grid.texts[note_number].on = is_press
             self.grid.redraw()
 

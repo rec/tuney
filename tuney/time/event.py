@@ -4,25 +4,26 @@ import dataclasses as dc
 import heapq
 import time
 from threading import Lock
-from typing import Any, Callable, NamedTuple, Sequence
+from typing import Any, Callable, Generic, NamedTuple, Sequence
 
 from . import Seconds
 
 MAX_WAIT: Seconds = 0.01
 
 
-class Event(NamedTuple):
+@dc.dataclass
+class Event[Data]:
     timestamp: Seconds
-    callback: Callable[[], Any]
+    data: Data
 
     def __lt__(self, other: Event) -> bool:
         return self.timestamp < other.timestamp
 
 
 @dc.dataclass
-class Runner:
-    events: list[Event]
-    keep_running: bool = False
+class Runner[Data]:
+    events: list[Event[Data]]
+    callback: Callable[..., Any]
 
     _running: bool = False
 
@@ -32,18 +33,12 @@ class Runner:
     def run(self) -> None:
         self._running = True
         while self._running:
-            events = []
-            timestamp = time.time()
-            while self.events and self.events[0].timestamp <= timestamp:
-                events.append(heapq.heappop(self.events))
-
-            for e in events:
-                e.callback()
+            while self.events and self.events[0].timestamp <= time.time():
+                self.callback(d := heapq.heappop(self.events).data)
+                print("run", d)
 
             if self.events:
-                time.sleep(max(MAX_WAIT, self.events[0].timestamp - time.time()))
-            elif self.keep_running:
-                time.sleep(MAX_WAIT)
+                time.sleep(min(MAX_WAIT, self.events[0].timestamp - time.time()))
             else:
                 self.stop()
 
@@ -52,14 +47,14 @@ class Runner:
 
 
 def demo() -> None:
-    def event() -> Event:
+    def event() -> Event[float]:
         import random
 
         t = timestamp + random.uniform(0, 1)
-        return Event(t, lambda: print(t - timestamp))
+        return Event(t, t - timestamp)
 
     timestamp = time.time()
-    Runner([event() for _ in range(10)]).run()
+    Runner([event() for _ in range(10)], print).run()
 
 
 if __name__ == "__main__":

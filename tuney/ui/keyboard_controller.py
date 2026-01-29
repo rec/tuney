@@ -15,10 +15,6 @@ from .note_grid import NoteGrid, Text
 
 @dc.dataclass
 class KeyboardController(Controller):
-    def key_callback(self, k: KeyAction) -> None:
-        if (note_number := self.mapper(k.char)) is not None:
-            self.on_note(note_number, k.is_press)
-
     @cached_property
     def keyboard_queue(self) -> KeyboardQueue:
         return KeyboardQueue(self.key_callback)
@@ -30,4 +26,6 @@ class KeyboardController(Controller):
     def stop(self) -> None:
         super().stop()
         self.keyboard_queue.stop()
-        self.keyboard_queue.join()
+
+    def join(self) -> None:
+        # self.keyboard_queue.join()

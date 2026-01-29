@@ -47,7 +47,7 @@ class TextTimings:
     def char_to_time(self) -> dict[str, Milliseconds]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def lines_to_times(self, text: str) -> Iterator[CharBeginEnd]:
+    def __call__(self, text: str) -> Iterator[CharBeginEnd]:
         time = 0
         chars = _strip_accents(text) if self.strip_accents else text
         for char in _filter_chars(chars):
