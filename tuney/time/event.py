@@ -3,8 +3,9 @@ from __future__ import annotations
 import dataclasses as dc
 import heapq
 import time
+from collections.abc import Callable, Sequence
 from threading import Lock
-from typing import Any, Callable, Generic, NamedTuple, Sequence
+from typing import Any, Generic, NamedTuple
 
 from . import Seconds
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses as dc
+from collections.abc import Callable
 from functools import cached_property
 from threading import Thread
-from typing import Any, Callable, TypeAlias
+from typing import Any, TypeAlias
 
 from ..audio.synth_player import OscillatorController
 from ..keyboard import KeyAction, KeyboardQueue

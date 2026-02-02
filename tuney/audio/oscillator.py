@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import dataclasses as dc
 from abc import ABC, abstractmethod
-from typing import Any, Callable, TypeAlias, override
+from collections.abc import Callable
+from typing import Any, TypeAlias, override
 
 import numpy as np
 

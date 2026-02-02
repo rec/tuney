@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from typing import Callable, TypeAlias
+from collections.abc import Callable
+from typing import TypeAlias
 
 from pynput import keyboard
 

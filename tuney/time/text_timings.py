@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import dataclasses as dc
 import random
+from collections.abc import Collection, Iterable, Iterator
 from functools import cached_property
-from typing import Collection, Iterable, Iterator, NamedTuple, TypeAlias
+from typing import NamedTuple, TypeAlias
 
 from . import Milliseconds
 

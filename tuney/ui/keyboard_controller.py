@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses as dc
+from collections.abc import Callable
 from functools import cached_property
 from threading import Thread
-from typing import Any, Callable
+from typing import Any
 
 from ..audio.synth_player import OscillatorController
 from ..keyboard import KeyAction, KeyboardQueue
@@ -28,4 +29,4 @@ class KeyboardController(Controller):
         self.keyboard_queue.stop()
 
     def join(self) -> None:
-        # self.keyboard_queue.join()
+        self.keyboard_queue.join()

@@ -1,8 +1,8 @@
 import dataclasses as dc
 import math
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from functools import cached_property
-from typing import Any, Iterable, NamedTuple
+from typing import Any, NamedTuple
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive

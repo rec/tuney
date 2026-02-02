@@ -5,9 +5,10 @@ import sys
 import threading
 import time
 import traceback
+from collections.abc import Callable
 from functools import cached_property, wraps
 from queue import Empty, Queue
-from typing import Any, Callable, TypeAlias
+from typing import Any, TypeAlias
 
 from pynput import keyboard
 
