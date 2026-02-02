@@ -19,7 +19,7 @@ class Controller:
     @cached_property
     def grid(self) -> NoteGrid:
         items = self.mapper.char_to_number.items()
-        texts = {n: Text((tt.number_to_name(n), " " + c)) for c, n in items}
+        texts = {n: Text((tt.number_to_name(n), ' ' + c)) for c, n in items}
         return NoteGrid(list(texts.values()))
 
     def key_callback(self, k: KeyAction) -> None:

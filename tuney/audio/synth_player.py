@@ -87,7 +87,7 @@ class OscillatorController:
     oscillator: osc.Oscillator = OSC
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
     scale: Scale = TWELVE_TET
-    start_note_name: str = "C3"
+    start_note_name: str = 'C3'
 
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
@@ -132,20 +132,20 @@ def run_many_notes():
     DT = 0.2
 
     stack = []
-    o1 = "C4", "E4", "D5", "Eb3", "G3", "C3", "E3", "D4", "Eb2", "G2"
-    o2 = "C2", "E2", "D3", "Eb1", "G1", "C1", "E1", "D2", "Eb0", "G0"
+    o1 = 'C4', 'E4', 'D5', 'Eb3', 'G3', 'C3', 'E3', 'D4', 'Eb2', 'G2'
+    o2 = 'C2', 'E2', 'D3', 'Eb1', 'G1', 'C1', 'E1', 'D2', 'Eb0', 'G0'
 
     for name in (o1 + o2)[0]:
         stack.append(note := TWELVE_TET.name_to_number(name))
         if not oc.start(note):
-            print("oops", name)
+            print('oops', name)
         time.sleep(DT)
 
     while stack:
         if not oc.stop(note := stack.pop()):
-            print("oops off", note)
+            print('oops off', note)
         time.sleep(DT / 2)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     run_many_notes()

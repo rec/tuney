@@ -11,7 +11,7 @@ CSS = """Screen {
 
 
 class Grid(App):
-    theme = "textual-light"
+    theme = 'textual-light'
     CSS = CSS
 
     def __init__(self, *a: Any, **ka: Any) -> None:
@@ -32,5 +32,5 @@ class Grid(App):
             s.grid_size_rows = 3
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     Grid().run()

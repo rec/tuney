@@ -15,6 +15,6 @@ class NoteMaker:
         return mido.Message(
             channel=self.channel,
             note=(note_number + self.note_offset) % 128,
-            type="note_on" if is_press or ZERO_IS_NOTE_OFF else "note_off",
+            type='note_on' if is_press or ZERO_IS_NOTE_OFF else 'note_off',
             velocity=max(0, min(127, is_press * self.velocity)),
         )

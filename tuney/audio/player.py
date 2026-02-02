@@ -29,7 +29,7 @@ class Player(Runnable, ABC):
     def fill(self, out: Data, frame_size: int) -> bool:
         if self.frame_size and frame_size != self.frame_size:
             # Hope this never happens
-            print("framesize change", self.frame_size, frame_size)
+            print('framesize change', self.frame_size, frame_size)
         self.frame_size = frame_size
         success = self._fill(out)
         self.chunk_count += 1
@@ -37,7 +37,7 @@ class Player(Runnable, ABC):
 
     def callback(self, out: Data, frame_size: int, time: float, status: str) -> None:
         if status:
-            print("Playback", status)  # TODO:
+            print('Playback', status)  # TODO:
 
         if not self.fill(out, frame_size) or not self.is_running:
             self.stop()
@@ -50,7 +50,7 @@ class Player(Runnable, ABC):
 
     @cached_property
     def stream(self) -> OutputStream:
-        callbacks = {"callback": self.callback, "finished_callback": self._event.set}
+        callbacks = {'callback': self.callback, 'finished_callback': self._event.set}
         return OutputStream(**dc.asdict(self.config), **callbacks)
 
     @property

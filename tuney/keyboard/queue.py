@@ -50,7 +50,7 @@ class KeyboardQueue:
                 self.callback(key_action)
             self.callback(KeyAction())
         except Exception:
-            print("THREAD TERMINATED", file=sys.stderr)
+            print('THREAD TERMINATED', file=sys.stderr)
             traceback.print_exc()
 
     @cached_property
@@ -79,6 +79,6 @@ def report() -> None:
     kq.start()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     report()
     # time_keyboard()

@@ -9,7 +9,7 @@ from pynput import keyboard
 
 @dc.dataclass(frozen=True)
 class KeyAction:
-    char: str = ""
+    char: str = ''
     is_press: bool = False
 
 

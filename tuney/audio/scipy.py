@@ -23,7 +23,7 @@ from numpy import (
     zeros,
 )
 
-__all__ = ["sawtooth", "square", "gausspulse", "chirp", "sweep_poly", "unit_impulse"]
+__all__ = ['sawtooth', 'square', 'gausspulse', 'chirp', 'sweep_poly', 'unit_impulse']
 
 
 def sawtooth(t, width=1):
@@ -68,7 +68,7 @@ def sawtooth(t, width=1):
     t, w = asarray(t), asarray(width)
     w = asarray(w + (t - t))
     t = asarray(t + (w - w))
-    y = zeros(t.shape, dtype="d")
+    y = zeros(t.shape, dtype='d')
 
     # width must be between 0 and 1 inclusive
     mask1 = (w > 1) | (w < 0)
@@ -146,7 +146,7 @@ def square(t, duty=0.5):
     t, w = asarray(t), asarray(duty)
     w = asarray(w + (t - t))
     t = asarray(t + (w - w))
-    y = zeros(t.shape, dtype="d")
+    y = zeros(t.shape, dtype='d')
 
     # width must be between 0 and 1 inclusive
     mask1 = (w > 1) | (w < 0)
@@ -220,12 +220,12 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False, retenv=False)
 
     """
     if fc < 0:
-        raise ValueError(f"Center frequency (fc={fc:.2f}) must be >=0.")
+        raise ValueError(f'Center frequency (fc={fc:.2f}) must be >=0.')
     if bw <= 0:
-        raise ValueError(f"Fractional bandwidth (bw={bw:.2f}) must be > 0.")
+        raise ValueError(f'Fractional bandwidth (bw={bw:.2f}) must be > 0.')
     if bwr >= 0:
         raise ValueError(
-            f"Reference level for bandwidth (bwr={bwr:.2f}) must be < 0 dB"
+            f'Reference level for bandwidth (bwr={bwr:.2f}) must be < 0 dB'
         )
 
     # exp(-a t^2) <->  sqrt(pi/a) exp(-pi^2/a * f^2)  = g(f)
@@ -237,11 +237,11 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False, retenv=False)
     a = -((pi * fc * bw) ** 2) / (4.0 * log(ref))
 
     if isinstance(t, str):
-        if t == "cutoff":  # compute cut_off point
+        if t == 'cutoff':  # compute cut_off point
             #  Solve exp(-a tc**2) = tref  for tc
             #   tc = sqrt(-log(tref) / a) where tref = 10^(tpr/20)
             if tpr >= 0:
-                raise ValueError("Reference level for time cutoff must be < 0 dB")
+                raise ValueError('Reference level for time cutoff must be < 0 dB')
             tref = pow(10.0, tpr / 20.0)
             return sqrt(-log(tref) / a)
         else:
@@ -260,7 +260,7 @@ def gausspulse(t, fc=1000, bw=0.5, bwr=-6, tpr=-60, retquad=False, retenv=False)
         return yI, yQ, yenv
 
 
-def chirp(t, f0, t1, f1, method="linear", phi=0, vertex_zero=True, *, complex=False):
+def chirp(t, f0, t1, f1, method='linear', phi=0, vertex_zero=True, *, complex=False):
     r"""Frequency-swept cosine generator.
 
     In the following, 'Hz' should be interpreted as 'cycles per unit';
@@ -429,7 +429,7 @@ def chirp(t, f0, t1, f1, method="linear", phi=0, vertex_zero=True, *, complex=Fa
     return np.exp(1j * phase) if complex else np.cos(phase)
 
 
-def _chirp_phase(t, f0, t1, f1, method="linear", vertex_zero=True):
+def _chirp_phase(t, f0, t1, f1, method='linear', vertex_zero=True):
     """
     Calculate the phase used by `chirp` to generate its output.
 
@@ -440,22 +440,22 @@ def _chirp_phase(t, f0, t1, f1, method="linear", vertex_zero=True):
     f0 = float(f0)
     t1 = float(t1)
     f1 = float(f1)
-    if method in ["linear", "lin", "li"]:
+    if method in ['linear', 'lin', 'li']:
         beta = (f1 - f0) / t1
         phase = 2 * pi * (f0 * t + 0.5 * beta * t * t)
 
-    elif method in ["quadratic", "quad", "q"]:
+    elif method in ['quadratic', 'quad', 'q']:
         beta = (f1 - f0) / (t1**2)
         if vertex_zero:
             phase = 2 * pi * (f0 * t + beta * t**3 / 3)
         else:
             phase = 2 * pi * (f1 * t + beta * ((t1 - t) ** 3 - t1**3) / 3)
 
-    elif method in ["logarithmic", "log", "lo"]:
+    elif method in ['logarithmic', 'log', 'lo']:
         if f0 * f1 <= 0.0:
             raise ValueError(
-                "For a logarithmic chirp, f0 and f1 must be "
-                "nonzero and have the same sign."
+                'For a logarithmic chirp, f0 and f1 must be '
+                'nonzero and have the same sign.'
             )
         if f0 == f1:
             phase = 2 * pi * f0 * t
@@ -463,9 +463,9 @@ def _chirp_phase(t, f0, t1, f1, method="linear", vertex_zero=True):
             beta = t1 / log(f1 / f0)
             phase = 2 * pi * beta * f0 * (pow(f1 / f0, t / t1) - 1.0)
 
-    elif method in ["hyperbolic", "hyp"]:
+    elif method in ['hyperbolic', 'hyp']:
         if f0 == 0 or f1 == 0:
-            raise ValueError("For a hyperbolic chirp, f0 and f1 must be nonzero.")
+            raise ValueError('For a hyperbolic chirp, f0 and f1 must be nonzero.')
         if f0 == f1:
             # Degenerate case: constant frequency.
             phase = 2 * pi * f0 * t
@@ -692,9 +692,9 @@ def unit_impulse(shape, idx=None, dtype=float):
 
     if idx is None:
         idx = (0,) * len(shape)
-    elif idx == "mid":
+    elif idx == 'mid':
         idx = tuple(shape // 2)
-    elif not hasattr(idx, "__iter__"):
+    elif not hasattr(idx, '__iter__'):
         idx = (idx,) * len(shape)
 
     out[idx] = 1

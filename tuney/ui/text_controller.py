@@ -16,7 +16,7 @@ Runner: TypeAlias = event.Runner[KeyAction]
 
 @dc.dataclass
 class TextController(Controller):
-    text: str = ""
+    text: str = ''
     timings: TextTimings = dc.field(default_factory=TextTimings)
 
     @cached_property
@@ -39,10 +39,10 @@ class TextController(Controller):
 
 def main() -> None:
     # msg = "Now is the time for all good men to come to the aid of the party"
-    msg = "Now is the time"
+    msg = 'Now is the time'
     with TextController(text=msg):
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

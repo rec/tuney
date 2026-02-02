@@ -3,7 +3,7 @@ from typing import Generic, TypeVar, get_args
 
 import sounddevice as sd
 
-_T = TypeVar("_T", bound=sd._StreamBase)
+_T = TypeVar('_T', bound=sd._StreamBase)
 
 
 @dc.dataclass
@@ -24,7 +24,7 @@ class DeviceConfig:
 class DeviceMaker(Generic[_T]):
     @classmethod
     def type(cls) -> type[_T]:
-        bases = getattr(cls, "__orig_bases__", None)
+        bases = getattr(cls, '__orig_bases__', None)
         assert bases is not None
         return get_args(bases[0])[0]
 
@@ -36,5 +36,5 @@ class OutputStreamMaker(DeviceMaker[sd.OutputStream]):
     pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     print(OutputStreamMaker.type())

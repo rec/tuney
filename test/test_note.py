@@ -2,7 +2,7 @@ import pytest
 
 from tuney.scale import twelve_tet as tt
 
-NOTES = ["C1", "C#3", "G♯5", "C-2", "F♭10"]
+NOTES = ['C1', 'C#3', 'G♯5', 'C-2', 'F♭10']
 
 
 def canonical(s: str) -> str:
@@ -11,10 +11,10 @@ def canonical(s: str) -> str:
     return s
 
 
-@pytest.mark.parametrize("note", NOTES)
+@pytest.mark.parametrize('note', NOTES)
 def test_twelve_tet(note):
     number = tt.name_to_number(note)
     name = tt.number_to_name(number)
     assert tt.name_to_number(name) == number
 
-    assert note == "F♭10" or name == canonical(note)
+    assert note == 'F♭10' or name == canonical(note)

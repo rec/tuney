@@ -8,7 +8,7 @@ from textual.app import App, ComposeResult
 from textual.reactive import reactive
 from textual.widgets import Static
 
-FLAT = ("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B")
+FLAT = ('C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B')
 
 
 @dc.dataclass
@@ -23,8 +23,8 @@ class ColumnsRows(NamedTuple):
 
 
 class NoteGrid(App):
-    theme = "textual-light"
-    CSS_PATH = "note_grid.tcss"
+    theme = 'textual-light'
+    CSS_PATH = 'note_grid.tcss'
 
     version = reactive(0, recompose=True)
 
@@ -40,7 +40,7 @@ class NoteGrid(App):
     def compose(self) -> ComposeResult:
         self.resize_grid()
         for t in self.texts:
-            yield Static("\n".join(t.labels), classes="on" if t.on else "off")
+            yield Static('\n'.join(t.labels), classes='on' if t.on else 'off')
 
     @cached_property
     def shape(self) -> tuple[int, int]:
@@ -67,7 +67,7 @@ def _text(i: int) -> Text:
 TEXTS = [_text(i) for i in range(len(FLAT))]
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import sys
 
     count = int(sys.argv[1])

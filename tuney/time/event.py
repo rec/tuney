@@ -35,7 +35,7 @@ class Runner[Data]:
         while self._running:
             while self.events and self.events[0].timestamp <= time.time():
                 self.callback(d := heapq.heappop(self.events).data)
-                print("run", d)
+                print('run', d)
 
             if self.events:
                 time.sleep(min(MAX_WAIT, self.events[0].timestamp - time.time()))
@@ -57,5 +57,5 @@ def demo() -> None:
     Runner([event() for _ in range(10)], print).run()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     demo()

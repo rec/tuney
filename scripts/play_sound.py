@@ -39,10 +39,10 @@ def int_or_str(text):
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument(
-    "-l",
-    "--list-devices",
-    action="store_true",
-    help="show list of audio devices and exit",
+    '-l',
+    '--list-devices',
+    action='store_true',
+    help='show list of audio devices and exit',
 )
 args, remaining = parser.parse_known_args()
 if args.list_devices:
@@ -53,9 +53,9 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     parents=[parser],
 )
-parser.add_argument("filename", metavar="FILENAME", help="audio file to be played back")
+parser.add_argument('filename', metavar='FILENAME', help='audio file to be played back')
 parser.add_argument(
-    "-d", "--device", type=int_or_str, help="output device (numeric ID or substring)"
+    '-d', '--device', type=int_or_str, help='output device (numeric ID or substring)'
 )
 args = parser.parse_args(remaining)
 
@@ -87,6 +87,6 @@ try:
     with stream:
         event.wait()  # Wait until playback is finished
 except KeyboardInterrupt:
-    parser.exit(1, "\nInterrupted by user")
+    parser.exit(1, '\nInterrupted by user')
 except Exception as e:
-    parser.exit(1, type(e).__name__ + ": " + str(e))
+    parser.exit(1, type(e).__name__ + ': ' + str(e))

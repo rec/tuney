@@ -29,9 +29,9 @@ class FilePlayer(Player):
         return success
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import sys
 
     for a in sys.argv[1:]:
-        print("open", a)
+        print('open', a)
         FilePlayer(a).run()

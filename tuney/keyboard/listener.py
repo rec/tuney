@@ -17,7 +17,7 @@ class Modifiers:
     shift: int = 0
 
     def apply(self, key: keyboard.Key, is_press: bool) -> None:
-        name = key.name.partition("_")[0]
+        name = key.name.partition('_')[0]
         if (value := vars(self).get(name)) is not None:
             value = max(0, min(2, value + (1 if is_press else -1)))
             setattr(self, name, value)
@@ -64,7 +64,7 @@ class KeyboardListener:
     def _on(self, key: Key | None, is_press: bool) -> None:
         if isinstance(key, keyboard.Key):
             self.modifiers.apply(key, is_press)
-        if self.modifiers.is_printable and (char := getattr(key, "char", "")):
+        if self.modifiers.is_printable and (char := getattr(key, 'char', '')):
             self.callback(KeyAction(char, is_press))
 
 
@@ -73,20 +73,20 @@ def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
         on_press=kl.on_press,
         on_release=kl.on_release,
     )
-    log = getattr(listener, "_log", None)
-    if not (log and hasattr(listener, "IS_TRUSTED")):
+    log = getattr(listener, '_log', None)
+    if not (log and hasattr(listener, 'IS_TRUSTED')):
         return listener
 
     # Work around a bogus warning in pynput and Darwin
     BOGUS_WARNING = (
-        "This process is not trusted! Input event monitoring will not be possible"
-        " until it is added to accessibility clients."
+        'This process is not trusted! Input event monitoring will not be possible'
+        ' until it is added to accessibility clients.'
     )
     warning_ = log.warning
 
     @wraps(warning_)
     def warning(a: str, *args: Any, **kwargs: Any) -> None:
-        if not a.strip() or a.replace(BOGUS_WARNING, "").strip() or args or kwargs:
+        if not a.strip() or a.replace(BOGUS_WARNING, '').strip() or args or kwargs:
             warning_(a, *args, **kwargs)
 
     log.warning = warning

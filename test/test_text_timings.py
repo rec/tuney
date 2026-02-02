@@ -2,13 +2,13 @@ from tuney.time.text_timings import TextTimings
 
 
 def test_text_timings():
-    tt = TextTimings(other={"!": 2000}, random_seed=23)
+    tt = TextTimings(other={'!': 2000}, random_seed=23)
     # actual = [int(i.time) for i in tt.lines_to_times(TEXT)]
     letters, begins, ends = zip(*tt(TEXT), strict=True)
-    text = "".join(letters)
+    text = ''.join(letters)
     begins = [int(i) for i in begins]
     ends = [int(i) for i in ends]
-    assert text == "One, .\nThree!"
+    assert text == 'One, .\nThree!'
     assert (begins, ends) == (BEGINS, ENDS)
 
 
