@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from collections.abc import Callable
 from functools import cached_property
-from threading import Thread
 from typing import Any
 
 from ..audio.synth_player import OscillatorController
-from ..keyboard import KeyAction, KeyboardQueue
+from ..keyboard import KeyAction
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet as tt
 from .note_grid import NoteGrid, Text

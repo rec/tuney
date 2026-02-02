@@ -4,7 +4,7 @@ import dataclasses as dc
 from abc import ABC, abstractmethod
 from functools import cached_property
 from threading import Event
-from typing import Protocol, override
+from typing import override
 
 from sounddevice import CallbackStop, OutputStream
 

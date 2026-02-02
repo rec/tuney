@@ -1,22 +1,8 @@
 from __future__ import annotations
 
-import dataclasses as dc
-from collections.abc import Callable
-from typing import TypeAlias
+__all__ = ["KeyAction", "KeyboardListener", "KeyboardQueue"]
 
-from pynput import keyboard
-
-
-@dc.dataclass(frozen=True)
-class KeyAction:
-    char: str = ""
-    is_press: bool = False
-
-
-Key: TypeAlias = keyboard.Key | keyboard.KeyCode
-Callback: TypeAlias = Callable[[KeyAction], None]
-
-
+from .key_types import KeyAction
 from .listener import KeyboardListener
 from .queue import KeyboardQueue
 

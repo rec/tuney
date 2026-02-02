@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from collections.abc import Callable
 from functools import cached_property
 from threading import Thread
-from typing import Any, TypeAlias
+from typing import TypeAlias
 
-from ..audio.synth_player import OscillatorController
-from ..keyboard import KeyAction, KeyboardQueue
-from ..mapper.linear_mapper import LinearMapper
-from ..scale import twelve_tet as tt
+from ..keyboard import KeyAction
 from ..time import event
 from ..time.text_timings import TextTimings
 from .controller import Controller
-from .note_grid import NoteGrid, Text
 
 Event: TypeAlias = event.Event[KeyAction]
 Runner: TypeAlias = event.Runner[KeyAction]
@@ -43,11 +38,9 @@ class TextController(Controller):
 
 
 def main() -> None:
-    import time
-
     # msg = "Now is the time for all good men to come to the aid of the party"
     msg = "Now is the time"
-    with TextController(text=msg) as tc:
+    with TextController(text=msg):
         pass
 
 

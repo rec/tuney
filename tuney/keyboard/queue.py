@@ -5,14 +5,10 @@ import sys
 import threading
 import time
 import traceback
-from collections.abc import Callable
-from functools import cached_property, wraps
+from functools import cached_property
 from queue import Empty, Queue
-from typing import Any, TypeAlias
 
-from pynput import keyboard
-
-from . import Callback, Key, KeyAction
+from .key_types import Callback, KeyAction
 from .listener import KeyboardListener
 
 
@@ -79,7 +75,6 @@ def report() -> None:
         if k.is_press:
             print(k)
 
-    now = time.time()
     kq = KeyboardQueue(key_callback)
     kq.start()
 
