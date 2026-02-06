@@ -1,13 +1,13 @@
+from tuney.scale import twelve_tet as tt
 from tuney.scale.nearest_note import nearest_note
-from tuney.scale.twelve_tet import TWELVE_TET as tt
 
 assert tt
 
 
 def test_scale():
     for i in range(-100, 100):
-        name = tt.number_to_name(i)  # ty: ignore[missing-argument] !
-        number = tt.name_to_number(name)
+        name = tt.to_name(i)  # ty: ignore[missing-argument] !
+        number = tt.to_number(name)
         assert number == i
 
 

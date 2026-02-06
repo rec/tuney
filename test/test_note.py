@@ -13,8 +13,8 @@ def canonical(s: str) -> str:
 
 @pytest.mark.parametrize('note', NOTES)
 def test_twelve_tet(note):
-    number = tt.name_to_number(note)
-    name = tt.number_to_name(number)
-    assert tt.name_to_number(name) == number
+    number = tt.to_number(note)
+    name = tt.to_name(number)
+    assert tt.to_number(name) == number
 
     assert note == 'F♭10' or name == canonical(note)

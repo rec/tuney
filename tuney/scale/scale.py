@@ -1,32 +1,56 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import NamedTuple
+import dataclasses as dc
+from functools import cached_property
+from typing import Any, Protocol, runtime_checkable
 
 type Frequency = float  # Must be non-negative
 type NoteNumber = int  # May be negative
-type NumberToFrequency = Callable[[NoteNumber], Frequency]
-type Tuning = NumberToFrequency
-
-type NameToNumber = Callable[[str], NoteNumber]
-type NumberToName = Callable[[NoteNumber, ...], str]
 
 
-class Scale(NamedTuple):
+@runtime_checkable
+class Tuning(Protocol):
+    def __call__(self, note_number: NoteNumber) -> Frequency: ...
+
+
+@runtime_checkable
+class ToNumber(Protocol):
+    def __call__(self, name: str) -> NoteNumber: ...
+
+
+@runtime_checkable
+class ToName(Protocol):
+    def __call__(self, note_number: NoteNumber, **kwargs: Any) -> str: ...
+
+
+@runtime_checkable
+class ScaleP(Protocol):
     tuning: Tuning
-    name_to_number: NameToNumber
-    number_to_name: NumberToName
+    to_number: ToNumber
+    to_name: ToName
 
 
-class XNote(NamedTuple):  # The future of Note
+@dc.dataclass
+class Scale(ScaleP):
+    tuning: Tuning
+    to_number: ToNumber
+    to_name: ToName
+
+
+@dc.dataclass(frozen=True)
+class Note:
     scale: Scale
     number: NoteNumber
     name: str
 
+    @cached_property
+    def frequency(self) -> float:
+        return self.scale.tuning(self.number)
+
     @staticmethod
-    def make(scale: Scale, n: NoteNumber | str) -> XNote:
+    def make(scale: Scale, n: NoteNumber | str) -> Note:
         if isinstance(n, str):
-            name, number = n, scale.name_to_number(n)
+            name, number = n, scale.to_number(n)
         else:
-            name, number = scale.number_to_name(n), n  # ty: ignore[missing-argument]
-        return XNote(scale, number, name)
+            name, number = scale.to_name(n), n
+        return Note(scale, number, name)

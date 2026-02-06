@@ -8,8 +8,8 @@ from threading import Thread
 
 import numpy as np
 
+from ..scale import twelve_tet
 from ..scale.scale import NoteNumber, Scale
-from ..scale.twelve_tet import TWELVE_TET
 from . import Data, Number
 from . import oscillator as osc
 from .device_config import DeviceConfig
@@ -18,6 +18,8 @@ from .player import Player
 INTENSITY = 0.1
 FADE = 0  # 0x40000
 OSC = osc.sawtooth
+
+assert isinstance(twelve_tet, Scale)
 
 
 # TODO: relieve the tension between human units (frequency, time) and sample units.
@@ -86,7 +88,7 @@ class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator: osc.Oscillator = OSC
     players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
-    scale: Scale = TWELVE_TET
+    scale: Scale = twelve_tet
     start_note_name: str = 'C3'
 
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
@@ -116,7 +118,7 @@ class OscillatorController:
 
     @cached_property
     def start_note_number(self) -> int:
-        return self.scale.name_to_number(self.start_note_name)
+        return self.scale.to_number(self.start_note_name)
 
 
 def _clamp(x: Number) -> Number:
@@ -136,7 +138,7 @@ def run_many_notes():
     o2 = 'C2', 'E2', 'D3', 'Eb1', 'G1', 'C1', 'E1', 'D2', 'Eb0', 'G0'
 
     for name in (o1 + o2)[0]:
-        stack.append(note := TWELVE_TET.name_to_number(name))
+        stack.append(note := twelve_tet.to_number(name))
         if not oc.start(note):
             print('oops', name)
         time.sleep(DT)
