@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Any, TypeAlias, override
+from typing import Any, override
 
 import numpy as np
 
 from . import Data, Number
 
-Function: TypeAlias = Callable[..., Any]
+type Function = Callable[..., Any]
 
 
 class Oscillator:

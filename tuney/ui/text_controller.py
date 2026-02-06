@@ -3,15 +3,14 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 from threading import Thread
-from typing import TypeAlias
 
 from ..keyboard import KeyAction
 from ..time import event
 from ..time.text_timings import TextTimings
 from .controller import Controller
 
-Event: TypeAlias = event.Event[KeyAction]
-Runner: TypeAlias = event.Runner[KeyAction]
+type Event = event.Event[KeyAction]
+type Runner = event.Runner[KeyAction]
 
 
 @dc.dataclass
@@ -23,8 +22,8 @@ class TextController(Controller):
     def runner(self) -> Runner:
         events = []
         for char, begin, end in self.timings(self.text):
-            events.append(Event(begin, KeyAction(char, True)))
-            events.append(Event(end, KeyAction(char, False)))
+            assert callable(Event)
+            events.extend(Event(t, KeyAction(char, t == begin)) for t in (begin, end))
 
         return event.Runner(events, self.key_callback)
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses as dc
 from collections.abc import Callable
-from typing import TypeAlias
 
 from pynput import keyboard
 
@@ -13,5 +12,5 @@ class KeyAction:
     is_press: bool = False
 
 
-Key: TypeAlias = keyboard.Key | keyboard.KeyCode
-Callback: TypeAlias = Callable[[KeyAction], None]
+type Key = keyboard.Key | keyboard.KeyCode
+type Callback = Callable[[KeyAction], None]

@@ -1,8 +1,8 @@
 from collections.abc import Callable
-from typing import Any, TypeAlias
+from typing import Any
 
 import numpy as np
 
-Data: TypeAlias = np.ndarray
-Function: TypeAlias = Callable[..., Any]
-Number: TypeAlias = int | float | np.floating | np.integer
+type Data = np.ndarray
+type Function = Callable[..., Any]
+type Number = int | float | np.floating | np.integer
