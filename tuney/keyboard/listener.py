@@ -7,24 +7,7 @@ from typing import Any
 from pynput import keyboard
 
 from .key_types import Callback, Key, KeyAction
-
-
-@dc.dataclass
-class Modifiers:
-    alt: int = 0
-    cmd: int = 0
-    ctrl: int = 0
-    shift: int = 0
-
-    def apply(self, key: keyboard.Key, is_press: bool) -> None:
-        name = key.name.partition('_')[0]
-        if (value := vars(self).get(name)) is not None:
-            value = max(0, min(2, value + (1 if is_press else -1)))
-            setattr(self, name, value)
-
-    @property
-    def is_printable(self) -> bool:
-        return not (self.alt or self.cmd or self.ctrl)
+from .modifiers import Modifiers
 
 
 @dc.dataclass
@@ -63,8 +46,8 @@ class KeyboardListener:
 
     def _on(self, key: Key | None, is_press: bool) -> None:
         if isinstance(key, keyboard.Key):
-            self.modifiers.apply(key, is_press)
-        if self.modifiers.is_printable and (char := getattr(key, 'char', '')):
+            self.modifiers = self.modifiers.apply(key, is_press)
+        if not self.modifiers.is_command and (char := getattr(key, 'char', '')):
             self.callback(KeyAction(char, is_press))
 
 
