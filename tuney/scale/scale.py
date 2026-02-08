@@ -14,34 +14,27 @@ class Tuning(Protocol):
 
 
 @runtime_checkable
-class ToNumber(Protocol):
-    def __call__(self, name: str) -> NoteNumber: ...
-
-
-@runtime_checkable
 class ToName(Protocol):
     def __call__(self, note_number: NoteNumber, **kwargs: Any) -> str: ...
 
 
 @runtime_checkable
-class ScaleP(Protocol):
-    tuning: Tuning
-    to_number: ToNumber
-    to_name: ToName
+class ToNumber(Protocol):
+    def __call__(self, name: str) -> NoteNumber: ...
 
 
-@dc.dataclass
-class Scale(ScaleP):
+@runtime_checkable
+class Scale(Protocol):
     tuning: Tuning
-    to_number: ToNumber
     to_name: ToName
+    to_number: ToNumber
 
 
 @dc.dataclass(frozen=True)
 class Note:
     scale: Scale
-    number: NoteNumber
     name: str
+    number: NoteNumber
 
     @cached_property
     def frequency(self) -> float:
@@ -53,4 +46,4 @@ class Note:
             name, number = n, scale.to_number(n)
         else:
             name, number = scale.to_name(n), n
-        return Note(scale, number, name)
+        return Note(scale=scale, name=name, number=number)
