@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from typing import NamedTuple
 
-from .key_types import Key
+from pynput import keyboard
+
+type KeyType = keyboard.Key | keyboard.KeyCode
 
 
-class Modifiers(IntEnum):
+class KeyPress(NamedTuple):
+    key: KeyType
+    is_press: bool
+
+
+class Modifiers(int):
     none = 0
 
     alt = 1
@@ -50,10 +57,10 @@ class Modifiers(IntEnum):
     def is_command(self) -> bool:
         return self.has_alt or self.has_cmd or self.has_ctrl
 
-    def apply(self, key: Key, is_press: bool) -> Modifiers:
+    def apply(self, kp: KeyPress) -> Modifiers:
         try:
-            mask = getattr(Modifiers, key.name)
+            mask = getattr(Modifiers, kp.key.name)
         except AttributeError:
             return self
         else:
-            return Modifiers((self | mask) if is_press else (self & ~mask))
+            return Modifiers((self | mask) if kp.is_press else (self & ~mask))

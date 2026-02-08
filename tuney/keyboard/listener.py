@@ -7,7 +7,7 @@ from typing import Any
 from pynput import keyboard
 
 from .key_types import Callback, Key, KeyAction
-from .modifiers import Modifiers
+from .modifiers import KeyPress, Modifiers
 
 
 @dc.dataclass
@@ -45,8 +45,7 @@ class KeyboardListener:
         self.listener.stop()
 
     def _on(self, key: Key | None, is_press: bool) -> None:
-        if isinstance(key, keyboard.Key):
-            self.modifiers = self.modifiers.apply(key, is_press)
+        self.modifiers = self.modifiers.apply(KeyPress(key, is_press))
         if not self.modifiers.is_command and (char := getattr(key, 'char', '')):
             self.callback(KeyAction(char, is_press))
 
