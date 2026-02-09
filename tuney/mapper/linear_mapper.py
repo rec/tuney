@@ -16,8 +16,9 @@ class LinearMapper:
 
     @cached_property
     def char_to_number(self) -> dict[str, int]:
-        if not (alphabet := self.alphabet):
-            alphabet = ascii_letters if self.case_sensitive else ascii_lowercase
+        alphabet = self.alphabet or (
+            ascii_letters if self.case_sensitive else ascii_lowercase
+        )
 
         def char_to_number(index: int, c: str) -> int:
             if self.invert:

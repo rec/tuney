@@ -1,5 +1,22 @@
+import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from threading import Thread
+from typing import Any
+
+
+def start_thread(target: Callable[[], Any], daemon: bool = True) -> Thread:
+    """Start a thread and return it"""
+
+    def catch_target() -> None:
+        try:
+            target()
+        except Exception:
+            traceback.print_exc()
+
+    t = Thread(target=catch_target, daemon=daemon)
+    t.start()
+    return t
 
 
 class Runnable(ABC):
@@ -18,9 +35,7 @@ class Runnable(ABC):
         return self._running
 
     def start(self) -> Thread:
-        t = Thread(target=self.run)
-        t.start()
-        return t
+        return start_thread(self.run)
 
     def stop(self) -> None:
         self._running = False

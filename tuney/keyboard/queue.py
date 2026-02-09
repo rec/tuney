@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import dataclasses as dc
 import sys
-import threading
 import time
 import traceback
 from functools import cached_property
 from queue import Empty, Queue
 
+from ..runnable import start_thread
 from .key_types import Callback, KeyAction
 from .listener import KeyboardListener
 
@@ -20,7 +20,7 @@ class KeyboardQueue:
 
     def start(self) -> None:
         self.running = True
-        threading.Thread(target=self._target).start()
+        start_thread(self._target)
         self._listener.start()
 
     def stop(self) -> None:

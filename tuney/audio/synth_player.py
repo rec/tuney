@@ -4,10 +4,10 @@ import dataclasses as dc
 import time
 from contextlib import suppress
 from functools import cached_property
-from threading import Thread
 
 import numpy as np
 
+from ..runnable import start_thread
 from ..scale import twelve_tet
 from ..scale.scale import NoteNumber, Scale
 from . import Data, Number
@@ -102,7 +102,7 @@ class OscillatorController:
         op = OscillatorPlayer(
             config=self.config, oscillator=self.oscillator, sound=Sound(period)
         )
-        Thread(target=op.run).start()
+        start_thread(op.run)
         self.players[note_number] = op
         return True
 
