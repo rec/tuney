@@ -1,25 +1,14 @@
-import dataclasses as dc
-import math
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Any, NamedTuple
+from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
 from textual.widgets import Static
 
+from tuney.ui import ColumnsRows, Text
+
 FLAT = ('C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B')
-
-
-@dc.dataclass
-class Text:
-    labels: Sequence[str]
-    on: bool = False
-
-
-class ColumnsRows(NamedTuple):
-    columns: int
-    rows: int
 
 
 class NoteGrid(App):
@@ -43,12 +32,8 @@ class NoteGrid(App):
             yield Static('\n'.join(t.labels), classes='on' if t.on else 'off')
 
     @cached_property
-    def shape(self) -> tuple[int, int]:
-        n = len(self.texts)
-        cols = int(math.ceil(n**0.5))
-        rows = n // cols
-        rows += n > (rows * cols)
-        return cols, rows
+    def shape(self) -> ColumnsRows:
+        return ColumnsRows.from_length(len(self.texts))
 
     def resize_grid(self) -> None:
         # From https://textual.textualize.io/styles/grid/grid_size/#python

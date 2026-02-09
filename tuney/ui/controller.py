@@ -8,7 +8,8 @@ from ..audio.synth_player import OscillatorController
 from ..keyboard import KeyAction
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet as tt
-from .note_grid import NoteGrid, Text
+from . import Text
+from .note_grid import NoteGrid
 
 
 @dc.dataclass
