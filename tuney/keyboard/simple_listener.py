@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, Literal
+
+from pynput import keyboard
+
+from ..runnable import Runnable
+from .modifiers import KeyPress, KeyType, Modifiers
+
+type KeyCallback = Callable[[KeyPress], Any]
+
+
+class KeyboardListener(Runnable):
+    def __init__(self, callback: KeyCallback, relay_commands: bool = False) -> None:
+        self.callback = callback
+        self.listener = _make_listener(self)
+        self.modifiers = Modifiers(0)
+        self.relay_commands = relay_commands
+
+    def on_press(self, key: KeyType | None) -> None | Literal[False]:
+        return self.is_running and self._on(key, True)
+
+    def on_release(self, key: KeyType | None) -> None | Literal[False]:
+        return self.is_running and self._on(key, False)
+
+    def _on(self, key: KeyType, is_press: bool) -> None:
+        kp = KeyPress(key, is_press)
+        self.modifiers = self.modifiers.apply(kp)
+        if self.relay_commands or not self.modifiers.is_command:
+            self.callback(kp)
+
+    def _run(self) -> None:
+        self.listener.__enter__()
+        self.listener.join()
+
+    def stop(self) -> None:
+        super().stop()
+        self.listener.stop()
+
+
+def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
+    listener = keyboard.Listener(
+        on_press=kl.on_press,
+        on_release=kl.on_release,
+    )
+    log = getattr(listener, '_log', None)
+    if not (log and hasattr(listener, 'IS_TRUSTED')):
+        return listener
+
+    # Work around a bogus warning in pynput and Darwin
+    BOGUS_WARNING = (
+        'This process is not trusted! Input event monitoring will not be possible'
+        ' until it is added to accessibility clients.'
+    )
+    warning = log.warning
+
+    @wraps(warning)
+    def warning_(a: str, *args: Any, **kwargs: Any) -> None:
+        if not a.strip() or a.replace(BOGUS_WARNING, '').strip() or args or kwargs:
+            warning(a, *args, **kwargs)
+
+    log.warning = warning_
+    return listener
+
+
+if __name__ == '__main__':
+    kl = KeyboardListener(print, True)
+    kl.run()
