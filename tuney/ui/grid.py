@@ -7,7 +7,6 @@ from queue import Queue
 from customtkinter import CTk
 from pynput.keyboard import Key
 
-from ..keyboard.listener import KeyboardListener
 from ..keyboard.modifiers import KeyPress
 from . import grid_ui
 
@@ -15,15 +14,7 @@ from . import grid_ui
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
 RELEASED = PRESSED | {'fg_color': 'gray60'}
 
-PAD = 20
-QUARTER = PAD // 4
-TEXT_BOX_HEIGHT = 150
-FONT = ('Arial', 14)
-BIG_FONT = ('Arial', 16, 'bold')
-
 QUEUE_POLL_IN_MS = 25
-WIDTH, HEIGHT = 100, 150
-
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
@@ -40,15 +31,9 @@ def from_length(n: int) -> tuple[int, int]:
 
 
 class NoteGrid(CTk):
-    def __init__(
-        self,
-        note_labels: dict[str, NoteLabel],
-        update_entries: bool = True,
-        add_listener: bool = True,
-    ):
+    def __init__(self, note_labels: dict[str, NoteLabel]) -> None:
         super().__init__()
         self.note_labels = note_labels
-        self.update_entries = update_entries
         self.char_count = 0
         self.queue = Queue[tuple[str, bool]]()
         self.notes = {}
@@ -58,14 +43,7 @@ class NoteGrid(CTk):
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
 
-        if add_listener:
-            self.listener = KeyboardListener(self.on_key)
-        else:
-            self.listener = None
-
     def start(self) -> None:
-        if self.listener:
-            self.listener.start()
         self._handle_queue()
 
     def on_char(self, char: str, is_press: bool) -> None:

@@ -22,10 +22,12 @@ class Controller:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
     scale: Scale = twelve_tet
+    use_gui: bool = True
+    starting_text: str = ''
 
     @cached_property
     def grid(self) -> NoteGrid:
-        return NoteGrid(self.texts, add_listener=False)
+        return NoteGrid(self.texts)
 
     @cached_property
     def listener(self) -> KeyboardListener:
