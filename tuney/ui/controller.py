@@ -10,8 +10,7 @@ from ..keyboard.listener import KeyboardListener, KeyPress
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
-from . import Text
-from .grid import NoteGrid
+from .grid import NoteGrid, NoteLabel
 
 assert isinstance(twelve_tet, Scale)
 
@@ -33,9 +32,9 @@ class Controller:
         return KeyboardListener(self.on_key)
 
     @cached_property
-    def texts(self) -> dict[str, Text]:
+    def texts(self) -> dict[str, NoteLabel]:
         items = self.mapper.char_to_number.items()
-        return {c: Text((self.scale.to_name(n), ' ' + c)) for c, n in items}
+        return {c: NoteLabel((self.scale.to_name(n), ' ' + c)) for c, n in items}
 
     def on_key(self, k: KeyPress) -> None:
         if char := getattr(k.key, 'char', None) or KEYS.get(k.key):

@@ -1,14 +1,14 @@
+import dataclasses as dc
+import math
 import string
 from collections.abc import Sequence
 from queue import Queue
-from typing import NamedTuple
 
 from customtkinter import CTk, CTkButton, CTkFrame, CTkLabel, CTkTextbox
 from pynput.keyboard import Key
 
 from ..keyboard.listener import KeyboardListener
 from ..keyboard.modifiers import KeyPress
-from . import ColumnsRows, Text
 
 # TODO: bg_color is not useful, what is?
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
@@ -32,25 +32,32 @@ WIDTH, HEIGHT = 100, 150
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
-class Note(NamedTuple):
+@dc.dataclass
+class NoteLabel:
     labels: Sequence[str]
     on: bool = False
+
+
+def from_length(n: int) -> tuple[int, int]:
+    c = int(math.ceil(n**0.5))
+    r = n // c
+    return c, r + (n > (r * c))
 
 
 class NoteGrid(CTk):
     def __init__(
         self,
-        texts: dict[str, Text],
+        note_labels: dict[str, NoteLabel],
         update_entries: bool = True,
         add_listener: bool = True,
     ):
         super().__init__()
-        self.texts = texts
+        self.note_labels = note_labels
         self.update_entries = update_entries
         self.char_count = 0
         self.queue = Queue[tuple[str, bool]]()
         self.notes = {}
-        self.columns, self.rows = ColumnsRows.from_length(len(texts))
+        self.columns, self.rows = from_length(len(note_labels))
 
         self.title('Note grid')
 
@@ -106,8 +113,8 @@ class NoteGrid(CTk):
         parent = CTkFrame(self)
         parent.pack(fill='both', expand=True, padx=PAD, pady=PAD)
 
-        for i, (key, text) in enumerate(self.texts.items()):
-            letter = '\n'.join(text.labels)
+        for i, (key, note_label) in enumerate(self.note_labels.items()):
+            letter = '\n'.join(note_label.labels)
 
             r, c = divmod(i, self.columns)
             parent.grid_columnconfigure(c, weight=1)
@@ -150,10 +157,10 @@ class NoteGrid(CTk):
         print('on_replay')
 
 
-def texts() -> dict[str, Text]:
-    return {c: Text([c, c]) for c in string.ascii_lowercase}
+def note_labels() -> dict[str, NoteLabel]:
+    return {c: NoteLabel([c, c]) for c in string.ascii_lowercase}
 
 
 if __name__ == '__main__':
-    app = NoteGrid(texts())
+    app = NoteGrid(note_labels())
     app.start()
