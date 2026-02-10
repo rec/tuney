@@ -1,4 +1,4 @@
-from .ui.new_controller import Controller
+from .ui.controller import Controller
 
 
 def main() -> None:
