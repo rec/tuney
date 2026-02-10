@@ -32,13 +32,17 @@ class Runner[Data]:
 
     def run(self) -> None:
         self._running = True
+        start = time.time()
+
+        def next_time() -> float:
+            return max(0, self.events[0].timestamp - time.time() + start)
+
         while self._running:
-            while self.events and self.events[0].timestamp <= time.time():
-                self.callback(d := heapq.heappop(self.events).data)
-                print('run', d)
+            while self.events and not next_time():
+                self.callback(heapq.heappop(self.events).data)
 
             if self.events:
-                time.sleep(min(MAX_WAIT, self.events[0].timestamp - time.time()))
+                time.sleep(min(MAX_WAIT, next_time()))
             else:
                 self.stop()
 
@@ -50,11 +54,10 @@ def demo() -> None:
     def event() -> Event[float]:
         import random
 
-        t = timestamp + random.uniform(0, 1)
-        return Event(t, t - timestamp)
+        t = random.uniform(0, 2)
+        return Event(t, t)
 
-    timestamp = time.time()
-    Runner([event() for _ in range(10)], print).run()
+    Runner([event() for _ in range(16)], print).run()
 
 
 if __name__ == '__main__':
