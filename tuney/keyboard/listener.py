@@ -14,11 +14,18 @@ type KeyCallback = Callable[[KeyPress], Any]
 
 
 class KeyboardListener(Runnable):
-    def __init__(self, callback: KeyCallback, relay_commands: bool = False) -> None:
+    def __init__(
+        self,
+        callback: KeyCallback,
+        relay_commands: bool = False,
+        deduplicate_keys: bool = True,
+    ) -> None:
         self.callback = callback
         self.listener = _make_listener(self)
         self.modifiers = Modifiers(0)
         self.relay_commands = relay_commands
+        self.deduplicate_keys = deduplicate_keys
+        self.held_keys = set()
 
     def on_press(self, key: KeyType | None) -> None | Literal[False]:
         return self.is_running and self._on(key, True)
@@ -27,6 +34,13 @@ class KeyboardListener(Runnable):
         return self.is_running and self._on(key, False)
 
     def _on(self, key: KeyType, is_press: bool) -> None:
+        if self.deduplicate_keys:
+            if not is_press:
+                self.held_keys.discard(key)
+            elif key in self.held_keys:
+                return
+            else:
+                self.held_keys.add(key)
         kp = KeyPress(key, is_press)
         self.modifiers = self.modifiers.apply(kp)
         if self.relay_commands or not self.modifiers.is_command:
