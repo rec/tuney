@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from functools import wraps
 from typing import Any, Literal
@@ -65,6 +66,21 @@ def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
     return listener
 
 
+def main() -> None:
+    KeyboardListener(print, True).run()
+
+
+def time_keyboard() -> None:
+    def key_callback(k):
+        if k.is_press:
+            nonlocal now
+            old, now = now, time.time()
+            print(now - old)
+
+    now = time.time()
+    KeyboardListener(key_callback).run()
+
+
 if __name__ == '__main__':
-    kl = KeyboardListener(print, True)
-    kl.run()
+    # main()
+    time_keyboard()

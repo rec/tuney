@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-__all__ = ['KeyAction', 'KeyboardListener', 'KeyboardQueue']
+__all__ = ['KeyPress', 'KeyboardListener']
 
-from .key_types import KeyAction
-from .listener import KeyboardListener
-from .queue import KeyboardQueue
+from .simple_listener import KeyboardListener, KeyPress
 
 if __name__ == '__main__':
-    if True:
-        KeyboardQueue(print).start()
-    else:
-        KeyboardListener(print).start()
+    KeyboardListener(print).run()
