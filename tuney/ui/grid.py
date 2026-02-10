@@ -38,7 +38,12 @@ class Note(NamedTuple):
 
 
 class NoteGrid(CTk):
-    def __init__(self, texts: dict[str, Text], update_entries: bool = True):
+    def __init__(
+        self,
+        texts: dict[str, Text],
+        update_entries: bool = True,
+        add_listener: bool = True,
+    ):
         super().__init__()
         self.texts = texts
         self.update_entries = update_entries
@@ -57,10 +62,14 @@ class NoteGrid(CTk):
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
 
-        self.listener = KeyboardListener(self.on_key)
+        if add_listener:
+            self.listener = KeyboardListener(self.on_key)
+        else:
+            self.listener = None
 
     def start(self) -> None:
-        self.listener.start()
+        if self.listener:
+            self.listener.start()
         self._handle_queue()
 
     def on_char(self, char: str, is_press: bool) -> None:
@@ -92,10 +101,6 @@ class NoteGrid(CTk):
             self.text.configure(state='disabled')
             self.text.see('end')
             self.count_label.configure(text=f'Chars: {self.char_count}')
-
-    def change_pressed(self, char: str, is_press: bool) -> None:
-        if char in self.notes:
-            self.notes[char].configure(**(PRESSED if is_press else RELEASED))
 
     def _setup_grid(self):
         parent = CTkFrame(self)
@@ -152,4 +157,3 @@ def texts() -> dict[str, Text]:
 if __name__ == '__main__':
     app = NoteGrid(texts())
     app.start()
-    app.mainloop()

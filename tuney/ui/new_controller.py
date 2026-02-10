@@ -3,6 +3,8 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
+from pynput.keyboard import Key
+
 from ..audio.synth_player import OscillatorController
 from ..keyboard.simple_listener import KeyboardListener, KeyPress
 from ..mapper.linear_mapper import LinearMapper
@@ -13,6 +15,8 @@ from .grid import NoteGrid
 
 assert isinstance(twelve_tet, Scale)
 
+KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
+
 
 @dc.dataclass
 class Controller:
@@ -22,26 +26,35 @@ class Controller:
 
     @cached_property
     def grid(self) -> NoteGrid:
-        return NoteGrid(self.texts, update_entries=True)
+        return NoteGrid(self.texts, add_listener=False)
 
     @cached_property
     def listener(self) -> KeyboardListener:
-        return KeyboardListener(self._on_key)
+        return KeyboardListener(self.on_key)
 
     @cached_property
     def texts(self) -> dict[str, Text]:
         items = self.mapper.char_to_number.items()
-        return {c: Text((twelve_tet.to_name(n), ' ' + c)) for c, n in items}
+        return {c: Text((self.scale.to_name(n), ' ' + c)) for c, n in items}
 
-    def _on_key(self, k: KeyPress) -> None:
-        if (c := getattr(k.key, 'char', '')) and (note := self.mapper(c)) is not None:
-            self.on_note(c, note, k.is_press)
-        self.grid.on_key(k)
+    def on_key(self, k: KeyPress) -> None:
+        if char := getattr(k.key, 'char', None) or KEYS.get(k.key):
+            if (note := self.mapper(char)) is not None:
+                self.play_note(char, note, k.is_press)
+            else:
+                self.grid.on_char(char, k.is_press)
 
-    def on_note(self, char: str, note_number: int, is_press: bool) -> None:
-        if not self.osc.note(note_number, is_press):
-            pass
+    def play_note(self, char: str, note_number: int, is_press: bool) -> None:
+        self.osc.note(note_number, is_press)
         self.grid.on_char(char, is_press)
 
     def run(self) -> None:
         self.grid.start()
+        self.listener.start()
+        self.grid.mainloop()
+
+
+if __name__ == '__main__':
+    print('start')
+    Controller().run()
+    print('done')
