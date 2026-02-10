@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 import random
 from collections.abc import Collection, Iterable, Iterator
-from functools import cached_property
+from functools import cached_property, partial
 from typing import NamedTuple
 
 from ..types import Milliseconds
@@ -28,6 +28,7 @@ class TextTimings:
     random_seed: int | None = None
     alpha_only: bool = True
     strip_accents: bool = True
+    scale: float = 1.0
 
     other: dict[str, Milliseconds] = dc.field(default_factory=dict)
     timings: Collection[Milliseconds] | None = None
@@ -55,7 +56,7 @@ class TextTimings:
             dt = self.char_to_time.get(char)
             if char.isalpha() or not (dt is None and self.alpha_only):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
-                yield CharBeginEnd(char, time, time + dt)
+                yield CharBeginEnd(char, self.scale * time, self.scale * (time + dt))
                 time += max(0, dt - self.overlap)
 
 
@@ -112,3 +113,19 @@ _TIMINGS = (
     + (269.42, 279.88, 287.71, 295.99, 299.94, 317.22, 329.73, 330.68, 357.17, 367.83)
     + (419.5, 422.63, 475.46, 521.2, 526.85, 594.64, 738.79)
 )
+
+
+def play_timings(s: str) -> None:
+    from .event import Event, Runner
+
+    timings = TextTimings()
+    events = [Event[str](b / 1000.0, c) for c, b, _ in timings(s)]
+    callback = partial(print, end='', flush=True)
+    Runner[str](events, callback).run()
+    print()
+
+
+if __name__ == '__main__':
+    import sys
+
+    play_timings(' '.join(sys.argv[1:]))
