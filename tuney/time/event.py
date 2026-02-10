@@ -23,7 +23,7 @@ class Event[Data]:
 @dc.dataclass
 class Runner[Data]:
     events: list[Event[Data]]
-    callback: Callable[..., Any]
+    callback: Callable[[Data], Any]
 
     _running: bool = False
 

@@ -1,11 +1,11 @@
 import traceback
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from threading import Thread
-from typing import Any
+
+from .types import Callback
 
 
-def start_thread(target: Callable[[], Any], daemon: bool = True) -> Thread:
+def start_thread(target: Callback, daemon: bool = True) -> Thread:
     """Start a thread and return it"""
 
     def catch_target() -> None:
