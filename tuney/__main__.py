@@ -1,9 +1,8 @@
-from .ui.keyboard_controller import KeyboardController
+from .ui.new_controller import Controller
 
 
 def main() -> None:
-    with KeyboardController():
-        pass
+    Controller().run()
 
 
 if __name__ == '__main__':
