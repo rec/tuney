@@ -6,8 +6,8 @@ from typing import NamedTuple
 from customtkinter import CTk, CTkButton, CTkFrame, CTkLabel, CTkTextbox
 from pynput.keyboard import Key
 
-from ..keyboard.modifiers import KeyPress
 from ..keyboard.listener import KeyboardListener
+from ..keyboard.modifiers import KeyPress
 from . import ColumnsRows, Text
 
 # TODO: bg_color is not useful, what is?
