@@ -7,7 +7,7 @@ from customtkinter import CTk, CTkButton, CTkFrame, CTkLabel, CTkTextbox
 from pynput.keyboard import Key
 
 from ..keyboard.modifiers import KeyPress
-from ..keyboard.simple_listener import KeyboardListener
+from ..keyboard.listener import KeyboardListener
 from . import ColumnsRows, Text
 
 # TODO: bg_color is not useful, what is?

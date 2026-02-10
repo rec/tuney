@@ -6,7 +6,7 @@ from functools import cached_property
 from pynput.keyboard import Key
 
 from ..audio.synth_player import OscillatorController
-from ..keyboard.simple_listener import KeyboardListener, KeyPress
+from ..keyboard.listener import KeyboardListener, KeyPress
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
