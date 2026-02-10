@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from . import Seconds
+from ..types import Seconds
 
 MAX_WAIT: Seconds = 0.01
 

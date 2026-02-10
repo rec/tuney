@@ -6,7 +6,7 @@ from collections.abc import Collection, Iterable, Iterator
 from functools import cached_property
 from typing import NamedTuple
 
-from . import Milliseconds
+from ..types import Milliseconds
 
 
 class CharBeginEnd(NamedTuple):

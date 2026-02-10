@@ -4,8 +4,7 @@ import dataclasses as dc
 from functools import cached_property
 from typing import Any, Protocol, runtime_checkable
 
-type Frequency = float  # Must be non-negative
-type NoteNumber = int  # May be negative
+from ..types import Frequency, NoteNumber
 
 
 @runtime_checkable
