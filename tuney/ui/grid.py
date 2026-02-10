@@ -1,6 +1,5 @@
 import dataclasses as dc
 import math
-import string
 from collections.abc import Sequence
 from queue import Queue
 
@@ -31,7 +30,11 @@ def from_length(n: int) -> tuple[int, int]:
 
 
 class NoteGrid(CTk):
-    def __init__(self, note_labels: dict[str, NoteLabel]) -> None:
+    def __init__(
+        self,
+        note_labels: dict[str, NoteLabel],
+        starting_text: str,
+    ) -> None:
         super().__init__()
         self.note_labels = note_labels
         self.char_count = 0
@@ -39,6 +42,7 @@ class NoteGrid(CTk):
         self.notes = {}
         self.columns, self.rows = from_length(len(note_labels))
         self.count_label, self.text = grid_ui.setup(self)
+        self._append_string(starting_text)
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
@@ -60,30 +64,25 @@ class NoteGrid(CTk):
 
         self.after(QUEUE_POLL_IN_MS, self._handle_queue)
 
+    def _append_string(self, s: str) -> None:
+        self.text.configure(state='normal')
+        try:
+            if s == '\b':
+                self.char_count -= 1
+                self.text.delete('end - 2c', 'end - 1c')
+            else:
+                self.char_count += len(s)
+                self.text.insert('end', s)
+        finally:
+            self.text.configure(state='disabled')
+
     def _on_char(self, char: str, is_press: bool) -> None:
         if char in self.notes:
             self.notes[char].configure(**(PRESSED if is_press else RELEASED))
         if is_press:
-            self.text.configure(state='normal')
-            if char == '\b':
-                self.char_count -= 1
-                self.text.delete('end - 2c', 'end - 1c')
-            else:
-                self.char_count += 1
-                self.text.insert('end', char)
-
-            self.text.configure(state='disabled')
+            self._append_string(char)
             self.text.see('end')
             self.count_label.configure(text=f'Chars: {self.char_count}')
 
     def on_replay(self, _=None) -> None:
         print('on_replay')
-
-
-def note_labels() -> dict[str, NoteLabel]:
-    return {c: NoteLabel([c, c]) for c in string.ascii_lowercase}
-
-
-if __name__ == '__main__':
-    app = NoteGrid(note_labels())
-    app.start()
