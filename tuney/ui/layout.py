@@ -22,16 +22,16 @@ REPLAY = {
 }
 
 
-def setup(app: App) -> tuple[CTkLabel, CTkTextbox]:
+def layout(app: App) -> tuple[CTkLabel, CTkTextbox]:
     app.title('Note app')
 
     width, height = WIDTH * app.columns, HEIGHT * app.rows
     app.geometry(f'{width}x{height}')
-    _setup_notes(app)
-    return _setup_controls(app)
+    _layout_grid(app)
+    return _layout_controls(app)
 
 
-def _setup_notes(app: App) -> None:
+def _layout_grid(app: App) -> None:
     from .app import RELEASED
 
     parent = CTkFrame(app)
@@ -54,7 +54,7 @@ def _setup_notes(app: App) -> None:
         label.pack(expand=True)
 
 
-def _setup_controls(app: App) -> tuple[CTkLabel, CTkTextbox]:
+def _layout_controls(app: App) -> tuple[CTkLabel, CTkTextbox]:
     stats_frame = CTkFrame(app, fg_color='transparent')
     stats_frame.pack(fill='x', padx=PAD)
 

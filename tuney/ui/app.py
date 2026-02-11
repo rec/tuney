@@ -44,7 +44,7 @@ class App(CTk):
         self.queue = Queue[tuple[str, bool]]()
         self.notes = {}
         self.columns, self.rows = from_length(len(note_labels))
-        self.count_label, self.textbox = layout.setup(self)
+        self.count_label, self.textbox = layout.layout(self)
         self._append_string(starting_text)
 
         self.bind('<Control-r>', lambda _: on_replay)
