@@ -8,7 +8,7 @@ from pynput.keyboard import Key
 
 from ..keyboard.modifiers import KeyPress
 from ..types import Callback
-from . import grid_ui
+from . import layout
 
 # TODO: bg_color is not useful, what is?
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
@@ -44,7 +44,7 @@ class App(CTk):
         self.queue = Queue[tuple[str, bool]]()
         self.notes = {}
         self.columns, self.rows = from_length(len(note_labels))
-        self.count_label, self.textbox = grid_ui.setup(self)
+        self.count_label, self.textbox = layout.setup(self)
         self._append_string(starting_text)
 
         self.bind('<Control-r>', lambda _: on_replay)
