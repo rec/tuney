@@ -11,7 +11,7 @@ from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
 from ..time.text_timings import TextTimings
-from .app import App, NoteLabel
+from .ctk_app import CTkApp, NoteLabel
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
@@ -30,9 +30,9 @@ class Controller:
     _replay: dc.InitVar[bool] = False
 
     @cached_property
-    def app(self) -> App:
+    def ctk_app(self) -> CTkApp:
         assert self.use_gui
-        return App(self.note_labels, self.starting_text, self.on_replay)
+        return CTkApp(self.note_labels, self.starting_text, self.on_replay)
 
     @cached_property
     def listener(self) -> KeyboardListener:
@@ -58,23 +58,23 @@ class Controller:
             if self.use_osc and (note := self.mapper(char)) is not None:
                 self.osc.note(note, is_press)
             if self.use_gui:
-                self.app.on_char(char, is_press)
+                self.ctk_app.on_char(char, is_press)
 
     def on_replay(self) -> None:
         self._replay = not self._replay
         if self._replay:
-            self.text_timings.make_runner(self.app.text, self.on_char).run()
+            self.text_timings.make_runner(self.ctk_app.text, self.on_char).run()
 
     def start(self) -> None:
         if self.use_gui:
-            self.app.start()
+            self.ctk_app.start()
         if self.use_keyboard:
             self.listener.start()
 
     def run(self):
         self.start()
         if self.use_gui:
-            self.app.mainloop()
+            self.ctk_app.mainloop()
 
 
 if __name__ == '__main__':

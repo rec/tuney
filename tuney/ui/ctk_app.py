@@ -30,7 +30,7 @@ def from_length(n: int) -> tuple[int, int]:
     return c, r + (n > (r * c))
 
 
-class App(CTk):
+class CTkApp(CTk):
     def __init__(
         self,
         note_labels: dict[str, NoteLabel],
