@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pynput import keyboard
 
 from ..runnable import Runnable
-from .modifiers import KeyPress, KeyType, Modifiers
+from .key_press import KeyPress, KeyType, Modifiers
 
 type KeyCallback = Callable[[KeyPress], Any]
 

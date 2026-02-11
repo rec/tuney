@@ -5,7 +5,7 @@ from functools import cached_property
 
 import soundfile
 
-from . import Data
+from ..types import Data
 from .device_config import DeviceConfig
 
 

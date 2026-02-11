@@ -5,7 +5,7 @@ from typing import override
 
 import numpy as np
 
-from . import Data, Number
+from ..types import Data, Number
 
 
 class Oscillator:

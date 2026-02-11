@@ -5,15 +5,21 @@ from functools import cached_property
 
 from pynput.keyboard import Key
 
+from tuney.time import sequencer
+
+from .. import time
 from ..audio.synth_player import OscillatorController
-from ..keyboard.listener import KeyboardListener, KeyPress
+from ..keyboard.key_press import CharPress, KeyPress
+from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
-from ..time.text_timings import TextTimings
 from .ctk_app import CTkApp, NoteLabel
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
+
+type Event = time.Event[CharPress]
+type Sequencer = sequencer.Sequencer[CharPress]
 
 
 @dc.dataclass
@@ -21,22 +27,25 @@ class App:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
     scale_name: str = 'twelve_tet'
-    text_timings: TextTimings = TextTimings()
+    text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
-    use_gui: bool = True
-    use_keyboard: bool = True
-    use_osc: bool = True
+    enable_gui: bool = True
+    enable_keyboard: bool = True
+    enable_sound: bool = not not not True
 
-    _replay: dc.InitVar[bool] = False
+    _sequencer: dc.InitVar[Sequencer | None] = None
+    _saved_text: str | None = None
 
     @cached_property
     def ctk_app(self) -> CTkApp:
-        assert self.use_gui
-        return CTkApp(self.note_labels, self.starting_text, self.on_replay)
+        assert self.enable_gui
+        app = CTkApp(self.note_labels, self.on_replay)
+        app.set_text(self.starting_text)
+        return app
 
     @cached_property
     def listener(self) -> KeyboardListener:
-        assert self.use_keyboard
+        assert self.enable_keyboard
         return KeyboardListener(self.on_key)
 
     @cached_property
@@ -49,32 +58,58 @@ class App:
         assert isinstance(twelve_tet, Scale)
         return twelve_tet  # TODO
 
-    def on_key(self, k: KeyPress) -> None:
-        if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
-            self.on_char(c, k.is_press)
+    @property
+    def text(self) -> str:
+        return self.ctk_app.get_text()
 
-    def on_char(self, char: str, is_press: bool = True) -> None:
-        if not self._replay:
-            if self.use_osc and (note := self.mapper(char)) is not None:
-                self.osc.note(note, is_press)
-            if self.use_gui:
-                self.ctk_app.on_char(char, is_press)
+    @text.setter
+    def text(self, text: str) -> None:
+        self.ctk_app.set_text(text)
+
+    def on_key(self, k: KeyPress) -> None:
+        if not self.ctk_app.is_replaying:
+            if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
+                self.on_char(CharPress(c, k.is_press))
+
+    def on_char(self, c: CharPress) -> None:
+        if self.enable_sound and (note := self.mapper(c.char)) is not None:
+            self.osc.note(note, c.is_press)
+        if self.enable_gui:
+            self.ctk_app.on_char(c)
 
     def on_replay(self) -> None:
-        self._replay = not self._replay
-        if self._replay:
-            self.text_timings.make_runner(self.ctk_app.text, self.on_char).run()
+        print('app.on_replay', self.ctk_app.is_replaying)
+        sequencer, self._sequencer = self._sequencer, None
+        if sequencer:
+            sequencer.stop()
 
-    def start(self) -> None:
-        if self.use_gui:
-            self.ctk_app.start()
-        if self.use_keyboard:
-            self.listener.start()
+        if self.ctk_app.is_replaying:
+            print('is_replaying')
+
+            def on_char(c: CharPress | None) -> None:
+                print('on_char internal', c)
+                if c:
+                    self.on_char(c)
+                else:
+                    print('!stop')
+                    self.ctk_app.after(0, self.on_replay)
+
+            self._sequencer = self.text_timings.sequencer(self.text, on_char)
+            self._saved_text, self.text = self.text, ''
+            self._sequencer.start()
+        elif self._saved_text is not None:
+            self.text, self._saved_text = self._saved_text, None
 
     def run(self):
         self.start()
-        if self.use_gui:
+        if self.enable_gui:
             self.ctk_app.mainloop()
+
+    def start(self) -> None:
+        if self.enable_gui:
+            self.ctk_app.start()
+        if self.enable_keyboard:
+            self.listener.start()
 
 
 if __name__ == '__main__':

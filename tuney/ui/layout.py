@@ -15,14 +15,8 @@ BIG_FONT = ('Arial', 16, 'bold')
 
 WIDTH, HEIGHT = 100, 150
 
-REPLAY = {
-    'text': 'Replay (Ctrl+R)',
-    'fg_color': '#2fa572',
-    'hover_color': '#248259',
-}
 
-
-def layout(app: CTkApp) -> tuple[CTkLabel, CTkTextbox]:
+def layout(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
     app.title('Note app')
 
     width, height = WIDTH * app.columns, HEIGHT * app.rows
@@ -54,7 +48,9 @@ def _layout_grid(app: CTkApp) -> None:
         label.pack(expand=True)
 
 
-def _layout_controls(app: CTkApp) -> tuple[CTkLabel, CTkTextbox]:
+def _layout_controls(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
+    from .ctk_app import REPLAY
+
     stats_frame = CTkFrame(app, fg_color='transparent')
     stats_frame.pack(fill='x', padx=PAD)
 
@@ -78,4 +74,4 @@ def _layout_controls(app: CTkApp) -> tuple[CTkLabel, CTkTextbox]:
     )
     replay_btn.pack(side='right')
 
-    return count_label, text
+    return count_label, text, replay_btn

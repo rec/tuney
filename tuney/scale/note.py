@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
-from ..types import NoteNumber
+from ..types import NoteNumber, Number
 from .scale import Scale
 
 
@@ -14,7 +14,7 @@ class Note:
     number: NoteNumber
 
     @cached_property
-    def frequency(self) -> float:
+    def frequency(self) -> Number:
         return self.scale.tuning(self.number)
 
     @staticmethod

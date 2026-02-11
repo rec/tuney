@@ -8,9 +8,8 @@ from typing import override
 
 from sounddevice import CallbackStop, OutputStream
 
-from tuney.runnable import Runnable
-
-from . import Data
+from ..runnable import Runnable
+from ..types import Data
 from .device_config import DeviceConfig
 
 

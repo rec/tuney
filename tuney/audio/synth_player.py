@@ -4,13 +4,14 @@ import dataclasses as dc
 import time
 from contextlib import suppress
 from functools import cached_property
+from typing import cast
 
 import numpy as np
 
 from ..runnable import start_thread
 from ..scale import twelve_tet
 from ..scale.scale import NoteNumber, Scale
-from . import Data, Number
+from ..types import Data, Number
 from . import oscillator as osc
 from .device_config import DeviceConfig
 from .player import Player
@@ -50,9 +51,10 @@ class OscillatorPlayer(Player):
             super().stop()
 
     def _fill(self, out: Data) -> bool:
-        start = self.frame_count % self.sound.period
+        period = cast(float, self.sound.period)
+        start = self.frame_count % period
         end = start + len(out)
-        ratio = self.oscillator.period / self.sound.period
+        ratio = cast(float, self.oscillator.period) / period
         wave = np.linspace(start * ratio, end * ratio, len(out))
         wave = self.oscillator.function(wave, out=wave)
 
@@ -62,9 +64,9 @@ class OscillatorPlayer(Player):
             intensity *= np.iinfo(out.dtype).max
         wave *= intensity
 
-        fade_in = self.sound.fade_in_samples
+        fade_in = cast(float, self.sound.fade_in_samples)
         if self.frame_count < fade_in and not self._stopping:
-            _fade(wave, self.frame_count / fade_in, len(out) / fade_in)
+            _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
 
         elif self._stopping:
             if self._fade_frame is None:
@@ -72,8 +74,8 @@ class OscillatorPlayer(Player):
                 offset = max(0.0, fade_in - self.frame_count)
                 self._fade_frame = self.frame_count - offset
 
-            fade_out = self.sound.fade_out_samples
-            elapsed = self.frame_count - self._fade_frame
+            fade_out = cast(float, self.sound.fade_out_samples)
+            elapsed = cast(float, self.frame_count - self._fade_frame)
             if (start := 1 - elapsed / fade_out) <= 0:
                 super().stop()
                 return False
@@ -132,11 +134,11 @@ class OscillatorController:
         return self.scale.to_number(self.start_note_name)
 
 
-def _clamp(x: Number) -> Number:
+def _clamp(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
-def _fade(wave: Data, start: Number, length: Number) -> None:
+def _fade(wave: Data, start: float, length: float) -> None:
     wave *= np.linspace(_clamp(start), _clamp(start + length), len(wave))
 
 

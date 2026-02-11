@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import re
 
+from ..types import NoteNumber
 from . import scale
-from .scale import NoteNumber
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0
 A440 = 69

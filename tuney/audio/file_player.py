@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from functools import cached_property
 
+from ..types import Data
 from .device_config import DeviceConfig
 from .player import Player
-from .sample_data import Data, SampleData
+from .sample_data import SampleData
 
 
 class FilePlayer(Player):

@@ -4,16 +4,13 @@ import dataclasses as dc
 import random
 from collections.abc import Callable, Collection, Iterable, Iterator
 from functools import cached_property, partial
-from typing import Any, NamedTuple
+from typing import Any
 
+from tuney.time import Sequencer
+
+from ..keyboard.key_press import CharPress
 from ..types import Milliseconds
-from .event import Event, Runner
-
-
-class CharBeginEnd(NamedTuple):
-    char: str
-    begin: Milliseconds
-    end: Milliseconds
+from .event import Event
 
 
 @dc.dataclass(frozen=True)
@@ -50,21 +47,28 @@ class TextTimings:
     def char_to_time(self) -> dict[str, Milliseconds]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def __call__(self, text: str) -> Iterator[CharBeginEnd]:
+    def events(self, text: str) -> Iterator[Event]:
         time = 0
         chars = _strip_accents(text) if self.strip_accents else text
         for char in _filter_chars(chars):
             dt = self.char_to_time.get(char)
             if char.isalpha() or not (dt is None and self.alpha_only):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
-                yield CharBeginEnd(char, self.scale * time, self.scale * (time + dt))
+                begin = time * self.scale
+                end = (time + dt) * self.scale
+                yield Event(begin, CharPress(char, True))
+                yield Event(end, CharPress(char, False))
                 time += max(0, dt - self.overlap)
 
     @staticmethod
-    def make_runner(s: str, callback: Callable[[str], Any]) -> Runner[str]:
+    def sequencer(
+        s: str, callback: Callable[[CharPress | None], Any]
+    ) -> Sequencer[CharPress]:
         timings = TextTimings()
-        events = [Event[str](b / 1000.0, c) for c, b, _ in timings(s)]
-        return Runner[str](events, callback)
+        events = list(timings.events(s))
+        assert s
+        assert events, s
+        return Sequencer[CharPress](events, callback)
 
 
 def _filter_chars(it: Iterable[str]) -> Iterator[str]:
@@ -127,7 +131,7 @@ def main():
 
     msg = ' '.join(sys.argv[1:])
     callback = partial(print, end='', flush=True)
-    TextTimings.make_runner(msg, callback).run()
+    TextTimings.sequencer(msg, callback).run()
     print()
 
 

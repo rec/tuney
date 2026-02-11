@@ -9,7 +9,12 @@ type KeyType = keyboard.Key | keyboard.KeyCode
 
 class KeyPress(NamedTuple):
     key: KeyType
-    is_press: bool
+    is_press: bool = True
+
+
+class CharPress(NamedTuple):
+    char: str
+    is_press: bool = True
 
 
 class Modifiers(int):
