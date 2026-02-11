@@ -30,7 +30,7 @@ def from_length(n: int) -> tuple[int, int]:
     return c, r + (n > (r * c))
 
 
-class NoteGrid(CTk):
+class App(CTk):
     def __init__(
         self,
         note_labels: dict[str, NoteLabel],
@@ -68,7 +68,6 @@ class NoteGrid(CTk):
         while not self.queue.empty():
             char, is_press = self.queue.get()
             self._on_char(char, is_press)
-
         self.after(QUEUE_POLL_IN_MS, self._handle_queue)
 
     def _append_string(self, s: str) -> None:
