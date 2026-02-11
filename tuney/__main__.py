@@ -1,8 +1,8 @@
-from .ui.controller import Controller
+from .ui.app import App
 
 
 def main() -> None:
-    Controller().run()
+    App().run()
 
 
 if __name__ == '__main__':

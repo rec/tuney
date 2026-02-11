@@ -17,7 +17,7 @@ KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
 @dc.dataclass
-class Controller:
+class App:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
     scale_name: str = 'twelve_tet'
@@ -81,4 +81,4 @@ if __name__ == '__main__':
     import sys
 
     text = ' '.join(sys.argv[1:])
-    Controller().run()
+    App().run()
