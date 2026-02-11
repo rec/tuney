@@ -26,12 +26,12 @@ class Controller:
     use_keyboard: bool = True
     use_osc: bool = True
     starting_text: str = ''
-    in_playback: bool = False
+    replay: bool = False
 
     @cached_property
     def grid(self) -> NoteGrid:
         assert self.use_gui
-        return NoteGrid(self.note_labels, self.starting_text)
+        return NoteGrid(self.note_labels, self.starting_text, self.on_replay)
 
     @cached_property
     def listener(self) -> KeyboardListener:
@@ -43,7 +43,7 @@ class Controller:
         return {c: NoteLabel((self.scale.to_name(n), ' ' + c)) for c, n in items}
 
     def on_key(self, k: KeyPress) -> None:
-        if char := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
+        if char := self.replay and getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
             self.on_char(char, k.is_press)
 
     def on_char(self, char: str, is_press: bool) -> None:
@@ -52,18 +52,25 @@ class Controller:
         if self.use_gui:
             self.grid.on_char(char, is_press)
 
-    def run(self) -> None:
+    def on_replay(self) -> None:
+        self.replay = not self.replay
+        if self.replay:
+            pass
+
+    def start(self) -> None:
         if self.use_gui:
             self.grid.start()
-
         if self.use_keyboard:
             self.listener.start()
 
+    def run(self):
+        self.start()
         if self.use_gui:
             self.grid.mainloop()
 
 
 if __name__ == '__main__':
-    print('start')
+    import sys
+
+    text = ' '.join(sys.argv[1:])
     Controller().run()
-    print('done')

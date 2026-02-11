@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import dataclasses as dc
 import random
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Callable, Collection, Iterable, Iterator
 from functools import cached_property, partial
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from ..types import Milliseconds
 
@@ -115,17 +115,16 @@ _TIMINGS = (
 )
 
 
-def play_timings(s: str) -> None:
+def play_timings(s: str, callback: Callable[[str], Any]) -> None:
     from .event import Event, Runner
 
     timings = TextTimings()
     events = [Event[str](b / 1000.0, c) for c, b, _ in timings(s)]
-    callback = partial(print, end='', flush=True)
     Runner[str](events, callback).run()
-    print()
 
 
 if __name__ == '__main__':
     import sys
 
-    play_timings(' '.join(sys.argv[1:]))
+    play_timings(' '.join(sys.argv[1:]), partial(print, end='', flush=True))
+    print()

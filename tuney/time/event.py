@@ -4,8 +4,9 @@ import dataclasses as dc
 import heapq
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, override
 
+from ..runnable import Runnable
 from ..types import Seconds
 
 MAX_WAIT: Seconds = 0.01
@@ -21,17 +22,15 @@ class Event[Data]:
 
 
 @dc.dataclass
-class Runner[Data]:
+class Runner[Data](Runnable):
     events: list[Event[Data]]
     callback: Callable[[Data], Any]
-
-    _running: bool = False
 
     def __post_init__(self) -> None:
         heapq.heapify(self.events)
 
-    def run(self) -> None:
-        self._running = True
+    @override
+    def _run(self) -> None:
         start = time.time()
 
         def next_time() -> float:
@@ -45,9 +44,6 @@ class Runner[Data]:
                 time.sleep(min(MAX_WAIT, next_time()))
             else:
                 self.stop()
-
-    def stop(self) -> None:
-        self._running = False
 
 
 def demo() -> None:
