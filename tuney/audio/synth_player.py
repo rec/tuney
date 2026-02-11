@@ -17,12 +17,10 @@ from .player import Player
 
 INTENSITY = 0.1
 FADE = 0  # 0x40000
-OSC = osc.sawtooth
 
 assert isinstance(twelve_tet, Scale)
 
 
-# TODO: relieve the tension between human units (frequency, time) and sample units.
 @dc.dataclass(frozen=True)
 class Sound:
     period: Number = 0x100
@@ -33,13 +31,17 @@ class Sound:
 
 @dc.dataclass
 class OscillatorPlayer(Player):
-    sound: Sound = dc.field(default_factory=Sound)
-    oscillator: osc.Oscillator = OSC
+    sound: Sound = Sound()
+    oscillator_name: str = 'sawtooth'
 
     _stopping: bool = False
 
     #: Records the the frame we started to fade out.
     _fade_frame: Number | None = None
+
+    @cached_property
+    def oscillator(self) -> osc.Oscillator:
+        return getattr(osc, self.oscillator_name)
 
     def stop(self) -> None:
         if self.sound.fade_out_samples > 0:
@@ -86,10 +88,13 @@ class OscillatorPlayer(Player):
 @dc.dataclass(frozen=True)
 class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
-    oscillator: osc.Oscillator = OSC
-    players: dict[int, OscillatorPlayer] = dc.field(default_factory=dict)
-    scale: Scale = twelve_tet
+    oscillator_name: str = 'sawtooth'
+    scale_name: str = 'twelve_tet'
     start_note_name: str = 'C3'
+
+    @cached_property
+    def players(self) -> dict[int, OscillatorPlayer]:
+        return {}
 
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
@@ -99,8 +104,9 @@ class OscillatorController:
             return False
         frequency = self.scale.tuning(note_number + self.start_note_number)
         period = (self.config.samplerate or 48_000) / frequency
+        sound = Sound(period)
         op = OscillatorPlayer(
-            config=self.config, oscillator=self.oscillator, sound=Sound(period)
+            config=self.config, oscillator_name=self.oscillator_name, sound=sound
         )
         start_thread(op.run)
         self.players[note_number] = op
@@ -115,6 +121,11 @@ class OscillatorController:
         for player in self.players.values():
             player.stop()
         self.players.clear()
+
+    @cached_property
+    def scale(self) -> Scale:
+        assert isinstance(twelve_tet, Scale)
+        return twelve_tet  # TODO
 
     @cached_property
     def start_note_number(self) -> int:

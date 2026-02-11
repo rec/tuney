@@ -7,6 +7,7 @@ from functools import cached_property, partial
 from typing import Any, NamedTuple
 
 from ..types import Milliseconds
+from .event import Event, Runner
 
 
 class CharBeginEnd(NamedTuple):
@@ -58,6 +59,12 @@ class TextTimings:
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
                 yield CharBeginEnd(char, self.scale * time, self.scale * (time + dt))
                 time += max(0, dt - self.overlap)
+
+    @staticmethod
+    def make_runner(s: str, callback: Callable[[str], Any]) -> Runner[str]:
+        timings = TextTimings()
+        events = [Event[str](b / 1000.0, c) for c, b, _ in timings(s)]
+        return Runner[str](events, callback)
 
 
 def _filter_chars(it: Iterable[str]) -> Iterator[str]:
@@ -115,16 +122,14 @@ _TIMINGS = (
 )
 
 
-def play_timings(s: str, callback: Callable[[str], Any]) -> None:
-    from .event import Event, Runner
+def main():
+    import sys
 
-    timings = TextTimings()
-    events = [Event[str](b / 1000.0, c) for c, b, _ in timings(s)]
-    Runner[str](events, callback).run()
+    msg = ' '.join(sys.argv[1:])
+    callback = partial(print, end='', flush=True)
+    TextTimings.make_runner(msg, callback).run()
+    print()
 
 
 if __name__ == '__main__':
-    import sys
-
-    play_timings(' '.join(sys.argv[1:]), partial(print, end='', flush=True))
-    print()
+    main()

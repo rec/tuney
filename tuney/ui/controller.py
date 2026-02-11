@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses as dc
 from functools import cached_property
+from typing import Any
 
 from pynput.keyboard import Key
 
@@ -10,9 +11,9 @@ from ..keyboard.listener import KeyboardListener, KeyPress
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
+from ..serialize import serialize
+from ..time.text_timings import TextTimings
 from .grid import NoteGrid, NoteLabel
-
-assert isinstance(twelve_tet, Scale)
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
@@ -21,12 +22,14 @@ KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 class Controller:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
-    scale: Scale = twelve_tet
+    scale_name: str = 'twelve_tet'
+    text_timings: TextTimings = TextTimings()
+    starting_text: str = ''
     use_gui: bool = True
     use_keyboard: bool = True
     use_osc: bool = True
-    starting_text: str = ''
-    replay: bool = False
+
+    _replay: dc.InitVar[bool] = False
 
     @cached_property
     def grid(self) -> NoteGrid:
@@ -35,6 +38,7 @@ class Controller:
 
     @cached_property
     def listener(self) -> KeyboardListener:
+        assert self.use_keyboard
         return KeyboardListener(self.on_key)
 
     @cached_property
@@ -42,20 +46,50 @@ class Controller:
         items = self.mapper.char_to_number.items()
         return {c: NoteLabel((self.scale.to_name(n), ' ' + c)) for c, n in items}
 
+    @cached_property
+    def scale(self) -> Scale:
+        assert isinstance(twelve_tet, Scale)
+        return twelve_tet  # TODO
+
     def on_key(self, k: KeyPress) -> None:
-        if char := self.replay and getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
-            self.on_char(char, k.is_press)
+        if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
+            self.on_char(c, k.is_press)
 
     def on_char(self, char: str, is_press: bool) -> None:
-        if self.use_osc and (note := self.mapper(char)) is not None:
-            self.osc.note(note, is_press)
-        if self.use_gui:
-            self.grid.on_char(char, is_press)
+        if not self.replay:
+            if self.use_osc and (note := self.mapper(char)) is not None:
+                self.osc.note(note, is_press)
+            if self.use_gui:
+                self.grid.on_char(char, is_press)
 
     def on_replay(self) -> None:
+        self._replay = not self._replay
+        if not self._replay:
+            return
+        import json
+
+        # print(json.dumps(self.asdict(), indent=4))
+        print(json.dumps(serialize(self), indent=4))
+
+    def on_replay_old(self) -> None:
+        import json
+
         self.replay = not self.replay
-        if self.replay:
-            pass
+        if not self.replay:
+            return
+        for f in dc.fields(self.osc):
+            if dc.is_dataclass(v := getattr(self.osc, f.name)):
+                print('one', f.name)
+                print('two', *(g.name for g in dc.fields(v)))
+                print(dc.asdict(v))
+                print('three')
+        dc.asdict(self.osc)
+
+        print(json.dumps(self.asdict(), indent=4))
+
+    def asdict(self) -> dict[str, Any]:
+        print(*(f.name for f in dc.fields(self)))
+        return dc.asdict(self)
 
     def start(self) -> None:
         if self.use_gui:
