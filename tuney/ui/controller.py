@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses as dc
 from functools import cached_property
-from typing import Any
 
 from pynput.keyboard import Key
 
@@ -11,7 +10,6 @@ from ..keyboard.listener import KeyboardListener, KeyPress
 from ..mapper.linear_mapper import LinearMapper
 from ..scale import twelve_tet
 from ..scale.scale import Scale
-from ..serialize import serialize
 from ..time.text_timings import TextTimings
 from .grid import NoteGrid, NoteLabel
 
@@ -55,8 +53,8 @@ class Controller:
         if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
             self.on_char(c, k.is_press)
 
-    def on_char(self, char: str, is_press: bool) -> None:
-        if not self.replay:
+    def on_char(self, char: str, is_press: bool = True) -> None:
+        if not self._replay:
             if self.use_osc and (note := self.mapper(char)) is not None:
                 self.osc.note(note, is_press)
             if self.use_gui:
@@ -64,32 +62,8 @@ class Controller:
 
     def on_replay(self) -> None:
         self._replay = not self._replay
-        if not self._replay:
-            return
-        import json
-
-        # print(json.dumps(self.asdict(), indent=4))
-        print(json.dumps(serialize(self), indent=4))
-
-    def on_replay_old(self) -> None:
-        import json
-
-        self.replay = not self.replay
-        if not self.replay:
-            return
-        for f in dc.fields(self.osc):
-            if dc.is_dataclass(v := getattr(self.osc, f.name)):
-                print('one', f.name)
-                print('two', *(g.name for g in dc.fields(v)))
-                print(dc.asdict(v))
-                print('three')
-        dc.asdict(self.osc)
-
-        print(json.dumps(self.asdict(), indent=4))
-
-    def asdict(self) -> dict[str, Any]:
-        print(*(f.name for f in dc.fields(self)))
-        return dc.asdict(self)
+        if self._replay:
+            self.text_timings.make_runner(self.grid.text, self.on_char).run()
 
     def start(self) -> None:
         if self.use_gui:
