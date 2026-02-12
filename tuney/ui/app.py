@@ -5,10 +5,10 @@ from functools import cached_property
 
 from pynput.keyboard import Key
 
+from tuney.audio.multi_oscillator import MultiOscillator
 from tuney.time import sequencer
 
 from .. import time
-from ..audio.synth_player import OscillatorController
 from ..keyboard.key_press import CharPress, KeyPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
@@ -24,7 +24,7 @@ type Sequencer = sequencer.Sequencer[CharPress]
 @dc.dataclass
 class App:
     mapper: LinearMapper = LinearMapper()
-    osc: OscillatorController = OscillatorController()
+    osc: MultiOscillator = MultiOscillator()
     scale: ScaleImpl = ScaleImpl()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
