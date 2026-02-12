@@ -9,8 +9,8 @@ from typing import cast
 import numpy as np
 
 from ..runnable import start_thread
-from ..scale import twelve_tet
 from ..scale.scale import NoteNumber, Scale
+from ..scale.tone_scale import ToneScale
 from ..types import Data, Number
 from . import oscillator as osc
 from .device_config import DeviceConfig
@@ -18,8 +18,6 @@ from .player import Player
 
 INTENSITY = 0.1
 FADE = 0  # 0x40000
-
-assert isinstance(twelve_tet, Scale)
 
 
 @dc.dataclass(frozen=True)
@@ -91,7 +89,7 @@ class OscillatorPlayer(Player):
 class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator_name: str = 'sawtooth'
-    scale_name: str = 'twelve_tet'
+    scale: Scale = ToneScale()
     start_note_name: str = 'C3'
 
     @cached_property
@@ -125,11 +123,6 @@ class OscillatorController:
         self.players.clear()
 
     @cached_property
-    def scale(self) -> Scale:
-        assert isinstance(twelve_tet, Scale)
-        return twelve_tet  # TODO
-
-    @cached_property
     def start_note_number(self) -> int:
         return self.scale.to_number(self.start_note_name)
 
@@ -145,6 +138,7 @@ def _fade(wave: Data, start: float, length: float) -> None:
 def run_many_notes():
     oc = OscillatorController()
     DT = 0.2
+    twelve_tet = ToneScale()
 
     stack = []
     o1 = 'C4', 'E4', 'D5', 'Eb3', 'G3', 'C3', 'E3', 'D4', 'Eb2', 'G2'

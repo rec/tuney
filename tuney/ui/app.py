@@ -12,8 +12,8 @@ from ..audio.synth_player import OscillatorController
 from ..keyboard.key_press import CharPress, KeyPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
-from ..scale import twelve_tet
 from ..scale.scale import Scale
+from ..scale.tone_scale import ToneScale
 from .ctk_app import CTkApp, NoteLabel
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
@@ -26,7 +26,7 @@ type Sequencer = sequencer.Sequencer[CharPress]
 class App:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
-    scale_name: str = 'twelve_tet'
+    scale: Scale = ToneScale()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
     enable_gui: bool = True
@@ -52,11 +52,6 @@ class App:
     def note_labels(self) -> dict[str, NoteLabel]:
         items = self.mapper.char_to_number.items()
         return {c: NoteLabel((self.scale.to_name(n), ' ' + c)) for c, n in items}
-
-    @cached_property
-    def scale(self) -> Scale:
-        assert isinstance(twelve_tet, Scale)
-        return twelve_tet  # TODO
 
     @property
     def text(self) -> str:
