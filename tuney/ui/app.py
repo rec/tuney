@@ -30,10 +30,10 @@ class App:
     starting_text: str = ''
     enable_gui: bool = True
     enable_keyboard: bool = True
-    enable_sound: bool = not not not True
+    enable_sound: bool = True
 
     _sequencer: dc.InitVar[Sequencer | None] = None
-    _saved_text: str | None = None
+    _saved_text: dc.InitVar[str | None] = None
 
     @cached_property
     def ctk_app(self) -> CTkApp:
