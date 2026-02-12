@@ -78,20 +78,17 @@ class App:
             self.ctk_app.on_char(c)
 
     def on_replay(self) -> None:
-        print('app.on_replay', self.ctk_app.is_replaying)
         sequencer, self._sequencer = self._sequencer, None
         if sequencer:
             sequencer.stop()
 
         if self.ctk_app.is_replaying:
-            print('is_replaying')
 
             def on_char(c: CharPress | None) -> None:
                 print('on_char internal', c)
                 if c:
                     self.on_char(c)
                 else:
-                    print('!stop')
                     self.ctk_app.after(0, self.on_replay)
 
             self._sequencer = self.text_timings.sequencer(self.text, on_char)
