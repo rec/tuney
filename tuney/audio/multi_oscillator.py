@@ -47,28 +47,3 @@ class MultiOscillator:
         for player in self.players.values():
             player.stop()
         self.players.clear()
-
-
-def run_many_notes():
-    oc = MultiOscillator()
-    DT = 0.2
-    twelve_tet = ScaleImpl()
-
-    stack = []
-    o1 = 'C4', 'E4', 'D5', 'Eb3', 'G3', 'C3', 'E3', 'D4', 'Eb2', 'G2'
-    o2 = 'C2', 'E2', 'D3', 'Eb1', 'G1', 'C1', 'E1', 'D2', 'Eb0', 'G0'
-
-    for name in (o1 + o2)[0]:
-        stack.append(note := twelve_tet.to_number(name))
-        if not oc.start(note):
-            print('oops', name)
-        time.sleep(DT)
-
-    while stack:
-        if not oc.stop(note := stack.pop()):
-            print('oops off', note)
-        time.sleep(DT / 2)
-
-
-if __name__ == '__main__':
-    run_many_notes()
