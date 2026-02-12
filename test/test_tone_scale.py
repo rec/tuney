@@ -3,11 +3,11 @@ from itertools import product
 import pytest
 
 from tuney.scale import twelve_tet as tt
-from tuney.scale.tone_scale import ToneScale
+from tuney.scale.scale_impl import ScaleImpl
 
 NAMES = sorted(set(tt.NUMBER_TO_NAME[tt.FLAT] + tt.NUMBER_TO_NAME[tt.SHARP]))
 NAME_OCTAVE = list(product(NAMES, range(10)))[::7]
-TS = ToneScale(offset=12)
+TS = ScaleImpl(offset=12)
 NUMBERS = list(product(range(-7, 7), (False, True)))[::5]
 
 

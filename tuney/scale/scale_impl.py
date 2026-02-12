@@ -8,7 +8,7 @@ from itertools import chain
 
 from ..types import NoteNumber
 from .scale import Scale, Tuning
-from .tone_tuning import ToneTuning
+from .tuning_impl import TuningImpl
 
 MIDI_ZERO_OCTAVE = -1
 FLAT, SHARP = '♭', '♯'
@@ -17,7 +17,7 @@ ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
 
 
 @dc.dataclass(frozen=True)
-class ToneScale:
+class ScaleImpl:
     #: The base alphabet - if not specified, use A-Z
     alphabet: str | None = None
 
@@ -38,7 +38,7 @@ class ToneScale:
     offset: int = 0
 
     #: The Tuning for this Scale
-    tuning: Tuning = ToneTuning()
+    tuning: Tuning = TuningImpl()
 
     # Implements Scale.to_name
     def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
@@ -101,10 +101,10 @@ class ToneScale:
         return nn, {True: sharp, False: flat}
 
 
-assert isinstance(ToneScale(), Scale)
+assert isinstance(ScaleImpl(), Scale)
 
 
 if __name__ == '__main__':
-    s = ToneScale()
+    s = ScaleImpl()
     print(s.names)
     print(s.name_to_number)

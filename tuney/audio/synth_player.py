@@ -10,7 +10,7 @@ import numpy as np
 
 from ..runnable import start_thread
 from ..scale.scale import NoteNumber, Scale
-from ..scale.tone_scale import ToneScale
+from ..scale.scale_impl import ScaleImpl
 from ..types import Data, Number
 from . import oscillator as osc
 from .device_config import DeviceConfig
@@ -89,7 +89,7 @@ class OscillatorPlayer(Player):
 class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator_name: str = 'sawtooth'
-    scale: Scale = ToneScale()
+    scale: Scale = cast(Scale, ScaleImpl())
     start_note_name: str = 'C3'
 
     @cached_property
@@ -138,7 +138,7 @@ def _fade(wave: Data, start: float, length: float) -> None:
 def run_many_notes():
     oc = OscillatorController()
     DT = 0.2
-    twelve_tet = ToneScale()
+    twelve_tet = ScaleImpl()
 
     stack = []
     o1 = 'C4', 'E4', 'D5', 'Eb3', 'G3', 'C3', 'E3', 'D4', 'Eb2', 'G2'

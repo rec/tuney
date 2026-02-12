@@ -12,14 +12,17 @@ from .scale import Tuning
 
 
 @dc.dataclass(frozen=True)
-class ToneTuning(Tuning):
+class TuningImpl(Tuning):
     """
     A generalization of equal temperament, where the default values
-    are the same as classic twelve-tone equal temperament (12tet) but
+    are the same as classic twelve-tone equal temperament (12-tet) but
     can be customized.
     """
 
-    #: If limit_denominator is greater than zero, use N-limit just intonation
+    #: Detune everything, in cents of an octave division
+    detune: Number = 0
+
+    #: If limit_denominator is greater than zero, use rounded N-limit just intonation
     limit_denominator: int = 0
 
     #: Number of divisions of an octave
@@ -45,7 +48,9 @@ class ToneTuning(Tuning):
         with suppress(KeyError, IndexError) if self.table_blend else nullcontext():
             return self.table[note_number]
 
-        octaves = (note_number - self.root_note) / self.octave_divisions
+        divisions = note_number - self.root_note + self.detune / 100.0
+        octaves = divisions / self.octave_divisions
         freq = self.root_frequency * cast(float, self.octave_ratio**octaves)
-        ld = self.limit_denominator
-        return Fraction(cast(float, freq)).limit_denominator(ld) if ld > 0 else freq
+        if self.limit_denominator:
+            return Fraction(cast(float, freq)).limit_denominator(self.limit_denominator)
+        return freq
