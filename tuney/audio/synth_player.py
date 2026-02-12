@@ -89,7 +89,7 @@ class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator_name: str = 'sawtooth'
     scale: ScaleImpl = ScaleImpl()
-    start_note_name: str = 'C3'
+    note_offset: NoteNumber = 0
 
     @cached_property
     def players(self) -> dict[int, OscillatorPlayer]:
@@ -101,7 +101,7 @@ class OscillatorController:
     def start(self, note_number: NoteNumber) -> bool:
         if note_number in self.players:
             return False
-        frequency = self.scale.tuning(note_number + self.start_note_number)
+        frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.config.samplerate or 48_000) / frequency
         sound = Sound(period)
         op = OscillatorPlayer(
@@ -120,10 +120,6 @@ class OscillatorController:
         for player in self.players.values():
             player.stop()
         self.players.clear()
-
-    @cached_property
-    def start_note_number(self) -> int:
-        return self.scale.to_number(self.start_note_name)
 
 
 def _clamp(x: float) -> float:
