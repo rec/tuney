@@ -9,8 +9,7 @@ from typing import cast
 import numpy as np
 
 from ..runnable import start_thread
-from ..scale.scale import NoteNumber, Scale
-from ..scale.scale_impl import ScaleImpl
+from ..scale.scale import NoteNumber, ScaleImpl
 from ..types import Data, Number
 from . import oscillator as osc
 from .device_config import DeviceConfig
@@ -89,7 +88,7 @@ class OscillatorPlayer(Player):
 class OscillatorController:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator_name: str = 'sawtooth'
-    scale: Scale = cast(Scale, ScaleImpl())
+    scale: ScaleImpl = ScaleImpl()
     start_note_name: str = 'C3'
 
     @cached_property

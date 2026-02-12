@@ -4,6 +4,7 @@ import re
 
 from ..types import NoteNumber
 from . import scale
+from . import tuning as tuning_
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0
 A440 = 69
@@ -48,6 +49,6 @@ def to_name(note_number: NoteNumber, use_sharp: bool = True) -> str:
     return f'{name}{octave}'
 
 
-assert isinstance(tuning, scale.Tuning)
+assert isinstance(tuning, tuning_.Tuning)
 assert isinstance(to_number, scale.ToNumber)
 assert isinstance(to_name, scale.ToName)

@@ -12,8 +12,7 @@ from ..audio.synth_player import OscillatorController
 from ..keyboard.key_press import CharPress, KeyPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
-from ..scale.scale import Scale
-from ..scale.scale_impl import ScaleImpl
+from ..scale.scale import ScaleImpl
 from .ctk_app import CTkApp, NoteLabel
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
@@ -26,7 +25,7 @@ type Sequencer = sequencer.Sequencer[CharPress]
 class App:
     mapper: LinearMapper = LinearMapper()
     osc: OscillatorController = OscillatorController()
-    scale: Scale = ScaleImpl()
+    scale: ScaleImpl = ScaleImpl()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
     enable_gui: bool = True

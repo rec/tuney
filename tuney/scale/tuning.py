@@ -3,12 +3,16 @@ from __future__ import annotations
 import dataclasses as dc
 from collections.abc import Sequence
 from contextlib import nullcontext, suppress
-from typing import cast
+from typing import Protocol, cast, runtime_checkable
 
 from ..types import Fraction, Frequency, NoteNumber, Number
-from .scale import Tuning
 
 # TODO: make sure we can serialize and deserialize Fraction (as str)
+
+
+@runtime_checkable
+class Tuning(Protocol):
+    def __call__(self, note_number: NoteNumber) -> Frequency: ...
 
 
 @dc.dataclass(frozen=True)

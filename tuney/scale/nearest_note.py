@@ -1,4 +1,4 @@
-from .scale import Tuning
+from .tuning import Tuning
 
 EPSILON = 1e-6
 
