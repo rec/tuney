@@ -15,6 +15,28 @@ class Tuning(Protocol):
     def __call__(self, note_number: NoteNumber) -> Frequency: ...
 
 
+@runtime_checkable
+class ToFrequency(Protocol):
+    def __call__(
+        self, root_frequency: Number, octave_change: Number, octaves: Number
+    ) -> Frequency: ...
+
+
+@dc.dataclass(frozen=True)
+class PitchToFrequency:
+    #: The base rule for converting a pitch to a frequency
+    function: str = 'power'
+
+    def __call__(self, root: Frequency, change: Number, octaves: Number) -> Number:
+        change, octaves = cast(float, change), cast(float, octaves)
+        if self.function == 'power':
+            return root * change**octaves
+        elif self.function == 'linear':
+            return root + change * octaves
+        else:
+            raise NotImplementedError
+
+
 @dc.dataclass(frozen=True)
 class TuningImpl(Tuning):
     """
@@ -32,8 +54,14 @@ class TuningImpl(Tuning):
     #: Number of divisions of an octave
     octave_divisions: int = 12
 
-    #: Frequency ratio between two octaves
-    octave_ratio: Number = 2
+    #: Frequency change between octaves. For the default "power" pitch_to_frequency
+    #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
+    #: last; for "linear", it's a difference, so if it's 100, each octave would be
+    #: 100Hz greater in frequency than the previous.
+    octave_change: Number = 2
+
+    #: The rule for converting a pitch to a frequency
+    pitch_to_frequency: PitchToFrequency = PitchToFrequency()
 
     #: The frequency of the reference `root_note`
     root_frequency: Frequency = 440
@@ -49,12 +77,14 @@ class TuningImpl(Tuning):
     table_blend: bool = True
 
     def __call__(self, note_number: NoteNumber) -> Frequency:
+        """Return the frequency in this tuning for a NoteNumber"""
         with suppress(KeyError, IndexError) if self.table_blend else nullcontext():
             return self.table[note_number]
 
         divisions = note_number - self.root_note + self.detune / 100.0
         octaves = divisions / self.octave_divisions
-        freq = self.root_frequency * cast(float, self.octave_ratio**octaves)
+
+        f = self.pitch_to_frequency(self.root_frequency, self.octave_change, octaves)
         if self.limit_denominator:
-            return Fraction(cast(float, freq)).limit_denominator(self.limit_denominator)
-        return freq
+            f = Fraction(cast(float, f)).limit_denominator(self.limit_denominator)
+        return f
