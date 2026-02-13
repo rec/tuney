@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses as dc
-import time
 from functools import cached_property
 
 from tuney.audio.device_config import DeviceConfig
@@ -16,6 +15,7 @@ class MultiOscillator:
     config: DeviceConfig = dc.field(default_factory=DeviceConfig)
     oscillator_name: str = 'sawtooth'
     scale: ScaleImpl = ScaleImpl()
+    gain: float = 1.0
     note_offset: NoteNumber = 0
 
     @cached_property
@@ -30,7 +30,7 @@ class MultiOscillator:
             return False
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.config.samplerate or 48_000) / frequency
-        sound = Sound(period)
+        sound = Sound(period, gain=self.gain)
         op = OscillatorPlayer(
             config=self.config, oscillator_name=self.oscillator_name, sound=sound
         )

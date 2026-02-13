@@ -19,6 +19,7 @@ class Player(Runnable, ABC):
 
     chunk_count: int = 0
     frame_size: int = 0
+    gain: float = 1.0
 
     _event: Event = dc.field(default_factory=Event)
 
@@ -32,6 +33,8 @@ class Player(Runnable, ABC):
             print('framesize change', self.frame_size, frame_size)
         self.frame_size = frame_size
         success = self._fill(out)
+        if self.gain < 1.0:
+            out *= self.gain
         self.chunk_count += 1
         return success
 

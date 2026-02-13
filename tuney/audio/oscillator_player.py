@@ -11,14 +11,14 @@ from ..types import Data, Number
 from . import oscillator as osc
 from .player import Player
 
-INTENSITY = 0.1
+GAIN = 0.1
 FADE = 0  # 0x40000
 
 
 @dc.dataclass(frozen=True)
 class Sound:
     period: Number = 0x100
-    intensity: Number = INTENSITY
+    gain: Number = GAIN
     fade_in_samples: Number = 0x1000
     fade_out_samples: Number = 0x1000
 
@@ -51,11 +51,12 @@ class OscillatorPlayer(Player):
         wave = np.linspace(start * ratio, end * ratio, len(out))
         wave = self.oscillator.function(wave, out=wave)
 
-        intensity = self.sound.intensity
+        gain = self.sound.gain
         with suppress(ValueError):
             # Scale up from [-1, 1] for int types only
-            intensity *= np.iinfo(out.dtype).max
-        wave *= intensity
+            gain *= np.iinfo(out.dtype).max
+        if gain != 1.0:
+            wave *= gain
 
         fade_in = cast(float, self.sound.fade_in_samples)
         if self.frame_count < fade_in and not self._stopping:
