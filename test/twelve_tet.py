@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import re
 
-from ..types import NoteNumber
-from . import scale
-from . import tuning as tuning_
+from tuney.scale import scale
+from tuney.scale import tuning as tuning_
+from tuney.types import NoteNumber
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0
 A440 = 69

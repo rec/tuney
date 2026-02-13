@@ -1,6 +1,6 @@
 import pytest
 
-from tuney.scale import twelve_tet as tt
+from test import twelve_tet as tt
 
 NOTES = ['C1', 'C#3', 'G♯5', 'C-2', 'F♭10']
 

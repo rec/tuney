@@ -1,4 +1,4 @@
-from tuney.scale import twelve_tet as tt
+from test import twelve_tet as tt
 from tuney.scale.nearest_note import nearest_note
 
 assert tt

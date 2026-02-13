@@ -2,7 +2,7 @@ from itertools import product
 
 import pytest
 
-from tuney.scale import twelve_tet as tt
+from test import twelve_tet as tt
 from tuney.scale.scale import ScaleImpl
 
 NAMES = sorted(set(tt.NUMBER_TO_NAME[tt.FLAT] + tt.NUMBER_TO_NAME[tt.SHARP]))
