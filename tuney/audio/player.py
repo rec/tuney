@@ -10,7 +10,10 @@ from sounddevice import CallbackStop, OutputStream
 
 from ..runnable import Runnable
 from ..types import Data
+from . import apply_gain
 from .device_config import DeviceConfig
+
+MASTER_GAIN = 0.1
 
 
 @dc.dataclass
@@ -33,8 +36,7 @@ class Player(Runnable, ABC):
             print('framesize change', self.frame_size, frame_size)
         self.frame_size = frame_size
         success = self._fill(out)
-        if self.gain < 1.0:
-            out *= self.gain
+        apply_gain(out, MASTER_GAIN * self.gain)
         self.chunk_count += 1
         return success
 

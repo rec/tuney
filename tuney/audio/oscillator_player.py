@@ -8,17 +8,17 @@ from typing import cast
 import numpy as np
 
 from ..types import Data, Number
+from . import apply_gain
 from . import oscillator as osc
 from .player import Player
 
-GAIN = 0.1
 FADE = 0  # 0x40000
 
 
 @dc.dataclass(frozen=True)
 class Sound:
     period: Number = 0x100
-    gain: Number = GAIN
+    gain: Number = 1.0
     fade_in_samples: Number = 0x1000
     fade_out_samples: Number = 0x1000
 
@@ -55,9 +55,7 @@ class OscillatorPlayer(Player):
         with suppress(ValueError):
             # Scale up from [-1, 1] for int types only
             gain *= np.iinfo(out.dtype).max
-        if gain != 1.0:
-            wave *= gain
-
+        apply_gain(wave, gain)
         fade_in = cast(float, self.sound.fade_in_samples)
         if self.frame_count < fade_in and not self._stopping:
             _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
