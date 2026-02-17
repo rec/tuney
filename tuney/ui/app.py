@@ -12,7 +12,6 @@ from .. import time
 from ..keyboard.key_press import CharPress, KeyPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
-from ..scale.scale import ScaleImpl
 from .ctk_app import CTkApp, NoteLabel
 
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
@@ -25,7 +24,6 @@ type Sequencer = sequencer.Sequencer[CharPress]
 class App:
     mapper: LinearMapper = LinearMapper()
     osc: MultiOscillator = MultiOscillator()
-    scale: ScaleImpl = ScaleImpl()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
     enable_gui: bool = True
@@ -50,7 +48,7 @@ class App:
     @cached_property
     def note_labels(self) -> dict[str, NoteLabel]:
         items = self.mapper.char_to_number.items()
-        return {c: NoteLabel((self.scale.to_name(n), ' ' + c)) for c, n in items}
+        return {c: NoteLabel((self.osc.scale.to_name(n), ' ' + c)) for c, n in items}
 
     @property
     def text(self) -> str:
@@ -79,7 +77,6 @@ class App:
         if self.ctk_app.is_replaying:
 
             def on_char(c: CharPress | None) -> None:
-                print('on_char internal', c)
                 if c:
                     self.on_char(c)
                 else:
