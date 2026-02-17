@@ -88,6 +88,11 @@ def make_and_start(*args: Any, **kwargs: Any) -> OscillatorPlayer:
     return o
 
 
+def make_and_run(*args: Any, **kwargs: Any) -> None:
+    o = OscillatorPlayer(*args, **kwargs)
+    o.run()
+
+
 def _clamp(x: float) -> float:
     return max(0.0, min(1.0, x))
 
