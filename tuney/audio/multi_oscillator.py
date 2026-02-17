@@ -8,7 +8,7 @@ from ..scale.scale import ScaleImpl
 from ..types import NoteNumber
 from . import concurrent
 from .device_config import DeviceConfig
-from .oscillator_player import make_and_start, OscillatorPlayer, Sound
+from .oscillator_player import make_and_run, make_and_start, OscillatorPlayer, Sound
 
 
 @dc.dataclass(frozen=True)
@@ -24,6 +24,10 @@ class MultiOscillator:
     def stoppables(self) -> dict[int, concurrent.Stoppable]:
         return {}
 
+    @cached_property
+    def runner(self) -> concurrent.Runner:
+        return concurrent.Runner(make_and_run, self.use_multiprocessing)
+
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
 
@@ -33,20 +37,21 @@ class MultiOscillator:
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.config.samplerate or 48_000) / frequency
         sound = Sound(period, gain=self.gain)
-        op = OscillatorPlayer(
+        assert isinstance(make_and_start, concurrent.StoppableFunction)
+        self.stoppables[note_number] = self.runner(
             config=self.config, oscillator_name=self.oscillator_name, sound=sound
         )
-        start_thread(op.run)
-        self.stoppables[note_number] = op
         return True
 
     def stop(self, note_number: NoteNumber) -> bool:
         if (stoppable := self.stoppables.pop(note_number, None)) is None:
             return False
+        if isinstance(stoppable, tuple):
+            stoppable, _ = stoppable
         stoppable.stop()
         return True
 
     def stop_all(self) -> None:
-        for stoppable in self.stoppables.values():
-            stoppable.stop()
+        for n in list(self.stoppables):
+            self.stop(n)
         self.stoppables.clear()

@@ -4,14 +4,24 @@ import dataclasses as dc
 import multiprocessing as mp
 import threading
 import traceback
-from collections.abc import Generator, Sequence
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, runtime_checkable
+from collections.abc import Sequence
+from concurrent import futures
+from functools import cached_property
+from typing import TYPE_CHECKING, Any, NamedTuple, runtime_checkable
 
 from typing_extensions import Protocol
 
 if TYPE_CHECKING:
     from multiprocessing.synchronize import Event
+
+
+class StoppableFuture(NamedTuple):
+    stoppable: Stoppable
+    future: futures.Future | None = None
+
+    def stop(self) -> None:
+        self.stoppable.stop()
+
 
 
 @dc.dataclass
@@ -34,14 +44,6 @@ class StoppableFunction(Protocol):
     def __call__(self, *args: Any, stoppable: Stoppable, **kwargs: Any) -> None: ...
 
 
-@contextmanager
-def print_exception() -> Generator[None]:
-    try:
-        yield
-    except Exception:
-        traceback.print_exc()
-
-
 @dc.dataclass(frozen=True)
 class Target:
     function: StoppableFunction
@@ -49,19 +51,41 @@ class Target:
     kwargs: dict[str, Any]
     stoppable: Stoppable
 
+    def __post_init__(self):
+        assert callable(self.function), self
+
     def __call__(self) -> None:
-        with print_exception():
+        try:
             self.function(*self.args, stoppable=self.stoppable, **self.kwargs)
-        with print_exception():
-            self.stoppable.stop()
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
-def start(
-    use_multiprocessing: bool, function: StoppableFunction, /, *args: Any, **kwargs: Any
-) -> Stoppable:
-    stoppable = Stoppable(mp.Event() if use_multiprocessing else threading.Event())
-    runner = mp.Process if use_multiprocessing else threading.Thread
+@dc.dataclass(frozen=True)
+class Runner:
+    function: StoppableFunction
+    use_multiprocessing: bool
+    use_pool: bool = False
+    max_workers: int = 10
 
-    target = Target(function=function, args=args, kwargs=kwargs, stoppable=stoppable)
-    runner(target=target).start()
-    return stoppable
+    @cached_property
+    def executor(self) -> futures.Executor:
+        mp = self.use_multiprocessing
+        cls = futures.ThreadPoolExecutor if mp else futures.ProcessPoolExecutor
+        return cls(max_workers=self.max_workers)
+
+    def __call__(self, *args: Any, **kwargs: Any) -> StoppableFuture:
+        stoppable = Stoppable(
+            mp.Event() if self.use_multiprocessing else threading.Event()
+        )
+        target = Target(
+            function=self.function, args=args, kwargs=kwargs, stoppable=stoppable
+        )
+        if self.use_pool:
+            future = self.executor.submit(target)
+        else:
+            runner = mp.Process if self.use_multiprocessing else threading.Thread
+            runner(target=target).start()
+            future = None
+        return StoppableFuture(stoppable, future)
