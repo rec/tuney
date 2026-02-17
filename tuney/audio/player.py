@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses as dc
 from abc import ABC, abstractmethod
 from functools import cached_property
-from threading import Event
 from typing import override
 
 from sounddevice import CallbackStop, OutputStream
@@ -11,20 +10,20 @@ from sounddevice import CallbackStop, OutputStream
 from ..runnable import Runnable
 from ..types import Data
 from . import apply_gain
+from .concurrent import Stoppable
 from .device_config import DeviceConfig
 
-MASTER_GAIN = 0.1
+MASTER_GAIN = 0.05
 
 
 @dc.dataclass
 class Player(Runnable, ABC):
-    config: DeviceConfig = dc.field(default_factory=DeviceConfig)
-
-    chunk_count: int = 0
+    stoppable: Stoppable = dc.field(default_factory=Stoppable)
+    config: DeviceConfig = DeviceConfig()
     frame_size: int = 0
     gain: float = 1.0
 
-    _event: Event = dc.field(default_factory=Event)
+    chunk_count: dc.InitVar[int] = 0
 
     @abstractmethod
     def _fill(self, out: Data) -> bool:
@@ -51,12 +50,15 @@ class Player(Runnable, ABC):
     @override
     def _run(self):
         with self.stream:
-            self._event.wait()
+            self.stoppable.wait()
 
     @cached_property
     def stream(self) -> OutputStream:
-        callbacks = {'callback': self.callback, 'finished_callback': self._event.set}
-        return OutputStream(**dc.asdict(self.config), **callbacks)
+        return OutputStream(
+            callback=self.callback,
+            finished_callback=self.stoppable.stop,
+            **dc.asdict(self.config),
+        )
 
     @property
     def frame_count(self) -> int:

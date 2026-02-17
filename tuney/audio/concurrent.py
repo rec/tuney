@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from multiprocessing.synchronize import Event
 
 
-@dc.dataclass(frozen=True)
+@dc.dataclass
 class Stoppable:
     event: Event | threading.Event = dc.field(default_factory=threading.Event)
 
