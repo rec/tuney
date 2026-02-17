@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from contextlib import suppress
-from functools import cached_property
-from typing import cast
+from functools import cached_property, wraps
+from typing import Any, cast
 
 import numpy as np
 
@@ -28,10 +27,9 @@ class OscillatorPlayer(Player):
     sound: Sound = Sound()
     oscillator_name: str = 'sawtooth'
 
-    _stopping: bool = False
-
     #: Records the the frame we started to fade out.
-    _fade_frame: Number | None = None
+    _fade_frame: dc.InitVar[Number | None] = None
+    _stopping: dc.InitVar[bool] = False
 
     @cached_property
     def oscillator(self) -> osc.Oscillator:
@@ -52,9 +50,13 @@ class OscillatorPlayer(Player):
         wave = self.oscillator.function(wave, out=wave)
 
         gain = self.sound.gain
-        with suppress(ValueError):
-            # Scale up from [-1, 1] for int types only
-            gain *= np.iinfo(out.dtype).max
+        # Scale up from [-1, 1] for int types
+        try:
+            ii = np.iinfo(out.dtype)
+        except ValueError:
+            pass
+        else:
+            gain *= ii.max
         apply_gain(wave, gain)
         fade_in = cast(float, self.sound.fade_in_samples)
         if self.frame_count < fade_in and not self._stopping:
@@ -77,6 +79,13 @@ class OscillatorPlayer(Player):
         wave = wave.reshape((len(wave), 1))
         out[:] = np.asarray(wave, dtype=out.dtype)
         return True
+
+
+@wraps(OscillatorPlayer.__init__)
+def make_and_start(*args: Any, **kwargs: Any) -> OscillatorPlayer:
+    o = OscillatorPlayer(*args, **kwargs)
+    o.start()
+    return o
 
 
 def _clamp(x: float) -> float:
