@@ -6,7 +6,7 @@ import sounddevice as sd
 _T = TypeVar('_T', bound=sd._StreamBase)
 
 
-@dc.dataclass
+@dc.dataclass(frozen=True)
 class DeviceConfig:
     samplerate: int | None = None
     blocksize: int | None = None
