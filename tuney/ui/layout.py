@@ -7,13 +7,13 @@ from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 if TYPE_CHECKING:
     from .ctk_app import CTkApp
 
-PAD = 20
+PAD = 16
 QUARTER = PAD // 4
 TEXT_BOX_HEIGHT = 150
 FONT = ('Arial', 14)
 BIG_FONT = ('Arial', 16, 'bold')
 
-WIDTH, HEIGHT = 100, 150
+WIDTH, HEIGHT = 70, 100
 
 
 def layout(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
