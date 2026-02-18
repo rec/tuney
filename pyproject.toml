@@ -38,6 +38,7 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 
 [tool.ruff.format]
 quote-style = "single"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

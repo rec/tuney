@@ -3,16 +3,15 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
-from ..runnable import start_thread
 from ..scale.scale import ScaleImpl
 from ..types import NoteNumber
 from . import concurrent
 from .device_config import DeviceConfig
-from .oscillator_player import make_and_run, make_and_start, OscillatorPlayer, Sound
+from .oscillator_player import Sound, make_and_run, make_and_start
 
 
 @dc.dataclass(frozen=True)
-class MultiOscillator:
+class MultiPlayer:
     config: DeviceConfig = DeviceConfig()
     oscillator_name: str = 'sawtooth'
     scale: ScaleImpl = ScaleImpl()
@@ -21,7 +20,7 @@ class MultiOscillator:
     use_multiprocessing: bool = False
 
     @cached_property
-    def stoppables(self) -> dict[int, concurrent.Stoppable]:
+    def stoppable_futures(self) -> dict[int, concurrent.StoppableFuture]:
         return {}
 
     @cached_property
@@ -32,26 +31,25 @@ class MultiOscillator:
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
-        if note_number in self.stoppables:
+        if note_number in self.stoppable_futures:
             return False
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.config.samplerate or 48_000) / frequency
         sound = Sound(period, gain=self.gain)
         assert isinstance(make_and_start, concurrent.StoppableFunction)
-        self.stoppables[note_number] = self.runner(
+        self.stoppable_futures[note_number] = self.runner(
             config=self.config, oscillator_name=self.oscillator_name, sound=sound
         )
         return True
 
     def stop(self, note_number: NoteNumber) -> bool:
-        if (stoppable := self.stoppables.pop(note_number, None)) is None:
+        if (sf := self.stoppable_futures.pop(note_number, None)) is None:
             return False
-        if isinstance(stoppable, tuple):
-            stoppable, _ = stoppable
-        stoppable.stop()
+        sf.stop()
         return True
 
     def stop_all(self) -> None:
-        for n in list(self.stoppables):
-            self.stop(n)
-        self.stoppables.clear()
+        sfs = list(self.stoppable_futures.values())
+        self.stoppable_futures.clear()
+        for sf in sfs:
+            sf.stop()

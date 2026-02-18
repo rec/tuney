@@ -5,7 +5,7 @@ from functools import cached_property
 
 from pynput.keyboard import Key
 
-from tuney.audio.multi_oscillator import MultiOscillator
+from tuney.audio.multi_player import MultiPlayer
 from tuney.time import sequencer
 
 from .. import time
@@ -23,7 +23,7 @@ type Sequencer = sequencer.Sequencer[CharPress]
 @dc.dataclass
 class App:
     mapper: LinearMapper = LinearMapper()
-    osc: MultiOscillator = MultiOscillator()
+    player: MultiPlayer = MultiPlayer()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
     enable_gui: bool = True
@@ -48,7 +48,7 @@ class App:
     @cached_property
     def note_labels(self) -> dict[str, NoteLabel]:
         items = self.mapper.char_to_number.items()
-        return {c: NoteLabel((self.osc.scale.to_name(n), ' ' + c)) for c, n in items}
+        return {c: NoteLabel((self.player.scale.to_name(n), ' ' + c)) for c, n in items}
 
     @property
     def text(self) -> str:
@@ -67,7 +67,7 @@ class App:
 
     def on_char(self, c: CharPress) -> None:
         if self.enable_sound and (note := self.mapper(c.char)) is not None:
-            self.osc.note(note, c.is_press)
+            self.player.note(note, c.is_press)
         if self.enable_gui:
             self.ctk_app.on_char(c)
 

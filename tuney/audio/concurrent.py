@@ -23,7 +23,6 @@ class StoppableFuture(NamedTuple):
         self.stoppable.stop()
 
 
-
 @dc.dataclass
 class Stoppable:
     event: Event | threading.Event = dc.field(default_factory=threading.Event)
