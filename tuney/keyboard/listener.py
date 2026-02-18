@@ -43,7 +43,7 @@ class KeyboardListener(Runnable):
                 self.held_keys.add(key)
         kp = KeyPress(key, is_press)
         self.modifiers = self.modifiers.apply(kp)
-        if self.relay_commands or not self.modifiers.is_command:
+        if not is_press or self.relay_commands or not self.modifiers.is_command:
             self.callback(kp)
 
     def _run(self) -> None:

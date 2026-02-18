@@ -62,6 +62,8 @@ class App:
         if not self.ctk_app.is_replaying:
             if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
                 self.on_char(CharPress(c, k.is_press))
+                if not k.is_press:
+                    self.on_char(CharPress(c.swapcase(), k.is_press))
 
     def on_char(self, c: CharPress) -> None:
         if self.enable_sound and (note := self.mapper(c.char)) is not None:
