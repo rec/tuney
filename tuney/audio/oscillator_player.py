@@ -46,7 +46,7 @@ class OscillatorPlayer(Player):
         start = self.frame_count % period
         end = start + len(out)
         ratio = cast(float, self.oscillator.period) / period
-        wave = np.linspace(start * ratio, end * ratio, len(out))
+        wave = np.linspace(start * ratio, end * ratio, len(out), endpoint=False)
         wave = self.oscillator.function(wave, out=wave)
 
         gain = self.sound.gain

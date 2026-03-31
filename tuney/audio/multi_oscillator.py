@@ -14,7 +14,7 @@ from .oscillator_player import make_and_run, make_and_start, OscillatorPlayer, S
 @dc.dataclass(frozen=True)
 class MultiOscillator:
     config: DeviceConfig = DeviceConfig()
-    oscillator_name: str = 'sawtooth'
+    oscillator_name: str = 'sine'
     scale: ScaleImpl = ScaleImpl()
     gain: float = 1.0
     note_offset: NoteNumber = 0
