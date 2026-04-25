@@ -13,5 +13,3 @@ type NoteNumber = int  # May be negative
 
 type Callback = Callable[[], Any]
 type Function = Callable[..., Any]
-
-type Data = np.ndarray

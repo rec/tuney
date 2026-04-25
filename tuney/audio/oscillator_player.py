@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import numpy as np
 
-from ..types import Data, Number
+from ..types import Number
 from . import apply_gain
 from . import oscillator as osc
 from .player import Player
@@ -41,7 +41,7 @@ class OscillatorPlayer(Player):
         else:
             super().stop()
 
-    def _fill(self, out: Data) -> bool:
+    def _fill(self, out: np.ndarray) -> bool:
         period = cast(float, self.sound.period)
         start = self.frame_count % period
         end = start + len(out)
@@ -97,5 +97,5 @@ def _clamp(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
-def _fade(wave: Data, start: float, length: float) -> None:
+def _fade(wave: np.ndarray, start: float, length: float) -> None:
     wave *= np.linspace(_clamp(start), _clamp(start + length), len(wave))

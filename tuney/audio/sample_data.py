@@ -3,15 +3,15 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
+import numpy as np
 import soundfile
 
-from ..types import Data
 from .device_config import DeviceConfig
 
 
 @dc.dataclass
 class SampleData:
-    data: Data
+    data: np.ndarray
     samplerate: int
 
     def config(self, device: int | str | None) -> DeviceConfig:

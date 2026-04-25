@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from ..types import Data
+import numpy as np
+
 from .device_config import DeviceConfig
 from .player import Player
 from .sample_data import SampleData
@@ -21,7 +22,7 @@ class FilePlayer(Player):
     def config(self) -> DeviceConfig:
         return self._data.config(self.device)
 
-    def _fill(self, out: Data) -> bool:
+    def _fill(self, out: np.ndarray) -> bool:
         chunk = self._data.data[self.frame_count : self.frame_count + self.frame_size]
         out[: len(chunk)] = chunk
         success = len(chunk) == self.frame_size

@@ -5,7 +5,7 @@ from typing import override
 
 import numpy as np
 
-from ..types import Data, Number
+from ..types import Number
 
 
 class Oscillator:
@@ -13,12 +13,12 @@ class Oscillator:
     # TODO: add intensity to compensate for different energies
 
     @abstractmethod
-    def function(self, x: Data, out: Data) -> Data: ...
+    def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray: ...
 
 
 class Sine(Oscillator):
     @override
-    def function(self, x: Data, out: Data) -> Data:
+    def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray:
         return np.sin(x, out=out)
 
 
@@ -26,7 +26,7 @@ class Triangle(Oscillator):
     width: Number = 0.5
 
     @override
-    def function(self, x: Data, out: Data) -> Data:
+    def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray:
         from .scipy import sawtooth
 
         out[:] = sawtooth(x, self.width)
@@ -35,7 +35,7 @@ class Triangle(Oscillator):
 
 class OldSawtooth(Oscillator):
     @override
-    def function(self, x: Data, out: Data) -> Data:
+    def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray:
         return np.add(np.mod(x, 2.0, out=out), -1.0, out=out)
 
 

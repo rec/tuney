@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import override
 
+import numpy as np
 from sounddevice import CallbackStop, OutputStream
 
 from ..runnable import Runnable
-from ..types import Data
 from . import apply_gain
 from .concurrent import Stoppable
 from .device_config import DeviceConfig
@@ -26,10 +26,10 @@ class Player(Runnable, ABC):
     chunk_count: dc.InitVar[int] = 0
 
     @abstractmethod
-    def _fill(self, out: Data) -> bool:
+    def _fill(self, out: np.ndarray) -> bool:
         pass
 
-    def fill(self, out: Data, frame_size: int) -> bool:
+    def fill(self, out: np.ndarray, frame_size: int) -> bool:
         if self.frame_size and frame_size != self.frame_size:
             # Hope this never happens
             print('framesize change', self.frame_size, frame_size)
@@ -39,7 +39,9 @@ class Player(Runnable, ABC):
         self.chunk_count += 1
         return success
 
-    def callback(self, out: Data, frame_size: int, time: float, status: str) -> None:
+    def callback(
+        self, out: np.ndarray, frame_size: int, time: float, status: str
+    ) -> None:
         if status:
             print('Playback', status)  # TODO:
 
