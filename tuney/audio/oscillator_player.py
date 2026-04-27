@@ -41,7 +41,7 @@ class OscillatorPlayer(Player):
         else:
             super().stop()
 
-    def _fill(self, out: np.ndarray) -> bool:
+    def _fill(self, out: np.ndarray) -> bool | None:
         period = cast(float, self.sound.period)
         start = self.frame_count % period
         end = start + len(out)

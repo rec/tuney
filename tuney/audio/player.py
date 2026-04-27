@@ -26,10 +26,10 @@ class Player(Runnable, ABC):
     chunk_count: dc.InitVar[int] = 0
 
     @abstractmethod
-    def _fill(self, out: np.ndarray) -> bool:
+    def _fill(self, out: np.ndarray) -> bool | None:
         pass
 
-    def fill(self, out: np.ndarray, frame_size: int) -> bool:
+    def fill(self, out: np.ndarray, frame_size: int) -> bool | None:
         if self.frame_size and frame_size != self.frame_size:
             # Hope this never happens
             print('framesize change', self.frame_size, frame_size)
