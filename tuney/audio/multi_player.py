@@ -6,13 +6,13 @@ from functools import cached_property
 from ..scale.scale import ScaleImpl
 from ..types import NoteNumber
 from . import concurrent
-from .device_config import DeviceConfig
+from .device import Device
 from .oscillator_player import Sound, make_and_run, make_and_start
 
 
 @dc.dataclass(frozen=True)
 class MultiPlayer:
-    config: DeviceConfig = DeviceConfig()
+    device: Device = Device()
     oscillator_name: str = 'sawtooth'
     scale: ScaleImpl = ScaleImpl()
     gain: float = 1.0
@@ -34,11 +34,11 @@ class MultiPlayer:
         if note_number in self.stoppable_futures:
             return False
         frequency = self.scale.tuning(note_number + self.note_offset)
-        period = (self.config.samplerate or 48_000) / frequency
+        period = (self.device.samplerate or 48_000) / frequency
         sound = Sound(period, gain=self.gain)
         assert isinstance(make_and_start, concurrent.StoppableFunction)
         self.stoppable_futures[note_number] = self.runner(
-            config=self.config, oscillator_name=self.oscillator_name, sound=sound
+            device=self.device, oscillator_name=self.oscillator_name, sound=sound
         )
         return True
 

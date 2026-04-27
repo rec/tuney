@@ -7,7 +7,7 @@ _T = TypeVar('_T', bound=sd._StreamBase)
 
 
 @dc.dataclass(frozen=True)
-class DeviceConfig:
+class Device:
     samplerate: int | None = None
     blocksize: int | None = None
     device: int | str | None = None
@@ -28,8 +28,8 @@ class DeviceMaker(Generic[_T]):
         assert bases is not None
         return get_args(bases[0])[0]
 
-    def __call__(self, config: DeviceConfig) -> _T:
-        return self.type()(**dc.asdict(config))
+    def __call__(self, device: Device) -> _T:
+        return self.type()(**dc.asdict(device))
 
 
 class OutputStreamMaker(DeviceMaker[sd.OutputStream]):

@@ -6,7 +6,7 @@ from functools import cached_property
 import numpy as np
 import soundfile
 
-from .device_config import DeviceConfig
+from .device import Device
 
 
 @dc.dataclass
@@ -14,10 +14,8 @@ class SampleData:
     data: np.ndarray
     samplerate: int
 
-    def config(self, device: int | str | None) -> DeviceConfig:
-        return DeviceConfig(
-            channels=self.channels, device=device, samplerate=self.samplerate
-        )
+    def device(self, device: int | str | None) -> Device:
+        return Device(channels=self.channels, device=device, samplerate=self.samplerate)
 
     @staticmethod
     def make(filename: str) -> SampleData:

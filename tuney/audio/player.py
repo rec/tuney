@@ -11,7 +11,7 @@ from sounddevice import CallbackStop, OutputStream
 from ..runnable import Runnable
 from . import apply_gain
 from .concurrent import Stoppable
-from .device_config import DeviceConfig
+from .device import Device
 
 MASTER_GAIN = 0.05
 
@@ -19,7 +19,7 @@ MASTER_GAIN = 0.05
 @dc.dataclass
 class Player(Runnable, ABC):
     stoppable: Stoppable = dc.field(default_factory=Stoppable)
-    config: DeviceConfig = DeviceConfig()
+    device: Device = Device()
     frame_size: int = 0
     gain: float = 1.0
 
@@ -59,7 +59,7 @@ class Player(Runnable, ABC):
         return OutputStream(
             callback=self.callback,
             finished_callback=self.stoppable.stop,
-            **dc.asdict(self.config),
+            **dc.asdict(self.device),
         )
 
     @property
