@@ -5,6 +5,7 @@ from functools import cached_property, wraps
 from typing import Any, cast
 
 import numpy as np
+from pydantic import BaseModel
 
 from ..types import Number
 from . import apply_gain
@@ -14,8 +15,7 @@ from .player import Player
 FADE = 0  # 0x40000
 
 
-@dc.dataclass(frozen=True)
-class Sound:
+class Sound(BaseModel, frozen=True):
     period: Number = 0x100
     gain: Number = 1.0
     fade_in_samples: Number = 0x1000

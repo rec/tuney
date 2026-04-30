@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from functools import cached_property
+
+from pydantic import BaseModel
 
 from ..scale.scale import ScaleImpl
 from ..types import NoteNumber
@@ -10,8 +11,7 @@ from .device import Device
 from .oscillator_player import Sound, make_and_run, make_and_start
 
 
-@dc.dataclass(frozen=True)
-class MultiPlayer:
+class MultiPlayer(BaseModel, frozen=True):
     device: Device = Device()
     oscillator_name: str = 'sawtooth'
     scale: ScaleImpl = ScaleImpl()
@@ -35,7 +35,7 @@ class MultiPlayer:
             return False
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.device.samplerate or 48_000) / frequency
-        sound = Sound(period, gain=self.gain)
+        sound = Sound(period=period, gain=self.gain)
         assert isinstance(make_and_start, concurrent.StoppableFunction)
         self.stoppable_futures[note_number] = self.runner(
             device=self.device, oscillator_name=self.oscillator_name, sound=sound
