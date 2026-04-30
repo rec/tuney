@@ -1,9 +1,9 @@
-import dataclasses as dc
 import math
 from collections.abc import Sequence
 from queue import Queue
 
 from customtkinter import CTk
+from pydantic import BaseModel
 from pynput.keyboard import Key
 
 from ..keyboard.key_press import CharPress, KeyPress
@@ -28,8 +28,7 @@ QUEUE_POLL_IN_MS = 25
 KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
-@dc.dataclass
-class NoteLabel:
+class NoteLabel(BaseModel, frozen=True):
     labels: Sequence[str]
     on: bool = False
 

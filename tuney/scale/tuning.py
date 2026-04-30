@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from collections.abc import Sequence
 from contextlib import nullcontext, suppress
 from typing import Protocol, cast, runtime_checkable
+
+from pydantic import BaseModel
 
 from ..types import Fraction, Frequency, NoteNumber, Number
 
@@ -22,8 +23,7 @@ class ToFrequency(Protocol):
     ) -> Frequency: ...
 
 
-@dc.dataclass(frozen=True)
-class PitchToFrequency:
+class PitchToFrequency(BaseModel, frozen=True):
     #: The base rule for converting a pitch to a frequency
     function: str = 'power'
 
@@ -70,7 +70,9 @@ class TuningImpl(Tuning):
     root_note: NoteNumber = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
-    table: Sequence[Frequency] | dict[NoteNumber, Frequency] = ()
+    table: list[Frequency] | dict[NoteNumber, Frequency] = dc.field(
+        default_factory=list
+    )
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.

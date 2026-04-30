@@ -47,8 +47,10 @@ class App:
 
     @cached_property
     def note_labels(self) -> dict[str, NoteLabel]:
-        items = self.mapper.char_to_number.items()
-        return {c: NoteLabel((self.player.scale.to_name(n), ' ' + c)) for c, n in items}
+        def note_label(c: str, n: int) -> NoteLabel:
+            return NoteLabel(labels=[self.player.scale.to_name(n), ' ' + c])
+
+        return {c: note_label(c, n) for c, n in self.mapper.char_to_number.items()}
 
     @property
     def text(self) -> str:
