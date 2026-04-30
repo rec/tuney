@@ -23,7 +23,7 @@ class StoppableFuture(NamedTuple):
         self.stoppable.stop()
 
 
-@dc.dataclass  # OK
+@dc.dataclass
 class Stoppable:
     event: Event | threading.Event = dc.field(default_factory=threading.Event)
 
@@ -43,7 +43,7 @@ class StoppableFunction(Protocol):
     def __call__(self, *args: Any, stoppable: Stoppable, **kwargs: Any) -> None: ...
 
 
-@dc.dataclass(frozen=True)  # OK
+@dc.dataclass(frozen=True)
 class Target:
     function: StoppableFunction
     args: Sequence[Any]
@@ -61,7 +61,7 @@ class Target:
             raise
 
 
-@dc.dataclass(frozen=True)  # OK
+@dc.dataclass(frozen=True)
 class Runner:
     function: StoppableFunction
     use_multiprocessing: bool

@@ -16,7 +16,7 @@ from .device import Device
 MASTER_GAIN = 0.05
 
 
-@dc.dataclass  # OK
+@dc.dataclass
 class Player(Runnable, ABC):
     stoppable: Stoppable = dc.field(default_factory=Stoppable)
     device: Device = Device()

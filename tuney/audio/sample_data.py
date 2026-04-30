@@ -9,7 +9,7 @@ import soundfile
 from .device import Device
 
 
-@dc.dataclass  # OK
+@dc.dataclass
 class SampleData:
     data: np.ndarray
     samplerate: int

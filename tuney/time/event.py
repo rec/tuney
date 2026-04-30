@@ -5,7 +5,7 @@ import dataclasses as dc
 from ..types import Milliseconds
 
 
-@dc.dataclass  # OK
+@dc.dataclass
 class Event[Data]:
     timestamp: Milliseconds
     data: Data
