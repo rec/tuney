@@ -37,8 +37,7 @@ class PitchToFrequency(BaseModel, frozen=True):
             raise NotImplementedError
 
 
-@dc.dataclass(frozen=True)
-class TuningImpl(Tuning):
+class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
     A generalization of equal temperament, where the default values
     are the same as classic twelve-tone equal temperament (12-tet) but
@@ -90,3 +89,6 @@ class TuningImpl(Tuning):
         if self.limit_denominator:
             f = Fraction(cast(float, f)).limit_denominator(self.limit_denominator)
         return f
+
+
+assert isinstance(TuningImpl(), Tuning)

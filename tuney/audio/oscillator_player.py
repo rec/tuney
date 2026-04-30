@@ -22,7 +22,7 @@ class Sound(BaseModel, frozen=True):
     fade_out_samples: Number = 0x1000
 
 
-@dc.dataclass
+@dc.dataclass  # OK
 class OscillatorPlayer(Player):
     sound: Sound = Sound()
     oscillator_name: str = 'sawtooth'

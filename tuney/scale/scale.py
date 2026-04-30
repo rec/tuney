@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import dataclasses as dc
 import string
 from contextlib import suppress
 from functools import cached_property
 from itertools import chain
 from typing import Any, Protocol, runtime_checkable
+
+from pydantic import BaseModel
 
 from ..types import NoteNumber
 from .tuning import Tuning, TuningImpl
@@ -33,8 +34,7 @@ class Scale(Protocol):
 ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
 
 
-@dc.dataclass(frozen=True)
-class ScaleImpl:
+class ScaleImpl(BaseModel, frozen=True):
     #: The base alphabet - if not specified, use A-Z
     alphabet: str | None = None
 
@@ -55,7 +55,7 @@ class ScaleImpl:
     offset: int = 0
 
     #: The Tuning for this Scale
-    tuning: Tuning = TuningImpl()
+    tuning: TuningImpl = TuningImpl()
 
     # Implements Scale.to_name
     def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
