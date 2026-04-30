@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from functools import cached_property
+
+from pydantic import BaseModel
 
 from ..types import NoteNumber, Number
 from .scale import Scale
 
 
-@dc.dataclass(frozen=True)
-class Note:
+class Note(BaseModel, frozen=True):
     scale: Scale
     name: str
     number: NoteNumber

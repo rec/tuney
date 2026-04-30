@@ -20,7 +20,7 @@ type Event = time.Event[CharPress]
 type Sequencer = sequencer.Sequencer[CharPress]
 
 
-@dc.dataclass
+@dc.dataclass  # OK
 class App:
     mapper: LinearMapper = LinearMapper()
     player: MultiPlayer = MultiPlayer()
