@@ -59,7 +59,7 @@ class Player(Runnable, ABC):
         return OutputStream(
             callback=self.callback,
             finished_callback=self.stoppable.stop,
-            **dc.asdict(self.device),
+            **self.device.model_dump(),
         )
 
     @property

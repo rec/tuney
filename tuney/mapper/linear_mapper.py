@@ -1,10 +1,10 @@
-import dataclasses as dc
 from functools import cached_property
 from string import ascii_letters, ascii_lowercase
 
+from pydantic import BaseModel
 
-@dc.dataclass(frozen=True)
-class LinearMapper:
+
+class LinearMapper(BaseModel, frozen=True):
     alphabet: str | None = None
     length: int = 0
     case_sensitive: bool = True

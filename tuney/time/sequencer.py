@@ -15,7 +15,7 @@ SEC_IN_MS = 1000.0
 MAX_WAIT: Milliseconds = 100
 
 
-@dc.dataclass
+@dc.dataclass  # OK
 class Sequencer[Data](Runnable):
     events: list[Event[Data]]
     callback: Callable[[Data | None], Any]

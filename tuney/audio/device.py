@@ -1,13 +1,12 @@
-import dataclasses as dc
 from typing import Generic, TypeVar, get_args
 
 import sounddevice as sd
+from pydantic import BaseModel
 
 _T = TypeVar('_T', bound=sd._StreamBase)
 
 
-@dc.dataclass(frozen=True)
-class Device:
+class Device(BaseModel, frozen=True):
     samplerate: int | None = None
     blocksize: int | None = None
     device: int | str | None = None
@@ -29,7 +28,7 @@ class DeviceMaker(Generic[_T]):
         return get_args(bases[0])[0]
 
     def __call__(self, device: Device) -> _T:
-        return self.type()(**dc.asdict(device))
+        return self.type()(**device.model_dump())
 
 
 class OutputStreamMaker(DeviceMaker[sd.OutputStream]):
