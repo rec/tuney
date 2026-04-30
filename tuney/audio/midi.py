@@ -1,12 +1,10 @@
-import dataclasses as dc
-
 import mido
+from pydantic import BaseModel
 
 ZERO_IS_NOTE_OFF = True
 
 
-@dc.dataclass(frozen=True)
-class NoteMaker:
+class NoteMaker(BaseModel, frozen=True):
     channel: int = 0
     velocity: int = 0x40
     note_offset: int = 0
