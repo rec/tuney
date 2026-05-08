@@ -41,9 +41,20 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 [tool.ruff.format]
 quote-style = "single"
 
+[project.scripts]
+tuney = "tuney.__main__:main"
+
+[tool.poetry]
+name = "tuney"
+version = "0.1.0"
+description = "🎶 Turn text into music (#noAI) 🎶"
+authors = ["Tom Ritchford <tom@swirly.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[project.scripts]
-tuney = "tuney.__main__:main"
