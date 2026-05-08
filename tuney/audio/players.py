@@ -12,6 +12,7 @@ class DataPlayer(Player):
     def __init__(self, sample_data: SampleData, **kwargs: Any) -> None:
         self.data = sample_data.data
         kwargs.setdefault('device', {})['samplerate'] = sample_data.samplerate
+        super().__init__(**kwargs)
 
     def _fill(self, out: np.ndarray) -> bool | None:
         chunk = self.data.data[self.frame_count : self.frame_count + self.frame_size]
