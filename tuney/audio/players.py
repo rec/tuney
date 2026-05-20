@@ -11,15 +11,16 @@ from .sample_data import SampleData
 class DataPlayer(Player):
     def __init__(self, sample_data: SampleData, **kwargs: Any) -> None:
         self.data = sample_data.data
-        kwargs.setdefault('device', {})['samplerate'] = sample_data.samplerate
         super().__init__(**kwargs)
 
     def _fill(self, out: np.ndarray) -> bool | None:
-        chunk = self.data.data[self.frame_count : self.frame_count + self.frame_size]
-        out[: len(chunk)] = chunk
-        success = len(chunk) == self.frame_size
+        d = self.data.data[self.frame_count : self.frame_count + self.frame_size]
+        if out.shape and out.shape[1:] == (1,) and d.shape and len(d.shape) == 1:
+            d = np.reshape(d, (*d.shape, 1))
+        out[: len(d)] = d
+        success = len(d) == self.frame_size
         if not success:
-            out[len(chunk) : self.frame_size] = 0
+            out[len(d) : self.frame_size] = 0
         return success
 
 
