@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[options]
+exclude-newer = "2026-05-13T18:13:42.819807Z"
+exclude-newer-span = "P1W"
+
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
@@ -190,6 +194,23 @@ name = "evdev"
 version = "1.9.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/63/fe/a17c106a1f4061ce83f04d14bcedcfb2c38c7793ea56bfb906a6fadae8cb/evdev-1.9.2.tar.gz", hash = "sha256:5d3278892ce1f92a74d6bf888cc8525d9f68af85dbe336c95d1c87fb8f423069", size = 33301, upload-time = "2025-05-01T19:53:47.69Z" }
+
+[[package]]
+name = "impall"
+version = "1.8.1"
+source = { editable = "../impall" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage" },
+    { name = "pyfakefs" },
+    { name = "pytest" },
+    { name = "pyupgrade", specifier = ">=3.21.2" },
+    { name = "ruff" },
+    { name = "ty", specifier = ">=0.0.14" },
+]
 
 [[package]]
 name = "iniconfig"
@@ -689,6 +710,7 @@ version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "customtkinter" },
+    { name = "impall" },
     { name = "mido" },
     { name = "numpy" },
     { name = "pydantic" },
@@ -703,6 +725,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "impall" },
     { name = "pytest" },
     { name = "pyupgrade" },
     { name = "ruff" },
@@ -712,6 +735,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "customtkinter", specifier = ">=5.2.2" },
+    { name = "impall", editable = "../impall" },
     { name = "mido", specifier = ">=1.3.3" },
     { name = "numpy", specifier = ">=2.4.1" },
     { name = "pydantic", specifier = ">=2.13.3" },
@@ -726,6 +750,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = ">=7.13.2" },
+    { name = "impall", editable = "../impall" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pyupgrade", specifier = ">=3.21.2" },
     { name = "ruff", specifier = ">=0.14.10" },
