@@ -5,11 +5,9 @@ from typing import override
 
 import numpy as np
 
-from ..types import Number
-
 
 class Oscillator:
-    period: Number = 2 * np.pi
+    period: float = 2 * np.pi
     # TODO: add intensity to compensate for different energies
 
     @abstractmethod
@@ -23,7 +21,7 @@ class Sine(Oscillator):
 
 
 class Triangle(Oscillator):
-    width: Number = 0.5
+    width: float = 0.5
 
     @override
     def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray:
@@ -40,7 +38,7 @@ class OldSawtooth(Oscillator):
 
 
 class Sawtooth(Triangle):
-    width: Number = 0
+    width: float = 0
 
 
 sawtooth, sine, triangle = Sawtooth(), Sine(), Triangle()

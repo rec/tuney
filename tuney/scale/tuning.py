@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import dataclasses as dc
 from contextlib import nullcontext, suppress
+from fractions import Fraction
 from typing import Protocol, cast, runtime_checkable
 
 from pydantic import BaseModel
 
-from ..types import Fraction, Frequency, NoteNumber, Number
+from ..types import Frequency, NoteNumber
 
 # TODO: make sure we can serialize and deserialize Fraction (as str)
 
@@ -19,7 +20,7 @@ class Tuning(Protocol):
 @runtime_checkable
 class ToFrequency(Protocol):
     def __call__(
-        self, root_frequency: Number, octave_change: Number, octaves: Number
+        self, root_frequency: float, octave_change: float, octaves: float
     ) -> Frequency: ...
 
 
@@ -27,8 +28,7 @@ class PitchToFrequency(BaseModel, frozen=True):
     #: The base rule for converting a pitch to a frequency
     function: str = 'power'
 
-    def __call__(self, root: Frequency, change: Number, octaves: Number) -> Number:
-        change, octaves = cast(float, change), cast(float, octaves)
+    def __call__(self, root: Frequency, change: float, octaves: float) -> float:
         if self.function == 'power':
             return root * change**octaves
         elif self.function == 'linear':
@@ -45,7 +45,7 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
 
     #: Detune everything, in cents of an octave division
-    detune: Number = 0
+    detune: float = 0
 
     #: If limit_denominator is greater than zero, use rounded N-limit just intonation
     limit_denominator: int = 0
@@ -57,7 +57,7 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
-    octave_change: Number = 2
+    octave_change: float = 2
 
     #: The rule for converting a pitch to a frequency
     pitch_to_frequency: PitchToFrequency = PitchToFrequency()

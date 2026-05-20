@@ -7,7 +7,6 @@ from typing import Any, cast
 import numpy as np
 from pydantic import BaseModel
 
-from ..types import Number
 from . import apply_gain
 from . import oscillator as osc
 from .player import Player
@@ -16,10 +15,10 @@ FADE = 0  # 0x40000
 
 
 class Sound(BaseModel, frozen=True):
-    period: Number = 0x100
-    gain: Number = 1.0
-    fade_in_samples: Number = 0x1000
-    fade_out_samples: Number = 0x1000
+    period: float = 0x100
+    gain: float = 1.0
+    fade_in_samples: float = 0x1000
+    fade_out_samples: float = 0x1000
 
 
 @dc.dataclass
@@ -28,7 +27,7 @@ class OscillatorPlayer(Player):
     oscillator_name: str = 'sawtooth'
 
     #: Records the the frame we started to fade out.
-    _fade_frame: dc.InitVar[Number | None] = None
+    _fade_frame: dc.InitVar[float | None] = None
     _stopping: dc.InitVar[bool] = False
 
     @cached_property
@@ -42,10 +41,10 @@ class OscillatorPlayer(Player):
             super().stop()
 
     def _fill(self, out: np.ndarray) -> bool | None:
-        period = cast(float, self.sound.period)
+        period = self.sound.period
         start = self.frame_count % period
         end = start + len(out)
-        ratio = cast(float, self.oscillator.period) / period
+        ratio = self.oscillator.period / period
         wave = np.linspace(start * ratio, end * ratio, len(out))
         wave = self.oscillator.function(wave, out=wave)
 
@@ -58,7 +57,7 @@ class OscillatorPlayer(Player):
         else:
             gain *= ii.max
         apply_gain(wave, gain)
-        fade_in = cast(float, self.sound.fade_in_samples)
+        fade_in = self.sound.fade_in_samples
         if self.frame_count < fade_in and not self._stopping:
             _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
 
@@ -68,8 +67,8 @@ class OscillatorPlayer(Player):
                 offset = max(0.0, fade_in - self.frame_count)
                 self._fade_frame = self.frame_count - offset
 
-            fade_out = cast(float, self.sound.fade_out_samples)
-            elapsed = cast(float, self.frame_count - self._fade_frame)
+            fade_out = self.sound.fade_out_samples
+            elapsed = self.frame_count - self._fade_frame
             if (start := 1 - elapsed / fade_out) <= 0:
                 super().stop()
                 return False

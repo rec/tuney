@@ -4,7 +4,7 @@ from functools import cached_property
 
 from pydantic import BaseModel
 
-from ..types import NoteNumber, Number
+from ..types import NoteNumber
 from .scale import Scale
 
 
@@ -14,7 +14,7 @@ class Note(BaseModel, frozen=True):
     number: NoteNumber
 
     @cached_property
-    def frequency(self) -> Number:
+    def frequency(self) -> float:
         return self.scale.tuning(self.number)
 
     @staticmethod
