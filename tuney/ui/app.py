@@ -74,18 +74,18 @@ class App:
             self.ctk_app.on_char(c)
 
     def on_replay(self) -> None:
+        self.player.stop_all()
+        def on_char(c: CharPress | None) -> None:
+            if c:
+                self.on_char(c)
+            else:
+                self.ctk_app.after(0, self.on_replay)
+
         sequencer, self._sequencer = self._sequencer, None
         if sequencer:
             sequencer.stop()
 
         if self.ctk_app.is_replaying:
-
-            def on_char(c: CharPress | None) -> None:
-                if c:
-                    self.on_char(c)
-                else:
-                    self.ctk_app.after(0, self.on_replay)
-
             self._sequencer = self.text_timings.sequencer(self.text, on_char)
             self._saved_text, self.text = self.text, ''
             self._sequencer.start()
