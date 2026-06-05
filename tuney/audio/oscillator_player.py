@@ -45,7 +45,7 @@ class OscillatorPlayer(Player):
         start = self.frame_count % period
         end = start + len(out)
         ratio = self.oscillator.period / period
-        wave = np.linspace(start * ratio, end * ratio, len(out), endpoint=True)
+        wave = np.linspace(start * ratio, end * ratio, len(out), endpoint=False)
         wave = self.oscillator.function(wave, out=wave)
 
         gain = self.sound.gain
@@ -97,4 +97,6 @@ def _clamp(x: float) -> float:
 
 
 def _fade(wave: np.ndarray, start: float, length: float) -> None:
-    wave *= np.linspace(_clamp(start), _clamp(start + length), len(wave), endpoint=True)
+    wave *= np.linspace(
+        _clamp(start), _clamp(start + length), len(wave), endpoint=False
+    )
