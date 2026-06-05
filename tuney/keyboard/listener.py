@@ -7,8 +7,10 @@ from typing import Any, Literal
 
 from pynput import keyboard
 
+from tuney.keyboard.modifiers import Modifiers
+
 from ..runnable import Runnable
-from .key_press import KeyPress, KeyType, Modifiers
+from .key_press import KeyPress, KeyType
 
 type KeyCallback = Callable[[KeyPress], Any]
 
