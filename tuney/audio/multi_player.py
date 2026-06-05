@@ -8,7 +8,7 @@ from ..scale.scale import Scale
 from ..types import NoteNumber
 from . import concurrent
 from .device import Device
-from .oscillator_player import Sound, make_and_run, make_and_start
+from .oscillator_player import Sound, make_and_run
 
 
 class MultiPlayer(BaseModel, frozen=True):
@@ -36,7 +36,6 @@ class MultiPlayer(BaseModel, frozen=True):
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.device.samplerate or 48_000) / frequency
         sound = Sound(period=period, gain=self.gain)
-        assert isinstance(make_and_start, concurrent.StoppableFunction)
         self.stoppable_futures[note_number] = self.runner(
             device=self.device, oscillator_name=self.oscillator_name, sound=sound
         )

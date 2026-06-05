@@ -81,12 +81,6 @@ class OscillatorPlayer(Player):
 
 
 @wraps(OscillatorPlayer.__init__)
-def make_and_start(*args: Any, **kwargs: Any) -> OscillatorPlayer:
-    o = OscillatorPlayer(*args, **kwargs)
-    o.start()
-    return o
-
-
 def make_and_run(*args: Any, **kwargs: Any) -> None:
     o = OscillatorPlayer(*args, **kwargs)
     o.run()
