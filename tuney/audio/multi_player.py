@@ -6,9 +6,8 @@ from pydantic import BaseModel
 
 from ..scale.scale import Scale
 from ..types import NoteNumber
-from . import concurrent
+from . import concurrent, oscillator_player
 from .device import Device
-from .oscillator_player import Sound, make_and_run
 
 
 class MultiPlayer(BaseModel, frozen=True):
@@ -25,7 +24,7 @@ class MultiPlayer(BaseModel, frozen=True):
 
     @cached_property
     def runner(self) -> concurrent.Runner:
-        return concurrent.Runner(make_and_run, self.use_multiprocessing)
+        return concurrent.Runner(oscillator_player.run, self.use_multiprocessing)
 
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
@@ -35,7 +34,7 @@ class MultiPlayer(BaseModel, frozen=True):
             return False
         frequency = self.scale.tuning(note_number + self.note_offset)
         period = (self.device.samplerate or 48_000) / frequency
-        sound = Sound(period=period, gain=self.gain)
+        sound = oscillator_player.Sound(period=period, gain=self.gain)
         self.stoppable_futures[note_number] = self.runner(
             device=self.device, oscillator_name=self.oscillator_name, sound=sound
         )
