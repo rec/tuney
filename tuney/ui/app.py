@@ -3,8 +3,6 @@ from __future__ import annotations
 import dataclasses as dc
 from functools import cached_property
 
-from pynput.keyboard import Key
-
 from tuney.audio.multi_player import MultiPlayer
 from tuney.time import sequencer
 
@@ -12,9 +10,7 @@ from .. import time
 from ..keyboard.key_press import CharPress, KeyPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
-from .ctk_app import CTkApp, NoteLabel
-
-KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
+from .ctk_app import WHITESPACE, CTkApp, NoteLabel
 
 type Event = time.Event[CharPress]
 type Sequencer = sequencer.Sequencer[CharPress]
@@ -62,7 +58,7 @@ class App:
 
     def on_key(self, k: KeyPress) -> None:
         if not self.ctk_app.is_replaying:
-            if c := getattr(k.key, 'char', '') or KEYS.get(k.key, ''):
+            if c := getattr(k.key, 'char', '') or WHITESPACE.get(k.key, ''):
                 self.on_char(CharPress(c, k.is_press))
                 if not k.is_press:
                     self.on_char(CharPress(c.swapcase(), k.is_press))

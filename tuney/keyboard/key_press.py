@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from pynput.keyboard import Key, KeyCode
-
-type KeyType = Key | KeyCode
+from . import KeyType
 
 
 class KeyPress(NamedTuple):

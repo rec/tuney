@@ -4,8 +4,8 @@ from queue import Queue
 
 from customtkinter import CTk
 from pydantic import BaseModel
-from pynput.keyboard import Key
 
+from ..keyboard import WHITESPACE
 from ..keyboard.key_press import CharPress, KeyPress
 from ..types import Callback
 from . import layout
@@ -25,7 +25,6 @@ STOP = {
 }
 
 QUEUE_POLL_IN_MS = 25
-KEYS = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -61,7 +60,7 @@ class CTkApp(CTk):
         self.queue.put(c)
 
     def on_key(self, k: KeyPress) -> None:
-        if char := KEYS.get(k.key) or getattr(k.key, 'char', ''):
+        if char := WHITESPACE.get(k.key) or getattr(k.key, 'char', ''):
             self.on_char(CharPress(char, k.is_press))
 
     @property
