@@ -6,11 +6,12 @@ from functools import wraps
 from typing import Any, Literal
 
 from pynput import keyboard
+from pynput.keyboard import Key, KeyCode
 
 from tuney.keyboard.modifiers import Modifiers
 
 from ..runnable import Runnable
-from .key_press import KeyPress, KeyType
+from .key_press import KeyPress
 
 type KeyCallback = Callable[[KeyPress], Any]
 
@@ -29,13 +30,13 @@ class KeyboardListener(Runnable):
         self.deduplicate_keys = deduplicate_keys
         self.held_keys = set()
 
-    def on_press(self, key: KeyType | None) -> None | Literal[False]:
+    def on_press(self, key: Key | KeyCode | None) -> None | Literal[False]:
         return self.is_running and self._on(key, True)
 
-    def on_release(self, key: KeyType | None) -> None | Literal[False]:
+    def on_release(self, key: Key | KeyCode | None) -> None | Literal[False]:
         return self.is_running and self._on(key, False)
 
-    def _on(self, key: KeyType, is_press: bool) -> None:
+    def _on(self, key: Key | KeyCode, is_press: bool) -> None:
         if self.deduplicate_keys:
             if not is_press:
                 self.held_keys.discard(key)
