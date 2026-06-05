@@ -4,7 +4,7 @@ from functools import cached_property
 
 from pydantic import BaseModel
 
-from ..scale.scale import ScaleImpl
+from ..scale.scale import Scale
 from ..types import NoteNumber
 from . import concurrent
 from .device import Device
@@ -14,7 +14,7 @@ from .oscillator_player import Sound, make_and_run, make_and_start
 class MultiPlayer(BaseModel, frozen=True):
     device: Device = Device()
     oscillator_name: str = 'sawtooth'
-    scale: ScaleImpl = ScaleImpl()
+    scale: Scale = Scale()
     gain: float = 1.0
     note_offset: NoteNumber = 0
     use_multiprocessing: bool = False

@@ -25,7 +25,7 @@ class ToNumber(Protocol):
 
 
 @runtime_checkable
-class Scale(Protocol):
+class ScaleI(Protocol):
     tuning: Tuning
     to_name: ToName
     to_number: ToNumber
@@ -34,7 +34,7 @@ class Scale(Protocol):
 ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
 
 
-class ScaleImpl(BaseModel, frozen=True):
+class Scale(BaseModel, frozen=True):
     #: The base alphabet - if not specified, use A-Z
     alphabet: str | None = None
 
@@ -118,4 +118,4 @@ class ScaleImpl(BaseModel, frozen=True):
         return nn, {True: sharp, False: flat}
 
 
-assert isinstance(ScaleImpl(), Scale)
+assert isinstance(Scale(), ScaleI)

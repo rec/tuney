@@ -75,6 +75,7 @@ class App:
 
     def on_replay(self) -> None:
         self.player.stop_all()
+
         def on_char(c: CharPress | None) -> None:
             if c:
                 self.on_char(c)
