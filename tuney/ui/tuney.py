@@ -16,8 +16,6 @@ from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
 from .ctk_app import CTkApp, NoteLabel
 
-type Event = time.Event[CharPress]
-
 
 class Tuney(BaseModel):
     # Load configs from a JSON or toml file

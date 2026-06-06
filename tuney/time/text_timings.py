@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from ..keyboard.key_press import CharPress
 from ..time import Sequencer
 from ..types import Milliseconds
-from .event import Event
+from .time_data import TimeData
 
 
 class TextTimings(BaseModel, frozen=True):
@@ -47,7 +47,7 @@ class TextTimings(BaseModel, frozen=True):
     def char_to_time(self) -> dict[str, Milliseconds]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def events(self, text: str) -> Iterator[Event]:
+    def time_data(self, text: str) -> Iterator[TimeData[CharPress]]:
         time = 0
         chars = _strip_accents(text) if self.strip_accents else text
         for char in _filter_chars(chars):
@@ -56,8 +56,8 @@ class TextTimings(BaseModel, frozen=True):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
                 begin = time * self.scale
                 end = (time + dt) * self.scale
-                yield Event(begin, CharPress(char, True))
-                yield Event(end, CharPress(char, False))
+                yield TimeData(time=begin, data=CharPress(char, True))
+                yield TimeData(time=end, data=CharPress(char, False))
                 time += max(0, dt - self.overlap)
 
     @staticmethod
@@ -65,7 +65,7 @@ class TextTimings(BaseModel, frozen=True):
         s: str, callback: Callable[[CharPress | None], Any]
     ) -> Sequencer[CharPress]:
         timings = TextTimings()
-        events = list(timings.events(s))
+        events = list(timings.time_data(s))
         assert s and events, (s, events)
         return Sequencer[CharPress](events, callback)
 

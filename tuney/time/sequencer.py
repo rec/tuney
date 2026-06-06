@@ -6,9 +6,9 @@ import time
 from collections.abc import Callable
 from typing import Any, override
 
-from tuney.runnable import Runnable
-from tuney.time import Event
-from tuney.types import Milliseconds, Seconds
+from ..runnable import Runnable
+from ..types import Milliseconds, Seconds
+from .time_data import TimeData
 
 SEC_IN_MS = 1000.0
 
@@ -17,11 +17,11 @@ MAX_WAIT: Milliseconds = 100
 
 @dc.dataclass
 class Sequencer[Data](Runnable):
-    events: list[Event[Data]]
+    time_data: list[TimeData[Data]]
     callback: Callable[[Data | None], Any]
 
     def __post_init__(self) -> None:
-        heapq.heapify(self.events)
+        heapq.heapify(self.time_data)
 
     @override
     def _run(self) -> None:
@@ -31,13 +31,13 @@ class Sequencer[Data](Runnable):
             return (time.time() - start) * SEC_IN_MS
 
         def next_time() -> Milliseconds:
-            return max(0, self.events[0].timestamp - elapsed())
+            return max(0, self.time_data[0].time - elapsed())
 
         try:
             while self._running:
-                while self.events and not next_time():
-                    self.callback(heapq.heappop(self.events).data)
-                if self.events:
+                while self.time_data and not next_time():
+                    self.callback(heapq.heappop(self.time_data).data)
+                if self.time_data:
                     time.sleep(min(MAX_WAIT, next_time()) / 1000.0)
                 else:
                     self.stop()
@@ -46,13 +46,13 @@ class Sequencer[Data](Runnable):
 
 
 def demo() -> None:
-    def event() -> Event[float]:
+    def time_data() -> TimeData[float]:
         import random
 
         t = random.uniform(0, 2)
-        return Event(t, t)
+        return TimeData(time=t, data=t)
 
-    Sequencer([event() for _ in range(16)], print).run()
+    Sequencer([time_data() for _ in range(16)], print).run()
 
 
 if __name__ == '__main__':

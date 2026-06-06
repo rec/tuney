@@ -1,5 +1,5 @@
-__all__ = ['Event', 'Sequencer', 'TextTimings']
+__all__ = ['TimeData', 'Sequencer', 'TextTimings']
 
-from .event import Event
 from .sequencer import Sequencer
 from .text_timings import TextTimings
+from .time_data import TimeData
