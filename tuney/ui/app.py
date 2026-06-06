@@ -37,7 +37,7 @@ def from_length(n: int) -> tuple[int, int]:
     return c, r + (n > (r * c))
 
 
-class CTkApp(CTk):
+class App(CTk):
     def __init__(self, note_labels: dict[str, NoteLabel], on_replay: Callback) -> None:
         super().__init__()
         self.note_labels = note_labels

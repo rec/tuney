@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
 if TYPE_CHECKING:
-    from .ctk_app import CTkApp
+    from .app import App
 
 PAD = 16
 QUARTER = PAD // 4
@@ -16,7 +16,7 @@ BIG_FONT = 'Arial', 16, 'bold'
 WIDTH, HEIGHT = 70, 100
 
 
-def layout(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
+def layout(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
     app.title('Note app')
 
     width, height = WIDTH * app.columns, HEIGHT * app.rows
@@ -25,8 +25,8 @@ def layout(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
     return _layout_controls(app)
 
 
-def _layout_grid(app: CTkApp) -> None:
-    from .ctk_app import RELEASED
+def _layout_grid(app: App) -> None:
+    from .app import RELEASED
 
     parent = CTkFrame(app)
     parent.pack(fill='both', expand=True, padx=PAD, pady=PAD)
@@ -48,8 +48,8 @@ def _layout_grid(app: CTkApp) -> None:
         label.pack(expand=True)
 
 
-def _layout_controls(app: CTkApp) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
-    from .ctk_app import REPLAY
+def _layout_controls(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
+    from .app import REPLAY
 
     stats_frame = CTkFrame(app, fg_color='transparent')
     stats_frame.pack(fill='x', padx=PAD)
