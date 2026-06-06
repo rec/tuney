@@ -31,7 +31,7 @@ class Tuney(BaseModel):
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
 
     # Text to start the program with
-    starting_text: str = ''
+    text: str = ''
 
     disable_gui: bool = False
     disable_keyboard: bool = False
@@ -46,7 +46,7 @@ class Tuney(BaseModel):
     def ctk_app(self) -> CTkApp:
         assert not self.disable_gui
         app = CTkApp(self.note_labels, self.on_replay)
-        app.set_text(self.starting_text)
+        app.set_text(self.text)
         return app
 
     @cached_property
