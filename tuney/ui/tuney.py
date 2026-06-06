@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from functools import cached_property
 from pathlib import Path
 from typing import Annotated
 
 import tyro
+from pydantic import BaseModel, ConfigDict
 
 from tuney.audio.multi_player import MultiPlayer
 from tuney.time.sequencer import Sequencer
@@ -19,8 +19,10 @@ from .ctk_app import CTkApp, NoteLabel
 type Event = time.Event[CharPress]
 
 
-@dc.dataclass
-class App:
+class Tuney(BaseModel):
+    # Load configs from a JSON or toml file
+    config_file: Annotated[Path | None, tyro.conf.Positional] = None
+
     # Map letters to notes
     mapper: LinearMapper = LinearMapper()
 
@@ -37,21 +39,10 @@ class App:
     disable_keyboard: bool = False
     disable_sound: bool = False
 
-    # Load configs from a JSON or toml file
-    config_file: Annotated[
-        Path | None,
-        tyro.conf.Positional,
-    ] = None
+    model_config = ConfigDict(exclude=('_saved_text', '_sequencer'))  # ty:ignore[invalid-key]
 
-    _sequencer: Annotated[
-        dc.InitVar[Sequencer[CharPress] | None],
-        tyro.conf.Suppress,
-    ] = None
-
-    _saved_text: Annotated[
-        dc.InitVar[str | None],
-        tyro.conf.Suppress,
-    ] = None
+    _sequencer: Annotated[Sequencer[CharPress] | None, tyro.conf.Suppress] = None
+    _saved_text: Annotated[str | None, tyro.conf.Suppress] = None
 
     @cached_property
     def ctk_app(self) -> CTkApp:
