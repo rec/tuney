@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import dataclasses as dc
+from pydantic import BaseModel
 
 from ..types import Milliseconds
 
 
-@dc.dataclass
-class TimeData[Data]:
+class TimeData[Data](BaseModel, frozen=True):
     time: Milliseconds
     data: Data
 
