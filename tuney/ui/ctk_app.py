@@ -2,7 +2,7 @@ import math
 from collections.abc import Sequence
 from queue import Queue
 
-from customtkinter import CTk
+from customtkinter import CTk, CTkFrame
 from pydantic import BaseModel
 
 from ..keyboard.key_press import CharPress
@@ -43,7 +43,7 @@ class CTkApp(CTk):
         self.note_labels = note_labels
         self._on_replay = on_replay
         self.queue = Queue[CharPress]()
-        self.notes = {}
+        self.note_frames = dict[str, CTkFrame]()
         self.columns, self.rows = from_length(len(note_labels))
         self.count_label, self.textbox, self.replay = layout.layout(self)
         self._is_replaying = False
@@ -75,6 +75,9 @@ class CTkApp(CTk):
     def get_text(self) -> str:
         return self.textbox.get('1.0', 'end-1c')
 
+    def set_note_frame(self, key: str, frame: CTkFrame) -> None:
+        self.note_frames[key] = frame
+
     def set_text(self, text: str) -> None:
         self.textbox.configure(state='normal')
         self.textbox.delete('1.0', 'end')
@@ -96,8 +99,8 @@ class CTkApp(CTk):
         self.after(QUEUE_POLL_IN_MS, self._handle_queue)
 
     def _on_char(self, c: CharPress) -> None:
-        if note := self.notes.get(c.char):
-            note.configure(**(PRESSED if c.is_press else RELEASED))
+        if frame := self.note_frames.get(c.char):
+            frame.configure(**(PRESSED if c.is_press else RELEASED))
 
         if c.is_press:
             self._append_string(c.char)

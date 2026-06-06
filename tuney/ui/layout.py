@@ -10,8 +10,8 @@ if TYPE_CHECKING:
 PAD = 16
 QUARTER = PAD // 4
 TEXT_BOX_HEIGHT = 150
-FONT = ('Arial', 14)
-BIG_FONT = ('Arial', 16, 'bold')
+FONT = 'Arial', 14
+BIG_FONT = 'Arial', 16, 'bold'
 
 WIDTH, HEIGHT = 70, 100
 
@@ -37,14 +37,14 @@ def _layout_grid(app: CTkApp) -> None:
         r, c = divmod(i, app.columns)
         parent.grid_columnconfigure(c, weight=1)
         parent.grid_rowconfigure(r, weight=1)
-        note = CTkFrame(
+        frame = CTkFrame(
             parent,
             **RELEASED,  # ty: ignore[invalid-argument-type]
         )
-        note.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
-        app.notes[key] = note
+        frame.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
+        app.set_note_frame(key, frame)
 
-        label = CTkLabel(note, text=letter, font=BIG_FONT)
+        label = CTkLabel(frame, text=letter, font=BIG_FONT)
         label.pack(expand=True)
 
 
