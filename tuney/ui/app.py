@@ -22,23 +22,23 @@ class App:
     player: MultiPlayer = MultiPlayer()
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
     starting_text: str = ''
-    enable_gui: bool = True
-    enable_keyboard: bool = True
-    enable_sound: bool = True
+    disable_gui: bool = False
+    disable_keyboard: bool = False
+    disable_sound: bool = False
 
     _sequencer: dc.InitVar[Sequencer | None] = None
     _saved_text: dc.InitVar[str | None] = None
 
     @cached_property
     def ctk_app(self) -> CTkApp:
-        assert self.enable_gui
+        assert not self.disable_gui
         app = CTkApp(self.note_labels, self.on_replay)
         app.set_text(self.starting_text)
         return app
 
     @cached_property
     def listener(self) -> KeyboardListener:
-        assert self.enable_keyboard
+        assert not self.disable_keyboard
         return KeyboardListener(self.on_char)
 
     @cached_property
@@ -65,9 +65,9 @@ class App:
 
     def _on_char(self, c: CharPress) -> None:
         if not self.ctk_app.is_replaying:
-            if self.enable_sound and (note := self.mapper(c.char)) is not None:
+            if not self.disable_sound and (note := self.mapper(c.char)) is not None:
                 self.player.note(note, c.is_press)
-            if self.enable_gui:
+            if not self.disable_gui:
                 self.ctk_app.on_char(c)
 
     def on_replay(self) -> None:
@@ -92,13 +92,13 @@ class App:
 
     def run(self):
         self.start()
-        if self.enable_gui:
+        if not self.disable_gui:
             self.ctk_app.mainloop()
 
     def start(self) -> None:
-        if self.enable_gui:
+        if not self.disable_gui:
             self.ctk_app.start()
-        if self.enable_keyboard:
+        if not self.disable_keyboard:
             self.listener.start()
 
 
