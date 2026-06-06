@@ -8,18 +8,17 @@ from typing import Any, Literal
 from pynput import keyboard
 from pynput.keyboard import Key, KeyCode
 
+from tuney.keyboard.key_press import CharPress
 from tuney.keyboard.modifiers import Modifiers
 
 from ..runnable import Runnable
-from .key_press import KeyPress
-
-type KeyCallback = Callable[[KeyPress], Any]
+from . import WHITESPACE
 
 
 class KeyboardListener(Runnable):
     def __init__(
         self,
-        callback: KeyCallback,
+        callback: Callable[[CharPress], Any],
         relay_commands: bool = False,
         deduplicate_keys: bool = True,
     ) -> None:
@@ -44,8 +43,15 @@ class KeyboardListener(Runnable):
                 return
             else:
                 self.held_keys.add(key)
-        kp = KeyPress(key, is_press)
-        self.modifiers = self.modifiers.apply(kp)
+        if isinstance(key, KeyCode):
+            char = key.char
+            assert char
+        else:
+            self.modifiers = self.modifiers.apply(key, is_press)
+            if not (char := WHITESPACE.get(key, '')):
+                return
+
+        kp = CharPress(char, is_press)
         if not is_press or self.relay_commands or not self.modifiers.is_command:
             self.callback(kp)
 

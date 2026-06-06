@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tuney.keyboard.key_press import KeyPress
+from pynput.keyboard import Key
 
 
 class Modifiers(int):
@@ -48,10 +48,7 @@ class Modifiers(int):
     def is_command(self) -> bool:
         return self.has_alt or self.has_cmd or self.has_ctrl
 
-    def apply(self, kp: KeyPress) -> Modifiers:
-        try:
-            mask = getattr(Modifiers, kp.key.name)
-        except AttributeError:
-            return self
-        else:
-            return Modifiers((self | mask) if kp.is_press else (self & ~mask))
+    def apply(self, kp: Key, is_press: bool) -> Modifiers:
+        if mask := getattr(Modifiers, kp.name, None):
+            return Modifiers((self | mask) if is_press else (self & ~mask))
+        return self

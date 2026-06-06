@@ -7,10 +7,10 @@ from tuney.audio.multi_player import MultiPlayer
 from tuney.time import sequencer
 
 from .. import time
-from ..keyboard.key_press import CharPress, KeyPress
+from ..keyboard.key_press import CharPress
 from ..keyboard.listener import KeyboardListener
 from ..mapper.linear_mapper import LinearMapper
-from .ctk_app import WHITESPACE, CTkApp, NoteLabel
+from .ctk_app import CTkApp, NoteLabel
 
 type Event = time.Event[CharPress]
 type Sequencer = sequencer.Sequencer[CharPress]
@@ -39,7 +39,7 @@ class App:
     @cached_property
     def listener(self) -> KeyboardListener:
         assert self.enable_keyboard
-        return KeyboardListener(self.on_key)
+        return KeyboardListener(self.on_char)
 
     @cached_property
     def note_labels(self) -> dict[str, NoteLabel]:
@@ -56,18 +56,19 @@ class App:
     def text(self, text: str) -> None:
         self.ctk_app.set_text(text)
 
-    def on_key(self, k: KeyPress) -> None:
-        if not self.ctk_app.is_replaying:
-            if c := getattr(k.key, 'char', '') or WHITESPACE.get(k.key, ''):
-                self.on_char(CharPress(c, k.is_press))
-                if not k.is_press:
-                    self.on_char(CharPress(c.swapcase(), k.is_press))
-
     def on_char(self, c: CharPress) -> None:
-        if self.enable_sound and (note := self.mapper(c.char)) is not None:
-            self.player.note(note, c.is_press)
-        if self.enable_gui:
-            self.ctk_app.on_char(c)
+        assert c.char
+        if not self.ctk_app.is_replaying:
+            self._on_char(c)
+            if not c.is_press:
+                self._on_char(CharPress(c.char.swapcase(), c.is_press))
+
+    def _on_char(self, c: CharPress) -> None:
+        if not self.ctk_app.is_replaying:
+            if self.enable_sound and (note := self.mapper(c.char)) is not None:
+                self.player.note(note, c.is_press)
+            if self.enable_gui:
+                self.ctk_app.on_char(c)
 
     def on_replay(self) -> None:
         self.player.stop_all()

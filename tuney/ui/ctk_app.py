@@ -5,8 +5,7 @@ from queue import Queue
 from customtkinter import CTk
 from pydantic import BaseModel
 
-from ..keyboard import WHITESPACE
-from ..keyboard.key_press import CharPress, KeyPress
+from ..keyboard.key_press import CharPress
 from ..types import Callback
 from . import layout
 
@@ -56,12 +55,8 @@ class CTkApp(CTk):
         self._handle_queue()
 
     def on_char(self, c: CharPress) -> None:
-        assert c
-        self.queue.put(c)
-
-    def on_key(self, k: KeyPress) -> None:
-        if char := WHITESPACE.get(k.key) or getattr(k.key, 'char', ''):
-            self.on_char(CharPress(char, k.is_press))
+        if c.char:
+            self.queue.put(c)
 
     @property
     def is_replaying(self) -> bool:
