@@ -9,19 +9,13 @@ from ..keyboard.key_press import CharPress
 from ..types import Callback
 from . import layout
 
-# TODO: bg_color is not useful, what is?
+# TODO: bg_color exists but is not useful, what is?
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
 RELEASED = PRESSED | {'fg_color': 'gray60'}
-REPLAY = {
-    'text': 'Replay (Ctrl+R)',
-    'fg_color': '#2fa572',
-    'hover_color': '#248259',
-}
-STOP = {
-    'text': 'Stop (Ctrl+R)',
-    'fg_color': '#afa5b2',
-    'hover_color': '#248259',
-}
+HOVER = {'hover_color': '#248060'}
+
+REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
+STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
 
