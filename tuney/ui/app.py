@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import dataclasses as dc
 from functools import cached_property
+from pathlib import Path
+from typing import Annotated
+
+import tyro
 
 from tuney.audio.multi_player import MultiPlayer
 from tuney.time import sequencer
@@ -18,13 +22,24 @@ type Sequencer = sequencer.Sequencer[CharPress]
 
 @dc.dataclass
 class App:
+    # Map letters to notes
     mapper: LinearMapper = LinearMapper()
+
+    # How to play back audio
     player: MultiPlayer = MultiPlayer()
+
+    # Timings for playing back texts
     text_timings: time.TextTimings = time.TextTimings(scale=3.0)
+
+    # Text to start the program with
     starting_text: str = ''
+
     disable_gui: bool = False
     disable_keyboard: bool = False
     disable_sound: bool = False
+
+    # Load configs from a JSON or toml file
+    config_file: Annotated[Path | None, tyro.conf.Positional] = None
 
     _sequencer: dc.InitVar[Sequencer | None] = None
     _saved_text: dc.InitVar[str | None] = None
