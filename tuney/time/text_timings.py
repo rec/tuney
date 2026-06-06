@@ -66,8 +66,7 @@ class TextTimings(BaseModel, frozen=True):
     ) -> Sequencer[CharPress]:
         timings = TextTimings()
         events = list(timings.events(s))
-        assert s
-        assert events, s
+        assert s and events, (s, events)
         return Sequencer[CharPress](events, callback)
 
 

@@ -1,8 +1,9 @@
+from . import cli
 from .ui.app import App
 
 
 def main() -> None:
-    App().run()
+    cli.cli(App, 'tuney')
 
 
 if __name__ == '__main__':

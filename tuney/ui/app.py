@@ -8,7 +8,7 @@ from typing import Annotated
 import tyro
 
 from tuney.audio.multi_player import MultiPlayer
-from tuney.time import sequencer
+from tuney.time.sequencer import Sequencer
 
 from .. import time
 from ..keyboard.key_press import CharPress
@@ -17,7 +17,6 @@ from ..mapper.linear_mapper import LinearMapper
 from .ctk_app import CTkApp, NoteLabel
 
 type Event = time.Event[CharPress]
-type Sequencer = sequencer.Sequencer[CharPress]
 
 
 @dc.dataclass
@@ -39,10 +38,20 @@ class App:
     disable_sound: bool = False
 
     # Load configs from a JSON or toml file
-    config_file: Annotated[Path | None, tyro.conf.Positional] = None
+    config_file: Annotated[
+        Path | None,
+        tyro.conf.Positional,
+    ] = None
 
-    _sequencer: dc.InitVar[Sequencer | None] = None
-    _saved_text: dc.InitVar[str | None] = None
+    _sequencer: Annotated[
+        dc.InitVar[Sequencer[CharPress] | None],
+        tyro.conf.Suppress,
+    ] = None
+
+    _saved_text: Annotated[
+        dc.InitVar[str | None],
+        tyro.conf.Suppress,
+    ] = None
 
     @cached_property
     def ctk_app(self) -> CTkApp:
@@ -105,7 +114,7 @@ class App:
         elif self._saved_text is not None:
             self.text, self._saved_text = self._saved_text, None
 
-    def run(self):
+    def __call__(self):
         self.start()
         if not self.disable_gui:
             self.ctk_app.mainloop()
@@ -115,10 +124,3 @@ class App:
             self.ctk_app.start()
         if not self.disable_keyboard:
             self.listener.start()
-
-
-if __name__ == '__main__':
-    import sys
-
-    text = ' '.join(sys.argv[1:])
-    App().run()
