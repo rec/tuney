@@ -62,11 +62,11 @@ class Tuney(BaseModel):
         return {c: note_label(c, n) for c, n in self.mapper.char_to_number.items()}
 
     @property
-    def text(self) -> str:
+    def gui_text(self) -> str:
         return self.ctk_app.get_text()
 
-    @text.setter
-    def text(self, text: str) -> None:
+    @gui_text.setter
+    def gui_text(self, text: str) -> None:
         self.ctk_app.set_text(text)
 
     def on_char(self, c: CharPress) -> None:
@@ -97,11 +97,11 @@ class Tuney(BaseModel):
             sequencer.stop()
 
         if self.ctk_app.is_replaying:
-            self._sequencer = self.text_timings.sequencer(self.text, on_char)
-            self._saved_text, self.text = self.text, ''
+            self._sequencer = self.text_timings.sequencer(self.gui_text, on_char)
+            self._saved_text, self.gui_text = self.gui_text, ''
             self._sequencer.start()
         elif self._saved_text is not None:
-            self.text, self._saved_text = self._saved_text, None
+            self.gui_text, self._saved_text = self._saved_text, None
 
     def __call__(self):
         self.start()
