@@ -15,7 +15,7 @@ dependencies = [
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
     "ty>=0.0.13",
-    "typer>=0.20.1",
+    "tyro>=1.0.13",
 ]
 classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
 
