@@ -12,7 +12,8 @@ from tuney.keyboard.key_press import CharPress
 from tuney.keyboard.modifiers import Modifiers
 
 from ..runnable import Runnable
-from . import WHITESPACE
+
+WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
 
 class KeyboardListener(Runnable):

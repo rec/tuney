@@ -18,7 +18,6 @@ REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
-REPORT_KEYSTROKES = False
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -27,12 +26,7 @@ class NoteLabel(BaseModel, frozen=True):
 
 
 class App(CTk):
-    def __init__(
-        self,
-        listen_in_background: bool,
-        note_labels: dict[str, NoteLabel],
-        on_replay: Callback,
-    ) -> None:
+    def __init__(self, note_labels: dict[str, NoteLabel], on_replay: Callback) -> None:
         super().__init__()
         self.note_labels = note_labels
         self._on_replay = on_replay
@@ -44,8 +38,6 @@ class App(CTk):
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
-        if REPORT_KEYSTROKES:
-            self.bind('<Key>', lambda e: print(e.char, e.keysym, e.keycode))
 
     def start(self) -> None:
         self._handle_queue()
