@@ -27,7 +27,12 @@ class NoteLabel(BaseModel, frozen=True):
 
 
 class App(CTk):
-    def __init__(self, note_labels: dict[str, NoteLabel], on_replay: Callback) -> None:
+    def __init__(
+        self,
+        listen_in_background: bool,
+        note_labels: dict[str, NoteLabel],
+        on_replay: Callback,
+    ) -> None:
         super().__init__()
         self.note_labels = note_labels
         self._on_replay = on_replay

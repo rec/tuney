@@ -37,6 +37,9 @@ class Tuney(BaseModel):
     disable_keyboard: bool = False
     disable_sound: bool = False
 
+    # If True, listen to the keyboard even when other applications are in front
+    listen_in_background: bool = True
+
     model_config = ConfigDict(exclude=('_saved_text', '_sequencer'))  # ty:ignore[invalid-key]
 
     _sequencer: Sequencer[CharPress] | None = None
@@ -45,7 +48,7 @@ class Tuney(BaseModel):
     @cached_property
     def app(self) -> App:
         assert not self.disable_gui
-        app = App(self.note_labels, self.on_replay)
+        app = App(self.listen_in_background, self.note_labels, self.on_replay)
         app.set_text(self.text)
         return app
 
@@ -112,4 +115,5 @@ class Tuney(BaseModel):
         if not self.disable_gui:
             self.app.start()
         if not self.disable_keyboard:
-            self.listener.start()
+            if self.listen_in_background:
+                self.listener.start()
