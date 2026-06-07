@@ -39,8 +39,8 @@ class Tuney(BaseModel):
 
     model_config = ConfigDict(exclude=('_saved_text', '_sequencer'))  # ty:ignore[invalid-key]
 
-    _sequencer: Annotated[Sequencer[CharPress] | None, tyro.conf.Suppress] = None
-    _saved_text: Annotated[str | None, tyro.conf.Suppress] = None
+    _sequencer: Sequencer[CharPress] | None = None
+    _saved_text: str | None = None
 
     @cached_property
     def gui_app(self) -> App:

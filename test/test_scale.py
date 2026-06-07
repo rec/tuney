@@ -1,7 +1,13 @@
 from test import twelve_tet as tt
 from tuney.scale.nearest_note import nearest_note
+from tuney.scale.scale import Scale
 
-assert tt
+
+def test_flat_sharp():
+    actual = [''.join(i) for i in Scale().flats_sharps]
+    expected = ['CD♭DE♭EFG♭GA♭AB♭B', 'CC♯DD♯EFF♯GG♯AA♯B']
+
+    assert actual == expected
 
 
 def test_scale():
