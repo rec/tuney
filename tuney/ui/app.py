@@ -18,17 +18,12 @@ REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
+REPORT_KEYSTROKES = False
 
 
 class NoteLabel(BaseModel, frozen=True):
     labels: Sequence[str]
     on: bool = False
-
-
-def from_length(n: int) -> tuple[int, int]:
-    c = int(math.ceil(n**0.5))
-    r = n // c
-    return c, r + (n > (r * c))
 
 
 class App(CTk):
@@ -38,12 +33,14 @@ class App(CTk):
         self._on_replay = on_replay
         self.queue = Queue[CharPress]()
         self.note_frames = dict[str, CTkFrame]()
-        self.columns, self.rows = from_length(len(note_labels))
+        self.columns, self.rows = _from_length(len(note_labels))
         self.count_label, self.textbox, self.replay = layout.layout(self)
         self._is_replaying = False
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
+        if REPORT_KEYSTROKES:
+            self.bind('<Key>', lambda e: print(e.char, e.keysym, e.keycode))
 
     def start(self) -> None:
         self._handle_queue()
@@ -100,3 +97,9 @@ class App(CTk):
             self._append_string(c.char)
             self.textbox.see('end')
             self.count_label.configure(text=f'Chars: {len(self.get_text())}')
+
+
+def _from_length(n: int) -> tuple[int, int]:
+    c = int(math.ceil(n**0.5))
+    r = n // c
+    return c, r + (n > (r * c))
