@@ -43,7 +43,7 @@ class Tuney(BaseModel):
     _saved_text: str | None = None
 
     @cached_property
-    def gui_app(self) -> App:
+    def app(self) -> App:
         assert not self.disable_gui
         app = App(self.note_labels, self.on_replay)
         app.set_text(self.text)
@@ -63,25 +63,25 @@ class Tuney(BaseModel):
 
     @property
     def gui_text(self) -> str:
-        return self.gui_app.get_text()
+        return self.app.get_text()
 
     @gui_text.setter
     def gui_text(self, text: str) -> None:
-        self.gui_app.set_text(text)
+        self.app.set_text(text)
 
     def on_char(self, c: CharPress) -> None:
         assert c.char
-        if not self.gui_app.is_replaying:
+        if not self.app.is_replaying:
             self._on_char(c)
             if not c.is_press:
                 self._on_char(CharPress(c.char.swapcase(), c.is_press))
 
     def _on_char(self, c: CharPress) -> None:
-        if not self.gui_app.is_replaying:
+        if not self.app.is_replaying:
             if not self.disable_sound and (note := self.mapper(c.char)) is not None:
                 self.player.note(note, c.is_press)
             if not self.disable_gui:
-                self.gui_app.on_char(c)
+                self.app.on_char(c)
 
     def on_replay(self) -> None:
         self.player.stop_all()
@@ -90,13 +90,13 @@ class Tuney(BaseModel):
             if c:
                 self.on_char(c)
             else:
-                self.gui_app.after(0, self.on_replay)
+                self.app.after(0, self.on_replay)
 
         sequencer, self._sequencer = self._sequencer, None
         if sequencer:
             sequencer.stop()
 
-        if self.gui_app.is_replaying:
+        if self.app.is_replaying:
             self._sequencer = self.text_timings.sequencer(self.gui_text, on_char)
             self._saved_text, self.gui_text = self.gui_text, ''
             self._sequencer.start()
@@ -106,10 +106,10 @@ class Tuney(BaseModel):
     def __call__(self):
         self.start()
         if not self.disable_gui:
-            self.gui_app.mainloop()
+            self.app.mainloop()
 
     def start(self) -> None:
         if not self.disable_gui:
-            self.gui_app.start()
+            self.app.start()
         if not self.disable_keyboard:
             self.listener.start()
