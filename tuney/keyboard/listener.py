@@ -43,17 +43,12 @@ class KeyboardListener(Runnable):
                 return
             else:
                 self.held_keys.add(key)
-        if isinstance(key, KeyCode):
-            char = key.char
-            assert char
-        else:
+        if isinstance(key, Key):
             self.modifiers = self.modifiers.apply(key, is_press)
-            if not (char := WHITESPACE.get(key, '')):
-                return
 
-        kp = CharPress(char, is_press)
-        if not is_press or self.relay_commands or not self.modifiers.is_command:
-            self.callback(kp)
+        c = WHITESPACE.get(key, getattr(key, 'char', ''))
+        if c and (not is_press or self.relay_commands or not self.modifiers.is_command):
+            self.callback(CharPress(c, is_press))
 
     def _run(self) -> None:
         self.listener.__enter__()
