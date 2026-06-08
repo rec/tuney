@@ -15,7 +15,7 @@ class MultiPlayer(BaseModel, frozen=True):
     oscillator_name: str = 'sawtooth'
     scale: Scale = Scale()
     gain: float = 1.0
-    note_offset: NoteNumber = 0
+    note_offset: NoteNumber = 32
     use_multiprocessing: bool = False
 
     @cached_property
