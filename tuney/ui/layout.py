@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
-if TYPE_CHECKING:
-    from .app import App
+from .app import RELEASED, REPLAY, App
 
 PAD = 16
 QUARTER = PAD // 4
@@ -26,8 +23,6 @@ def layout(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
 
 
 def _layout_grid(app: App) -> None:
-    from .app import RELEASED
-
     parent = CTkFrame(app)
     parent.pack(fill='both', expand=True, padx=PAD, pady=PAD)
 
@@ -49,8 +44,6 @@ def _layout_grid(app: App) -> None:
 
 
 def _layout_controls(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
-    from .app import REPLAY
-
     stats_frame = CTkFrame(app, fg_color='transparent')
     stats_frame.pack(fill='x', padx=PAD)
 

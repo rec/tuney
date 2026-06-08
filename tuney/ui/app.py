@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 from ..keyboard.key_press import CharPress
 from ..types import Callback
-from . import layout
 
 # TODO: bg_color exists but is not useful, what is?
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
@@ -29,6 +28,8 @@ class App(CTk):
     def __init__(
         self, note_labels: dict[str, NoteLabel], on_replay: Callback, text: str
     ) -> None:
+        from . import layout
+
         super().__init__()
         self.note_labels = note_labels
         self._on_replay = on_replay
