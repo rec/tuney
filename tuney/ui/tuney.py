@@ -38,7 +38,7 @@ class Tuney(BaseModel):
     disable_sound: bool = False
 
     # If True, listen to the keyboard even when other applications are in front
-    listen_in_background: bool = True
+    run_in_background: bool = False
 
     model_config = ConfigDict(exclude=('_saved_text', '_sequencer'))  # ty:ignore[invalid-key]
 
@@ -70,18 +70,19 @@ class Tuney(BaseModel):
         self.app.set_text(text)
 
     def on_char(self, c: CharPress) -> None:
-        assert c.char
-        if not self.app.is_replaying:
+        if not self.app.is_replaying and (
+            self.run_in_background or self.app.focus_get()
+        ):
+            assert c.char
             self._on_char(c)
             if not c.is_press:
                 self._on_char(CharPress(c.char.swapcase(), c.is_press))
 
     def _on_char(self, c: CharPress) -> None:
-        if not self.app.is_replaying:
-            if not self.disable_sound and (note := self.mapper(c.char)) is not None:
-                self.player.note(note, c.is_press)
-            if not self.disable_gui:
-                self.app.on_char(c)
+        if not self.disable_sound and (note := self.mapper(c.char)) is not None:
+            self.player.note(note, c.is_press)
+        if not self.disable_gui:
+            self.app.on_char(c)
 
     def on_replay(self) -> None:
         self.player.stop_all()
@@ -112,5 +113,4 @@ class Tuney(BaseModel):
         if not self.disable_gui:
             self.app.start()
         if not self.disable_keyboard:
-            if self.listen_in_background:
-                self.listener.start()
+            self.listener.start()
