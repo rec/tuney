@@ -26,7 +26,9 @@ class NoteLabel(BaseModel, frozen=True):
 
 
 class App(CTk):
-    def __init__(self, note_labels: dict[str, NoteLabel], on_replay: Callback) -> None:
+    def __init__(
+        self, note_labels: dict[str, NoteLabel], on_replay: Callback, text: str
+    ) -> None:
         super().__init__()
         self.note_labels = note_labels
         self._on_replay = on_replay
@@ -38,6 +40,7 @@ class App(CTk):
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
+        self.set_text(text)
 
     def start(self) -> None:
         self._handle_queue()

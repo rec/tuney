@@ -48,9 +48,7 @@ class Tuney(BaseModel):
     @cached_property
     def app(self) -> App:
         assert not self.disable_gui
-        app = App(self.note_labels, self.on_replay)
-        app.set_text(self.text)
-        return app
+        return App(self.note_labels, self.on_replay, self.text)
 
     @cached_property
     def listener(self) -> KeyboardListener:
