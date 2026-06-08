@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from functools import cached_property
+
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
-from .app import RELEASED, REPLAY, App
+from .app import RELEASED, REPLAY, App, NoteLabel
 
 PAD = 16
 QUARTER = PAD // 4
@@ -13,58 +15,86 @@ BIG_FONT = 'Arial', 16, 'bold'
 WIDTH, HEIGHT = 70, 100
 
 
-def layout(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
-    app.title('Note app')
+class Layout:
+    def __init__(self, app: App, text: str) -> None:
+        self.app = app
+        app.geometry(f'{WIDTH * app.columns}x{HEIGHT * app.rows}')
+        app.title('Note app')
+        self.set_text(text)
+        _ = self.note_frames
 
-    width, height = WIDTH * app.columns, HEIGHT * app.rows
-    app.geometry(f'{width}x{height}')
-    _layout_grid(app)
-    return _layout_controls(app)
+        for c in range(app.columns):
+            self.frame.grid_columnconfigure(c, weight=1)
+        for r in range(app.rows):
+            self.frame.grid_rowconfigure(r, weight=1)
 
+        label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
+        label.pack(side='left')
 
-def _layout_grid(app: App) -> None:
-    parent = CTkFrame(app)
-    parent.pack(fill='both', expand=True, padx=PAD, pady=PAD)
+    def get_text(self) -> str:
+        return self.textbox.get('1.0', 'end-1c')
 
-    for i, (key, note_label) in enumerate(app.note_labels.items()):
-        letter = '\n'.join(note_label.labels)
+    def set_text(self, text: str) -> None:
+        self.textbox.configure(state='normal')
+        self.textbox.delete('1.0', 'end')
+        self.append_string(text)
 
-        r, c = divmod(i, app.columns)
-        parent.grid_columnconfigure(c, weight=1)
-        parent.grid_rowconfigure(r, weight=1)
-        frame = CTkFrame(
-            parent,
-            **RELEASED,  # ty: ignore[invalid-argument-type]
-        )
-        frame.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
-        app.set_note_frame(key, frame)
+    def append_string(self, s: str) -> None:
+        self.textbox.configure(state='normal')
+        try:
+            if s == '\b':
+                self.textbox.delete('end - 2c', 'end - 1c')
+            else:
+                self.textbox.insert('end', s)
+            self.textbox.see('end')
+            self.count_label.configure(text=f'Chars: {len(self.get_text())}')
+        finally:
+            self.textbox.configure(state='disabled')
 
-        label = CTkLabel(frame, text=letter, font=BIG_FONT)
+    @cached_property
+    def frame(self) -> CTkFrame:
+        f = CTkFrame(self.app)
+        f.pack(fill='both', expand=True, padx=PAD, pady=PAD)
+        return f
+
+    @cached_property
+    def stats_frame(self) -> CTkFrame:
+        f = CTkFrame(self.app, fg_color='transparent')
+        f.pack(fill='x', padx=PAD)
+        return f
+
+    @cached_property
+    def textbox(self) -> CTkTextbox:
+        t = CTkTextbox(self.app, height=TEXT_BOX_HEIGHT, font=FONT)
+        t.pack(fill='x', padx=PAD, pady=(QUARTER, 2 * QUARTER))
+        t.configure(state='disabled')
+        return t
+
+    @cached_property
+    def count_label(self) -> CTkLabel:
+        cl = CTkLabel(self.stats_frame, text='Chars: 0', font=FONT)
+        cl.pack(side='right')
+        return cl
+
+    @cached_property
+    def replay(self) -> CTkButton:
+        f = CTkFrame(self.app, fg_color='transparent')
+        f.pack(fill='x', padx=PAD, pady=(0, PAD))
+
+        replay = CTkButton(f, command=self.app.on_replay, **REPLAY)  # ty:ignore[invalid-argument-type]
+        replay.pack(side='right')
+        return replay
+
+    @cached_property
+    def note_frames(self) -> dict[str, CTkFrame]:
+        it = self.app.note_labels.items()
+        return {k: self._note_frame(i, n) for i, (k, n) in enumerate(it)}
+
+    def _note_frame(self, i: int, nl: NoteLabel) -> CTkFrame:
+        r, c = divmod(i, self.app.columns)
+        note_frame = CTkFrame(self.frame, **RELEASED)  # ty:ignore[invalid-argument-type]
+        note_frame.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
+
+        label = CTkLabel(note_frame, text=nl.text, font=BIG_FONT)
         label.pack(expand=True)
-
-
-def _layout_controls(app: App) -> tuple[CTkLabel, CTkTextbox, CTkButton]:
-    stats_frame = CTkFrame(app, fg_color='transparent')
-    stats_frame.pack(fill='x', padx=PAD)
-
-    label = CTkLabel(stats_frame, text='Text:', font=(*FONT, 'bold'))
-    label.pack(side='left')
-
-    count_label = CTkLabel(stats_frame, text='Chars: 0', font=FONT)
-    count_label.pack(side='right')
-
-    text = CTkTextbox(app, height=TEXT_BOX_HEIGHT, font=FONT)
-    text.pack(fill='x', padx=PAD, pady=(QUARTER, 2 * QUARTER))
-    text.configure(state='disabled')
-
-    button_frame = CTkFrame(app, fg_color='transparent')
-    button_frame.pack(fill='x', padx=PAD, pady=(0, PAD))
-
-    replay_btn = CTkButton(
-        button_frame,
-        command=app.on_replay,
-        **REPLAY,  # ty: ignore[invalid-argument-type]
-    )
-    replay_btn.pack(side='right')
-
-    return count_label, text, replay_btn
+        return note_frame

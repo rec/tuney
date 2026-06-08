@@ -63,11 +63,11 @@ class Tuney(BaseModel):
 
     @property
     def gui_text(self) -> str:
-        return self.app.get_text()
+        return self.app.layout.get_text()
 
     @gui_text.setter
     def gui_text(self, text: str) -> None:
-        self.app.set_text(text)
+        self.app.layout.set_text(text)
 
     def on_char(self, c: CharPress) -> None:
         if not self.app.is_replaying and (
