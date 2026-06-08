@@ -1,21 +1,40 @@
 from __future__ import annotations
 
 import string
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from functools import cached_property
 from itertools import chain
-from typing import Any, Protocol, runtime_checkable
+from typing import Annotated, Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from ..types import NoteNumber
 from .tuning import Tuning, TuningImpl
 
 FLAT, SHARP = '♭', '♯'
-
-
 ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
+INTERVALS = [int(i) for i in '2212221']
+
+
+@BeforeValidator
+def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
+    intervals, errors = [], []
+    for c in it:
+        try:
+            i = int(c)
+        except ValueError:
+            errors.append(f'{c=} is not a number')
+        else:
+            if i < 0:
+                errors.append(f'{c=} is less than 0')
+            else:
+                intervals.append(i)
+    if not intervals:
+        errors.append('No valid intervals')
+    if errors:
+        raise ValueError(*errors)
+    return intervals
 
 
 class Scale(BaseModel, frozen=True):
@@ -31,8 +50,8 @@ class Scale(BaseModel, frozen=True):
 
     """
 
-    #: The base alphabet - if not specified, use A-Z
-    alphabet: str | None = None
+    #: The base alphabet
+    alphabet: str = string.ascii_uppercase
 
     #: The base note to start scales with
     base: str = 'C'
@@ -44,8 +63,9 @@ class Scale(BaseModel, frozen=True):
     end: str = 'G'
 
     # The intervals between notes. Can also be entered as a string: "2212221"
-    # TODO: add a validator to do this
-    intervals: list[int] = Field(default_factory=lambda: [2, 2, 1, 2, 2, 2, 1])
+    intervals: Annotated[list[int], validate_intervals] = Field(
+        default_factory=lambda: list(INTERVALS)
+    )
 
     #: Offset all note numbers by this
     offset: int = 0
@@ -72,12 +92,8 @@ class Scale(BaseModel, frozen=True):
         raise ValueError(f'Bad number {s=}')
 
     @cached_property
-    def alphabet_(self) -> str:
-        return string.ascii_uppercase if self.alphabet is None else self.alphabet
-
-    @cached_property
     def names(self) -> str:
-        a = self.alphabet_
+        a = self.alphabet
         begin, end, base = a.index(self.begin), a.index(self.end), a.index(self.base)
         return ''.join(a[i] for i in chain(range(base, end + 1), range(begin, base)))
 
@@ -86,6 +102,7 @@ class Scale(BaseModel, frozen=True):
         return len(self.flats_sharps[0])
 
     def _note_interval_semitone(self) -> Iterator[tuple[str, int, int]]:
+        assert self.intervals
         L = len(self.intervals)
         semitone = 0
         for i, note in enumerate(self.names):
