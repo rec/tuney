@@ -67,7 +67,7 @@ class TextTimings(BaseModel, frozen=True):
         timings = TextTimings()
         events = list(timings.time_data(s))
         assert s and events, (s, events)
-        return Sequencer[CharPress](events, callback)
+        return Sequencer[CharPress](time_data=events, callback=callback)
 
 
 def _filter_chars(it: Iterable[str]) -> Iterator[str]:

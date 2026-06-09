@@ -1,46 +1,35 @@
 from __future__ import annotations
 
-import dataclasses as dc
-import heapq
 import time
 from collections.abc import Callable
 from typing import Any, override
 
+from pydantic import BaseModel
+
 from ..runnable import Runnable
-from ..types import Milliseconds, Seconds
+from ..types import Milliseconds, Seconds, to_ms, to_seconds
 from .time_data import TimeData
 
-SEC_IN_MS = 1000.0
-
-MAX_WAIT: Milliseconds = 100
+MAX_WAIT_MS: Milliseconds = 100.0
 
 
-@dc.dataclass
-class Sequencer[Data](Runnable):
-    time_data: list[TimeData[Data]]
+class Sequencer[Data](BaseModel, Runnable, frozen=True):
+    time_data: list[TimeData]
     callback: Callable[[Data | None], Any]
-
-    def __post_init__(self) -> None:
-        heapq.heapify(self.time_data)
 
     @override
     def _run(self) -> None:
-        start: Seconds = time.time()
-
-        def elapsed() -> Milliseconds:
-            return (time.time() - start) * SEC_IN_MS
-
-        def next_time() -> Milliseconds:
-            return max(0, self.time_data[0].time - elapsed())
-
         try:
-            while self._running:
-                while self.time_data and not next_time():
-                    self.callback(heapq.heappop(self.time_data).data)
-                if self.time_data:
-                    time.sleep(min(MAX_WAIT, next_time()) / 1000.0)
-                else:
-                    self.stop()
+            start: Seconds = time.time()
+            for td in self.time_data:
+                while True:
+                    if not self._running:
+                        return
+                    elapsed_ms = to_ms(time.time() - start)
+                    if (next_time := max(0, td.time - elapsed_ms)) <= 0:
+                        self.callback(td.data)
+                        break
+                    time.sleep(to_seconds(min(MAX_WAIT_MS, next_time)))
         finally:
             self.callback(None)
 
@@ -52,7 +41,7 @@ def demo() -> None:
         t = random.uniform(0, 2)
         return TimeData(time=t, data=t)
 
-    Sequencer([time_data() for _ in range(16)], print).run()
+    Sequencer(time_data=[time_data() for _ in range(16)], callback=print).run()
 
 
 if __name__ == '__main__':
