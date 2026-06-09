@@ -22,6 +22,7 @@ class Layout:
         app.title('Note app')
         self.set_text(text)
         _ = self.note_frames
+        _ = self.replay
 
         for c in range(app.columns):
             self.frame.grid_columnconfigure(c, weight=1)
