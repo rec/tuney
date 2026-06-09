@@ -4,10 +4,10 @@ from tuney.time.text_timings import TextTimings
 def test_text_timings():
     tt = TextTimings(other={'!': 2000}, random_seed=23)
     # actual = [int(i.time) for i in tt.lines_to_times(TEXT)]
-    events = list(tt.time_data(TEXT))
-    text = ''.join(e.data.char for e in events if e.data.is_press)
-    begins = [int(e.time) for e in events if e.data.is_press]
-    ends = [int(e.time) for e in events if not e.data.is_press]
+    cps = list(tt.char_presses(TEXT))
+    text = ''.join(e.char for e in cps if e.is_press)
+    begins = [int(e.time) for e in cps if e.is_press]
+    ends = [int(e.time) for e in cps if not e.is_press]
     assert (text, begins, ends) == ('One, .\nThree!', BEGINS, ENDS)
 
 

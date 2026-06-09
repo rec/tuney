@@ -49,7 +49,7 @@ class KeyboardListener(Runnable):
 
         c = WHITESPACE.get(key, getattr(key, 'char', ''))
         if c and (not is_press or self.relay_commands or not self.modifiers.is_command):
-            self.callback(CharPress(c, is_press))
+            self.callback(CharPress(c, is_press, time=time.time()))
 
     def _run(self) -> None:
         self.listener.__enter__()

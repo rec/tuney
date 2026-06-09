@@ -9,9 +9,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from ..keyboard.key_press import CharPress
-from ..time import Sequencer
+from ..time.sequencer import Sequencer
 from ..types import Milliseconds
-from .time_data import TimeData
 
 
 class TextTimings(BaseModel, frozen=True):
@@ -47,7 +46,7 @@ class TextTimings(BaseModel, frozen=True):
     def char_to_time(self) -> dict[str, Milliseconds]:
         return {v: getattr(self, k) for k, v in _CHARS.items()} | self.other
 
-    def time_data(self, text: str) -> Iterator[TimeData[CharPress]]:
+    def char_presses(self, text: str) -> Iterator[CharPress]:
         time = 0
         chars = _strip_accents(text) if self.strip_accents else text
         for char in _filter_chars(chars):
@@ -56,18 +55,16 @@ class TextTimings(BaseModel, frozen=True):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
                 begin = time * self.scale
                 end = (time + dt) * self.scale
-                yield TimeData(time=begin, data=CharPress(char, True))
-                yield TimeData(time=end, data=CharPress(char, False))
+                yield CharPress(char, True, begin)
+                yield CharPress(char, False, end)
                 time += max(0, dt - self.overlap)
 
     @staticmethod
-    def sequencer(
-        s: str, callback: Callable[[CharPress | None], Any]
-    ) -> Sequencer[CharPress]:
+    def sequencer(s: str, callback: Callable[[CharPress | None], Any]) -> Sequencer:
         timings = TextTimings()
-        events = list(timings.time_data(s))
-        assert s and events, (s, events)
-        return Sequencer[CharPress](time_data=events, callback=callback)
+        presses = list(timings.char_presses(s))
+        assert s and presses, (s, presses)
+        return Sequencer(char_presses=presses, callback=callback)
 
 
 def _filter_chars(it: Iterable[str]) -> Iterator[str]:

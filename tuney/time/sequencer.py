@@ -2,32 +2,32 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from typing import Any, override
+from typing import Annotated, Any, override
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
 
+from ..keyboard.key_press import CharPress
 from ..runnable import Runnable
 from ..types import Milliseconds, Seconds, to_ms, to_seconds
-from .time_data import TimeData
 
 MAX_WAIT_MS: Milliseconds = 100.0
 
 
-class Sequencer[Data](BaseModel, Runnable, frozen=True):
-    time_data: list[TimeData]
-    callback: Callable[[Data | None], Any]
+class Sequencer(BaseModel, Runnable, frozen=True):
+    char_presses: Annotated[list[CharPress], AfterValidator(sorted)]
+    callback: Callable[[CharPress | None], Any]
 
     @override
     def _run(self) -> None:
         try:
             start: Seconds = time.time()
-            for td in self.time_data:
+            for cp in self.char_presses:
                 while True:
                     if not self._running:
                         return
                     elapsed_ms = to_ms(time.time() - start)
-                    if (next_time := max(0, td.time - elapsed_ms)) <= 0:
-                        self.callback(td.data)
+                    if (next_time := max(0, cp.time - elapsed_ms)) <= 0:
+                        self.callback(cp)
                         break
                     time.sleep(to_seconds(min(MAX_WAIT_MS, next_time)))
         finally:
@@ -35,13 +35,13 @@ class Sequencer[Data](BaseModel, Runnable, frozen=True):
 
 
 def demo() -> None:
-    def time_data() -> TimeData[float]:
+    def char_press() -> CharPress:
         import random
 
         t = random.uniform(0, 2)
-        return TimeData(time=t, data=t)
+        return CharPress(char=str(t), time=t)
 
-    Sequencer(time_data=[time_data() for _ in range(16)], callback=print).run()
+    Sequencer(char_presses=[char_press() for _ in range(16)], callback=print).run()
 
 
 if __name__ == '__main__':
