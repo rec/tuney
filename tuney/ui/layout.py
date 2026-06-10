@@ -48,10 +48,10 @@ class Layout:
                 self.textbox.delete('end - 2c', 'end - 1c')
             else:
                 self.textbox.insert('end', s)
-            self.textbox.see('end')
-            self.count_label.configure(text=f'Chars: {len(self.get_text())}')
         finally:
+            self.textbox.see('end')
             self.textbox.configure(state='disabled')
+            self.count_label.configure(text=f'Chars: {len(self.get_text())}')
 
     @cached_property
     def note_grid(self) -> CTkFrame:
