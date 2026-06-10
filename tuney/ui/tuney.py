@@ -85,9 +85,7 @@ class Tuney(BaseModel):
         self.app.layout.set_text(text)
 
     def on_char(self, c: CharPress) -> None:
-        if not self.app.is_replaying and (
-            self.run_in_background or self.app.focus_get()
-        ):
+        if self._is_listening:
             assert c.char
             self._on_char(c)
             if not c.is_press:
@@ -98,6 +96,12 @@ class Tuney(BaseModel):
             self.player.note(note, c.is_press)
         if not self.disable_gui:
             self.app.on_char(c)
+
+    @property
+    def _is_listening(self) -> bool:
+        return not self.app.is_replaying and (
+            self.run_in_background or bool(self.app.focus_get())
+        )
 
     def on_replay(self) -> None:
         self.player.stop_all()
