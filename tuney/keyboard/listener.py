@@ -20,13 +20,11 @@ class KeyboardListener(Runnable):
     def __init__(
         self,
         callback: Callable[[CharPress], Any],
-        relay_commands: bool = False,
         deduplicate_keys: bool = True,
     ) -> None:
         self.callback = callback
         self.listener = _make_listener(self)
         self.modifiers = Modifiers(0)
-        self.relay_commands = relay_commands
         self.deduplicate_keys = deduplicate_keys
         self.held_keys = set()
 
@@ -48,7 +46,7 @@ class KeyboardListener(Runnable):
             self.modifiers = self.modifiers.apply(key, is_press)
 
         c = WHITESPACE.get(key, getattr(key, 'char', ''))
-        if c and (not is_press or self.relay_commands or not self.modifiers.is_command):
+        if c and (not is_press or not self.modifiers.is_command):
             self.callback(CharPress(c, is_press, time=time.time()))
 
     def _run(self) -> None:
