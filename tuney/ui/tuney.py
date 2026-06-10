@@ -77,12 +77,8 @@ class Tuney(BaseModel):
             return list(self.text_timings.char_presses(self.text))
 
     @property
-    def gui_text(self) -> str:
-        return self.app.layout.get_text()
-
-    @gui_text.setter
-    def gui_text(self, text: str) -> None:
-        self.app.layout.set_text(text)
+    def as_str(self) -> str:
+        return ''.join(c.char for c in self.char_presses)
 
     def on_char(self, c: CharPress) -> None:
         if self._is_listening:
@@ -117,11 +113,13 @@ class Tuney(BaseModel):
             sequencer.stop()
 
         if self.app.is_replaying:
-            self._sequencer = self.text_timings.sequencer(self.gui_text, on_char)
-            self._saved_text, self.gui_text = self.gui_text, ''
+            self.app.layout.set_text('')
+            self._saved_text = self.as_str
+            self._sequencer = self.text_timings.sequencer(self._saved_text, on_char)
             self._sequencer.start()
         elif self._saved_text is not None:
-            self.gui_text, self._saved_text = self._saved_text, None
+            self.app.layout.set_text(self._saved_text)
+            self._saved_text = None
 
     def __call__(self):
         self.start()
