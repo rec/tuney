@@ -5,12 +5,12 @@ from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from functools import cached_property
 from itertools import chain
-from typing import Annotated, Any, Protocol, runtime_checkable
+from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field
 
 from ..types import NoteNumber
-from .tuning import Tuning, TuningImpl
+from .tuning import TuningImpl
 
 FLAT, SHARP = '♭', '♯'
 ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
@@ -127,27 +127,3 @@ class Scale(BaseModel, frozen=True):
     @cached_property
     def _note_to_semitones(self) -> dict[str, NoteNumber]:
         return {n: s for n, _, s in self._note_interval_semitone()}
-
-
-# TODO: we don't really allow purely general Scales anymore, but it
-# was the type system that killed us. Delete everything below this line?
-
-
-@runtime_checkable
-class ToName(Protocol):
-    def __call__(self, note_number: NoteNumber, **kwargs: Any) -> str: ...
-
-
-@runtime_checkable
-class ToNumber(Protocol):
-    def __call__(self, name: str) -> NoteNumber: ...
-
-
-@runtime_checkable
-class ScaleI(Protocol):
-    tuning: Tuning
-    to_name: ToName
-    to_number: ToNumber
-
-
-assert isinstance(Scale(), ScaleI)

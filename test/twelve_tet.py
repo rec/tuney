@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 
-from tuney.scale import scale
-from tuney.scale import tuning as tuning_
 from tuney.types import NoteNumber
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0
@@ -47,8 +45,3 @@ def to_name(note_number: NoteNumber, use_sharp: bool = True) -> str:
     octave += MIDI_ZERO_OCTAVE
     name = NUMBER_TO_NAME[accidental][number1]
     return f'{name}{octave}'
-
-
-assert isinstance(tuning, tuning_.Tuning)
-assert isinstance(to_number, scale.ToNumber)
-assert isinstance(to_name, scale.ToName)
