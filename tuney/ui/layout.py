@@ -9,18 +9,24 @@ from .app import RELEASED, REPLAY, App, NoteLabel
 PAD = 16
 QUARTER = PAD // 4
 TEXT_BOX_HEIGHT = 150
+CONTROL_PANEL_HEIGHT = 100
 FONT = 'Arial', 14
 BIG_FONT = 'Arial', 16, 'bold'
 
-WIDTH, HEIGHT = 70, 100  # TODO: this is just a guess
+WIDTH, HEIGHT = 70, 80
 
 
 class Layout:
     def __init__(self, app: App, text: str) -> None:
-        app.geometry(f'{WIDTH * app.columns}x{HEIGHT * app.rows}')
-        app.title('Note app')
+        width = WIDTH * app.columns
+        height = HEIGHT * app.rows + TEXT_BOX_HEIGHT + CONTROL_PANEL_HEIGHT
+        app.geometry(f'{width}x{height}')
+        app.title('Tuney!')
 
         self.app = app
+        _ = self.control_panel
+        label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
+        label.pack(side='left')
         _ = self.textbox, self.note_frames, self.replay
 
         self.set_text(text)
@@ -30,8 +36,16 @@ class Layout:
         for r in range(app.rows):
             self.note_grid.grid_rowconfigure(r, weight=1)
 
-        label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
-        label.pack(side='left')
+    @cached_property
+    def control_panel(self) -> CTkFrame:
+        f = CTkFrame(self.app, height=CONTROL_PANEL_HEIGHT)
+        f.pack(
+            fill='both',
+            expand=False,
+            padx=PAD,
+            pady=PAD,
+        )
+        return f
 
     @cached_property
     def count_label(self) -> CTkLabel:
