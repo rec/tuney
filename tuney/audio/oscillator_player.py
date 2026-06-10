@@ -7,9 +7,8 @@ from typing import Any, cast
 import numpy as np
 from pydantic import BaseModel
 
-from . import apply_gain
 from . import oscillator as osc
-from .player import Player
+from . import player
 
 FADE = 0  # 0x40000
 
@@ -22,7 +21,7 @@ class Sound(BaseModel, frozen=True):
 
 
 @dc.dataclass
-class OscillatorPlayer(Player):
+class OscillatorPlayer(player.Player):
     sound: Sound = Sound()
     oscillator_name: str = 'sawtooth'
 
@@ -56,7 +55,7 @@ class OscillatorPlayer(Player):
             pass
         else:
             gain *= ii.max
-        apply_gain(wave, gain)
+        wave *= gain
         fade_in = self.sound.fade_in_samples
         if self.frame_count < fade_in and not self._stopping:
             _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
