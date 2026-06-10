@@ -26,9 +26,9 @@ class Layout:
         self.set_text(text)
 
         for c in range(app.columns):
-            self.frame.grid_columnconfigure(c, weight=1)
+            self.note_grid.grid_columnconfigure(c, weight=1)
         for r in range(app.rows):
-            self.frame.grid_rowconfigure(r, weight=1)
+            self.note_grid.grid_rowconfigure(r, weight=1)
 
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
@@ -54,7 +54,7 @@ class Layout:
             self.textbox.configure(state='disabled')
 
     @cached_property
-    def frame(self) -> CTkFrame:
+    def note_grid(self) -> CTkFrame:
         f = CTkFrame(self.app)
         f.pack(fill='both', expand=True, padx=PAD, pady=PAD)
         return f
@@ -94,7 +94,7 @@ class Layout:
 
     def _note_frame(self, i: int, nl: NoteLabel) -> CTkFrame:
         r, c = divmod(i, self.app.columns)
-        note_frame = CTkFrame(self.frame, **RELEASED)  # ty:ignore[invalid-argument-type]
+        note_frame = CTkFrame(self.note_grid, **RELEASED)  # ty:ignore[invalid-argument-type]
         note_frame.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
 
         label = CTkLabel(note_frame, text=nl.text, font=BIG_FONT)
