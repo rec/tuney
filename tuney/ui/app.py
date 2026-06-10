@@ -1,13 +1,13 @@
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import cached_property
 from queue import Queue
+from typing import Any
 
 from customtkinter import CTk
 from pydantic import BaseModel
 
 from ..keyboard.key_press import CharPress
-from ..types import Callback
 
 # TODO: bg_color exists but is not useful, what is?
 PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
@@ -31,7 +31,7 @@ class NoteLabel(BaseModel, frozen=True):
 
 class App(CTk):
     def __init__(
-        self, note_labels: dict[str, NoteLabel], on_replay: Callback, text: str
+        self, note_labels: dict[str, NoteLabel], on_replay: Callable[[], Any], text: str
     ) -> None:
         from .layout import Layout
 
