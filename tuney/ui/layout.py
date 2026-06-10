@@ -12,17 +12,18 @@ TEXT_BOX_HEIGHT = 150
 FONT = 'Arial', 14
 BIG_FONT = 'Arial', 16, 'bold'
 
-WIDTH, HEIGHT = 70, 100
+WIDTH, HEIGHT = 70, 100  # TODO: this is just a guess
 
 
 class Layout:
     def __init__(self, app: App, text: str) -> None:
-        self.app = app
         app.geometry(f'{WIDTH * app.columns}x{HEIGHT * app.rows}')
         app.title('Note app')
+
+        self.app = app
+        _ = self.textbox, self.note_frames, self.replay
+
         self.set_text(text)
-        _ = self.note_frames
-        _ = self.replay
 
         for c in range(app.columns):
             self.frame.grid_columnconfigure(c, weight=1)
