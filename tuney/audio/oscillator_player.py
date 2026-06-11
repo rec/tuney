@@ -45,17 +45,9 @@ class OscillatorPlayer(player.Player):
         end = start + len(out)
         ratio = self.oscillator.period / period
         wave = np.linspace(start * ratio, end * ratio, len(out), endpoint=False)
-        wave = self.oscillator.function(wave, out=wave)
+        self.oscillator.function(wave, out=wave)
+        wave *= self.sound.gain
 
-        gain = self.sound.gain
-        # Scale up from [-1, 1] for int types
-        try:
-            ii = np.iinfo(out.dtype)
-        except ValueError:
-            pass
-        else:
-            gain *= ii.max
-        wave *= gain
         fade_in = self.sound.fade_in_samples
         if self.frame_count < fade_in and not self._stopping:
             _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
