@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import dataclasses as dc
 import multiprocessing as mp
 import threading
 import traceback
 from collections.abc import Sequence
 from concurrent import futures
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, NamedTuple, runtime_checkable
+from multiprocessing.synchronize import Event as MpEvent
+from typing import Any, NamedTuple, runtime_checkable
 
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Protocol
-
-if TYPE_CHECKING:
-    from multiprocessing.synchronize import Event
 
 
 class StoppableFuture(NamedTuple):
@@ -23,9 +21,10 @@ class StoppableFuture(NamedTuple):
         self.stoppable.stop()
 
 
-@dc.dataclass
-class Stoppable:
-    event: Event | threading.Event = dc.field(default_factory=threading.Event)
+class Stoppable(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    event: MpEvent | threading.Event = Field(default_factory=threading.Event)
 
     @property
     def is_running(self) -> bool:
@@ -43,14 +42,15 @@ class StoppableFunction(Protocol):
     def __call__(self, *args: Any, stoppable: Stoppable, **kwargs: Any) -> None: ...
 
 
-@dc.dataclass(frozen=True)
-class Target:
+class Target(BaseModel, frozen=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     function: StoppableFunction
     args: Sequence[Any]
     kwargs: dict[str, Any]
     stoppable: Stoppable
 
-    def __post_init__(self):
+    def model_post_init(self, __context: Any) -> None:
         assert callable(self.function), self
 
     def __call__(self) -> None:
@@ -61,8 +61,9 @@ class Target:
             raise
 
 
-@dc.dataclass(frozen=True)
-class Runner:
+class Runner(BaseModel, frozen=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     function: StoppableFunction
     use_multiprocessing: bool
     use_pool: bool = False
@@ -76,7 +77,7 @@ class Runner:
 
     def __call__(self, *args: Any, **kwargs: Any) -> StoppableFuture:
         stoppable = Stoppable(
-            mp.Event() if self.use_multiprocessing else threading.Event()
+            event=mp.Event() if self.use_multiprocessing else threading.Event()
         )
         target = Target(
             function=self.function, args=args, kwargs=kwargs, stoppable=stoppable

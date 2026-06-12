@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import dataclasses as dc
 import random
 from collections.abc import Callable, Iterable, Iterator
 from functools import cached_property, partial
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..keyboard.key_press import CharPress
 from ..time.sequencer import Sequencer
@@ -27,7 +26,7 @@ class TextTimings(BaseModel, frozen=True):
     strip_accents: bool = True
     scale: float = 1.0
 
-    other: dict[str, Milliseconds] = dc.field(default_factory=dict)
+    other: dict[str, Milliseconds] = Field(default_factory=dict)
     timings: list[Milliseconds] | None = None
 
     @cached_property

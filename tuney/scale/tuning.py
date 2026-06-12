@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from contextlib import nullcontext, suppress
 from fractions import Fraction
 from typing import Protocol, cast, runtime_checkable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..types import Frequency, NoteNumber
 
@@ -69,9 +68,7 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     root_note: NoteNumber = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
-    table: list[Frequency] | dict[NoteNumber, Frequency] = dc.field(
-        default_factory=list
-    )
+    table: list[Frequency] | dict[NoteNumber, Frequency] = Field(default_factory=list)
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.

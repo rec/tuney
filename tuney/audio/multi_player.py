@@ -24,7 +24,10 @@ class MultiPlayer(BaseModel, frozen=True):
 
     @cached_property
     def runner(self) -> concurrent.Runner:
-        return concurrent.Runner(oscillator_player.run, self.use_multiprocessing)
+        return concurrent.Runner(
+            function=oscillator_player.run,
+            use_multiprocessing=self.use_multiprocessing,
+        )
 
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)

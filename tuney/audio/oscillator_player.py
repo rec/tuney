@@ -20,7 +20,6 @@ class Sound(BaseModel, frozen=True):
     fade_out_samples: float = 0x1000
 
 
-@dc.dataclass
 class OscillatorPlayer(player.Player):
     sound: Sound = Sound()
     oscillator_name: str = 'sawtooth'

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from functools import cached_property
 
 import numpy as np
 import soundfile
+from pydantic import BaseModel, ConfigDict
 
 from .device import Device
 
 
-@dc.dataclass
-class SampleData:
+class SampleData(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     data: np.ndarray
     samplerate: int
 
@@ -19,7 +20,8 @@ class SampleData:
 
     @staticmethod
     def make(filename: str) -> SampleData:
-        return SampleData(*soundfile.read(filename, always_2d=True))
+        data, samplerate = soundfile.read(filename, always_2d=True)
+        return SampleData(data=data, samplerate=samplerate)
 
     def cut_to(self, time: float) -> SampleData:
         count = round(time * self.samplerate)
@@ -27,7 +29,9 @@ class SampleData:
         if to_cut <= 0:
             return self
         half = to_cut // 2
-        return SampleData(self.data[half : count + half], self.samplerate)
+        return SampleData(
+            data=self.data[half : count + half], samplerate=self.samplerate
+        )
 
     @cached_property
     def channels(self) -> int:

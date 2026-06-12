@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import dataclasses as dc
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import override
 
 import numpy as np
+from pydantic import BaseModel, Field, PrivateAttr
 from sounddevice import CallbackStop, OutputStream
 
 from ..runnable import Runnable
@@ -15,16 +15,15 @@ from .device import Device
 MASTER_GAIN = 0.05
 
 
-@dc.dataclass
-class Player(Runnable, ABC):
-    stoppable: Stoppable = dc.field(default_factory=Stoppable)
+class Player(BaseModel, Runnable, ABC):
+    _running: bool = PrivateAttr(default=False)
+
+    stoppable: Stoppable = Field(default_factory=Stoppable)
     device: Device = Device()
+    chunk_count: int = 0
+    frame_count: int = 0
     frame_size: int = 0
     gain: float = 1.0
-
-    chunk_count: dc.InitVar[int] = 0
-    frame_count: dc.InitVar[int] = 0
-    frame_size: dc.InitVar[int] = 0
 
     @abstractmethod
     def _fill(self, out: np.ndarray) -> bool | None:
