@@ -1,6 +1,5 @@
-from collections.abc import Callable
-from typing import Any
-
+type NoteNumber = int  # May be negative
+type Frequency = float  # Must be non-negative
 type Milliseconds = float
 type Seconds = float
 
@@ -13,9 +12,3 @@ def to_ms(s: Seconds) -> Milliseconds:
 
 def to_seconds(m: Milliseconds) -> Seconds:
     return m / SEC_IN_MS
-
-
-type Frequency = float  # Must be non-negative
-type NoteNumber = int  # May be negative
-
-type Function = Callable[..., Any]
