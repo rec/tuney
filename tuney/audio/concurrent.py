@@ -72,7 +72,7 @@ class Runner(BaseModel, frozen=True):
     @cached_property
     def executor(self) -> futures.Executor:
         mp = self.use_multiprocessing
-        cls = futures.ThreadPoolExecutor if mp else futures.ProcessPoolExecutor
+        cls = futures.ProcessPoolExecutor if mp else futures.ThreadPoolExecutor
         return cls(max_workers=self.max_workers)
 
     def __call__(self, *args: Any, **kwargs: Any) -> StoppableFuture:
