@@ -10,11 +10,11 @@ from pydantic import BaseModel, ConfigDict
 from tuney.audio.multi_player import MultiPlayer
 from tuney.time.sequencer import Sequencer
 
-from ..keyboard.key_press import CharPress
-from ..keyboard.listener import KeyboardListener
-from ..mapper.linear_mapper import LinearMapper
-from ..time.text_timings import TextTimings
-from .app import App, NoteLabel
+from .keyboard.key_press import CharPress
+from .keyboard.listener import KeyboardListener
+from .mapper.linear_mapper import LinearMapper
+from .time.text_timings import TextTimings
+from .ui.app import App, NoteLabel
 
 
 class Tuney(BaseModel):
