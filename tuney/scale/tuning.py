@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from contextlib import nullcontext, suppress
 from fractions import Fraction
-from typing import Protocol, cast, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -74,17 +73,21 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: looked up with the default algorithm.
     table_blend: bool = True
 
-    def __call__(self, note_number: NoteNumber) -> Frequency:
+    def __call__(self, note_number: NoteNumber) -> float:
         """Return the frequency in this tuning for a NoteNumber"""
-        with suppress(KeyError, IndexError) if self.table_blend else nullcontext():
-            return self.table[note_number]
+        if isinstance(self.table, dict) or note_number >= 0:
+            try:
+                return self.table[note_number]
+            except (KeyError, IndexError):
+                if not self.table_blend:
+                    raise
 
         divisions = note_number - self.root_note + self.detune / 100.0
         octaves = divisions / self.octave_divisions
 
         f = self.pitch_to_frequency(self.root_frequency, self.octave_change, octaves)
         if self.limit_denominator:
-            f = Fraction(cast(float, f)).limit_denominator(self.limit_denominator)
+            return float(Fraction(f).limit_denominator(self.limit_denominator))
         return f
 
 
