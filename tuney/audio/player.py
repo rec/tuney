@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import override
 
 import numpy as np
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field
 from sounddevice import CallbackStop, OutputStream
 
 from ..runnable import Runnable
@@ -16,8 +16,6 @@ MASTER_GAIN = 0.05
 
 
 class Player(BaseModel, Runnable, ABC):
-    _running: bool = PrivateAttr(default=False)
-
     stoppable: Stoppable = Field(default_factory=Stoppable)
     device: Device = Device()
     chunk_count: int = 0

@@ -41,4 +41,4 @@ def cli(cls, prog: str):
         if getattr(locals().get('f'), 'verbose', False):
             raise
         result = e
-    sys.exit(str(result))
+    sys.exit(result if result is None else str(result))
