@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-05-30T11:36:15.130486Z"
+exclude-newer = "2026-06-05T15:39:32.198206Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -194,7 +194,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/63/fe/a17c106a1f4061ce8
 
 [[package]]
 name = "impall"
-version = "1.8.1"
+version = "2.0.0"
 source = { editable = "../impall" }
 
 [package.metadata]
