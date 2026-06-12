@@ -37,3 +37,4 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 Before marking a task as complete, ensure you can run or instruct the user to run:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check .`
+3. Type checking: `ty check .`
