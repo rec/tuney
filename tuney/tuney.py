@@ -36,11 +36,6 @@ class Tuney(BaseModel):
     disable_gui: bool = False
     disable_sound: bool = False
 
-    output_file: Annotated[
-        Path | None,
-        tyro.conf.arg(aliases=['-o'], prefix_name=False),
-    ] = None
-
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
 
