@@ -34,7 +34,6 @@ class Tuney(BaseModel):
     text: str | list[CharPress] | None = None
 
     disable_gui: bool = False
-    disable_keyboard: bool = False
     disable_sound: bool = False
 
     output_file: Annotated[
@@ -129,5 +128,4 @@ class Tuney(BaseModel):
     def start(self) -> None:
         if not self.disable_gui:
             self.app.start()
-        if not self.disable_keyboard:
             self.listener.start()
