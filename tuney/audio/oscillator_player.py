@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses as dc
 from functools import cached_property, wraps
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 from pydantic import BaseModel
@@ -30,7 +30,7 @@ class OscillatorPlayer(player.Player):
 
     @cached_property
     def oscillator(self) -> osc.Oscillator:
-        return getattr(osc, self.oscillator_name)
+        return getattr(osc, self.oscillator_name.capitalize())()
 
     def stop(self) -> None:
         if self.sound.fade_out_samples > 0:
@@ -41,15 +41,12 @@ class OscillatorPlayer(player.Player):
     def _fill(self, out: np.ndarray) -> bool | None:
         period = self.sound.period
         start = self.frame_count % period
-        end = start + len(out)
-        ratio = self.oscillator.period / period
-        wave = np.linspace(start * ratio, end * ratio, len(out), endpoint=False)
-        self.oscillator.function(wave, out=wave)
+        wave = self.oscillator(start, len(out), period)
         wave *= self.sound.gain
 
         fade_in = self.sound.fade_in_samples
         if self.frame_count < fade_in and not self._stopping:
-            _fade(wave, cast(float, self.frame_count) / fade_in, len(out) / fade_in)
+            _fade(wave, self.frame_count / fade_in, len(out) / fade_in)
 
         elif self._stopping:
             if self._fade_frame is None:

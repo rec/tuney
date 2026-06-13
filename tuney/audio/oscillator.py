@@ -11,6 +11,12 @@ class Oscillator(BaseModel, frozen=True):
     period: float = 2 * np.pi
     # TODO: add intensity to compensate for different energies
 
+    def __call__(self, start: float, length: int, period: float) -> np.ndarray:
+        end = start + length
+        ratio = self.period / period
+        wave = np.linspace(start * ratio, end * ratio, length, endpoint=False)
+        return self.function(wave, out=wave)
+
     @abstractmethod
     def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray: ...
 
@@ -32,14 +38,5 @@ class Triangle(Oscillator):
         return out
 
 
-class OldSawtooth(Oscillator):
-    @override
-    def function(self, x: np.ndarray, out: np.ndarray) -> np.ndarray:
-        return np.add(np.mod(x, 2.0, out=out), -1.0, out=out)
-
-
 class Sawtooth(Triangle):
     width: float = 0
-
-
-sawtooth, sine, triangle = Sawtooth(), Sine(), Triangle()
