@@ -12,7 +12,7 @@ from ..runnable import Runnable
 from .concurrent import Stoppable
 from .device import Device
 
-MASTER_GAIN = 0.05
+MASTER_GAIN = 0.25
 
 
 class Player(BaseModel, Runnable, ABC):
