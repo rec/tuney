@@ -47,8 +47,7 @@ class Tuney(BaseModel):
     @cached_property
     def app(self) -> App:
         assert not self.disable_gui
-        text = ''.join(c.char for c in self.char_presses)
-        return App(self.note_labels, self.on_replay, text)
+        return App(self.note_labels, self.on_replay, self.display_text)
 
     @cached_property
     def listener(self) -> KeyboardListener:
@@ -71,14 +70,20 @@ class Tuney(BaseModel):
             return list(self.text_timings.char_presses(self.text))
 
     @property
-    def as_str(self) -> str:
+    def display_text(self) -> str:
         return ''.join(c.char for c in self.char_presses)
 
     def on_char(self, c: CharPress) -> None:
         if self._is_listening:
             assert c.char
+            if c.char != '\b':
+                self.char_presses.append(c)
+            elif self.char_presses:
+                self.char_presses.pop()
             self._on_char(c)
             if not c.is_press:
+                # Deal with the case where the user changes the shift key status
+                # while the alphabetic key is held down.
                 self._on_char(CharPress(c.char.swapcase(), c.is_press))
 
     def _on_char(self, c: CharPress) -> None:
@@ -96,24 +101,26 @@ class Tuney(BaseModel):
     def on_replay(self) -> None:
         self.player.stop_all()
 
-        def on_char(c: CharPress | None) -> None:
-            if c:
-                self.on_char(c)
-            else:
-                self.app.after(0, self.on_replay)
-
         sequencer, self._sequencer = self._sequencer, None
         if sequencer:
             sequencer.stop()
 
         if self.app.is_replaying:
             self.app.layout.set_text('')
-            self._saved_text = self.as_str
-            self._sequencer = self.text_timings.sequencer(self._saved_text, on_char)
+            self._saved_text = self.display_text
+            self._sequencer = self.text_timings.sequencer(
+                self._saved_text, self._on_replay
+            )
             self._sequencer.start()
         elif self._saved_text is not None:
             self.app.layout.set_text(self._saved_text)
             self._saved_text = None
+
+    def _on_replay(self, c: CharPress | None) -> None:
+        if c:
+            self.on_char(c)
+        else:
+            self.app.after(0, self.on_replay)
 
     def __call__(self):
         self.start()
