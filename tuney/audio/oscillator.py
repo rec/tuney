@@ -4,9 +4,10 @@ from abc import abstractmethod
 from typing import override
 
 import numpy as np
+from pydantic import BaseModel
 
 
-class Oscillator:
+class Oscillator(BaseModel, frozen=True):
     period: float = 2 * np.pi
     # TODO: add intensity to compensate for different energies
 
