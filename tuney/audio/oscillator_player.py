@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import dataclasses as dc
-from functools import cached_property, wraps
+from functools import wraps
 from typing import Any
 
 import numpy as np
 from pydantic import BaseModel
 
-from . import oscillator as osc
 from . import player
+from .oscillator import Oscillator
 
 FADE = 0  # 0x40000
 
@@ -22,15 +22,11 @@ class Sound(BaseModel, frozen=True):
 
 class OscillatorPlayer(player.Player):
     sound: Sound = Sound()
-    oscillator_name: str = 'sawtooth'
+    oscillator: Oscillator = Oscillator()
 
     #: Records the the frame we started to fade out.
     _fade_frame: dc.InitVar[float | None] = None
     _stopping: dc.InitVar[bool] = False
-
-    @cached_property
-    def oscillator(self) -> osc.Oscillator:
-        return getattr(osc, self.oscillator_name.capitalize())()
 
     def stop(self) -> None:
         if self.sound.fade_out_samples > 0:

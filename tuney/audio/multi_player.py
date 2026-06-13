@@ -8,11 +8,12 @@ from ..scale.scale import Scale
 from ..types import NoteNumber
 from . import concurrent, oscillator_player
 from .device import Device
+from .oscillator import Oscillator
 
 
 class MultiPlayer(BaseModel, frozen=True):
     device: Device = Device()
-    oscillator_name: str = 'sawtooth'
+    oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()
     gain: float = 1.0
     note_offset: NoteNumber = 32
@@ -29,19 +30,22 @@ class MultiPlayer(BaseModel, frozen=True):
             use_multiprocessing=self.use_multiprocessing,
         )
 
+    def sound(self, note_number: int) -> oscillator_player.Sound:
+        frequency = self.scale.tuning(note_number + self.note_offset)
+        period = (self.device.samplerate or 48_000) / frequency
+        return oscillator_player.Sound(period=period, gain=self.gain)
+
     def note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
-        if note_number in self.stoppable_futures:
-            return False
-        frequency = self.scale.tuning(note_number + self.note_offset)
-        period = (self.device.samplerate or 48_000) / frequency
-        sound = oscillator_player.Sound(period=period, gain=self.gain)
-        self.stoppable_futures[note_number] = self.runner(
-            device=self.device, oscillator_name=self.oscillator_name, sound=sound
-        )
-        return True
+        if success := note_number not in self.stoppable_futures:
+            self.stoppable_futures[note_number] = self.runner(
+                device=self.device,
+                oscillator=self.oscillator,
+                sound=self.sound(note_number),
+            )
+        return success
 
     def stop(self, note_number: NoteNumber) -> bool:
         if (sf := self.stoppable_futures.pop(note_number, None)) is None:
