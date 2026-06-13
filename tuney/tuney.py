@@ -75,7 +75,6 @@ class Tuney(BaseModel):
 
     def on_char(self, c: CharPress) -> None:
         if self._is_listening:
-            assert c.char
             if c.char != '\b':
                 self.char_presses.append(c)
             elif self.char_presses:

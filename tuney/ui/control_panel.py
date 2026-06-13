@@ -5,7 +5,7 @@ import math
 import tkinter as tk
 from typing import Any, get_args, get_origin
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 TkFrame = tk.Frame
 
@@ -57,7 +57,12 @@ def _add_entry_control(parent: TkFrame, data: BaseModel, name: str, value: Any) 
 
     def update(*_: Any) -> None:
         raw = var.get()
-        _set_model_value(data, name, None if raw == '' else raw)
+        try:
+            _set_model_value(data, name, None if raw == '' else raw)
+        except ValidationError:
+            entry.configure(fg='red')
+        else:
+            entry.configure(fg='black')
 
     entry.bind('<FocusOut>', update)
     entry.bind('<Return>', update)
@@ -113,9 +118,7 @@ def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
         return ()
 
     args = get_args(annotation)
-    return args + tuple(
-        nested for arg in args for nested in _flatten_type_args(arg)
-    )
+    return args + tuple(i for a in args for i in _flatten_type_args(a))
 
 
 class _DemoWaveform(enum.Enum):

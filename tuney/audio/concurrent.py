@@ -6,7 +6,7 @@ import traceback
 from collections.abc import Sequence
 from concurrent import futures
 from functools import cached_property
-from multiprocessing.synchronize import Event as MpEvent
+from multiprocessing.synchronize import Event
 from typing import Any, NamedTuple, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,7 +24,7 @@ class StoppableFuture(NamedTuple):
 class Stoppable(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    event: MpEvent | threading.Event = Field(default_factory=threading.Event)
+    event: Event | threading.Event = Field(default_factory=threading.Event)
 
     @property
     def is_running(self) -> bool:
