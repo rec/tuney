@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from itertools import pairwise
 from typing import Annotated, Any, override
 
 from pydantic import AfterValidator, BaseModel
@@ -13,8 +14,14 @@ from ..types import Milliseconds, Seconds, to_ms, to_seconds
 MAX_WAIT_MS: Milliseconds = 100.0
 
 
+def is_sorted(presses: list[CharPress]) -> list[CharPress]:
+    if any(i > j for i, j in pairwise(presses)):
+        raise ValueError('char_presses are not sorted by time')
+    return presses
+
+
 class Sequencer(BaseModel, Runnable, frozen=True):
-    char_presses: Annotated[list[CharPress], AfterValidator(sorted)]
+    char_presses: Annotated[list[CharPress], AfterValidator(is_sorted)]
     callback: Callable[[CharPress | None], Any]
 
     @override
