@@ -7,12 +7,11 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, ConfigDict
 
-from tuney.audio.multi_player import MultiPlayer
-from tuney.time.sequencer import Sequencer
-
+from .audio.multi_player import MultiPlayer
 from .keyboard.key_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.linear_mapper import LinearMapper
+from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .ui.app import App, NoteLabel
 
@@ -39,10 +38,9 @@ class Tuney(BaseModel):
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
 
-    model_config = ConfigDict(exclude=('_saved_text', '_sequencer'))  # ty:ignore[invalid-key]
+    model_config = ConfigDict(exclude=['_sequencer'])  # ty:ignore[invalid-key]
 
     _sequencer: Sequencer | None = None
-    _saved_text: str | None = None
 
     @cached_property
     def app(self) -> App:
@@ -106,14 +104,12 @@ class Tuney(BaseModel):
 
         if self.app.is_replaying:
             self.app.layout.set_text('')
-            self._saved_text = self.display_text
-            self._sequencer = self.text_timings.sequencer(
-                self._saved_text, self._on_replay
+            self._sequencer = Sequencer(
+                char_presses=self.char_presses, callback=self._on_replay
             )
             self._sequencer.start()
-        elif self._saved_text is not None:
-            self.app.layout.set_text(self._saved_text)
-            self._saved_text = None
+        else:
+            self.app.layout.set_text(self.display_text)
 
     def _on_replay(self, c: CharPress | None) -> None:
         if c:
