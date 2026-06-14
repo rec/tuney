@@ -36,6 +36,24 @@ class Layout:
         for r in range(app.rows):
             self.note_grid.grid_rowconfigure(r, weight=1)
 
+    def get_text(self) -> str:
+        return self.textbox.get('1.0', 'end-1c')
+
+    def set_text(self, text: str) -> None:
+        self.textbox.configure(state='normal')
+        self.textbox.delete('1.0', 'end')
+        self.append_string(text)
+
+    def append_string(self, s: str) -> None:
+        self.textbox.configure(state='normal')
+        if s == '\b':
+            self.textbox.delete('end - 2c', 'end - 1c')
+        else:
+            self.textbox.insert('end', s)
+        self.textbox.see('end')
+        self.textbox.configure(state='disabled')
+        self.count_label.configure(text=f'Chars: {len(self.get_text())}')
+
     @cached_property
     def control_panel(self) -> CTkFrame:
         f = CTkFrame(self.app, height=CONTROL_PANEL_HEIGHT)
@@ -85,24 +103,6 @@ class Layout:
         t.pack(fill='x', padx=PAD, pady=(QUARTER, 2 * QUARTER))
         t.configure(state='disabled')
         return t
-
-    def get_text(self) -> str:
-        return self.textbox.get('1.0', 'end-1c')
-
-    def set_text(self, text: str) -> None:
-        self.textbox.configure(state='normal')
-        self.textbox.delete('1.0', 'end')
-        self.append_string(text)
-
-    def append_string(self, s: str) -> None:
-        self.textbox.configure(state='normal')
-        if s == '\b':
-            self.textbox.delete('end - 2c', 'end - 1c')
-        else:
-            self.textbox.insert('end', s)
-        self.textbox.see('end')
-        self.textbox.configure(state='disabled')
-        self.count_label.configure(text=f'Chars: {len(self.get_text())}')
 
     def _note_frame(self, i: int, nl: NoteLabel) -> CTkFrame:
         r, c = divmod(i, self.app.columns)
