@@ -2,34 +2,32 @@ from __future__ import annotations
 
 import enum
 import math
-import tkinter as tk
 from typing import Any, get_args, get_origin
 
+import customtkinter as ctk
 from pydantic import BaseModel, ValidationError
 
-TkFrame = tk.Frame
 
-
-def make_control_panel(parent: TkFrame, data: BaseModel) -> TkFrame:
-    frame = TkFrame(parent)
+def make_control_panel(parent: ctk.CTkFrame, data: BaseModel) -> ctk.CTkFrame:
+    frame = ctk.CTkFrame(parent)
     fields = tuple(type(data).model_fields)
     columns = max(1, math.ceil(len(fields) ** 0.5))
 
     for i, name in enumerate(fields):
         row, column = divmod(i, columns)
-        cell = TkFrame(frame, borderwidth=1, relief='groove')
+        cell = ctk.CTkFrame(frame, border_width=1)
         cell.grid(row=row, column=column, padx=4, pady=4, sticky='nsew')
         frame.grid_columnconfigure(column, weight=1)
         frame.grid_rowconfigure(row, weight=1)
 
-        label = tk.Label(cell, text=name)
+        label = ctk.CTkLabel(cell, text=name)
         label.pack(anchor='w')
         _add_control(cell, data, name)
 
     return frame
 
 
-def _add_control(parent: TkFrame, data: BaseModel, name: str) -> None:
+def _add_control(parent: ctk.CTkFrame, data: BaseModel, name: str) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
     enum_cls = _enum_class(annotation, value)
@@ -42,27 +40,32 @@ def _add_control(parent: TkFrame, data: BaseModel, name: str) -> None:
         _add_entry_control(parent, data, name, value)
 
 
-def _add_bool_control(parent: TkFrame, data: BaseModel, name: str, value: bool) -> None:
-    var = tk.IntVar(parent, int(value))
+def _add_bool_control(
+    parent: ctk.CTkFrame, data: BaseModel, name: str, value: bool
+) -> None:
+    var = ctk.IntVar(parent, int(value))
 
     def command() -> None:
         _set_model_value(data, name, bool(var.get()))
 
-    tk.Checkbutton(parent, variable=var, command=command).pack(anchor='w')
+    ctk.CTkCheckBox(parent, text='', variable=var, command=command).pack(anchor='w')
 
 
-def _add_entry_control(parent: TkFrame, data: BaseModel, name: str, value: Any) -> None:
-    var = tk.StringVar(parent, '' if value is None else str(value))
-    entry = tk.Entry(parent, textvariable=var)
+def _add_entry_control(
+    parent: ctk.CTkFrame, data: BaseModel, name: str, value: Any
+) -> None:
+    var = ctk.StringVar(parent, '' if value is None else str(value))
+    entry = ctk.CTkEntry(parent, textvariable=var)
+    text_color = entry.cget('text_color')
 
     def update(*_: Any) -> None:
         raw = var.get()
         try:
             _set_model_value(data, name, None if raw == '' else raw)
         except ValidationError:
-            entry.configure(fg='red')
+            entry.configure(text_color='red')
         else:
-            entry.configure(fg='black')
+            entry.configure(text_color=text_color)
 
     entry.bind('<FocusOut>', update)
     entry.bind('<Return>', update)
@@ -70,7 +73,7 @@ def _add_entry_control(parent: TkFrame, data: BaseModel, name: str, value: Any) 
 
 
 def _add_enum_control(
-    parent: TkFrame,
+    parent: ctk.CTkFrame,
     data: BaseModel,
     name: str,
     value: enum.Enum,
@@ -78,13 +81,13 @@ def _add_enum_control(
 ) -> None:
     members = tuple(enum_cls)
     index = members.index(value) if isinstance(value, enum_cls) else 0
-    var = tk.IntVar(parent, index)
+    var = ctk.IntVar(parent, index)
 
     def command() -> None:
         _set_model_value(data, name, members[var.get()])
 
     for i, member in enumerate(members):
-        tk.Radiobutton(
+        ctk.CTkRadioButton(
             parent,
             text=member.name,
             variable=var,
@@ -138,16 +141,16 @@ class _DemoSettings(BaseModel):
 
 def _demo() -> None:
     data = _DemoSettings()
-    root = tk.Tk()
+    root = ctk.CTk()
     root.title('Control Panel Demo')
 
-    demo_frame = TkFrame(root)
+    demo_frame = ctk.CTkFrame(root)
     demo_frame.pack(fill='both', expand=True)
 
     panel = make_control_panel(demo_frame, data)
     panel.pack(fill='both', expand=True, padx=8, pady=8)
 
-    output = tk.Text(demo_frame, height=8, width=48)
+    output = ctk.CTkTextbox(demo_frame, height=120, width=384)
     output.pack(fill='both', expand=False, padx=8, pady=(0, 8))
 
     def refresh() -> None:
