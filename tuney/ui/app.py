@@ -75,5 +75,5 @@ class App(CTk):
         self.after(QUEUE_POLL_IN_MS, self._handle_queue)
 
     def _on_char(self, c: CharPress) -> None:
-        if frame := self.layout.note_frames.get(c.char):
+        if frame := self.layout.note_buttons.get(c.char):
             frame.is_press = c.is_press

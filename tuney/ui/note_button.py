@@ -9,7 +9,7 @@ PRESSED = {'fg_color': 'lightgreen', 'corner_radius': 8}
 RELEASED = PRESSED | {'fg_color': 'gray90'}
 
 
-class NoteFrame(CTkFrame):
+class NoteButton(CTkFrame):
     def __init__(self, parent: CTkFrame, row: int, column: int, text: str) -> None:
         super().__init__(parent)
         self.grid(row=row, column=column, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')

@@ -5,7 +5,7 @@ from functools import cached_property
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
 from .app import REPLAY, App, NoteLabel
-from .note_frame import PAD, QUARTER, NoteFrame
+from .note_button import PAD, QUARTER, NoteButton
 
 TEXT_BOX_HEIGHT = 150
 CONTROL_PANEL_HEIGHT = 100
@@ -26,7 +26,7 @@ class Layout:
         _ = self.control_panel
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
-        _ = self.textbox, self.note_frames, self.replay
+        _ = self.textbox, self.note_buttons, self.replay
 
         self.set_text(text)
 
@@ -61,7 +61,7 @@ class Layout:
         return cl
 
     @cached_property
-    def note_frames(self) -> dict[str, NoteFrame]:
+    def note_buttons(self) -> dict[str, NoteButton]:
         it = self.app.note_labels.items()
         return {k: self._note_frame(i, n) for i, (k, n) in enumerate(it)}
 
@@ -93,6 +93,6 @@ class Layout:
         t.configure(state='disabled')
         return t
 
-    def _note_frame(self, i: int, nl: NoteLabel) -> NoteFrame:
+    def _note_frame(self, i: int, nl: NoteLabel) -> NoteButton:
         r, c = divmod(i, self.app.columns)
-        return NoteFrame(self.note_grid, r, c, nl.text)
+        return NoteButton(self.note_grid, r, c, nl.text)
