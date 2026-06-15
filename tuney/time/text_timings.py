@@ -8,8 +8,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from ..keyboard.key_press import CharPress
-from ..time.sequencer import Sequencer
 from ..types import Milliseconds
+from .sequencer import Sequencer
 
 
 class TextTimings(BaseModel, frozen=True):

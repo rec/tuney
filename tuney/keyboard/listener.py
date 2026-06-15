@@ -8,10 +8,9 @@ from typing import Any, Literal
 from pynput import keyboard
 from pynput.keyboard import Key, KeyCode
 
-from tuney.keyboard.key_press import CharPress
-from tuney.keyboard.modifiers import Modifiers
-
 from ..runnable import Runnable
+from .key_press import CharPress
+from .modifiers import Modifiers
 
 WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
 
