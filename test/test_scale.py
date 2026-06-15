@@ -10,6 +10,14 @@ def test_flat_sharp():
     assert actual == expected
 
 
+def DONT_test_white_notes():
+    actual = [''.join(i) for i in Scale(notes_used='C#DEFGAB').flats_sharps]
+    expected = ['CDEFGAB', 'CDEFGAB']
+    # FLAT, SHARP = '♭', '♯'
+
+    assert actual == expected
+
+
 def test_scale():
     for i in range(-100, 100):
         name = tt.to_name(i)  # ty: ignore[missing-argument] !
