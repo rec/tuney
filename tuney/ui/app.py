@@ -29,13 +29,18 @@ class NoteLabel(BaseModel, frozen=True):
 
 class App(CTk):
     def __init__(
-        self, note_labels: dict[str, NoteLabel], on_replay: Callable[[], Any], text: str
+        self,
+        note_labels: dict[str, NoteLabel],
+        on_replay: Callable[[], Any],
+        on_char: Callable[[CharPress], Any],
+        text: str,
     ) -> None:
         from .layout import Layout
 
         super().__init__()
         self.note_labels = note_labels
         self._on_replay = on_replay
+        self.on_note_button_char = on_char
         self.queue = Queue[CharPress]()
         n = len(note_labels)
         c = int(math.ceil(n**0.5))

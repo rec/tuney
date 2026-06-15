@@ -63,7 +63,7 @@ class Layout:
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
         it = self.app.note_labels.items()
-        return {k: self._note_frame(i, n) for i, (k, n) in enumerate(it)}
+        return {k: self._note_frame(i, k, n) for i, (k, n) in enumerate(it)}
 
     @cached_property
     def note_grid(self) -> CTkFrame:
@@ -93,6 +93,13 @@ class Layout:
         t.configure(state='disabled')
         return t
 
-    def _note_frame(self, i: int, nl: NoteLabel) -> NoteButton:
+    def _note_frame(self, i: int, char: str, nl: NoteLabel) -> NoteButton:
         r, c = divmod(i, self.app.columns)
-        return NoteButton(self.note_grid, r, c, nl.text)
+        return NoteButton(
+            self.note_grid,
+            r,
+            c,
+            char,
+            nl.text,
+            self.app.on_note_button_char,
+        )
