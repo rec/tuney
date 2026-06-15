@@ -14,6 +14,7 @@ from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
+from .types import Milliseconds, Seconds, to_ms
 from .ui.app import App, NoteLabel
 
 
@@ -45,6 +46,10 @@ class Tuney(BaseModel):
     model_config = ConfigDict(exclude=['_sequencer'])  # ty:ignore[invalid-key]
 
     _sequencer: Sequencer | None = None
+    _recording_start_time: Seconds | None = None
+    _recording_time_offset: Milliseconds = 0.0
+    _recording_insert_time: Milliseconds | None = None
+    _replay_text: str = ''
 
     @cached_property
     def app(self) -> App:
@@ -73,21 +78,41 @@ class Tuney(BaseModel):
 
     @property
     def display_text(self) -> str:
-        return ''.join(c.char for c in self.char_presses)
+        return ''.join(c.char for c in self.char_presses if c.is_press)
 
     def on_char(self, c: CharPress) -> None:
         if self._is_listening:
+            recorded = self.recorded_char_press(c)
             if c.is_press:
                 if c.char != '\b':
-                    self.char_presses.append(c)
+                    self.char_presses.append(recorded)
                 elif self.char_presses:
-                    self.char_presses.pop()
+                    deleted_time = None
+                    while self.char_presses:
+                        deleted = self.char_presses.pop()
+                        if deleted.is_press:
+                            deleted_time = deleted.time
+                            break
+                    if deleted_time is not None:
+                        self._recording_insert_time = deleted_time
                 self.app.layout.set_text(self.display_text)
             else:
+                if c.char != '\b':
+                    self.char_presses.append(recorded)
                 # Deal with the case where the user changes the shift key status
                 # while the alphabetic key is held down.
                 self._on_char(CharPress(c.char.swapcase(), False))
             self._on_char(c)
+
+    def recorded_char_press(self, c: CharPress) -> CharPress:
+        if self._recording_start_time is None and c.is_press:
+            self._recording_start_time = c.time
+        start = self._recording_start_time or c.time
+        raw_time = to_ms(c.time - start)
+        if self._recording_insert_time is not None and c.is_press and c.char != '\b':
+            self._recording_time_offset = self._recording_insert_time - raw_time
+            self._recording_insert_time = None
+        return CharPress(c.char, c.is_press, raw_time + self._recording_time_offset)
 
     def _on_char(self, c: CharPress) -> None:
         if (note := self.mapper(c.char)) is not None:
@@ -111,19 +136,27 @@ class Tuney(BaseModel):
             sequencer.stop()
 
         if self.app.is_replaying:
-            self.app.layout.set_text('')
+            self._replay_text = ''
+            self.app.layout.set_text(self._replay_text)
             self._sequencer = Sequencer(
                 char_presses=self.char_presses, callback=self._on_replay
             )
             self._sequencer.start()
         else:
+            self._replay_text = ''
             self.app.layout.set_text(self.display_text)
 
     def _on_replay(self, c: CharPress | None) -> None:
         if c:
-            self.on_char(c)
-        else:
-            self.app.after(0, self.on_replay)
+            if c.is_press:
+                self._replay_text += c.char
+                self.app.after(0, self.app.layout.set_text, self._replay_text)
+            self._on_char(c)
+        elif self.app.is_replaying and self._sequencer is not None:
+            self.app.after(0, self._finish_replay)
+
+    def _finish_replay(self) -> None:
+        self.app.is_replaying = False
 
     def __call__(self):
         self.start()

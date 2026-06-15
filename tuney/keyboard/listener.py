@@ -8,8 +8,8 @@ from typing import Any, Literal
 from pynput import keyboard
 from pynput.keyboard import Key, KeyCode
 
-from ..runnable import Runnable
 from ..char_press import CharPress
+from ..runnable import Runnable
 from .modifiers import Modifiers
 
 WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
