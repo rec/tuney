@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import re
 import string
 from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from functools import cached_property
-from itertools import chain
+from itertools import batched, chain
 from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field
@@ -13,8 +14,15 @@ from ..types import NoteNumber
 from .tuning import TuningImpl
 
 FLAT, SHARP = '♭', '♯'
-ACCIDENTALS = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
+CANONICAL = {'b': '♭', '#': '♯'}
+ACCIDENTAL_TO_OFFSET = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
 INTERVALS = [int(i) for i in '2212221']
+
+
+def canonical(s: str) -> str:
+    for k, v in CANONICAL.items():
+        s = s.replace(k, v)
+    return s
 
 
 @BeforeValidator
@@ -46,21 +54,26 @@ class Scale(BaseModel, frozen=True):
     * ♭ to lower pitch by a semitone, '♯' to raise it
 
     Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
-    custom tunings, different note names and intervals
-
+    custom tunings, different note names and intervals.
     """
 
     #: The base alphabet
     alphabet: str = string.ascii_uppercase
 
-    #: The base note to start scales with
-    base: str = 'C'
+    #: The root note to start scales with
+    root: str = 'C'
 
-    #: The first note from the alphabet
+    #: The first note from the alphabet:
+    # TODO: validate begin <= base <= end
     begin: str = 'A'
 
     #: The Last note from the alphabet
     end: str = 'G'
+
+    # If `notes_used` is set, once the scale is generated, only the notes in
+    # `notes_used` are actually used in the list. For example, notes_used='CDEFGAB'
+    # would correspond to only the white notes on the piano.
+    notes_used: str | None = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[list[int], validate_intervals] = Field(
@@ -83,7 +96,7 @@ class Scale(BaseModel, frozen=True):
     def to_number(self, s: str) -> NoteNumber:
         if (n := self._note_to_semitones.get(s[0])) is not None:
             s = s[1:]
-            while s and (a := ACCIDENTALS.get(s[0])):
+            while s and (a := ACCIDENTAL_TO_OFFSET.get(s[0])):
                 n += a
                 s = s[1:]
             with suppress(ValueError):
@@ -94,8 +107,9 @@ class Scale(BaseModel, frozen=True):
     @cached_property
     def names(self) -> str:
         a = self.alphabet
-        begin, end, base = a.index(self.begin), a.index(self.end), a.index(self.base)
-        return ''.join(a[i] for i in chain(range(base, end + 1), range(begin, base)))
+        begin, root, end = a.index(self.begin), a.index(self.root), a.index(self.end)
+        assert begin <= root <= end
+        return ''.join(a[i] for i in chain(range(root, end + 1), range(begin, root)))
 
     @cached_property
     def octave_length(self) -> int:
@@ -109,6 +123,17 @@ class Scale(BaseModel, frozen=True):
             interval = self.intervals[i % L]
             yield note, interval, semitone
             semitone += interval
+
+    @cached_property
+    def _note_re(self) -> re.Pattern:
+        return re.compile(f'([{self.names}][♭♯]*)')
+
+    def _to_notes(self, s: str) -> list[str]:
+        split = self._note_re.split(canonical(s)) + ['']
+        errors, values = zip(*batched(split, 2), strict=True)
+        if errors := [v for e in errors if (v := e.strip())]:
+            raise ValueError(f'Do not understand notes {", ".join(errors)}')
+        return values[:-1]
 
     @cached_property
     def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
