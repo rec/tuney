@@ -75,10 +75,12 @@ class Tuney(BaseModel):
         if self._is_listening:
             if c.char != '\b':
                 self.char_presses.append(c)
-            elif self.char_presses:
+            elif c.is_press and self.char_presses:
                 self.char_presses.pop()
             self._on_char(c)
-            if not c.is_press:
+            if c.is_press:
+                self.app.layout.set_text(self.display_text)
+            else:
                 # Deal with the case where the user changes the shift key status
                 # while the alphabetic key is held down.
                 self._on_char(CharPress(c.char.swapcase(), c.is_press))

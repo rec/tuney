@@ -79,6 +79,3 @@ class App(CTk):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.layout.note_frames.get(c.char):
             frame.configure(**(PRESSED if c.is_press else RELEASED))
-
-        if c.is_press:
-            self.layout.append_string(c.char)

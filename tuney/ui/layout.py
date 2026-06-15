@@ -14,6 +14,7 @@ FONT = 'Arial', 14
 BIG_FONT = 'Arial', 16, 'bold'
 
 WIDTH, HEIGHT = 70, 80
+NEW_CODE = True
 
 
 class Layout:
@@ -36,23 +37,13 @@ class Layout:
         for r in range(app.rows):
             self.note_grid.grid_rowconfigure(r, weight=1)
 
-    def get_text(self) -> str:
-        return self.textbox.get('1.0', 'end-1c')
-
-    def set_text(self, text: str) -> None:
+    def set_text(self, s: str) -> None:
         self.textbox.configure(state='normal')
         self.textbox.delete('1.0', 'end')
-        self.append_string(text)
-
-    def append_string(self, s: str) -> None:
-        self.textbox.configure(state='normal')
-        if s == '\b':
-            self.textbox.delete('end - 2c', 'end - 1c')
-        else:
-            self.textbox.insert('end', s)
+        self.textbox.insert('end', s)
         self.textbox.see('end')
         self.textbox.configure(state='disabled')
-        self.count_label.configure(text=f'Chars: {len(self.get_text())}')
+        self.count_label.configure(text=f'Chars: {len(s)}')
 
     @cached_property
     def control_panel(self) -> CTkFrame:
