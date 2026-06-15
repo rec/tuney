@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from .audio.multi_player import MultiPlayer
 from .keyboard.key_press import CharPress
 from .keyboard.listener import KeyboardListener
-from .mapper.linear_mapper import LinearMapper
+from .mapper.mapper import Mapper
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .ui.app import App, NoteLabel
@@ -21,7 +21,7 @@ class Tuney(BaseModel):
     config_file: Annotated[Path | None, tyro.conf.Positional] = None
 
     # Map letters to notes
-    mapper: LinearMapper = LinearMapper()
+    mapper: Mapper = Mapper()
 
     # How to play back audio
     player: MultiPlayer = MultiPlayer()

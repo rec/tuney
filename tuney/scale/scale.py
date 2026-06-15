@@ -93,6 +93,7 @@ class Scale(BaseModel, frozen=True):
         return f'{name}{octave}'
 
     # Implements Scale.to_number
+    # This is only used in tests!
     def to_number(self, s: str) -> NoteNumber:
         if (n := self._note_to_semitones.get(s[0])) is not None:
             s = s[1:]
@@ -115,7 +116,7 @@ class Scale(BaseModel, frozen=True):
     def octave_length(self) -> int:
         return len(self.flats_sharps[0])
 
-    def _note_interval_semitone(self) -> Iterator[tuple[str, int, int]]:
+    def _note_interval_number(self) -> Iterator[tuple[str, int, int]]:
         assert self.intervals
         L = len(self.intervals)
         semitone = 0
@@ -138,7 +139,7 @@ class Scale(BaseModel, frozen=True):
     @cached_property
     def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
         flats, sharps = [], []
-        for i, (note, interval, _) in enumerate(self._note_interval_semitone()):
+        for i, (note, interval, _) in enumerate(self._note_interval_number()):
             flats.append(note)
             sharps.append(note)
             if interval > 1:
@@ -151,4 +152,4 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def _note_to_semitones(self) -> dict[str, NoteNumber]:
-        return {n: s for n, _, s in self._note_interval_semitone()}
+        return {note: n for note, _, n in self._note_interval_number()}
