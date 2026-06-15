@@ -10,8 +10,6 @@ from pydantic import BaseModel
 from ..keyboard.key_press import CharPress
 
 # TODO: bg_color exists but is not useful, what is?
-PRESSED = {'fg_color': 'grey90', 'corner_radius': 8}
-RELEASED = PRESSED | {'fg_color': 'gray60'}
 HOVER = {'hover_color': '#248060'}
 
 REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
@@ -78,4 +76,4 @@ class App(CTk):
 
     def _on_char(self, c: CharPress) -> None:
         if frame := self.layout.note_frames.get(c.char):
-            frame.configure(**(PRESSED if c.is_press else RELEASED))
+            frame.is_press = c.is_press

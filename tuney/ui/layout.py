@@ -4,14 +4,12 @@ from functools import cached_property
 
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
-from .app import RELEASED, REPLAY, App, NoteLabel
+from .app import REPLAY, App, NoteLabel
+from .note_frame import PAD, QUARTER, NoteFrame
 
-PAD = 16
-QUARTER = PAD // 4
 TEXT_BOX_HEIGHT = 150
 CONTROL_PANEL_HEIGHT = 100
 FONT = 'Arial', 14
-BIG_FONT = 'Arial', 16, 'bold'
 
 WIDTH, HEIGHT = 70, 80
 NEW_CODE = True
@@ -63,7 +61,7 @@ class Layout:
         return cl
 
     @cached_property
-    def note_frames(self) -> dict[str, CTkFrame]:
+    def note_frames(self) -> dict[str, NoteFrame]:
         it = self.app.note_labels.items()
         return {k: self._note_frame(i, n) for i, (k, n) in enumerate(it)}
 
@@ -95,11 +93,6 @@ class Layout:
         t.configure(state='disabled')
         return t
 
-    def _note_frame(self, i: int, nl: NoteLabel) -> CTkFrame:
+    def _note_frame(self, i: int, nl: NoteLabel) -> NoteFrame:
         r, c = divmod(i, self.app.columns)
-        note_frame = CTkFrame(self.note_grid, **RELEASED)  # ty:ignore[invalid-argument-type]
-        note_frame.grid(row=r, column=c, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
-
-        label = CTkLabel(note_frame, text=nl.text, font=BIG_FONT)
-        label.pack(expand=True)
-        return note_frame
+        return NoteFrame(self.note_grid, r, c, nl.text)
