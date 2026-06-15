@@ -4,8 +4,9 @@ from functools import cached_property
 
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
+from . import PAD, QUARTER
 from .app import REPLAY, App, NoteLabel
-from .note_button import PAD, QUARTER, NoteButton
+from .note_button import NoteButton
 
 TEXT_BOX_HEIGHT = 150
 CONTROL_PANEL_HEIGHT = 100

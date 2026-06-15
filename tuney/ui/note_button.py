@@ -7,9 +7,7 @@ from typing import Any
 from customtkinter import CTkButton, CTkFrame
 
 from ..char_press import CharPress
-
-PAD = 16
-QUARTER = PAD // 4
+from . import QUARTER
 BIG_FONT = 'Arial', 16, 'bold'
 PRESSED = {'fg_color': 'lightgreen', 'hover_color': 'lightgreen', 'corner_radius': 8}
 RELEASED = {'fg_color': 'grey90', 'hover_color': 'grey90', 'corner_radius': 8}
