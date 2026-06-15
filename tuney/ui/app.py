@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from functools import cached_property
+from pathlib import Path
 from queue import Queue
+from tkinter import PhotoImage
 from typing import TYPE_CHECKING
 
 from customtkinter import CTk
@@ -21,6 +23,7 @@ REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
+ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -37,6 +40,8 @@ class App(CTk):
         from .layout import Layout
 
         super().__init__()
+        self._icon = PhotoImage(file=str(ICON_PATH))
+        self.iconphoto(True, self._icon)
         self.tuney = tuney
         self.queue = Queue[CharPress]()
         n = len(tuney.note_labels)
