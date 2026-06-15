@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..keyboard.key_press import CharPress
+from ..char_press import CharPress
 from ..types import Milliseconds
 from .sequencer import Sequencer
 

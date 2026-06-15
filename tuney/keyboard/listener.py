@@ -9,7 +9,7 @@ from pynput import keyboard
 from pynput.keyboard import Key, KeyCode
 
 from ..runnable import Runnable
-from .key_press import CharPress
+from ..char_press import CharPress
 from .modifiers import Modifiers
 
 WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}

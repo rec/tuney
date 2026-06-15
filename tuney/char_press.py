@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from ..types import Seconds
+from .types import Seconds
 
 
 class CharPress(BaseModel, frozen=True):

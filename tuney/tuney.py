@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from .audio.midi import MIDI
 from .audio.multi_player import MultiPlayer
-from .keyboard.key_press import CharPress
+from .char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .time.sequencer import Sequencer

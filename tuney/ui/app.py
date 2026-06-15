@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from customtkinter import CTk
 from pydantic import BaseModel
 
-from ..keyboard.key_press import CharPress
+from ..char_press import CharPress
 
 if TYPE_CHECKING:
     from ..tuney import Tuney

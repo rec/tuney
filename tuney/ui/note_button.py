@@ -6,7 +6,7 @@ from typing import Any
 
 from customtkinter import CTkButton, CTkFrame
 
-from ..keyboard.key_press import CharPress
+from ..char_press import CharPress
 
 PAD = 16
 QUARTER = PAD // 4
