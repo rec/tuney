@@ -35,7 +35,7 @@ class MultiPlayer(BaseModel, frozen=True):
         period = (self.device.samplerate or 48_000) / frequency
         return oscillator_player.Sound(period=period, gain=self.gain)
 
-    def note(self, note_number: NoteNumber, is_press: bool) -> bool:
+    def on_note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:

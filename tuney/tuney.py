@@ -7,6 +7,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, ConfigDict
 
+from .audio.midi import MIDI
 from .audio.multi_player import MultiPlayer
 from .keyboard.key_press import CharPress
 from .keyboard.listener import KeyboardListener
@@ -25,6 +26,9 @@ class Tuney(BaseModel):
 
     # How to play back audio
     player: MultiPlayer = MultiPlayer()
+
+    # How to send MIDI output
+    midi: MIDI = MIDI()
 
     # Timings for playing back texts
     text_timings: TextTimings = TextTimings(scale=3.0)
@@ -86,8 +90,10 @@ class Tuney(BaseModel):
             self._on_char(c)
 
     def _on_char(self, c: CharPress) -> None:
-        if not self.disable_sound and (note := self.mapper(c.char)) is not None:
-            self.player.note(note, c.is_press)
+        if (note := self.mapper(c.char)) is not None:
+            if not self.disable_sound:
+                self.player.on_note(note, c.is_press)
+            self.midi(note, c.is_press)
         if not self.disable_gui:
             self.app.on_char(c)
 

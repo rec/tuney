@@ -127,6 +127,21 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
   --player.scale.tuning.pitch-to-frequency.function STR                                                                 
         The base rule for converting a pitch to a frequency (default: power)                                            
                                                                                                                         
+ midi options                                                                                                           
+ ---------------------------------------------------------------------------------------------------------------------- 
+  How to send MIDI output                                                                                               
+  ----------------------------------------------------------------------------------------------------------------------
+  --midi.enable, --midi.no-enable                                                                                       
+        (default: False)                                                                                                
+  --midi.output-name {None}|STR                                                                                         
+        (default: None)                                                                                                 
+  --midi.channel INT                                                                                                    
+        (default: 0)                                                                                                    
+  --midi.velocity INT                                                                                                   
+        (default: 64)                                                                                                   
+  --midi.note-offset INT                                                                                                
+        (default: 0)                                                                                                    
+                                                                                                                        
  text-timings options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
   Timings for playing back texts                                                                                        
