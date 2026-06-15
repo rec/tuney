@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from functools import cached_property
 from queue import Queue
-from typing import Any
+from typing import TYPE_CHECKING
 
 from customtkinter import CTk
 from pydantic import BaseModel
 
 from ..keyboard.key_press import CharPress
+
+if TYPE_CHECKING:
+    from ..tuney import Tuney
 
 # TODO: bg_color exists but is not useful, what is?
 HOVER = {'hover_color': '#248060'}
@@ -28,21 +33,13 @@ class NoteLabel(BaseModel, frozen=True):
 
 
 class App(CTk):
-    def __init__(
-        self,
-        note_labels: dict[str, NoteLabel],
-        on_replay: Callable[[], Any],
-        on_char: Callable[[CharPress], Any],
-        text: str,
-    ) -> None:
+    def __init__(self, tuney: Tuney) -> None:
         from .layout import Layout
 
         super().__init__()
-        self.note_labels = note_labels
-        self._on_replay = on_replay
-        self.on_note_button_char = on_char
+        self.tuney = tuney
         self.queue = Queue[CharPress]()
-        n = len(note_labels)
+        n = len(tuney.note_labels)
         c = int(math.ceil(n**0.5))
         r = n // c
         r += n > (r * c)
@@ -51,7 +48,7 @@ class App(CTk):
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
-        self.layout = Layout(self, text)
+        self.layout = Layout(self)
 
     def start(self) -> None:
         self._handle_queue()
@@ -69,7 +66,7 @@ class App(CTk):
         if self._is_replaying != is_replaying:
             self._is_replaying = is_replaying
             self.layout.replay.configure(**(STOP if is_replaying else REPLAY))
-            self._on_replay()
+            self.tuney.on_replay()
 
     def on_replay(self, *_) -> None:
         self.is_replaying = not self.is_replaying

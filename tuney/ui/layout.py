@@ -16,7 +16,7 @@ NEW_CODE = True
 
 
 class Layout:
-    def __init__(self, app: App, text: str) -> None:
+    def __init__(self, app: App) -> None:
         width = WIDTH * app.columns
         height = HEIGHT * app.rows + TEXT_BOX_HEIGHT + CONTROL_PANEL_HEIGHT
         app.geometry(f'{width}x{height}')
@@ -28,7 +28,7 @@ class Layout:
         label.pack(side='left')
         _ = self.textbox, self.note_buttons, self.replay
 
-        self.set_text(text)
+        self.set_text(app.tuney.display_text)
 
         for c in range(app.columns):
             self.note_grid.grid_columnconfigure(c, weight=1)
@@ -62,7 +62,7 @@ class Layout:
 
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
-        it = self.app.note_labels.items()
+        it = self.app.tuney.note_labels.items()
         return {k: self._note_frame(i, k, n) for i, (k, n) in enumerate(it)}
 
     @cached_property
@@ -101,5 +101,5 @@ class Layout:
             c,
             char,
             nl.text,
-            self.app.on_note_button_char,
+            self.app.tuney.on_char,
         )
