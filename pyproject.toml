@@ -49,6 +49,9 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 [tool.ruff.format]
 quote-style = "single"
 
+[tool.ty.environment]
+extra-paths = ["typings"]
+
 [project.scripts]
 tuney = "tuney.__main__:main"
 
