@@ -77,3 +77,19 @@ def test_display_text_uses_only_key_presses():
     )
 
     assert tuney.display_text == 'ab'
+
+
+def test_clear_resets_recording_state():
+    tuney = Tuney(text=[CharPress('a', True, 0.0)])
+    tuney._recording_start_time = 100.0
+    tuney._recording_time_offset = 20.0
+    tuney._recording_insert_time = 10.0
+    tuney._replay_text = 'a'
+
+    tuney.clear()
+
+    assert tuney.char_presses == []
+    assert tuney._recording_start_time is None
+    assert tuney._recording_time_offset == 0.0
+    assert tuney._recording_insert_time is None
+    assert tuney._replay_text == ''

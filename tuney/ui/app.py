@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import math
+import sys
 from collections.abc import Sequence
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
-from tkinter import PhotoImage
+from tkinter import Menu, PhotoImage
 from typing import TYPE_CHECKING
 
 from customtkinter import CTk
@@ -24,6 +25,7 @@ STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
+CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -53,6 +55,9 @@ class App(CTk):
 
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
+        self.bind('<Control-b>', self.on_clear)
+        self.bind('<Command-b>', self.on_clear)
+        self.configure(menu=self.menu)
         self.layout = Layout(self)
 
     def start(self) -> None:
@@ -61,6 +66,21 @@ class App(CTk):
     def on_char(self, c: CharPress) -> None:
         if c.char:
             self.queue.put(c)
+
+    def on_clear(self, *_) -> None:
+        self.tuney.clear()
+
+    @cached_property
+    def menu(self) -> Menu:
+        menu = Menu(self)
+        file_menu = Menu(menu, tearoff=False)
+        file_menu.add_command(
+            label='Clear',
+            accelerator=CLEAR_ACCELERATOR,
+            command=self.tuney.clear,
+        )
+        menu.add_cascade(label='File', menu=file_menu)
+        return menu
 
     @property
     def is_replaying(self) -> bool:

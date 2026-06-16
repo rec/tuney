@@ -135,6 +135,15 @@ class Tuney(BaseModel):
                 result.discard(c.char)
         return result
 
+    def clear(self) -> None:
+        self.char_presses.clear()
+        self._recording_start_time = None
+        self._recording_time_offset = 0.0
+        self._recording_insert_time = None
+        self._replay_text = ''
+        if not self.disable_gui:
+            self.app.layout.set_text('')
+
     def _on_char(self, c: CharPress) -> None:
         if (note := self.mapper(c.char)) is not None:
             if not self.disable_sound:
