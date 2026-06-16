@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from functools import cached_property
 from pathlib import Path
 from typing import Annotated
@@ -145,10 +146,16 @@ class Tuney(BaseModel):
         if not self.disable_gui:
             self.app.layout.set_text('')
 
-    def dump(self) -> None:
-        print('-' * 80)
-        print(tomlkit.dumps(serialize(self.dump_data())))
-        print('-' * 80)
+    def save(self, path: Path) -> None:
+        data = serialize(self.dump_data())
+        match path.suffix:
+            case '.toml':
+                text = tomlkit.dumps(data)
+            case '.json':
+                text = json.dumps(data, indent=2) + '\n'
+            case _:
+                raise ValueError(f'Do not understand file {path}')
+        path.write_text(text)
 
     def dump_data(self) -> dict[str, object]:
         data = self.model_dump()
@@ -166,8 +173,10 @@ class Tuney(BaseModel):
 
     @property
     def _is_listening(self) -> bool:
-        return not self.app.is_replaying and (
-            self.run_in_background or bool(self.app.focus_get())
+        return (
+            not self.app.is_replaying
+            and not self.app.is_saving
+            and (self.run_in_background or self.app.has_focus)
         )
 
     def on_replay(self) -> None:

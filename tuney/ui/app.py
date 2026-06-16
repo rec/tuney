@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
-from tkinter import Menu, PhotoImage
+from tkinter import Menu, PhotoImage, filedialog
 from typing import TYPE_CHECKING
 
 from customtkinter import CTk
@@ -26,7 +26,7 @@ STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
-DUMP_ACCELERATOR = 'Command-D' if sys.platform == 'darwin' else 'Ctrl+D'
+SAVE_ACCELERATOR = 'Command-S' if sys.platform == 'darwin' else 'Ctrl+S'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -53,13 +53,18 @@ class App(CTk):
         r += n > (r * c)
         self.rows, self.columns = r, c
         self._is_replaying = False
+        self._is_saving = False
+        self._has_focus = True
 
+        self.bind('<Activate>', self.on_activate)
+        self.bind('<Deactivate>', self.on_deactivate)
+        self.bind('<FocusIn>', self.on_activate)
         self.bind('<Control-r>', self.on_replay)
         self.bind('<Command-r>', self.on_replay)
         self.bind('<Control-b>', self.on_clear)
         self.bind('<Command-b>', self.on_clear)
-        self.bind('<Control-d>', self.on_dump)
-        self.bind('<Command-d>', self.on_dump)
+        self.bind('<Control-s>', self.on_save)
+        self.bind('<Command-s>', self.on_save)
         self.configure(menu=self.menu)
         self.layout = Layout(self)
 
@@ -73,17 +78,44 @@ class App(CTk):
     def on_clear(self, *_) -> None:
         self.tuney.clear()
 
-    def on_dump(self, *_) -> None:
-        self.tuney.dump()
+    def on_save(self, *_) -> None:
+        self._is_saving = True
+        try:
+            filename = filedialog.asksaveasfilename(
+                defaultextension='.toml',
+                filetypes=[
+                    ('TOML', '*.toml'),
+                    ('JSON', '*.json'),
+                ],
+            )
+            if filename:
+                self.tuney.save(Path(filename))
+        finally:
+            self._is_saving = False
+            self._has_focus = False
+
+    @property
+    def is_saving(self) -> bool:
+        return self._is_saving
+
+    @property
+    def has_focus(self) -> bool:
+        return self._has_focus
+
+    def on_activate(self, *_) -> None:
+        self._has_focus = True
+
+    def on_deactivate(self, *_) -> None:
+        self._has_focus = False
 
     @cached_property
     def menu(self) -> Menu:
         menu = Menu(self)
         file_menu = Menu(menu, tearoff=False)
         file_menu.add_command(
-            label='Dump',
-            accelerator=DUMP_ACCELERATOR,
-            command=self.tuney.dump,
+            label='Save',
+            accelerator=SAVE_ACCELERATOR,
+            command=self.on_save,
         )
         file_menu.add_command(
             label='Clear',

@@ -1,5 +1,7 @@
+import json
 import tomllib
 
+import pytest
 import tomlkit
 
 from tuney.char_press import CharPress
@@ -29,3 +31,32 @@ def test_tuney_dump_data_uses_recorded_char_presses():
         {'char': 'a', 'is_press': True, 'time': 0.0},
         {'char': 'a', 'is_press': False, 'time': 250.0},
     ]
+
+
+def test_save_writes_toml(tmp_path):
+    path = tmp_path / 'tuney.toml'
+
+    Tuney().save(path)
+
+    actual = tomllib.loads(path.read_text())
+    assert actual['mapper']['map'] == 'linear'
+    assert actual['player']['oscillator']['waveform'] == 'triangle'
+    Tuney(**actual)
+
+
+def test_save_writes_json(tmp_path):
+    path = tmp_path / 'tuney.json'
+
+    Tuney().save(path)
+
+    actual = json.loads(path.read_text())
+    assert actual['mapper']['map'] == 'linear'
+    assert actual['player']['oscillator']['waveform'] == 'triangle'
+    Tuney(**actual)
+
+
+def test_save_rejects_unknown_suffix(tmp_path):
+    path = tmp_path / 'tuney.txt'
+
+    with pytest.raises(ValueError, match='Do not understand file'):
+        Tuney().save(path)

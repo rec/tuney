@@ -2,6 +2,21 @@ from tuney.char_press import CharPress
 from tuney.tuney import Tuney
 
 
+class FakeApp:
+    is_replaying = False
+    is_saving = False
+    has_focus = True
+
+    class layout:
+        @staticmethod
+        def set_text(_: str) -> None:
+            pass
+
+    @staticmethod
+    def on_char(_: CharPress) -> None:
+        pass
+
+
 def test_recorded_char_press_uses_time_relative_to_first_key_press():
     tuney = Tuney()
 
@@ -93,3 +108,25 @@ def test_clear_resets_recording_state():
     assert tuney._recording_time_offset == 0.0
     assert tuney._recording_insert_time is None
     assert tuney._replay_text == ''
+
+
+def test_on_char_ignores_input_while_saving():
+    tuney = Tuney()
+    app = FakeApp()
+    app.is_saving = True
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('a', True, 100.0))
+
+    assert tuney.char_presses == []
+
+
+def test_on_char_ignores_input_without_app_focus():
+    tuney = Tuney()
+    app = FakeApp()
+    app.has_focus = False
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('a', True, 100.0))
+
+    assert tuney.char_presses == []
