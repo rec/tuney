@@ -21,7 +21,6 @@ class Layout:
         width = WIDTH * app.columns
         height = HEIGHT * app.rows + TEXT_BOX_HEIGHT + CONTROL_PANEL_HEIGHT
         app.geometry(f'{width}x{height}')
-        app.title('Tuney!')
 
         self.app = app
         _ = self.control_panel

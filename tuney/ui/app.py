@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
-from tkinter import Menu, PhotoImage, filedialog
+from tkinter import Menu, Misc, PhotoImage, filedialog
 from typing import TYPE_CHECKING
 
 from customtkinter import CTk
@@ -27,6 +27,11 @@ QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
 SAVE_ACCELERATOR = 'Command-S' if sys.platform == 'darwin' else 'Ctrl+S'
+APP_NAME = 'Tuney'
+
+
+def set_app_name(app: Misc) -> None:
+    app.tk.call('tk', 'appname', APP_NAME)
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -42,7 +47,9 @@ class App(CTk):
     def __init__(self, tuney: Tuney) -> None:
         from .layout import Layout
 
-        super().__init__()
+        super().__init__(className=APP_NAME)
+        set_app_name(self)
+        self.title(APP_NAME)
         self._icon = PhotoImage(file=str(ICON_PATH))
         self.iconphoto(True, self._icon)
         self.tuney = tuney
