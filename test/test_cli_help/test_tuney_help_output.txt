@@ -9,6 +9,8 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
  ---------------------------------------------------------------------------------------------------------------------- 
   -h, --help                                                                                                            
         show this help message and exit                                                                                 
+  --max-gap {None}|FLOAT                                                                                                
+        Maximum silent gap to keep in recordings, in seconds (default: None)                                            
   --disable-gui, --no-disable-gui                                                                                       
         (default: False)                                                                                                
   --disable-sound, --no-disable-sound                                                                                   

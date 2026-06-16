@@ -37,6 +37,9 @@ class Tuney(BaseModel):
     # Text to start the program with
     text: str | list[CharPress] | None = None
 
+    # Maximum silent gap to keep in recordings, in seconds
+    max_gap: float | None = 4.0
+
     disable_gui: bool = False
     disable_sound: bool = False
 
@@ -112,7 +115,23 @@ class Tuney(BaseModel):
         if self._recording_insert_time is not None and c.is_press and c.char != '\b':
             self._recording_time_offset = self._recording_insert_time - raw_time
             self._recording_insert_time = None
-        return CharPress(c.char, c.is_press, raw_time + self._recording_time_offset)
+        recorded_time = raw_time + self._recording_time_offset
+        max_gap = to_ms(self.max_gap) if self.max_gap and self.max_gap > 0 else None
+        if max_gap is not None and c.is_press and not self._recorded_notes_on():
+            gap = recorded_time - (self.char_presses[-1].time if self.char_presses else 0)
+            if gap > max_gap:
+                self._recording_time_offset -= gap - max_gap
+                recorded_time = raw_time + self._recording_time_offset
+        return CharPress(c.char, c.is_press, recorded_time)
+
+    def _recorded_notes_on(self) -> set[str]:
+        result = set()
+        for c in self.char_presses:
+            if c.is_press:
+                result.add(c.char)
+            else:
+                result.discard(c.char)
+        return result
 
     def _on_char(self, c: CharPress) -> None:
         if (note := self.mapper(c.char)) is not None:

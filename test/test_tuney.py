@@ -38,6 +38,36 @@ def test_recorded_char_press_reuses_deleted_time_for_next_insert():
     ]
 
 
+def test_recorded_char_press_caps_silent_gap():
+    tuney = Tuney(max_gap=0.5)
+    for c in [
+        CharPress('a', True, 100.0),
+        CharPress('a', False, 100.25),
+    ]:
+        tuney.char_presses.append(tuney.recorded_char_press(c))
+
+    actual = [
+        tuney.recorded_char_press(CharPress('b', True, 110.0)),
+        tuney.recorded_char_press(CharPress('b', False, 110.25)),
+    ]
+
+    assert actual == [
+        CharPress('b', True, 750.0),
+        CharPress('b', False, 1000.0),
+    ]
+
+
+def test_recorded_char_press_does_not_cap_time_while_note_is_held():
+    tuney = Tuney(max_gap=0.5)
+    tuney.char_presses.append(
+        tuney.recorded_char_press(CharPress('a', True, 100.0))
+    )
+
+    actual = tuney.recorded_char_press(CharPress('b', True, 110.0))
+
+    assert actual == CharPress('b', True, 10000.0)
+
+
 def test_display_text_uses_only_key_presses():
     tuney = Tuney(
         text=[
