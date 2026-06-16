@@ -59,9 +59,7 @@ def test_recorded_char_press_caps_silent_gap():
 
 def test_recorded_char_press_does_not_cap_time_while_note_is_held():
     tuney = Tuney(max_gap=0.5)
-    tuney.char_presses.append(
-        tuney.recorded_char_press(CharPress('a', True, 100.0))
-    )
+    tuney.char_presses.append(tuney.recorded_char_press(CharPress('a', True, 100.0)))
 
     actual = tuney.recorded_char_press(CharPress('b', True, 110.0))
 

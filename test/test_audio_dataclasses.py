@@ -1,14 +1,41 @@
 import threading
+from typing import Any
 
 import numpy as np
+from pydantic import PrivateAttr
 
 from tuney.audio.concurrent import Runner, Stoppable
+from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.oscillator_player import OscillatorPlayer, Sound
+from tuney.audio.player import Player
 from tuney.audio.sample_data import SampleData
 
 
-def _stop(stoppable: Stoppable) -> None:
+def _stop(*_: Any, stoppable: Stoppable, **__: Any) -> None:
     stoppable.stop()
+
+
+class _Stream:
+    def __enter__(self) -> None:
+        pass
+
+    def __exit__(self, *_) -> None:
+        pass
+
+
+class _StopRecordingPlayer(Player):
+    _did_stop: bool = PrivateAttr(False)
+
+    @property
+    def stream(self) -> _Stream:
+        return _Stream()
+
+    def _fill(self, out: np.ndarray) -> bool | None:
+        return True
+
+    def stop(self) -> None:
+        self._did_stop = True
+        super().stop()
 
 
 def test_sample_data_reports_channels_and_cuts_from_center():
@@ -44,9 +71,18 @@ def test_stoppable_wait_blocks_until_stop():
     assert not waiter.is_alive()
 
 
+def test_player_run_calls_stop_after_stoppable_signal():
+    player = _StopRecordingPlayer()
+
+    player.stoppable.stop()
+    player.run()
+
+    assert player._did_stop
+
+
 def test_oscillator_player_fill_advances_frame_counters():
     player = OscillatorPlayer(
-        oscillator_name='sine',
+        oscillator=Oscillator(waveform=Waveform.sine),
         sound=Sound(period=8, fade_in_samples=0, fade_out_samples=0),
     )
     out = np.zeros((4, 1))

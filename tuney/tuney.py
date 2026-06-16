@@ -118,7 +118,9 @@ class Tuney(BaseModel):
         recorded_time = raw_time + self._recording_time_offset
         max_gap = to_ms(self.max_gap) if self.max_gap and self.max_gap > 0 else None
         if max_gap is not None and c.is_press and not self._recorded_notes_on():
-            gap = recorded_time - (self.char_presses[-1].time if self.char_presses else 0)
+            gap = recorded_time - (
+                self.char_presses[-1].time if self.char_presses else 0
+            )
             if gap > max_gap:
                 self._recording_time_offset -= gap - max_gap
                 recorded_time = raw_time + self._recording_time_offset

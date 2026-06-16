@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import override
@@ -49,6 +50,9 @@ class Player(BaseModel, Runnable, ABC):
     def _run(self):
         with self.stream:
             self.stoppable.wait()
+            self.stop()
+            while self.is_running:
+                time.sleep(0.001)
 
     @cached_property
     def stream(self) -> OutputStream:
