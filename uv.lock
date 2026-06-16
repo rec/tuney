@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-06-08T17:36:52.270634Z"
+exclude-newer = "2026-06-09T09:42:16.134555Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -753,6 +753,15 @@ wheels = [
 ]
 
 [[package]]
+name = "tomlkit"
+version = "0.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/db/03eaf4331631ef6b27d6e3c9b68c54dc6f0d63d87201fed600cc409307fd/tomlkit-0.15.0.tar.gz", hash = "sha256:7d1a9ecba3086638211b13814ea79c90dd54dd11993564376f3aa92271f5c7a3", size = 161875, upload-time = "2026-05-10T07:38:22.245Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/43/8bd850ee71a191bf072e31302c73a66be413fecdd98fdcd111ecbcce13ca/tomlkit-0.15.0-py3-none-any.whl", hash = "sha256:4dbc8f0fc024412b57ced8757ac7461305126a648ff8c2c807fcb8e133a78738", size = 41328, upload-time = "2026-05-10T07:38:23.517Z" },
+]
+
+[[package]]
 name = "tuney"
 version = "0.3.0"
 source = { editable = "." }
@@ -767,6 +776,7 @@ dependencies = [
     { name = "python-rtmidi" },
     { name = "sounddevice" },
     { name = "soundfile" },
+    { name = "tomlkit" },
     { name = "ty" },
     { name = "tyro" },
 ]
@@ -795,6 +805,7 @@ requires-dist = [
     { name = "python-rtmidi", specifier = ">=1.5.8" },
     { name = "sounddevice", specifier = ">=0.5.3" },
     { name = "soundfile", specifier = ">=0.13.1" },
+    { name = "tomlkit", specifier = ">=0.15.0" },
     { name = "ty", specifier = ">=0.0.13" },
     { name = "tyro", specifier = ">=1.0.13" },
 ]

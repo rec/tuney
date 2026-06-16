@@ -15,6 +15,7 @@ dependencies = [
     "python-rtmidi>=1.5.8",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
+    "tomlkit>=0.15.0",
     "ty>=0.0.13",
     "tyro>=1.0.13",
 ]
