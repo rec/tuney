@@ -24,6 +24,12 @@ def linear(m: Mapper) -> dict[str, int]:
 class Map(Enum):
     linear = (linear,)
 
+    @classmethod
+    def _missing_(cls, value: object) -> Map | None:
+        return (
+            cls[value] if isinstance(value, str) and value in cls.__members__ else None
+        )
+
     def __call__(self, m: Mapper) -> dict[str, int]:
         return self.value[0](m)
 

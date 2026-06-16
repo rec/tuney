@@ -21,6 +21,12 @@ class Waveform(enum.Enum):
     sine = (sine,)
     triangle = (triangle,)
 
+    @classmethod
+    def _missing_(cls, value: object) -> Waveform | None:
+        return (
+            cls[value] if isinstance(value, str) and value in cls.__members__ else None
+        )
+
 
 class Oscillator(BaseModel, frozen=True):
     waveform: Waveform = Waveform.triangle

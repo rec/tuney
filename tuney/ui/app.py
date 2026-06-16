@@ -26,6 +26,7 @@ STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
+DUMP_ACCELERATOR = 'Command-D' if sys.platform == 'darwin' else 'Ctrl+D'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -57,6 +58,8 @@ class App(CTk):
         self.bind('<Command-r>', self.on_replay)
         self.bind('<Control-b>', self.on_clear)
         self.bind('<Command-b>', self.on_clear)
+        self.bind('<Control-d>', self.on_dump)
+        self.bind('<Command-d>', self.on_dump)
         self.configure(menu=self.menu)
         self.layout = Layout(self)
 
@@ -70,10 +73,18 @@ class App(CTk):
     def on_clear(self, *_) -> None:
         self.tuney.clear()
 
+    def on_dump(self, *_) -> None:
+        self.tuney.dump()
+
     @cached_property
     def menu(self) -> Menu:
         menu = Menu(self)
         file_menu = Menu(menu, tearoff=False)
+        file_menu.add_command(
+            label='Dump',
+            accelerator=DUMP_ACCELERATOR,
+            command=self.tuney.dump,
+        )
         file_menu.add_command(
             label='Clear',
             accelerator=CLEAR_ACCELERATOR,

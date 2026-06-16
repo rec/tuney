@@ -4,6 +4,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Annotated
 
+import tomlkit
 import tyro
 from pydantic import BaseModel, ConfigDict
 
@@ -12,6 +13,7 @@ from .audio.multi_player import MultiPlayer
 from .char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
+from .serialize import serialize
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .types import Milliseconds, Seconds, to_ms
@@ -38,7 +40,7 @@ class Tuney(BaseModel):
     text: str | list[CharPress] | None = None
 
     # Maximum silent gap to keep in recordings, in seconds
-    max_gap: float | None = 4.0
+    max_gap: float = 4.0
 
     disable_gui: bool = False
     disable_sound: bool = False
@@ -116,11 +118,10 @@ class Tuney(BaseModel):
             self._recording_time_offset = self._recording_insert_time - raw_time
             self._recording_insert_time = None
         recorded_time = raw_time + self._recording_time_offset
-        max_gap = to_ms(self.max_gap) if self.max_gap and self.max_gap > 0 else None
-        if max_gap is not None and c.is_press and not self._recorded_notes_on():
-            gap = recorded_time - (
-                self.char_presses[-1].time if self.char_presses else 0
-            )
+        max_gap = to_ms(self.max_gap)
+        if max_gap > 0 and c.is_press and not self._recorded_notes_on():
+            time = self.char_presses[-1].time if self.char_presses else 0
+            gap = recorded_time - time
             if gap > max_gap:
                 self._recording_time_offset -= gap - max_gap
                 recorded_time = raw_time + self._recording_time_offset
@@ -143,6 +144,17 @@ class Tuney(BaseModel):
         self._replay_text = ''
         if not self.disable_gui:
             self.app.layout.set_text('')
+
+    def dump(self) -> None:
+        print('-' * 80)
+        print(tomlkit.dumps(serialize(self.dump_data())))
+        print('-' * 80)
+
+    def dump_data(self) -> dict[str, object]:
+        data = self.model_dump()
+        if self.char_presses:
+            data['text'] = [c.model_dump() for c in self.char_presses]
+        return data
 
     def _on_char(self, c: CharPress) -> None:
         if (note := self.mapper(c.char)) is not None:
