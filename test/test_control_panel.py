@@ -5,6 +5,7 @@ from tuney.mapper.mapper import Mapper
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui.control_panel import (
+    _entry_width,
     _parse_entry_value,
     _set_model_value,
     _visible_field_names,
@@ -31,6 +32,45 @@ def test_parse_entry_value_keeps_text_as_text():
     annotation = Tuney.model_fields['text'].annotation
 
     assert _parse_entry_value('hello', annotation, None) == 'hello'
+
+
+def test_entry_width_uses_compact_numeric_widths():
+    tuney = Tuney()
+
+    assert _entry_width('max_gap', Tuney.model_fields['max_gap'].annotation) == 40
+    assert (
+        _entry_width('gain', type(tuney.player).model_fields['gain'].annotation) == 40
+    )
+    assert (
+        _entry_width('scale', type(tuney.text_timings).model_fields['scale'].annotation)
+        == 40
+    )
+    assert (
+        _entry_width(
+            'period', type(tuney.player.oscillator).model_fields['period'].annotation
+        )
+        == 60
+    )
+    assert (
+        _entry_width(
+            'root_frequency',
+            type(tuney.player.scale.tuning).model_fields['root_frequency'].annotation,
+        )
+        == 60
+    )
+    assert (
+        _entry_width(
+            'root_note',
+            type(tuney.player.scale.tuning).model_fields['root_note'].annotation,
+        )
+        == 40
+    )
+    assert (
+        _entry_width(
+            'device', type(tuney.player.device).model_fields['device'].annotation
+        )
+        is None
+    )
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture):

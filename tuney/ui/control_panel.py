@@ -11,6 +11,10 @@ from pydantic import BaseModel, ValidationError
 FONT = 'Arial', 12
 TITLE_FONT = 'Arial', 13, 'bold'
 CHECKBOX_SIZE = 14
+RADIO_SIZE = 14
+TOGGLE_HEIGHT = 18
+ENTRY_CHAR_WIDTH = 10
+SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
 GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
 
 
@@ -65,7 +69,9 @@ def _add_control_grid(
         frame.grid_columnconfigure(column, weight=1)
         frame.grid_rowconfigure(row, weight=1)
 
-        if not isinstance(getattr(data, name), bool):
+        value = getattr(data, name)
+        annotation = type(data).model_fields[name].annotation
+        if not (isinstance(value, bool) or _enum_class(annotation, value)):
             label = ctk.CTkLabel(cell, text=name, font=FONT)
             label.pack(anchor='w')
         _add_control(cell, data, name)
@@ -115,6 +121,7 @@ def _add_bool_control(
         variable=var,
         command=command,
         font=FONT,
+        height=TOGGLE_HEIGHT,
         checkbox_width=CHECKBOX_SIZE,
         checkbox_height=CHECKBOX_SIZE,
     ).pack(anchor='w')
@@ -133,7 +140,12 @@ def _add_entry_control(
     else:
         text = str(value)
     var = ctk.StringVar(parent, text)
-    entry = ctk.CTkEntry(parent, textvariable=var)
+    width = _entry_width(name, annotation)
+    entry = (
+        ctk.CTkEntry(parent, width=width, textvariable=var)
+        if width
+        else ctk.CTkEntry(parent, textvariable=var)
+    )
     text_color = entry.cget('text_color')
 
     def update(*_: Any) -> None:
@@ -150,7 +162,10 @@ def _add_entry_control(
 
     entry.bind('<FocusOut>', update)
     entry.bind('<Return>', update)
-    entry.pack(fill='x')
+    if width:
+        entry.pack(anchor='w')
+    else:
+        entry.pack(fill='x')
 
 
 def _add_enum_control(
@@ -167,14 +182,21 @@ def _add_enum_control(
     def command() -> None:
         _set_model_value(data, name, members[var.get()])
 
+    frame = ctk.CTkFrame(parent, fg_color='transparent')
+    frame.pack(anchor='w')
+    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
     for i, member in enumerate(members):
         ctk.CTkRadioButton(
-            parent,
+            frame,
             text=member.name,
             variable=var,
             value=i,
             command=command,
-        ).pack(anchor='w')
+            font=FONT,
+            height=TOGGLE_HEIGHT,
+            radiobutton_width=RADIO_SIZE,
+            radiobutton_height=RADIO_SIZE,
+        ).pack(side='left', padx=(0, 6))
 
 
 def _set_model_value(data: BaseModel, name: str, value: Any) -> None:
@@ -198,6 +220,22 @@ def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
     if isinstance(old_value, list | dict) or _expects_json(annotation):
         return json.loads(raw)
     return raw
+
+
+def _entry_width(name: str, annotation: Any) -> int | None:
+    types = set(_annotation_types(annotation))
+    if str in types:
+        return None
+    if int in types and float not in types and bool not in types:
+        return 4 * ENTRY_CHAR_WIDTH
+    if float in types:
+        return (4 if name in SMALL_FLOAT_FIELDS else 6) * ENTRY_CHAR_WIDTH
+    return None
+
+
+def _annotation_types(annotation: Any) -> tuple[Any, ...]:
+    value = getattr(annotation, '__value__', annotation)
+    return (value, *_flatten_type_args(value))
 
 
 def _expects_json(annotation: Any) -> bool:

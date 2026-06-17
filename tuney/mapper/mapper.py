@@ -42,7 +42,9 @@ class Mapper(BaseModel, frozen=True):
 
     @cached_property
     def alphabet_(self) -> str:
-        return self.alphabet or (ascii_letters if self.case_sensitive else ascii_lowercase)
+        return self.alphabet or (
+            ascii_letters if self.case_sensitive else ascii_lowercase
+        )
 
     def __call__(self, k: str) -> int | None:
         return self.char_to_number.get(k if self.case_sensitive else k.lower())
