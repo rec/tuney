@@ -58,7 +58,7 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
   --player.oscillator.waveform {sine,triangle}                                                                          
         (default: triangle)                                                                                             
   --player.oscillator.period FLOAT                                                                                      
-        (default: 6.283185307179586)                                                                                    
+        (default: 1.0)                                                                                                  
   --player.oscillator.duty-cycle FLOAT                                                                                  
         (default: 0.5)                                                                                                  
                                                                                                                         

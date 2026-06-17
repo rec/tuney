@@ -30,12 +30,12 @@ class Waveform(enum.Enum):
 
 class Oscillator(BaseModel, frozen=True):
     waveform: Waveform = Waveform.triangle
-    period: float = 2 * np.pi
+    period: float = 1.0
     duty_cycle: float = 0.5
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:
         # TODO: add intensity to compensate for different energies
         end = start + length
-        ratio = self.period / period
+        ratio = 2 * np.pi * self.period / period
         wave = np.linspace(start * ratio, end * ratio, length, endpoint=False)
         return self.waveform.value[0](wave, self.duty_cycle)

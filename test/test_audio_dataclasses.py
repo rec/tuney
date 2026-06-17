@@ -80,6 +80,13 @@ def test_player_run_calls_stop_after_stoppable_signal():
     assert player._did_stop
 
 
+def test_oscillator_default_period_matches_previous_phase_scaling():
+    actual = Oscillator(waveform=Waveform.sine)(start=0, length=8, period=8)
+    expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
+
+    np.testing.assert_allclose(actual, expected)
+
+
 def test_oscillator_player_fill_advances_frame_counters():
     player = OscillatorPlayer(
         oscillator=Oscillator(waveform=Waveform.sine),

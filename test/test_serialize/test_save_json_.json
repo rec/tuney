@@ -10,7 +10,7 @@
     "device": {},
     "oscillator": {
       "waveform": "triangle",
-      "period": 6.283185307179586,
+      "period": 1.0,
       "duty_cycle": 0.5
     },
     "scale": {
