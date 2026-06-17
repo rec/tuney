@@ -106,7 +106,10 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
 
     assert midi_module.output_names() == []
-    assert 'Could not list MIDI outputs: expected list, got dict' in capsys.readouterr().out
+    assert (
+        'Could not list MIDI outputs: expected list, got dict'
+        in capsys.readouterr().out
+    )
 
 
 def test_runner_starts_target_with_stoppable():

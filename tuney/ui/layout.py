@@ -6,7 +6,7 @@ from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
 from . import PAD, QUARTER
 from .app import REPLAY, App, NoteLabel
-from .control_panel import ControlPanel, make_control_panel
+from .control_panel import ControlPanel
 from .note_button import NoteButton
 
 TEXT_BOX_HEIGHT = 150
@@ -46,13 +46,15 @@ class Layout:
 
     @cached_property
     def control_panel(self) -> ControlPanel:
-        f = make_control_panel(self.app, self.app.tuney, CONTROL_PANEL_HEIGHT)
-        f.pack(
+        frame = CTkFrame(self.app, fg_color='transparent')
+        frame.pack(
             fill='both',
             expand=False,
             padx=PAD,
             pady=PAD,
         )
+        f = ControlPanel(frame, self.app.tuney, CONTROL_PANEL_HEIGHT)
+        f.pack(fill='both', expand=True)
         return f
 
     def refresh_devices(self) -> None:

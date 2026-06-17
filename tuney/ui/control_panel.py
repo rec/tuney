@@ -6,6 +6,7 @@ import math
 from typing import Any, get_args, get_origin
 
 import customtkinter as ctk
+from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
 
 from ..audio.device import output_device_names
@@ -20,14 +21,11 @@ ENTRY_CHAR_WIDTH = 10
 SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
 GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
 CONTROL_ROWS = {
-    'Tuney': (('max_gap', 'disable_sound', 'run_in_background'),),
-    'Mapper': (
-        ('alphabet',),
-        ('length', 'case_sensitive', 'invert', 'offset'),
-    ),
-    'Oscillator': (('waveform', 'period', 'duty_cycle'),),
-    'TuningImpl': (
-        (
+    'Tuney': [['max_gap', 'disable_sound', 'run_in_background']],
+    'Mapper': [['alphabet'], ['length', 'case_sensitive', 'invert', 'offset']],
+    'Oscillator': [['waveform', 'period', 'duty_cycle']],
+    'TuningImpl': [
+        [
             'detune',
             'limit_denominator',
             'octave_divisions',
@@ -35,26 +33,26 @@ CONTROL_ROWS = {
             'root_frequency',
             'root_note',
             'table_blend',
-        ),
-        ('table',),
-    ),
-    'MIDI': (('enable', 'output', 'channel', 'velocity', 'note_offset'),),
-    'TextTimings': (
-        ('space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'),
-        ('overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'),
-        ('other', 'timings'),
-    ),
+        ],
+        ['table'],
+    ],
+    'MIDI': [['enable', 'output', 'channel', 'velocity', 'note_offset']],
+    'TextTimings': [
+        ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
+        ['overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'],
+        ['other', 'timings'],
+    ],
 }
 ENTRY_WIDTHS = {
-    ('Device', 'samplerate'): 6,
-    ('MIDI', 'output'): 12,
-    ('Scale', 'root'): 1,
-    ('Scale', 'begin'): 1,
-    ('Scale', 'end'): 1,
+    'Device.samplerate': 6,
+    'MIDI.output': 12,
+    'Scale.root': 1,
+    'Scale.begin': 1,
+    'Scale.end': 1,
 }
 OPTION_VALUES = {
-    ('Device', 'device'): output_device_names,
-    ('MIDI', 'output'): midi_output_names,
+    'Device.device': output_device_names,
+    'MIDI.output': midi_output_names,
 }
 
 
@@ -80,7 +78,7 @@ class _OptionControl:
 
 
 class ControlPanel(ctk.CTkScrollableFrame):
-    def __init__(self, parent: Any, data: BaseModel, height: int = 200) -> None:
+    def __init__(self, parent: CTkFrame, data: BaseModel, height: int = 200) -> None:
         super().__init__(parent, height=height)
         self.option_controls: list[_OptionControl] = []
         _add_model_controls(self, data, self.option_controls)
@@ -90,12 +88,8 @@ class ControlPanel(ctk.CTkScrollableFrame):
             option_control.refresh()
 
 
-def make_control_panel(parent: Any, data: BaseModel, height: int = 200) -> ControlPanel:
-    return ControlPanel(parent, data, height)
-
-
 def _add_model_controls(
-    parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
+    parent: CTkFrame | ctk.CTkScrollableFrame,
     data: BaseModel,
     option_controls: list[_OptionControl],
     title: str | None = None,
@@ -104,12 +98,12 @@ def _add_model_controls(
         ctk.CTkLabel(parent, text=title, font=TITLE_FONT).pack(anchor='w', pady=(8, 2))
 
     field_names = _visible_field_names(data)
-    controls = tuple(
+    controls = [
         name for name in field_names if not isinstance(getattr(data, name), BaseModel)
-    )
-    children = tuple(
+    ]
+    children = [
         name for name in field_names if isinstance(getattr(data, name), BaseModel)
-    )
+    ]
 
     if controls:
         _add_control_grid(parent, data, controls, option_controls)
@@ -123,9 +117,9 @@ def _add_model_controls(
 
 
 def _add_control_grid(
-    parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
+    parent: CTkFrame | ctk.CTkScrollableFrame,
     data: BaseModel,
-    fields: tuple[str, ...],
+    fields: list[str],
     option_controls: list[_OptionControl],
 ) -> None:
     frame = ctk.CTkFrame(parent, fg_color='transparent')
@@ -146,33 +140,30 @@ def _add_control_grid(
             )
 
 
-def _control_rows(
-    data: BaseModel, fields: tuple[str, ...]
-) -> tuple[tuple[str, ...], ...]:
+def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
     configured = CONTROL_ROWS.get(type(data).__name__)
     if configured is None:
         return _grid_rows(fields)
 
     used: set[str] = set()
-    rows = []
+    rows: list[list[str]] = []
     for configured_row in configured:
-        row = tuple(name for name in configured_row if name in fields)
-        if row:
+        if row := [name for name in configured_row if name in fields]:
             rows.append(row)
             used.update(row)
 
-    extra_fields = tuple(name for name in fields if name not in used)
+    extra_fields = [name for name in fields if name not in used]
     rows.extend(_grid_rows(extra_fields))
-    return tuple(rows)
+    return rows
 
 
-def _grid_rows(fields: tuple[str, ...]) -> tuple[tuple[str, ...], ...]:
+def _grid_rows(fields: list[str]) -> list[list[str]]:
     columns = max(1, math.ceil(len(fields) ** 0.5))
-    return tuple(fields[i : i + columns] for i in range(0, len(fields), columns))
+    return [fields[i : i + columns] for i in range(0, len(fields), columns)]
 
 
 def _add_control_cell(
-    parent: ctk.CTkFrame,
+    parent: CTkFrame,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
@@ -220,7 +211,7 @@ def _option_text(value: Any) -> str:
 
 
 def _add_control(
-    parent: ctk.CTkFrame,
+    parent: CTkFrame,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
@@ -229,7 +220,7 @@ def _add_control(
     annotation = type(data).model_fields[name].annotation
     enum_cls = _enum_class(annotation, value)
 
-    if values := OPTION_VALUES.get((type(data).__name__, name)):
+    if values := OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
         _add_option_control(parent, data, name, value, values, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
@@ -240,14 +231,14 @@ def _add_control(
 
 
 def _add_option_control(
-    parent: ctk.CTkFrame,
+    parent: CTkFrame,
     data: BaseModel,
     name: str,
     value: Any,
     values: Any,
     option_controls: list[_OptionControl],
 ) -> None:
-    var = ctk.StringVar(parent, _option_text(value))
+    string_var = ctk.StringVar(parent, _option_text(value))
 
     def command(raw: str) -> None:
         _set_model_value(data, name, raw or None)
@@ -262,7 +253,7 @@ def _add_option_control(
             frame,
             width=width,
             values=_option_values(values),
-            variable=var,
+            variable=string_var,
             command=command,
             font=FONT,
         )
@@ -270,7 +261,7 @@ def _add_option_control(
         else ctk.CTkOptionMenu(
             frame,
             values=_option_values(values),
-            variable=var,
+            variable=string_var,
             command=command,
             font=FONT,
         )
@@ -280,7 +271,7 @@ def _add_option_control(
 
 
 def _add_bool_control(
-    parent: ctk.CTkFrame, data: BaseModel, name: str, value: bool
+    parent: CTkFrame, data: BaseModel, name: str, value: bool
 ) -> None:
     var = ctk.IntVar(parent, int(value))
 
@@ -301,7 +292,7 @@ def _add_bool_control(
 
 
 def _add_entry_control(
-    parent: ctk.CTkFrame, data: BaseModel, name: str, value: Any
+    parent: CTkFrame, data: BaseModel, name: str, value: Any
 ) -> None:
     annotation = type(data).model_fields[name].annotation
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
@@ -345,7 +336,7 @@ def _add_entry_control(
 
 
 def _add_enum_control(
-    parent: ctk.CTkFrame,
+    parent: CTkFrame,
     data: BaseModel,
     name: str,
     value: enum.Enum,
@@ -404,7 +395,7 @@ def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
 def _entry_width(
     name: str, annotation: Any, model_name: str | None = None
 ) -> int | None:
-    if model_name and (characters := ENTRY_WIDTHS.get((model_name, name))):
+    if model_name and (characters := ENTRY_WIDTHS.get(f'{model_name}.{name}')):
         return characters * ENTRY_CHAR_WIDTH
 
     types = set(_annotation_types(annotation))
@@ -474,7 +465,7 @@ def _demo() -> None:
     demo_frame = ctk.CTkFrame(root)
     demo_frame.pack(fill='both', expand=True)
 
-    panel = make_control_panel(demo_frame, data)
+    panel = ControlPanel(demo_frame, data)
     panel.pack(fill='both', expand=True, padx=8, pady=8)
 
     output = ctk.CTkTextbox(demo_frame, height=120, width=384)
