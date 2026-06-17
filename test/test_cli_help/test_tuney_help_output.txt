@@ -50,7 +50,7 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: None)                                                                                                 
   --player.device.channels {None}|INT                                                                                   
         (default: None)                                                                                                 
-  --player.device.dtype {None}|STR                                                                                      
+  --player.device.dtype {None,int8,uint8,int32,int16,float32}                                                           
         (default: None)                                                                                                 
                                                                                                                         
  player.oscillator options                                                                                              

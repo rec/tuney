@@ -1,5 +1,15 @@
+from enum import StrEnum, auto
+
 import tyro
 from pydantic import BaseModel
+
+
+class DType(StrEnum):
+    int8 = auto()
+    uint8 = auto()
+    int32 = auto()
+    int16 = auto()
+    float32 = auto()
 
 
 class Device(BaseModel, frozen=True):
@@ -7,7 +17,7 @@ class Device(BaseModel, frozen=True):
     blocksize: tyro.conf.Suppress[int | None] = None
     device: int | str | None = None
     channels: int | None = None
-    dtype: str | None = None
+    dtype: DType | None = None
     latency: tyro.conf.Suppress[int | None] = None
     extra_settings: tyro.conf.Suppress[str | None] = None
     clip_off: tyro.conf.Suppress[bool | None] = None

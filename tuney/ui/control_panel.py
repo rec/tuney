@@ -189,9 +189,12 @@ def _add_enum_control(
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
     ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
+    radio_pad = 3 if name == 'dtype' else 6
+    radio_width = 50 if name == 'dtype' else 100
     for i, member in enumerate(members):
         ctk.CTkRadioButton(
             frame,
+            width=radio_width,
             text=member.name,
             variable=var,
             value=i,
@@ -200,7 +203,7 @@ def _add_enum_control(
             height=TOGGLE_HEIGHT,
             radiobutton_width=RADIO_SIZE,
             radiobutton_height=RADIO_SIZE,
-        ).pack(side='left', padx=(0, 6))
+        ).pack(side='left', padx=(0, radio_pad))
 
 
 def _set_model_value(data: BaseModel, name: str, value: Any) -> None:
