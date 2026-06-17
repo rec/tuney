@@ -64,10 +64,16 @@ def _add_control_grid(
 
     for i, name in enumerate(fields):
         row, column = divmod(i, columns)
+        is_bool = isinstance(getattr(data, name), bool)
         cell = ctk.CTkFrame(frame, border_width=1)
-        cell.grid(row=row, column=column, padx=4, pady=4, sticky='nsew')
+        cell.grid(
+            row=row,
+            column=column,
+            padx=2 if is_bool else 4,
+            pady=2 if is_bool else 4,
+            sticky='w' if is_bool else 'nsew',
+        )
         frame.grid_columnconfigure(column, weight=1)
-        frame.grid_rowconfigure(row, weight=1)
 
         _add_control(cell, data, name)
 
