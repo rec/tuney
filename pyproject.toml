@@ -19,7 +19,12 @@ dependencies = [
     "ty>=0.0.13",
     "tyro>=1.0.13",
 ]
-classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 
 [dependency-groups]
 dev = [
@@ -59,7 +64,7 @@ tuney = "tuney.__main__:main"
 [tool.poetry]
 name = "tuney"
 version = "0.3.0"
-description = "🎶 Turn text into music (#noAI) 🎶"
+description = "🎶 Turn text into music 🎶"
 authors = ["Tom Ritchford <tom@swirly.com>"]
 readme = "README.md"
 
