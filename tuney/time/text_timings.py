@@ -21,7 +21,7 @@ class TextTimings(BaseModel, frozen=True):
     blank_line: Milliseconds = 1000
 
     overlap: Milliseconds = 20
-    random_seed: int | None = None
+    seed: int | None = None
     alpha_only: bool = True
     strip_accents: bool = True
     scale: float = 1.0
@@ -39,7 +39,7 @@ class TextTimings(BaseModel, frozen=True):
 
     @cached_property
     def random(self):
-        return random.Random(self.random_seed)
+        return random.Random(self.seed)
 
     @cached_property
     def char_to_time(self) -> dict[str, Milliseconds]:

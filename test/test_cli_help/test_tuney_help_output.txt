@@ -48,8 +48,6 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: None)                                                                                                 
   --player.device.device {None}|INT|STR                                                                                 
         (default: None)                                                                                                 
-  --player.device.channels {None}|INT                                                                                   
-        (default: None)                                                                                                 
   --player.device.dtype {None,int8,uint8,int32,int16,float32}                                                           
         (default: None)                                                                                                 
                                                                                                                         
@@ -146,7 +144,7 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: 1000)                                                                                                 
   --text-timings.overlap FLOAT                                                                                          
         (default: 20)                                                                                                   
-  --text-timings.random-seed {None}|INT                                                                                 
+  --text-timings.seed {None}|INT                                                                                        
         (default: None)                                                                                                 
   --text-timings.alpha-only, --text-timings.no-alpha-only                                                               
         (default: True)                                                                                                 

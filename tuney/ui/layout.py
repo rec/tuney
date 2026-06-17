@@ -9,8 +9,8 @@ from .app import REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
 
-TEXT_BOX_HEIGHT = 150
-CONTROL_PANEL_HEIGHT = 180
+TEXT_BOX_HEIGHT = 120
+CONTROL_PANEL_HEIGHT = 270
 FONT = 'Arial', 14
 
 WIDTH, HEIGHT = 70, 80

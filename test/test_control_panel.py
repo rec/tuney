@@ -2,6 +2,7 @@ import tomlkit
 from pydantic import BaseModel
 from pytest_regressions.file_regression import FileRegressionFixture
 
+from tuney.audio.device import DType
 from tuney.mapper.mapper import Mapper
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
@@ -30,6 +31,14 @@ def test_set_model_value_validates_and_clears_cached_values():
 
     assert mapper.length == 1
     assert mapper.char_to_number['b'] == 0
+
+
+def test_set_model_value_converts_dtype_string():
+    tuney = Tuney()
+
+    _set_model_value(tuney.player.device, 'dtype', 'int16')
+
+    assert tuney.player.device.dtype == DType.int16
 
 
 def test_parse_entry_value_parses_optional_lists_as_json():
@@ -91,6 +100,14 @@ def test_entry_width_uses_compact_numeric_widths():
     )
     assert (
         _entry_width(
+            'space',
+            type(tuney.text_timings).model_fields['space'].annotation,
+            'TextTimings',
+        )
+        == 50
+    )
+    assert (
+        _entry_width(
             'root',
             type(tuney.player.scale).model_fields['root'].annotation,
             'Scale',
@@ -110,16 +127,21 @@ def test_entry_width_uses_compact_numeric_widths():
 def test_control_rows_use_compact_model_layouts():
     tuney = Tuney()
 
-    assert _control_rows(tuney, _control_fields(tuney)) == [
-        ['max_gap', 'disable_sound', 'run_in_background']
+    assert _control_rows(tuney, _control_fields(tuney)) == []
+    assert _control_rows(tuney.player.device, _control_fields(tuney.player.device)) == [
+        ['samplerate', 'device', 'dtype']
     ]
     assert _control_rows(tuney.mapper, _control_fields(tuney.mapper)) == [
         ['alphabet'],
-        ['length', 'case_sensitive', 'invert', 'offset'],
+        ['length', 'offset', 'case_sensitive', 'invert'],
     ]
     assert _control_rows(
         tuney.player.oscillator, _control_fields(tuney.player.oscillator)
     ) == [['waveform', 'period', 'duty_cycle']]
+    assert _control_rows(tuney.player.scale, _control_fields(tuney.player.scale)) == [
+        ['alphabet', 'root', 'begin', 'end', 'offset'],
+        ['notes_used', 'intervals'],
+    ]
     assert _control_rows(
         tuney.player.scale.tuning, _control_fields(tuney.player.scale.tuning)
     ) == [
@@ -139,7 +161,7 @@ def test_control_rows_use_compact_model_layouts():
     ]
     assert _control_rows(tuney.text_timings, _control_fields(tuney.text_timings)) == [
         ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
-        ['overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'],
+        ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
         ['other', 'timings'],
     ]
 

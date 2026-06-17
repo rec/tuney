@@ -3,13 +3,14 @@ from __future__ import annotations
 import enum
 import json
 import math
+from tkinter import TclError
 from typing import Any, get_args, get_origin
 
 import customtkinter as ctk
 from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
 
-from ..audio.device import output_device_names
+from ..audio.device import dtype_names, output_device_names
 from ..audio.midi import output_names as midi_output_names
 
 FONT = 'Arial', 12
@@ -20,10 +21,19 @@ TOGGLE_HEIGHT = 18
 ENTRY_CHAR_WIDTH = 10
 SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
 GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
+GENERAL_HIDDEN_FIELDS = {
+    'Tuney': {'max_gap', 'disable_sound', 'run_in_background'},
+    'MultiPlayer': {'gain', 'note_offset'},
+    'PitchToFrequency': {'function'},
+}
 CONTROL_ROWS = {
-    'Tuney': [['max_gap', 'disable_sound', 'run_in_background']],
-    'Mapper': [['alphabet'], ['length', 'case_sensitive', 'invert', 'offset']],
+    'Device': [['samplerate', 'device', 'dtype']],
+    'Mapper': [['alphabet'], ['length', 'offset', 'case_sensitive', 'invert']],
     'Oscillator': [['waveform', 'period', 'duty_cycle']],
+    'Scale': [
+        ['alphabet', 'root', 'begin', 'end', 'offset'],
+        ['notes_used', 'intervals'],
+    ],
     'TuningImpl': [
         [
             'detune',
@@ -39,7 +49,7 @@ CONTROL_ROWS = {
     'MIDI': [['enable', 'output', 'channel', 'velocity', 'note_offset']],
     'TextTimings': [
         ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
-        ['overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'],
+        ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
         ['other', 'timings'],
     ],
 }
@@ -49,11 +59,23 @@ ENTRY_WIDTHS = {
     'Scale.root': 1,
     'Scale.begin': 1,
     'Scale.end': 1,
+    'TextTimings.space': 5,
+    'TextTimings.period': 5,
+    'TextTimings.comma': 5,
+    'TextTimings.colon': 5,
+    'TextTimings.semicolon': 5,
+    'TextTimings.blank_line': 5,
 }
 OPTION_VALUES = {
     'Device.device': output_device_names,
+    'Device.dtype': dtype_names,
     'MIDI.output': midi_output_names,
 }
+CONTROL_FIELD_NAMES: dict[int, str] = {}
+CONTROL_FG_COLORS: dict[int, Any] = {}
+WIDGET_TEXT_COLORS: dict[int, Any] = {}
+DISABLED_CONTROL_FG_COLOR = 'gray88', 'gray42'
+DISABLED_TEXT_COLOR = 'gray96', 'gray96'
 
 
 class _OptionControl:
@@ -81,6 +103,8 @@ class ControlPanel(ctk.CTkScrollableFrame):
     def __init__(self, parent: CTkFrame, data: BaseModel, height: int = 200) -> None:
         super().__init__(parent, height=height)
         self.option_controls: list[_OptionControl] = []
+        if type(data).__name__ == 'Tuney':
+            _add_general_controls(self, data, self.option_controls)
         _add_model_controls(self, data, self.option_controls)
 
     def refresh_devices(self) -> None:
@@ -95,15 +119,10 @@ def _add_model_controls(
     title: str | None = None,
 ) -> None:
     if title:
-        ctk.CTkLabel(parent, text=title, font=TITLE_FONT).pack(anchor='w', pady=(8, 2))
+        _add_section_title(parent, title)
 
-    field_names = _visible_field_names(data)
-    controls = [
-        name for name in field_names if not isinstance(getattr(data, name), BaseModel)
-    ]
-    children = [
-        name for name in field_names if isinstance(getattr(data, name), BaseModel)
-    ]
+    controls = _visible_control_names(data)
+    children = _visible_child_names(data)
 
     if controls:
         _add_control_grid(parent, data, controls, option_controls)
@@ -111,9 +130,66 @@ def _add_model_controls(
     for name in children:
         child = getattr(data, name)
         assert isinstance(child, BaseModel)
+        if not _has_visible_fields(child):
+            continue
+        if not _visible_control_names(child):
+            _add_model_controls(parent, child, option_controls)
+            continue
         section = ctk.CTkFrame(parent)
         section.pack(fill='x', expand=True, pady=(6, 0))
         _add_model_controls(section, child, option_controls, name)
+
+
+def _add_general_controls(
+    parent: CTkFrame | ctk.CTkScrollableFrame,
+    data: BaseModel,
+    option_controls: list[_OptionControl],
+) -> None:
+    controls = _general_controls(data)
+    if not controls:
+        return
+    section = ctk.CTkFrame(parent)
+    section.pack(fill='x', expand=True, pady=(0, 0))
+    _add_section_title(section, 'general')
+    _add_control_group_grid(section, controls, option_controls)
+
+
+def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) -> None:
+    title_frame = ctk.CTkFrame(parent, corner_radius=0)
+    title_frame.pack(fill='x', pady=(0, 2))
+    ctk.CTkLabel(title_frame, text=title, font=TITLE_FONT).pack(
+        anchor='w',
+        padx=4,
+        pady=(2, 2),
+    )
+
+
+def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
+    return [
+        (data, 'max_gap'),
+        (data, 'disable_sound'),
+        (data, 'run_in_background'),
+        (data.player, 'gain'),
+        (data.player, 'note_offset'),
+        (data.player.scale.tuning.pitch_to_frequency, 'function'),
+    ]
+
+
+def _add_control_group_grid(
+    parent: CTkFrame | ctk.CTkScrollableFrame,
+    controls: list[tuple[BaseModel, str]],
+    option_controls: list[_OptionControl],
+) -> None:
+    frame = ctk.CTkFrame(parent, fg_color='transparent')
+    frame.pack(fill='x', expand=True)
+    row_frame = ctk.CTkFrame(frame, fg_color='transparent')
+    row_frame.pack(fill='x', expand=True)
+    for column in range(len(controls)):
+        row_frame.grid_columnconfigure(column, weight=0)
+    row_frame.grid_columnconfigure(len(controls), weight=1)
+
+    for column, (data, name) in enumerate(controls):
+        _add_control_cell(row_frame, data, name, option_controls, 0, column, 1)
 
 
 def _add_control_grid(
@@ -183,16 +259,55 @@ def _add_control_cell(
     )
 
     _add_control(cell, data, name, option_controls)
+    CONTROL_FIELD_NAMES[id(cell)] = name
+    if (
+        type(data).__name__ == 'MIDI'
+        and name != 'enable'
+        and not _is_midi_enabled(data)
+    ):
+        _set_widget_state(cell, 'disabled')
 
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     cls = type(data)
-    hidden = GUI_HIDDEN_FIELDS.get(cls.__name__, set())
+    hidden = GUI_HIDDEN_FIELDS.get(cls.__name__, set()) | GENERAL_HIDDEN_FIELDS.get(
+        cls.__name__, set()
+    )
     return tuple(
         name
         for name in cls.model_fields
         if name not in hidden and not _is_suppressed_field(cls, name)
     )
+
+
+def _visible_control_names(data: BaseModel) -> list[str]:
+    return [
+        name
+        for name in _visible_field_names(data)
+        if not isinstance(getattr(data, name), BaseModel)
+    ]
+
+
+def _visible_child_names(data: BaseModel) -> list[str]:
+    return [
+        name
+        for name in _visible_field_names(data)
+        if isinstance(getattr(data, name), BaseModel)
+    ]
+
+
+def _has_visible_fields(data: BaseModel) -> bool:
+    return bool(
+        _visible_control_names(data)
+        or any(
+            _has_visible_fields(getattr(data, name))
+            for name in _visible_child_names(data)
+        )
+    )
+
+
+def _is_midi_enabled(data: Any) -> bool:
+    return bool(data.enable)
 
 
 def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
@@ -277,6 +392,8 @@ def _add_bool_control(
 
     def command() -> None:
         _set_model_value(data, name, bool(var.get()))
+        if type(data).__name__ == 'MIDI' and name == 'enable':
+            _set_midi_controls_state(parent, bool(var.get()))
 
     ctk.CTkCheckBox(
         parent,
@@ -289,6 +406,66 @@ def _add_bool_control(
         checkbox_width=CHECKBOX_SIZE,
         checkbox_height=CHECKBOX_SIZE,
     ).pack(anchor='w')
+
+
+def _set_midi_controls_state(parent: CTkFrame, enabled: bool) -> None:
+    row_frame = parent.master
+    if row_frame is None:
+        return
+    for cell in row_frame.winfo_children():
+        if CONTROL_FIELD_NAMES.get(id(cell)) != 'enable':
+            _set_widget_state(cell, 'normal' if enabled else 'disabled')
+
+
+def _set_widget_state(widget: Any, state: str) -> None:
+    try:
+        widget.configure(state=state)
+    except (TclError, ValueError):
+        pass
+    _set_widget_text_color(widget, state)
+    _set_control_fg_color(widget, state)
+    for child in widget.winfo_children():
+        _set_widget_state(child, state)
+
+
+def _set_widget_text_color(widget: Any, state: str) -> None:
+    try:
+        text_color = widget.cget('text_color')
+    except (AttributeError, TclError, ValueError):
+        return
+
+    if state == 'disabled':
+        WIDGET_TEXT_COLORS.setdefault(id(widget), text_color)
+        try:
+            widget.configure(text_color=DISABLED_TEXT_COLOR)
+        except (TclError, ValueError):
+            pass
+        return
+
+    if id(widget) in WIDGET_TEXT_COLORS:
+        try:
+            widget.configure(text_color=WIDGET_TEXT_COLORS.pop(id(widget)))
+        except (TclError, ValueError):
+            pass
+
+
+def _set_control_fg_color(widget: Any, state: str) -> None:
+    if id(widget) not in CONTROL_FIELD_NAMES:
+        return
+
+    if state == 'disabled':
+        try:
+            CONTROL_FG_COLORS.setdefault(id(widget), widget.cget('fg_color'))
+            widget.configure(fg_color=DISABLED_CONTROL_FG_COLOR)
+        except (AttributeError, TclError, ValueError):
+            pass
+        return
+
+    if id(widget) in CONTROL_FG_COLORS:
+        try:
+            widget.configure(fg_color=CONTROL_FG_COLORS.pop(id(widget)))
+        except (TclError, ValueError):
+            pass
 
 
 def _add_entry_control(
@@ -352,8 +529,10 @@ def _add_enum_control(
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
     ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
-    radio_pad = 3 if name == 'dtype' else 6
-    radio_width = 50 if name == 'dtype' else 100
+    radio_pad = 3 if name in {'dtype', 'waveform', 'function'} else 6
+    radio_width = (
+        70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
+    )
     for i, member in enumerate(members):
         ctk.CTkRadioButton(
             frame,

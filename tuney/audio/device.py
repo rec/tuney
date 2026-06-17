@@ -18,7 +18,7 @@ class Device(BaseModel, frozen=True):
     samplerate: int | None = None
     blocksize: tyro.conf.Suppress[int | None] = None
     device: int | str | None = None
-    channels: int | None = None
+    channels: tyro.conf.Suppress[int | None] = None
     dtype: DType | None = None
     latency: tyro.conf.Suppress[int | None] = None
     extra_settings: tyro.conf.Suppress[str | None] = None
@@ -35,6 +35,10 @@ def output_device_names() -> list[str]:
         for device in devices
         if int(device.get('max_output_channels') or 0) > 0
     )
+
+
+def dtype_names() -> list[str]:
+    return [dtype.value for dtype in DType]
 
 
 def _unique(names: Iterable[str]) -> list[str]:

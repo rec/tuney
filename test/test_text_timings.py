@@ -2,7 +2,7 @@ from tuney.time.text_timings import TextTimings
 
 
 def test_text_timings():
-    tt = TextTimings(other={'!': 2000}, random_seed=23)
+    tt = TextTimings(other={'!': 2000}, seed=23)
     # actual = [int(i.time) for i in tt.lines_to_times(TEXT)]
     cps = list(tt.char_presses(TEXT))
     text = ''.join(e.char for e in cps if e.is_press)
