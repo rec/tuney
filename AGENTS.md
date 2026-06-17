@@ -26,6 +26,7 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
   - `tuney.py` - The top level `pydantic.BaseModel` which contains the whole configuration
   - `ui/` - A `tkinter` GUI using the `customtkinter` package
 - `tests/` - Contains unit and integration tests.
+- `scripts/` - Experimental scripts that are to be ignored
 
 
 ## 3. Specific Coding Conventions & Rules
@@ -36,7 +37,7 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 - **New files**: `git add` should be applied to all new files
 
 ## 4. How to Verify Your Work
-Before marking a task as complete, ensure you can run or instruct the user to run:
+Before commiting:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check --fix --select B,E,F,I $project test*`
 3. Type checking: `ty check .`
