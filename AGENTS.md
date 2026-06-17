@@ -39,4 +39,4 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 Before commiting:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check --fix --select B,E,F,I $project test*`
-3. Type checking: `ty check .`
+3. Type checking: `ty check tuney`
