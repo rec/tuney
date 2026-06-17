@@ -9,16 +9,14 @@ from pydantic import BaseModel
 
 
 def linear(m: Mapper) -> dict[str, int]:
-    alphabet = m.alphabet or (ascii_letters if m.case_sensitive else ascii_lowercase)
-
     def char_to_number(index: int, c: str) -> int:
         if m.invert:
-            index = len(alphabet) - index - 1
+            index = len(m.alphabet_) - index - 1
         if m.length:
             index %= m.length
         return index + m.offset
 
-    return {a: char_to_number(i, a) for i, a in enumerate(alphabet)}
+    return {a: char_to_number(i, a) for i, a in enumerate(m.alphabet_)}
 
 
 class Map(Enum):
@@ -41,6 +39,10 @@ class Mapper(BaseModel, frozen=True):
     case_sensitive: bool = True
     invert: bool = False
     offset: int = 0
+
+    @cached_property
+    def alphabet_(self) -> str:
+        return self.alphabet or (ascii_letters if self.case_sensitive else ascii_lowercase)
 
     def __call__(self, k: str) -> int | None:
         return self.char_to_number.get(k if self.case_sensitive else k.lower())

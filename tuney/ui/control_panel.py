@@ -124,7 +124,15 @@ def _add_entry_control(
     parent: ctk.CTkFrame, data: BaseModel, name: str, value: Any
 ) -> None:
     annotation = type(data).model_fields[name].annotation
-    var = ctk.StringVar(parent, _format_entry_value(value))
+    if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
+        value = data.alphabet_
+    if value is None:
+        text = ''
+    elif isinstance(value, list | dict):
+        text = json.dumps(value)
+    else:
+        text = str(value)
+    var = ctk.StringVar(parent, text)
     entry = ctk.CTkEntry(parent, textvariable=var)
     text_color = entry.cget('text_color')
 
@@ -182,14 +190,6 @@ def _clear_cached_values(data: BaseModel) -> None:
     for key in tuple(data.__dict__):
         if key not in fields:
             data.__dict__.pop(key, None)
-
-
-def _format_entry_value(value: Any) -> str:
-    if value is None:
-        return ''
-    if isinstance(value, list | dict):
-        return json.dumps(value)
-    return str(value)
 
 
 def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
