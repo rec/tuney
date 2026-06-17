@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from fractions import Fraction
 from typing import Protocol, runtime_checkable
 
@@ -22,17 +23,31 @@ class ToFrequency(Protocol):
     ) -> Frequency: ...
 
 
+def power(root: Frequency, change: float, octaves: float) -> float:
+    return root * change**octaves
+
+
+def linear(root: Frequency, change: float, octaves: float) -> float:
+    return root + change * octaves
+
+
+class PitchToFrequencyFunction(Enum):
+    power = (power,)
+    linear = (linear,)
+
+    @classmethod
+    def _missing_(cls, value: object) -> PitchToFrequencyFunction | None:
+        return (
+            cls[value] if isinstance(value, str) and value in cls.__members__ else None
+        )
+
+
 class PitchToFrequency(BaseModel, frozen=True):
     #: The base rule for converting a pitch to a frequency
-    function: str = 'power'
+    function: PitchToFrequencyFunction = PitchToFrequencyFunction.power
 
     def __call__(self, root: Frequency, change: float, octaves: float) -> float:
-        if self.function == 'power':
-            return root * change**octaves
-        elif self.function == 'linear':
-            return root + change * octaves
-        else:
-            raise NotImplementedError
+        return self.function.value[0](root, change, octaves)
 
 
 class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):

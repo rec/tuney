@@ -110,7 +110,7 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
  ---------------------------------------------------------------------------------------------------------------------- 
   The rule for converting a pitch to a frequency                                                                        
   ----------------------------------------------------------------------------------------------------------------------
-  --player.scale.tuning.pitch-to-frequency.function STR                                                                 
+  --player.scale.tuning.pitch-to-frequency.function {power,linear}                                                      
         The base rule for converting a pitch to a frequency (default: power)                                            
                                                                                                                         
  midi options                                                                                                           
