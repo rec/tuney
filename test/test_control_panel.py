@@ -1,15 +1,25 @@
 import tomlkit
+from pydantic import BaseModel
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.mapper.mapper import Mapper
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui.control_panel import (
+    _control_rows,
     _entry_width,
     _parse_entry_value,
     _set_model_value,
     _visible_field_names,
 )
+
+
+def _control_fields(data: BaseModel) -> tuple[str, ...]:
+    return tuple(
+        name
+        for name in _visible_field_names(data)
+        if not isinstance(getattr(data, name), BaseModel)
+    )
 
 
 def test_set_model_value_validates_and_clears_cached_values():
@@ -70,6 +80,67 @@ def test_entry_width_uses_compact_numeric_widths():
             'device', type(tuney.player.device).model_fields['device'].annotation
         )
         is None
+    )
+    assert (
+        _entry_width(
+            'samplerate',
+            type(tuney.player.device).model_fields['samplerate'].annotation,
+            'Device',
+        )
+        == 60
+    )
+    assert (
+        _entry_width(
+            'root',
+            type(tuney.player.scale).model_fields['root'].annotation,
+            'Scale',
+        )
+        == 10
+    )
+    assert (
+        _entry_width(
+            'output_name',
+            type(tuney.midi).model_fields['output_name'].annotation,
+            'MIDI',
+        )
+        == 120
+    )
+
+
+def test_control_rows_use_compact_model_layouts():
+    tuney = Tuney()
+
+    assert _control_rows(tuney, _control_fields(tuney)) == (
+        ('max_gap', 'disable_sound', 'run_in_background'),
+    )
+    assert _control_rows(tuney.mapper, _control_fields(tuney.mapper)) == (
+        ('alphabet',),
+        ('length', 'case_sensitive', 'invert', 'offset'),
+    )
+    assert _control_rows(
+        tuney.player.oscillator, _control_fields(tuney.player.oscillator)
+    ) == (('waveform', 'period', 'duty_cycle'),)
+    assert _control_rows(
+        tuney.player.scale.tuning, _control_fields(tuney.player.scale.tuning)
+    ) == (
+        (
+            'detune',
+            'limit_denominator',
+            'octave_divisions',
+            'octave_change',
+            'root_frequency',
+            'root_note',
+            'table_blend',
+        ),
+        ('table',),
+    )
+    assert _control_rows(tuney.midi, _control_fields(tuney.midi)) == (
+        ('enable', 'output_name', 'channel', 'velocity', 'note_offset'),
+    )
+    assert _control_rows(tuney.text_timings, _control_fields(tuney.text_timings)) == (
+        ('space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'),
+        ('overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'),
+        ('other', 'timings'),
     )
 
 

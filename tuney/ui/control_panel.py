@@ -16,6 +16,39 @@ TOGGLE_HEIGHT = 18
 ENTRY_CHAR_WIDTH = 10
 SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
 GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
+CONTROL_ROWS = {
+    'Tuney': (('max_gap', 'disable_sound', 'run_in_background'),),
+    'Mapper': (
+        ('alphabet',),
+        ('length', 'case_sensitive', 'invert', 'offset'),
+    ),
+    'Oscillator': (('waveform', 'period', 'duty_cycle'),),
+    'TuningImpl': (
+        (
+            'detune',
+            'limit_denominator',
+            'octave_divisions',
+            'octave_change',
+            'root_frequency',
+            'root_note',
+            'table_blend',
+        ),
+        ('table',),
+    ),
+    'MIDI': (('enable', 'output_name', 'channel', 'velocity', 'note_offset'),),
+    'TextTimings': (
+        ('space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'),
+        ('overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'),
+        ('other', 'timings'),
+    ),
+}
+ENTRY_WIDTHS = {
+    ('Device', 'samplerate'): 6,
+    ('MIDI', 'output_name'): 12,
+    ('Scale', 'root'): 1,
+    ('Scale', 'begin'): 1,
+    ('Scale', 'end'): 1,
+}
 
 
 def make_control_panel(
@@ -60,22 +93,65 @@ def _add_control_grid(
 ) -> None:
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x', expand=True)
+
+    for row_fields in _control_rows(data, fields):
+        row_frame = ctk.CTkFrame(frame, fg_color='transparent')
+        row_frame.pack(fill='x', expand=True)
+        columns = max(1, len(row_fields))
+        for column in range(columns):
+            row_frame.grid_columnconfigure(column, weight=0)
+        row_frame.grid_columnconfigure(columns, weight=1)
+
+        for column, name in enumerate(row_fields):
+            columnspan = columns + 1 if len(row_fields) == 1 else 1
+            _add_control_cell(row_frame, data, name, 0, column, columnspan)
+
+
+def _control_rows(
+    data: BaseModel, fields: tuple[str, ...]
+) -> tuple[tuple[str, ...], ...]:
+    configured = CONTROL_ROWS.get(type(data).__name__)
+    if configured is None:
+        return _grid_rows(fields)
+
+    used: set[str] = set()
+    rows = []
+    for configured_row in configured:
+        row = tuple(name for name in configured_row if name in fields)
+        if row:
+            rows.append(row)
+            used.update(row)
+
+    extra_fields = tuple(name for name in fields if name not in used)
+    rows.extend(_grid_rows(extra_fields))
+    return tuple(rows)
+
+
+def _grid_rows(fields: tuple[str, ...]) -> tuple[tuple[str, ...], ...]:
     columns = max(1, math.ceil(len(fields) ** 0.5))
+    return tuple(fields[i : i + columns] for i in range(0, len(fields), columns))
 
-    for i, name in enumerate(fields):
-        row, column = divmod(i, columns)
-        is_bool = isinstance(getattr(data, name), bool)
-        cell = ctk.CTkFrame(frame, border_width=1)
-        cell.grid(
-            row=row,
-            column=column,
-            padx=2 if is_bool else 4,
-            pady=2 if is_bool else 4,
-            sticky='w' if is_bool else 'nsew',
-        )
-        frame.grid_columnconfigure(column, weight=1)
 
-        _add_control(cell, data, name)
+def _add_control_cell(
+    parent: ctk.CTkFrame,
+    data: BaseModel,
+    name: str,
+    row: int,
+    column: int,
+    columnspan: int,
+) -> None:
+    is_bool = isinstance(getattr(data, name), bool)
+    cell = ctk.CTkFrame(parent, border_width=1)
+    cell.grid(
+        row=row,
+        column=column,
+        columnspan=columnspan,
+        padx=2 if is_bool else 4,
+        pady=2 if is_bool else 4,
+        sticky='w' if is_bool else 'nsew',
+    )
+
+    _add_control(cell, data, name)
 
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
@@ -118,6 +194,7 @@ def _add_bool_control(
 
     ctk.CTkCheckBox(
         parent,
+        width=0,
         text=name,
         variable=var,
         command=command,
@@ -141,7 +218,7 @@ def _add_entry_control(
     else:
         text = str(value)
     var = ctk.StringVar(parent, text)
-    width = _entry_width(name, annotation)
+    width = _entry_width(name, annotation, type(data).__name__)
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x')
     ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
@@ -229,7 +306,12 @@ def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
     return raw
 
 
-def _entry_width(name: str, annotation: Any) -> int | None:
+def _entry_width(
+    name: str, annotation: Any, model_name: str | None = None
+) -> int | None:
+    if model_name and (characters := ENTRY_WIDTHS.get((model_name, name))):
+        return characters * ENTRY_CHAR_WIDTH
+
     types = set(_annotation_types(annotation))
     if str in types:
         return None
