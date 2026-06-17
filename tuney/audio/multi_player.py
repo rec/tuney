@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 
+import tyro
 from pydantic import BaseModel
 
 from ..scale.scale import Scale
@@ -17,7 +18,7 @@ class MultiPlayer(BaseModel, frozen=True):
     scale: Scale = Scale()
     gain: float = 1.0
     note_offset: NoteNumber = 32
-    use_multiprocessing: bool = False
+    use_multiprocessing: tyro.conf.Suppress[bool] = False
 
     @cached_property
     def stoppable_futures(self) -> dict[int, concurrent.StoppableFuture]:

@@ -1,16 +1,61 @@
 from __future__ import annotations
 
 import enum
+import json
 import math
 from typing import Any, get_args, get_origin
 
 import customtkinter as ctk
 from pydantic import BaseModel, ValidationError
 
+FONT = 'Arial', 12
+TITLE_FONT = 'Arial', 13, 'bold'
+CHECKBOX_SIZE = 14
+GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
 
-def make_control_panel(parent: ctk.CTkFrame, data: BaseModel) -> ctk.CTkFrame:
-    frame = ctk.CTkFrame(parent)
-    fields = tuple(type(data).model_fields)
+
+def make_control_panel(
+    parent: Any, data: BaseModel, height: int = 200
+) -> ctk.CTkScrollableFrame:
+    frame = ctk.CTkScrollableFrame(parent, height=height)
+    _add_model_controls(frame, data)
+    return frame
+
+
+def _add_model_controls(
+    parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
+    data: BaseModel,
+    title: str | None = None,
+) -> None:
+    if title:
+        ctk.CTkLabel(parent, text=title, font=TITLE_FONT).pack(anchor='w', pady=(8, 2))
+
+    field_names = _visible_field_names(data)
+    controls = tuple(
+        name for name in field_names if not isinstance(getattr(data, name), BaseModel)
+    )
+    children = tuple(
+        name for name in field_names if isinstance(getattr(data, name), BaseModel)
+    )
+
+    if controls:
+        _add_control_grid(parent, data, controls)
+
+    for name in children:
+        child = getattr(data, name)
+        assert isinstance(child, BaseModel)
+        section = ctk.CTkFrame(parent)
+        section.pack(fill='x', expand=True, pady=(6, 0))
+        _add_model_controls(section, child, name)
+
+
+def _add_control_grid(
+    parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
+    data: BaseModel,
+    fields: tuple[str, ...],
+) -> None:
+    frame = ctk.CTkFrame(parent, fg_color='transparent')
+    frame.pack(fill='x', expand=True)
     columns = max(1, math.ceil(len(fields) ** 0.5))
 
     for i, name in enumerate(fields):
@@ -20,11 +65,27 @@ def make_control_panel(parent: ctk.CTkFrame, data: BaseModel) -> ctk.CTkFrame:
         frame.grid_columnconfigure(column, weight=1)
         frame.grid_rowconfigure(row, weight=1)
 
-        label = ctk.CTkLabel(cell, text=name)
-        label.pack(anchor='w')
+        if not isinstance(getattr(data, name), bool):
+            label = ctk.CTkLabel(cell, text=name, font=FONT)
+            label.pack(anchor='w')
         _add_control(cell, data, name)
 
-    return frame
+
+def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
+    cls = type(data)
+    hidden = GUI_HIDDEN_FIELDS.get(cls.__name__, set())
+    return tuple(
+        name
+        for name in cls.model_fields
+        if name not in hidden and not _is_suppressed_field(cls, name)
+    )
+
+
+def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
+    annotation = cls.__annotations__.get(name, '')
+    return str(annotation).startswith('tyro.conf.Suppress') or 'Suppress' in {
+        str(i) for i in get_args(annotation)
+    }
 
 
 def _add_control(parent: ctk.CTkFrame, data: BaseModel, name: str) -> None:
@@ -48,21 +109,33 @@ def _add_bool_control(
     def command() -> None:
         _set_model_value(data, name, bool(var.get()))
 
-    ctk.CTkCheckBox(parent, text='', variable=var, command=command).pack(anchor='w')
+    ctk.CTkCheckBox(
+        parent,
+        text=name,
+        variable=var,
+        command=command,
+        font=FONT,
+        checkbox_width=CHECKBOX_SIZE,
+        checkbox_height=CHECKBOX_SIZE,
+    ).pack(anchor='w')
 
 
 def _add_entry_control(
     parent: ctk.CTkFrame, data: BaseModel, name: str, value: Any
 ) -> None:
-    var = ctk.StringVar(parent, '' if value is None else str(value))
+    annotation = type(data).model_fields[name].annotation
+    var = ctk.StringVar(parent, _format_entry_value(value))
     entry = ctk.CTkEntry(parent, textvariable=var)
     text_color = entry.cget('text_color')
 
     def update(*_: Any) -> None:
         raw = var.get()
         try:
-            _set_model_value(data, name, None if raw == '' else raw)
+            _set_model_value(data, name, _parse_entry_value(raw, annotation, value))
         except ValidationError:
+            entry.configure(text_color='red')
+            return
+        except (TypeError, ValueError):
             entry.configure(text_color='red')
         else:
             entry.configure(text_color=text_color)
@@ -101,6 +174,38 @@ def _set_model_value(data: BaseModel, name: str, value: Any) -> None:
     values[name] = value
     validated = type(data).model_validate(values)
     object.__setattr__(data, name, getattr(validated, name))
+    _clear_cached_values(data)
+
+
+def _clear_cached_values(data: BaseModel) -> None:
+    fields = type(data).model_fields
+    for key in tuple(data.__dict__):
+        if key not in fields:
+            data.__dict__.pop(key, None)
+
+
+def _format_entry_value(value: Any) -> str:
+    if value is None:
+        return ''
+    if isinstance(value, list | dict):
+        return json.dumps(value)
+    return str(value)
+
+
+def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
+    if raw == '':
+        return None
+    if isinstance(old_value, list | dict) or _expects_json(annotation):
+        return json.loads(raw)
+    return raw
+
+
+def _expects_json(annotation: Any) -> bool:
+    args = _flatten_type_args(annotation)
+    if str in args:
+        return False
+    origins = {get_origin(i) or i for i in (annotation, *args)}
+    return bool(origins & {list, dict})
 
 
 def _enum_class(annotation: Any, value: Any) -> type[enum.Enum] | None:

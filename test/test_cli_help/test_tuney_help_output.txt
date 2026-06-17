@@ -41,32 +41,16 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: 1.0)                                                                                                  
   --player.note-offset INT                                                                                              
         (default: 32)                                                                                                   
-  --player.use-multiprocessing, --player.no-use-multiprocessing                                                         
-        (default: False)                                                                                                
                                                                                                                         
  player.device options                                                                                                  
  ---------------------------------------------------------------------------------------------------------------------- 
   --player.device.samplerate {None}|INT                                                                                 
-        (default: None)                                                                                                 
-  --player.device.blocksize {None}|INT                                                                                  
         (default: None)                                                                                                 
   --player.device.device {None}|INT|STR                                                                                 
         (default: None)                                                                                                 
   --player.device.channels {None}|INT                                                                                   
         (default: None)                                                                                                 
   --player.device.dtype {None}|STR                                                                                      
-        (default: None)                                                                                                 
-  --player.device.latency {None}|INT                                                                                    
-        (default: None)                                                                                                 
-  --player.device.extra-settings {None}|STR                                                                             
-        (default: None)                                                                                                 
-  --player.device.clip-off {None,True,False}                                                                            
-        (default: None)                                                                                                 
-  --player.device.dither-off {None,True,False}                                                                          
-        (default: None)                                                                                                 
-  --player.device.never-drop-input {None,True,False}                                                                    
-        (default: None)                                                                                                 
-  --player.device.prime-output-buffers-using-stream-callback {None,True,False}                                          
         (default: None)                                                                                                 
                                                                                                                         
  player.oscillator options                                                                                              

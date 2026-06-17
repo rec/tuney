@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
+from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkScrollableFrame, CTkTextbox
 
 from . import PAD, QUARTER
 from .app import REPLAY, App, NoteLabel
+from .control_panel import make_control_panel
 from .note_button import NoteButton
 
 TEXT_BOX_HEIGHT = 150
-CONTROL_PANEL_HEIGHT = 100
+CONTROL_PANEL_HEIGHT = 180
 FONT = 'Arial', 14
 
 WIDTH, HEIGHT = 70, 80
@@ -44,8 +45,8 @@ class Layout:
         self.count_label.configure(text=f'Chars: {len(s)}')
 
     @cached_property
-    def control_panel(self) -> CTkFrame:
-        f = CTkFrame(self.app, height=CONTROL_PANEL_HEIGHT)
+    def control_panel(self) -> CTkScrollableFrame:
+        f = make_control_panel(self.app, self.app.tuney, CONTROL_PANEL_HEIGHT)
         f.pack(
             fill='both',
             expand=False,
