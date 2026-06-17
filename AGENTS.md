@@ -29,14 +29,13 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 - `scripts/` - Experimental scripts that are to be ignored
 
 
-## 3. Specific Coding Conventions & Rules
+## 4. Specific Coding Conventions & Rules
 - **Type Hinting:** Explicit type hints are REQUIRED
 - **Async:** This project does not use async/await patterns or network IO.
 - **Error Handling:** Avoid catching exceptions unless necesssary. Do not use broad `except Exception:` blocks. Always catch specific exceptions. Log by printing to sys.stderr.
 - **State Management:** The application is entirely stateless. Do not store data in memory between API calls.
-- **New files**: `git add` should be applied to all new files
 
-## 4. How to Verify Your Work
+## 5. How to Verify Your Work
 Before commiting:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check --fix --select B,E,F,I $project test*`
