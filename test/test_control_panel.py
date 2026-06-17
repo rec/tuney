@@ -99,8 +99,8 @@ def test_entry_width_uses_compact_numeric_widths():
     )
     assert (
         _entry_width(
-            'output_name',
-            type(tuney.midi).model_fields['output_name'].annotation,
+            'output',
+            type(tuney.midi).model_fields['output'].annotation,
             'MIDI',
         )
         == 120
@@ -135,7 +135,7 @@ def test_control_rows_use_compact_model_layouts():
         ('table',),
     )
     assert _control_rows(tuney.midi, _control_fields(tuney.midi)) == (
-        ('enable', 'output_name', 'channel', 'velocity', 'note_offset'),
+        ('enable', 'output', 'channel', 'velocity', 'note_offset'),
     )
     assert _control_rows(tuney.text_timings, _control_fields(tuney.text_timings)) == (
         ('space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'),

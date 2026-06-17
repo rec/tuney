@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkScrollableFrame, CTkTextbox
+from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
 from . import PAD, QUARTER
 from .app import REPLAY, App, NoteLabel
-from .control_panel import make_control_panel
+from .control_panel import ControlPanel, make_control_panel
 from .note_button import NoteButton
 
 TEXT_BOX_HEIGHT = 150
@@ -45,7 +45,7 @@ class Layout:
         self.count_label.configure(text=f'Chars: {len(s)}')
 
     @cached_property
-    def control_panel(self) -> CTkScrollableFrame:
+    def control_panel(self) -> ControlPanel:
         f = make_control_panel(self.app, self.app.tuney, CONTROL_PANEL_HEIGHT)
         f.pack(
             fill='both',
@@ -54,6 +54,9 @@ class Layout:
             pady=PAD,
         )
         return f
+
+    def refresh_devices(self) -> None:
+        self.control_panel.refresh_devices()
 
     @cached_property
     def count_label(self) -> CTkLabel:

@@ -8,6 +8,9 @@ from typing import Any, get_args, get_origin
 import customtkinter as ctk
 from pydantic import BaseModel, ValidationError
 
+from ..audio.device import output_device_names
+from ..audio.midi import output_names as midi_output_names
+
 FONT = 'Arial', 12
 TITLE_FONT = 'Arial', 13, 'bold'
 CHECKBOX_SIZE = 14
@@ -35,7 +38,7 @@ CONTROL_ROWS = {
         ),
         ('table',),
     ),
-    'MIDI': (('enable', 'output_name', 'channel', 'velocity', 'note_offset'),),
+    'MIDI': (('enable', 'output', 'channel', 'velocity', 'note_offset'),),
     'TextTimings': (
         ('space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'),
         ('overlap', 'random_seed', 'alpha_only', 'strip_accents', 'scale'),
@@ -44,24 +47,57 @@ CONTROL_ROWS = {
 }
 ENTRY_WIDTHS = {
     ('Device', 'samplerate'): 6,
-    ('MIDI', 'output_name'): 12,
+    ('MIDI', 'output'): 12,
     ('Scale', 'root'): 1,
     ('Scale', 'begin'): 1,
     ('Scale', 'end'): 1,
 }
+OPTION_VALUES = {
+    ('Device', 'device'): output_device_names,
+    ('MIDI', 'output'): midi_output_names,
+}
 
 
-def make_control_panel(
-    parent: Any, data: BaseModel, height: int = 200
-) -> ctk.CTkScrollableFrame:
-    frame = ctk.CTkScrollableFrame(parent, height=height)
-    _add_model_controls(frame, data)
-    return frame
+class _OptionControl:
+    def __init__(
+        self,
+        menu: ctk.CTkOptionMenu,
+        data: BaseModel,
+        name: str,
+        values: Any,
+    ) -> None:
+        self.menu = menu
+        self.data = data
+        self.name = name
+        self.values = values
+
+    def refresh(self) -> None:
+        values = _option_values(self.values)
+        self.menu.configure(values=values)
+        value = _option_text(getattr(self.data, self.name))
+        if value:
+            self.menu.set(value)
+
+
+class ControlPanel(ctk.CTkScrollableFrame):
+    def __init__(self, parent: Any, data: BaseModel, height: int = 200) -> None:
+        super().__init__(parent, height=height)
+        self.option_controls: list[_OptionControl] = []
+        _add_model_controls(self, data, self.option_controls)
+
+    def refresh_devices(self) -> None:
+        for option_control in self.option_controls:
+            option_control.refresh()
+
+
+def make_control_panel(parent: Any, data: BaseModel, height: int = 200) -> ControlPanel:
+    return ControlPanel(parent, data, height)
 
 
 def _add_model_controls(
     parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
     data: BaseModel,
+    option_controls: list[_OptionControl],
     title: str | None = None,
 ) -> None:
     if title:
@@ -76,20 +112,21 @@ def _add_model_controls(
     )
 
     if controls:
-        _add_control_grid(parent, data, controls)
+        _add_control_grid(parent, data, controls, option_controls)
 
     for name in children:
         child = getattr(data, name)
         assert isinstance(child, BaseModel)
         section = ctk.CTkFrame(parent)
         section.pack(fill='x', expand=True, pady=(6, 0))
-        _add_model_controls(section, child, name)
+        _add_model_controls(section, child, option_controls, name)
 
 
 def _add_control_grid(
     parent: ctk.CTkFrame | ctk.CTkScrollableFrame,
     data: BaseModel,
     fields: tuple[str, ...],
+    option_controls: list[_OptionControl],
 ) -> None:
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x', expand=True)
@@ -104,7 +141,9 @@ def _add_control_grid(
 
         for column, name in enumerate(row_fields):
             columnspan = columns + 1 if len(row_fields) == 1 else 1
-            _add_control_cell(row_frame, data, name, 0, column, columnspan)
+            _add_control_cell(
+                row_frame, data, name, option_controls, 0, column, columnspan
+            )
 
 
 def _control_rows(
@@ -136,6 +175,7 @@ def _add_control_cell(
     parent: ctk.CTkFrame,
     data: BaseModel,
     name: str,
+    option_controls: list[_OptionControl],
     row: int,
     column: int,
     columnspan: int,
@@ -151,7 +191,7 @@ def _add_control_cell(
         sticky='w' if is_bool else 'nsew',
     )
 
-    _add_control(cell, data, name)
+    _add_control(cell, data, name, option_controls)
 
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
@@ -171,17 +211,72 @@ def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
     }
 
 
-def _add_control(parent: ctk.CTkFrame, data: BaseModel, name: str) -> None:
+def _option_values(values: Any) -> list[str]:
+    return ['', *values()]
+
+
+def _option_text(value: Any) -> str:
+    return '' if value is None else str(value)
+
+
+def _add_control(
+    parent: ctk.CTkFrame,
+    data: BaseModel,
+    name: str,
+    option_controls: list[_OptionControl],
+) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
     enum_cls = _enum_class(annotation, value)
 
-    if enum_cls:
+    if values := OPTION_VALUES.get((type(data).__name__, name)):
+        _add_option_control(parent, data, name, value, values, option_controls)
+    elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
     elif isinstance(value, bool):
         _add_bool_control(parent, data, name, value)
     else:
         _add_entry_control(parent, data, name, value)
+
+
+def _add_option_control(
+    parent: ctk.CTkFrame,
+    data: BaseModel,
+    name: str,
+    value: Any,
+    values: Any,
+    option_controls: list[_OptionControl],
+) -> None:
+    var = ctk.StringVar(parent, _option_text(value))
+
+    def command(raw: str) -> None:
+        _set_model_value(data, name, raw or None)
+
+    annotation = type(data).model_fields[name].annotation
+    width = _entry_width(name, annotation, type(data).__name__)
+    frame = ctk.CTkFrame(parent, fg_color='transparent')
+    frame.pack(fill='x')
+    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
+    menu = (
+        ctk.CTkOptionMenu(
+            frame,
+            width=width,
+            values=_option_values(values),
+            variable=var,
+            command=command,
+            font=FONT,
+        )
+        if width
+        else ctk.CTkOptionMenu(
+            frame,
+            values=_option_values(values),
+            variable=var,
+            command=command,
+            font=FONT,
+        )
+    )
+    menu.pack(side='left')
+    option_controls.append(_OptionControl(menu, data, name, values))
 
 
 def _add_bool_control(

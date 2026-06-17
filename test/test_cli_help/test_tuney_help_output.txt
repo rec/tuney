@@ -119,7 +119,7 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
   ----------------------------------------------------------------------------------------------------------------------
   --midi.enable, --midi.no-enable                                                                                       
         (default: False)                                                                                                
-  --midi.output-name {None}|STR                                                                                         
+  --midi.output {None}|STR                                                                                              
         (default: None)                                                                                                 
   --midi.channel INT                                                                                                    
         (default: 0)                                                                                                    

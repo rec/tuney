@@ -1,9 +1,12 @@
+import subprocess
 import threading
 from typing import Any
 
 import numpy as np
 from pydantic import PrivateAttr
 
+from tuney.audio import device as device_module
+from tuney.audio import midi as midi_module
 from tuney.audio.concurrent import Runner, Stoppable
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.oscillator_player import OscillatorPlayer, Sound
@@ -50,6 +53,60 @@ def test_sample_data_reports_channels_and_cuts_from_center():
     assert device.device == 'speaker'
     assert device.samplerate == 2
     np.testing.assert_array_equal(cut.data, data[1:3])
+
+
+def test_output_device_names_lists_unique_output_devices(monkeypatch):
+    monkeypatch.setattr(
+        device_module.sounddevice,
+        'query_devices',
+        lambda: [
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'mic', 'max_output_channels': 0},
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'headphones', 'max_output_channels': 2},
+        ],
+    )
+
+    assert device_module.output_device_names() == ['speaker', 'headphones']
+
+
+def test_midi_output_names_uses_subprocess(monkeypatch):
+    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='["synth", "keyboard"]',
+            stderr='',
+        )
+
+    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+
+    assert midi_module.output_names() == ['synth', 'keyboard']
+
+
+def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
+    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        raise subprocess.CalledProcessError(1, [])
+
+    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+
+    assert midi_module.output_names() == []
+    assert 'Could not list MIDI outputs:' in capsys.readouterr().out
+
+
+def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
+    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='{}',
+            stderr='',
+        )
+
+    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+
+    assert midi_module.output_names() == []
+    assert 'Could not list MIDI outputs: expected list, got dict' in capsys.readouterr().out
 
 
 def test_runner_starts_target_with_stoppable():

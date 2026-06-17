@@ -1,5 +1,7 @@
+from collections.abc import Iterable
 from enum import StrEnum, auto
 
+import sounddevice
 import tyro
 from pydantic import BaseModel
 
@@ -24,3 +26,16 @@ class Device(BaseModel, frozen=True):
     dither_off: tyro.conf.Suppress[bool | None] = None
     never_drop_input: tyro.conf.Suppress[bool | None] = None
     prime_output_buffers_using_stream_callback: tyro.conf.Suppress[bool | None] = None
+
+
+def output_device_names() -> list[str]:
+    devices = sounddevice.query_devices()
+    return _unique(
+        device['name']
+        for device in devices
+        if int(device.get('max_output_channels') or 0) > 0
+    )
+
+
+def _unique(names: Iterable[str]) -> list[str]:
+    return list(dict.fromkeys(names))

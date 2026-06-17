@@ -101,6 +101,9 @@ class App(CTk):
             self._is_saving = False
             self._has_focus = False
 
+    def on_refresh_devices(self) -> None:
+        self.layout.refresh_devices()
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -128,6 +131,10 @@ class App(CTk):
             label='Clear',
             accelerator=CLEAR_ACCELERATOR,
             command=self.tuney.clear,
+        )
+        file_menu.add_command(
+            label='Refresh devices',
+            command=self.on_refresh_devices,
         )
         menu.add_cascade(label='File', menu=file_menu)
         return menu
