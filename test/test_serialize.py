@@ -9,17 +9,6 @@ from tuney.serialize import serialize
 from tuney.tuney import Tuney
 
 
-def test_serialize_tuney_config_for_toml():
-    tuney = Tuney()
-
-    text = tomlkit.dumps(serialize(tuney.dump_data()))
-    actual = tomllib.loads(text)
-
-    assert actual['mapper']['map'] == 'linear'
-    assert actual['player']['oscillator']['waveform'] == 'triangle'
-    Tuney(**actual)
-
-
 def test_tuney_dump_data_uses_recorded_char_presses():
     tuney = Tuney()
     tuney.char_presses.append(CharPress('a', True, 0.0))
@@ -33,26 +22,14 @@ def test_tuney_dump_data_uses_recorded_char_presses():
     ]
 
 
-def test_save_writes_toml(tmp_path):
-    path = tmp_path / 'tuney.toml'
-
+@pytest.mark.parametrize('format_name', ['toml', 'json'])
+def test_save(tmp_path, file_regression, format_name) -> None:
+    suffix = f'.{format_name}'
+    path = tmp_path / f'tuney{suffix}'
     Tuney().save(path)
+    text = path.read_text()
 
-    actual = tomllib.loads(path.read_text())
-    assert actual['mapper']['map'] == 'linear'
-    assert actual['player']['oscillator']['waveform'] == 'triangle'
-    Tuney(**actual)
-
-
-def test_save_writes_json(tmp_path):
-    path = tmp_path / 'tuney.json'
-
-    Tuney().save(path)
-
-    actual = json.loads(path.read_text())
-    assert actual['mapper']['map'] == 'linear'
-    assert actual['player']['oscillator']['waveform'] == 'triangle'
-    Tuney(**actual)
+    file_regression.check(text, extension=suffix)
 
 
 def test_save_rejects_unknown_suffix(tmp_path):

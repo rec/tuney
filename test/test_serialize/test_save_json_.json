@@ -1,0 +1,72 @@
+{
+  "mapper": {
+    "map": "linear",
+    "length": 0,
+    "case_sensitive": true,
+    "invert": false,
+    "offset": 0
+  },
+  "player": {
+    "device": {},
+    "oscillator": {
+      "waveform": "triangle",
+      "period": 6.283185307179586,
+      "duty_cycle": 0.5
+    },
+    "scale": {
+      "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "root": "C",
+      "begin": "A",
+      "end": "G",
+      "intervals": [
+        2,
+        2,
+        1,
+        2,
+        2,
+        2,
+        1
+      ],
+      "offset": 0,
+      "tuning": {
+        "detune": 0,
+        "limit_denominator": 0,
+        "octave_divisions": 12,
+        "octave_change": 2,
+        "pitch_to_frequency": {
+          "function": "power"
+        },
+        "root_frequency": 440,
+        "root_note": 69,
+        "table": [],
+        "table_blend": true
+      }
+    },
+    "gain": 1.0,
+    "note_offset": 32,
+    "use_multiprocessing": false
+  },
+  "midi": {
+    "enable": false,
+    "channel": 0,
+    "velocity": 64,
+    "note_offset": 0
+  },
+  "text_timings": {
+    "space": 100,
+    "period": 300,
+    "comma": 200,
+    "colon": 400,
+    "semicolon": 400,
+    "blank_line": 1000,
+    "overlap": 20,
+    "alpha_only": true,
+    "strip_accents": true,
+    "scale": 3.0,
+    "other": {}
+  },
+  "max_gap": 4.0,
+  "disable_gui": false,
+  "disable_sound": false,
+  "run_in_background": false
+}

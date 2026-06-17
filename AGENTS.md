@@ -27,13 +27,15 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
   - `ui/` - A `tkinter` GUI using the `customtkinter` package
 - `tests/` - Contains unit and integration tests.
 
-## 4. Specific Coding Conventions & Rules
+
+## 3. Specific Coding Conventions & Rules
 - **Type Hinting:** Explicit type hints are REQUIRED
 - **Async:** This project does not use async/await patterns or network IO.
 - **Error Handling:** Avoid catching exceptions unless necesssary. Do not use broad `except Exception:` blocks. Always catch specific exceptions. Log by printing to sys.stderr.
 - **State Management:** The application is entirely stateless. Do not store data in memory between API calls.
+- **New files**: `git add` should be applied to all new files
 
-## 5. How to Verify Your Work
+## 4. How to Verify Your Work
 Before marking a task as complete, ensure you can run or instruct the user to run:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check .`
