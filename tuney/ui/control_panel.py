@@ -69,11 +69,6 @@ def _add_control_grid(
         frame.grid_columnconfigure(column, weight=1)
         frame.grid_rowconfigure(row, weight=1)
 
-        value = getattr(data, name)
-        annotation = type(data).model_fields[name].annotation
-        if not (isinstance(value, bool) or _enum_class(annotation, value)):
-            label = ctk.CTkLabel(cell, text=name, font=FONT)
-            label.pack(anchor='w')
         _add_control(cell, data, name)
 
 
@@ -141,10 +136,13 @@ def _add_entry_control(
         text = str(value)
     var = ctk.StringVar(parent, text)
     width = _entry_width(name, annotation)
+    frame = ctk.CTkFrame(parent, fg_color='transparent')
+    frame.pack(fill='x')
+    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
     entry = (
-        ctk.CTkEntry(parent, width=width, textvariable=var)
+        ctk.CTkEntry(frame, width=width, textvariable=var)
         if width
-        else ctk.CTkEntry(parent, textvariable=var)
+        else ctk.CTkEntry(frame, textvariable=var)
     )
     text_color = entry.cget('text_color')
 
@@ -163,9 +161,9 @@ def _add_entry_control(
     entry.bind('<FocusOut>', update)
     entry.bind('<Return>', update)
     if width:
-        entry.pack(anchor='w')
+        entry.pack(side='left')
     else:
-        entry.pack(fill='x')
+        entry.pack(side='left', fill='x', expand=True)
 
 
 def _add_enum_control(
