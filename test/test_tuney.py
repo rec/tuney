@@ -96,6 +96,7 @@ def test_display_text_uses_only_key_presses():
 
 def test_clear_resets_recording_state():
     tuney = Tuney(text=[CharPress('a', True, 0.0)])
+    object.__setattr__(tuney, 'app', FakeApp())
     tuney._recording_start_time = 100.0
     tuney._recording_time_offset = 20.0
     tuney._recording_insert_time = 10.0
