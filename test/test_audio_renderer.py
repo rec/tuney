@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import soundfile
 from pytest_regressions.file_regression import FileRegressionFixture
-from sounddevice import CallbackStop, PortAudioError
+from sounddevice import CallbackAbort, CallbackStop, PortAudioError
 
 from tuney.audio import engine as engine_module
 from tuney.audio.engine import AudioEngine, StopAll
@@ -112,6 +112,7 @@ class _EngineStream:
         self.active = False
         self.closed = False
         self.samplerate = 44_100
+        self.options = _
         self.instances.append(self)
 
     def start(self) -> None:
@@ -129,7 +130,18 @@ class _FailingEngineStream(_EngineStream):
         raise PortAudioError('device unavailable')
 
 
+class _FailingOpenStream:
+    def __init__(self, **_: Any) -> None:
+        raise PortAudioError('cannot open device')
+
+
+class _FailingMixer(Mixer):
+    def render(self, *_: Any, **__: Any) -> np.ndarray:
+        raise ValueError('cannot render block')
+
+
 def test_stream_failure_is_recorded(monkeypatch) -> None:
+    _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _FailingEngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
 
@@ -137,6 +149,38 @@ def test_stream_failure_is_recorded(monkeypatch) -> None:
         engine.start()
 
     assert engine.diagnostics.stream_errors == ['device unavailable']
+    assert _EngineStream.instances[0].closed
+    assert 'stream' not in engine.__dict__
+
+
+def test_stream_open_failure_leaves_engine_stopped(monkeypatch) -> None:
+    monkeypatch.setattr(engine_module, 'OutputStream', _FailingOpenStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+
+    with pytest.raises(PortAudioError, match='cannot open device'):
+        engine.start()
+
+    assert engine.diagnostics.stream_errors == ['cannot open device']
+    assert 'stream' not in engine.__dict__
+
+
+def test_multi_player_rolls_back_failed_stream_open(monkeypatch) -> None:
+    monkeypatch.setattr(engine_module, 'OutputStream', _FailingOpenStream)
+    player = MultiPlayer()
+
+    assert not player.start(0)
+    assert not player.pressed_notes
+    assert player.engine.diagnostics.stream_errors == ['cannot open device']
+    assert 'stream' not in player.engine.__dict__
+
+
+def test_callback_failure_is_recorded() -> None:
+    engine = AudioEngine(mixer=_FailingMixer(sound=_sound))
+
+    with pytest.raises(CallbackAbort):
+        engine.callback(np.zeros((4, 1)), 4, 0.0, None)
+
+    assert engine.diagnostics.take_errors() == ['cannot render block']
 
 
 def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
@@ -156,6 +200,31 @@ def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
         state.voice.sample_rate == 44_100
         for state in player.engine.mixer.voices.values()
     )
+
+
+def test_device_change_restarts_active_stream(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    player = MultiPlayer()
+    player.start(0)
+    first = _EngineStream.instances[0]
+
+    object.__setattr__(player.device, 'device', 'speaker')
+    player.device.notify_change()
+
+    second = _EngineStream.instances[1]
+    assert first.closed
+    assert second.active
+    assert second.options['device'] == 'speaker'
+    assert not player.pressed_notes
+    assert not player.engine.mixer.voices
+
+    object.__setattr__(player.device, 'device', 'headphones')
+    player.device.notify_change()
+
+    assert second.closed
+    assert _EngineStream.instances[2].active
+    assert _EngineStream.instances[2].options['device'] == 'headphones'
 
 
 def test_mixer_limits_max_polyphony() -> None:
@@ -274,3 +343,8 @@ def test_engine_close_closes_existing_stream(monkeypatch) -> None:
     engine.close()
 
     assert _EngineStream.instances[0].closed
+
+    engine.start()
+
+    assert len(_EngineStream.instances) == 2
+    assert _EngineStream.instances[1].active

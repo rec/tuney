@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
-from sounddevice import CallbackStop, OutputStream, PortAudioError
+from sounddevice import CallbackAbort, CallbackStop, OutputStream, PortAudioError
 
 from ..types import NoteNumber
 from .device import Device
@@ -30,7 +30,7 @@ class StopAll(BaseModel, frozen=True):
 
 class AudioEngine(BaseModel):
     mixer: Mixer
-    device: Device = Device()
+    device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
     stop_when_silent: bool = False
 
@@ -40,7 +40,11 @@ class AudioEngine(BaseModel):
 
     @cached_property
     def stream(self) -> OutputStream:
-        return OutputStream(callback=self.callback, **self.device.model_dump())
+        try:
+            return OutputStream(callback=self.callback, **self.device.model_dump())
+        except PortAudioError as error:
+            self.diagnostics.record_stream_error(str(error))
+            raise
 
     def submit(self, command: NotePress | Configure | StopAll) -> None:
         self.commands.put(command)
@@ -51,15 +55,25 @@ class AudioEngine(BaseModel):
         try:
             self.stream.start()
         except PortAudioError as error:
-            self.diagnostics.record_stream_error(str(error))
+            if stream := self.__dict__.pop('stream', None):
+                self.diagnostics.record_stream_error(str(error))
+                stream.close()
             raise
 
     def close(self) -> None:
-        if 'stream' in self.__dict__:
-            self.stream.stop()
-            self.stream.close()
+        if stream := self.__dict__.pop('stream', None):
+            stream.stop()
+            stream.close()
+        self.__dict__.pop('commands', None)
         self.mixer.pressed_notes.clear()
         self.mixer.voices.clear()
+        self.stop_when_silent = False
+
+    def reconfigure(self) -> None:
+        restart = 'stream' in self.__dict__ and self.stream.active
+        self.close()
+        if restart:
+            self.start()
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: Any, status: Any
@@ -67,8 +81,12 @@ class AudioEngine(BaseModel):
         if status:
             self.diagnostics.record_callback_status(str(status))
 
-        self._drain_commands()
-        out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
+        try:
+            self._drain_commands()
+            out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
+        except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
+            self.diagnostics.record_callback_error(str(error))
+            raise CallbackAbort from error
         if self.stop_when_silent and not self.mixer.voices:
             raise CallbackStop
 

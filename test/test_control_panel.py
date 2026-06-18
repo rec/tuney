@@ -2,7 +2,7 @@ import tomlkit
 from pydantic import BaseModel
 from pytest_regressions.file_regression import FileRegressionFixture
 
-from tuney.audio.device import DType
+from tuney.audio.device import Device, DType
 from tuney.mapper.mapper import Mapper
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
@@ -39,6 +39,16 @@ def test_set_model_value_converts_dtype_string():
     _set_model_value(tuney.player.device, 'dtype', 'int16')
 
     assert tuney.player.device.dtype == DType.int16
+
+
+def test_set_model_value_notifies_device_change():
+    device = Device()
+    changes: list[bool] = []
+    device.set_change_callback(lambda: changes.append(True))
+
+    _set_model_value(device, 'device', 'speaker')
+
+    assert changes == [True]
 
 
 def test_parse_entry_value_parses_optional_lists_as_json():

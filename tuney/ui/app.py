@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
-from tkinter import Menu, Misc, PhotoImage, filedialog
+from tkinter import Menu, Misc, PhotoImage, filedialog, messagebox
 from typing import TYPE_CHECKING
 
 from customtkinter import CTk
@@ -164,6 +164,10 @@ class App(CTk):
     def _handle_queue(self):
         while not self.queue.empty():
             self._on_char(self.queue.get())
+        engine = self.tuney.player.__dict__.get('engine')
+        if engine:
+            for error in engine.diagnostics.take_errors():
+                messagebox.showerror('Audio error', error, parent=self)
         self.after(QUEUE_POLL_IN_MS, self._handle_queue)
 
     def _on_char(self, c: CharPress) -> None:

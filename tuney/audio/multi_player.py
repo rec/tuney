@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import cached_property, partial
 
 from pydantic import BaseModel, Field
+from sounddevice import PortAudioError
 
 from ..scale.scale import Scale
 from ..types import NoteNumber
@@ -14,7 +15,7 @@ from .voice import Voice
 
 
 class MultiPlayer(BaseModel, frozen=True):
-    device: Device = Device()
+    device: Device = Field(default_factory=Device)
     oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()
     gain: float = 1.0
@@ -29,7 +30,7 @@ class MultiPlayer(BaseModel, frozen=True):
 
     @cached_property
     def engine(self) -> AudioEngine:
-        return AudioEngine(
+        engine = AudioEngine(
             mixer=Mixer(
                 sound=self.sound,
                 polyphonic_headroom=self.polyphonic_headroom,
@@ -37,6 +38,15 @@ class MultiPlayer(BaseModel, frozen=True):
             ),
             device=self.device,
         )
+        self.device.set_change_callback(self.reconfigure_device)
+        return engine
+
+    def reconfigure_device(self) -> None:
+        self.pressed_notes.clear()
+        try:
+            self.engine.reconfigure()
+        except PortAudioError:
+            pass
 
     def sound(self, note_number: int, sample_rate: float | None = None) -> Voice:
         frequency = self.scale.tuning(note_number + self.note_offset)
@@ -58,16 +68,21 @@ class MultiPlayer(BaseModel, frozen=True):
         ):
             return False
         self.pressed_notes.append(note_number)
-        sound = partial(self.sound, sample_rate=self.engine.stream.samplerate)
-        self.engine.submit(
-            Configure(
-                sound=sound,
-                polyphonic_headroom=self.polyphonic_headroom,
-                max_polyphony=self.max_polyphony,
+        try:
+            sound = partial(self.sound, sample_rate=self.engine.stream.samplerate)
+            self.engine.submit(
+                Configure(
+                    sound=sound,
+                    polyphonic_headroom=self.polyphonic_headroom,
+                    max_polyphony=self.max_polyphony,
+                )
             )
-        )
-        self.engine.submit(NotePress(note_number=note_number, is_press=True))
-        self.engine.start()
+            self.engine.submit(NotePress(note_number=note_number, is_press=True))
+            self.engine.start()
+        except PortAudioError:
+            self.pressed_notes.remove(note_number)
+            self.engine.close()
+            return False
         return True
 
     def stop(self, note_number: NoteNumber) -> bool:

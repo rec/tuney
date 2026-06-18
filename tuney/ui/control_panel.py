@@ -11,6 +11,7 @@ import customtkinter as ctk
 from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
 
+from ..audio.device import Device
 from . import constants
 
 Scalar: TypeAlias = bool | float | int | str | None
@@ -491,6 +492,8 @@ def _set_model_value(data: BaseModel, name: str, value: object) -> None:
     validated = type(data).model_validate(values)
     object.__setattr__(data, name, getattr(validated, name))
     _clear_cached_values(data)
+    if isinstance(data, Device):
+        data.notify_change()
 
 
 def _clear_cached_values(data: BaseModel) -> None:
