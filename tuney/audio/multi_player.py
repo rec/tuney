@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import cached_property
 
-import tyro
 from pydantic import BaseModel
 
 from ..scale.scale import Scale
@@ -18,7 +17,6 @@ class MultiPlayer(BaseModel, frozen=True):
     scale: Scale = Scale()
     gain: float = 1.0
     note_offset: NoteNumber = 32
-    use_multiprocessing: tyro.conf.Suppress[bool] = False
 
     @cached_property
     def stoppable_futures(self) -> dict[int, concurrent.StoppableFuture]:
@@ -26,10 +24,7 @@ class MultiPlayer(BaseModel, frozen=True):
 
     @cached_property
     def runner(self) -> concurrent.Runner:
-        return concurrent.Runner(
-            function=oscillator_player.run,
-            use_multiprocessing=self.use_multiprocessing,
-        )
+        return concurrent.Runner(function=oscillator_player.run)
 
     def sound(self, note_number: int) -> oscillator_player.Sound:
         frequency = self.scale.tuning(note_number + self.note_offset)

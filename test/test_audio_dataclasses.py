@@ -113,7 +113,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
 
 
 def test_runner_starts_target_with_stoppable():
-    runner = Runner(function=_stop, use_multiprocessing=False)
+    runner = Runner(function=_stop)
     stoppable_future = runner()
     assert stoppable_future.stoppable.event.wait(1)
 

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import multiprocessing as mp
 import threading
 import traceback
 from collections.abc import Sequence
 from concurrent import futures
 from functools import cached_property
-from multiprocessing.synchronize import Event
 from typing import Any, NamedTuple, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,7 +22,7 @@ class StoppableFuture(NamedTuple):
 class Stoppable(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    event: Event | threading.Event = Field(default_factory=threading.Event)
+    event: threading.Event = Field(default_factory=threading.Event)
 
     @property
     def is_running(self) -> bool:
@@ -65,27 +63,21 @@ class Runner(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     function: StoppableFunction
-    use_multiprocessing: bool
     use_pool: bool = False
     max_workers: int = 10
 
     @cached_property
     def executor(self) -> futures.Executor:
-        mp = self.use_multiprocessing
-        cls = futures.ProcessPoolExecutor if mp else futures.ThreadPoolExecutor
-        return cls(max_workers=self.max_workers)
+        return futures.ThreadPoolExecutor(max_workers=self.max_workers)
 
     def __call__(self, *args: Any, **kwargs: Any) -> StoppableFuture:
-        stoppable = Stoppable(
-            event=mp.Event() if self.use_multiprocessing else threading.Event()
-        )
+        stoppable = Stoppable()
         target = Target(
             function=self.function, args=args, kwargs=kwargs, stoppable=stoppable
         )
         if self.use_pool:
             future = self.executor.submit(target)
         else:
-            runner = mp.Process if self.use_multiprocessing else threading.Thread
-            runner(target=target).start()
+            threading.Thread(target=target).start()
             future = None
         return StoppableFuture(stoppable, future)

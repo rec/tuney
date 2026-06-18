@@ -13,7 +13,6 @@ offset = 0
 [player]
 gain = 1.0
 note_offset = 32
-use_multiprocessing = false
 
 [player.device]
 
