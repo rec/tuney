@@ -1,3 +1,6 @@
+import pytest
+
+from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
 from tuney.tuney import Tuney
 
@@ -131,3 +134,42 @@ def test_on_char_ignores_input_without_app_focus():
     tuney.on_char(CharPress('a', True, 100.0))
 
     assert tuney.char_presses == []
+
+
+def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
+    events: list[tuple[int, bool]] = []
+    lifecycle: list[str] = []
+    monkeypatch.setattr(
+        MultiPlayer,
+        'on_note',
+        lambda self, note, is_press: events.append((note, is_press)) or True,
+    )
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
+    )
+    monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
+    monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
+    tuney = Tuney(
+        cli=True,
+        text=[
+            CharPress('a', True, 0),
+            CharPress('a', False, 0),
+        ],
+    )
+
+    tuney()
+
+    assert events == [(0, True), (0, False)]
+    assert lifecycle == ['stop_all', 'wait', 'close']
+    assert 'app' not in tuney.__dict__
+    assert 'listener' not in tuney.__dict__
+
+
+def test_cli_mode_requires_text() -> None:
+    with pytest.raises(SystemExit, match='CLI mode requires text to play'):
+        Tuney(cli=True)()
+
+
+def test_cli_mode_requires_sound() -> None:
+    with pytest.raises(SystemExit, match='CLI mode requires sound'):
+        Tuney(cli=True, disable_sound=True, text='a')()

@@ -1,7 +1,10 @@
 import pytest
+import tyro
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.__main__ import main
+from tuney.char_press import CharPress
+from tuney.tuney import Tuney
 
 
 def test_tuney_help_output(
@@ -18,3 +21,18 @@ def test_tuney_help_output(
 
     assert exc_info.value.code == 0
     file_regression.check(capsys.readouterr().out)
+
+
+def test_cli_accepts_text_option() -> None:
+    tuney = tyro.cli(Tuney, args=['--cli', '--text=Now is the time'])
+
+    assert tuney.cli
+    assert tuney.text == 'Now is the time'
+
+
+def test_cli_preserves_char_presses_from_config_default() -> None:
+    text = [CharPress('a', True, 0)]
+
+    tuney = tyro.cli(Tuney, args=[], default=Tuney(text=text))
+
+    assert tuney.text == text

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
@@ -74,6 +75,11 @@ class AudioEngine(BaseModel):
         self.close()
         if restart:
             self.start()
+
+    def wait(self) -> None:
+        stream = self.__dict__.get('stream')
+        while stream is not None and stream.active:
+            time.sleep(0.001)
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: Any, status: Any

@@ -1,4 +1,4 @@
-usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
+usage: tuney [-h] [OPTIONS]
 
  positional arguments                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
@@ -9,9 +9,11 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
  ---------------------------------------------------------------------------------------------------------------------- 
   -h, --help                                                                                                            
         show this help message and exit                                                                                 
+  --text TEXT                                                                                                           
+        Text to start the program with (optional)                                                                       
   --max-gap FLOAT                                                                                                       
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)                                             
-  --disable-gui, --no-disable-gui                                                                                       
+  --cli, --no-cli                                                                                                       
         (default: False)                                                                                                
   --disable-sound, --no-disable-sound                                                                                   
         (default: False)                                                                                                
@@ -162,11 +164,4 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: )                                                                                                     
   --text-timings.timings {None}|{[FLOAT [FLOAT ...]]}                                                                   
         (default: None)                                                                                                 
-                                                                                                                        
- subcommands                                                                                                            
- ---------------------------------------------------------------------------------------------------------------------- 
-  Text to start the program with (default: text:none)                                                                   
-    • text:str                                                                                                          
-    • text:list-char-press                                                                                              
-    • text:none                                                                                                         
                                                                                                                         

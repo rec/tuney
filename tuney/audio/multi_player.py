@@ -100,3 +100,7 @@ class MultiPlayer(BaseModel, frozen=True):
         self.pressed_notes.clear()
         if 'engine' in self.__dict__:
             self.engine.close()
+
+    def wait(self) -> None:
+        if 'engine' in self.__dict__:
+            self.engine.wait()

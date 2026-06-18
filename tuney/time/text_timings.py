@@ -52,6 +52,7 @@ class TextTimings(BaseModel, frozen=True):
 
     def char_presses(self, text: str) -> Iterator[CharPress]:
         time = 0
+        presses: list[CharPress] = []
         chars = _strip_accents(text) if self.strip_accents else text
         for char in _filter_chars(chars):
             dt = self.char_to_time.get(char)
@@ -59,9 +60,10 @@ class TextTimings(BaseModel, frozen=True):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
                 begin = time * self.scale
                 end = (time + dt) * self.scale
-                yield CharPress(char, True, begin)
-                yield CharPress(char, False, end)
+                presses.append(CharPress(char, True, begin))
+                presses.append(CharPress(char, False, end))
                 time += max(0, dt - self.overlap)
+        return iter(sorted(presses, key=lambda press: press.time))
 
     @staticmethod
     def sequencer(s: str, callback: Callable[[CharPress | None], Any]) -> Sequencer:

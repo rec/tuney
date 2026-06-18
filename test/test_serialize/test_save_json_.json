@@ -68,7 +68,7 @@
     "other": {}
   },
   "max_gap": 4.0,
-  "disable_gui": false,
+  "cli": false,
   "disable_sound": false,
   "run_in_background": false
 }

@@ -25,7 +25,7 @@ class ControlConfig(BaseModel, frozen=True):
 
 CONTROL_CONFIGS = {
     'Tuney': ControlConfig(
-        hidden_fields=['config_file', 'text', 'disable_gui'],
+        hidden_fields=['config_file', 'text', 'cli'],
         general_fields=['max_gap', 'disable_sound', 'run_in_background'],
     ),
     'MultiPlayer': ControlConfig(general_fields=['gain', 'note_offset']),

@@ -2,6 +2,7 @@ import random
 
 import pytest
 
+from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 
 
@@ -25,6 +26,13 @@ def test_text_timings_generates_and_stores_seed(
 
     assert timings.seed == 23
     assert actual == random.Random(23).random()
+
+
+def test_text_timings_sorts_overlapping_events() -> None:
+    presses = list(TextTimings(seed=23).char_presses('Now is the time'))
+
+    Sequencer(char_presses=presses, callback=lambda _: None)
+    assert presses == sorted(presses, key=lambda press: press.time)
 
 
 TEXT = """\

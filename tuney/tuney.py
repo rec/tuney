@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from functools import cached_property
 from pathlib import Path
 from typing import Annotated
@@ -38,12 +39,19 @@ class Tuney(BaseModel):
     text_timings: TextTimings = TextTimings(scale=3.0)
 
     # Text to start the program with
-    text: str | list[CharPress] | None = None
+    text: Annotated[
+        str | list[CharPress] | None,
+        tyro.conf.arg(
+            constructor=str,
+            help_behavior_hint='(optional)',
+            metavar='TEXT',
+        ),
+    ] = None
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: float = 4.0
 
-    disable_gui: bool = False
+    cli: bool = False
     disable_sound: bool = False
 
     # If True, listen to the keyboard even when other applications are in front
@@ -59,7 +67,7 @@ class Tuney(BaseModel):
 
     @cached_property
     def app(self) -> App:
-        assert not self.disable_gui
+        assert not self.cli
         return App(self)
 
     @cached_property
@@ -143,7 +151,7 @@ class Tuney(BaseModel):
         self._recording_time_offset = 0.0
         self._recording_insert_time = None
         self._replay_text = ''
-        if not self.disable_gui:
+        if not self.cli:
             self.app.layout.set_text('')
 
     def save(self, path: Path) -> None:
@@ -168,7 +176,7 @@ class Tuney(BaseModel):
             if not self.disable_sound:
                 self.player.on_note(note, c.is_press)
             self.midi(note, c.is_press)
-        if not self.disable_gui:
+        if not self.cli:
             self.app.on_char(c)
 
     @property
@@ -209,12 +217,30 @@ class Tuney(BaseModel):
     def _finish_replay(self) -> None:
         self.app.is_replaying = False
 
-    def __call__(self):
-        self.start()
-        if not self.disable_gui:
+    def __call__(self) -> None:
+        if self.cli:
+            self._run_cli()
+        else:
+            self.start()
             self.app.mainloop()
 
     def start(self) -> None:
-        if not self.disable_gui:
-            self.app.start()
-            self.listener.start()
+        self.app.start()
+        self.listener.start()
+
+    def _run_cli(self) -> None:
+        if not self.char_presses:
+            sys.exit('CLI mode requires text to play')
+        if self.disable_sound:
+            sys.exit('CLI mode requires sound')
+
+        def callback(c: CharPress | None) -> None:
+            if c:
+                self._on_char(c)
+
+        try:
+            Sequencer(char_presses=self.char_presses, callback=callback).run()
+        finally:
+            self.player.stop_all()
+            self.player.wait()
+            self.player.close()
