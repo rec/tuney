@@ -1,15 +1,5 @@
 ## TODO
 
-### Write a plan for better audio
-
-#### Goals
-
-* Use shared memory and numpy arrays.
-* Have each oscillator render in a subprocess separately.
-* Have another subprocess sum all these oscillators
-* Be able to record and save audio files
-
-
 ### Fix envelope rendering
 
 ## DONE
@@ -121,3 +111,20 @@ in constants.py, perhaps with other data ckasses foir
 ### Make a plan to split up control_panel.py
 
 ## Remove multiprocessing mode and all references to it
+
+### Move ControlPanel.refresh_devices to Layout
+
+### Write a plan for better audio
+
+#### Goals
+
+* Use shared memory and numpy arrays and subprocess or multiprocess.
+* Have each oscillator render in a process separately.
+* Have another process sum all these oscillators: it should be at least 0x2000 or 8192
+  samples ahead of real time
+* Be able to record audio files on the fly
+* Be able to render audio to file without playing it, faster than real time
+
+Write a plan to implement the above Goals. Describe the overall approach in a couple of paragraphs, then try to partition the solution into two to four separate, self-contained commits.
+
+Store this plan in BETTER_AUDIO.md and commit it.
