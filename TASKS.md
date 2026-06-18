@@ -1,11 +1,4 @@
-# Tasks
-
 ## TODO
-
-### When the grid gets resized, the edges of the note names get cut off
-
-Fix this by making the note name font smaller at small button sizes
-
 ### If seed is not set, pick a seed by calling random.randint, using it to set the randomizer seed, and storing it in
 
 ### Add an accelerator to the File/Refresh command
@@ -17,7 +10,6 @@ Fix this by making the note name font smaller at small button sizes
 ### Make a plan to split up control_panel.py
 
 ## DONE
-
 ### Clean up control_panel.py
 
 * The fields in the waveform and function radio buttons should be closer together
@@ -64,3 +56,23 @@ Making sure there aren't any conflicts with existing names, in both the GUI and 
 * limit_denominator -> limit
 * octave_divisions -> notes_per_octave
 * octave_change -> octave_ratio
+
+### When the grid gets resized, the edges of the note names get cut off
+
+Fix this by making the note name font smaller at small button sizes
+
+### Fixup
+
+The previous commit introduced two issues:
+
+1. The font is tiny when it starts up
+2. When you resize the app to be larger, it stops responding.
+
+Fix the last change so the scaling only kicks in when the Note is below a certain size. Give me a single parameter that I can experiment with for how much scaling there is, so I can experiment and adjust it by hand.
+
+### Fixup
+
+Two more issues:
+
+1. The fonts need to be about 25% bigger at all levels.
+2. The scaling should also handle height, as well as width: when the height gets small, the labels get cut off.
