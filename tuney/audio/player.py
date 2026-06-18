@@ -7,11 +7,12 @@ from typing import override
 
 import numpy as np
 from pydantic import BaseModel, Field
-from sounddevice import CallbackStop, OutputStream
+from sounddevice import CallbackStop, OutputStream, PortAudioError
 
 from ..runnable import Runnable
 from .concurrent import Stoppable
 from .device import Device
+from .diagnostics import AudioDiagnostics
 
 MASTER_GAIN = 0.25
 
@@ -23,6 +24,7 @@ class Player(BaseModel, Runnable, ABC):
     frame_count: int = 0
     frame_size: int = 0
     gain: float = 1.0
+    diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
 
     @abstractmethod
     def _fill(self, out: np.ndarray) -> bool | None:
@@ -40,7 +42,7 @@ class Player(BaseModel, Runnable, ABC):
         self, out: np.ndarray, frame_size: int, time: float, status: str
     ) -> None:
         if status:
-            print('Playback', status)  # TODO:
+            self.diagnostics.record_callback_status(str(status))
 
         if not self.fill(out, frame_size) or not self.is_running:
             self.stop()
@@ -48,11 +50,15 @@ class Player(BaseModel, Runnable, ABC):
 
     @override
     def _run(self):
-        with self.stream:
-            self.stoppable.wait()
-            self.stop()
-            while self.is_running:
-                time.sleep(0.001)
+        try:
+            with self.stream:
+                self.stoppable.wait()
+                self.stop()
+                while self.is_running:
+                    time.sleep(0.001)
+        except PortAudioError as error:
+            self.diagnostics.record_stream_error(str(error))
+            raise
 
     @cached_property
     def stream(self) -> OutputStream:

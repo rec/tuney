@@ -1,0 +1,133 @@
+from collections.abc import Callable
+from io import BytesIO
+from typing import Any
+
+import numpy as np
+import pytest
+import soundfile
+from pydantic import PrivateAttr
+from pytest_regressions.file_regression import FileRegressionFixture
+from sounddevice import CallbackStop, PortAudioError
+
+from tuney.audio.oscillator import Oscillator, Waveform
+from tuney.audio.oscillator_player import Sound
+from tuney.audio.player import Player
+from tuney.audio.renderer import NoteEvent, OfflineRenderer
+
+SAMPLE_RATE = 48_000
+SAMPLE_COUNT = SAMPLE_RATE
+
+
+def _sound(note_number: int) -> Sound:
+    return Sound(
+        period=SAMPLE_RATE / (220 * 2 ** (note_number / 12)),
+        fade_in_samples=4_800,
+        fade_out_samples=4_800,
+    )
+
+
+def _renderer(sound: Callable[[int], Sound] = _sound) -> OfflineRenderer:
+    return OfflineRenderer(
+        sound=sound,
+        oscillator=Oscillator(waveform=Waveform.sine),
+    )
+
+
+def _render_scenario(name: str) -> np.ndarray:
+    renderer = _renderer()
+    blocks: list[np.ndarray] = []
+    rendered = 0
+    block_index = 0
+    while rendered < SAMPLE_COUNT:
+        frame_size = min(997, SAMPLE_COUNT - rendered)
+        events: list[NoteEvent] = []
+        if block_index == 0:
+            events.append(NoteEvent(note_number=0, is_press=True))
+            if name in {'overlap', 'stop_all'}:
+                events.append(NoteEvent(note_number=7, is_press=True))
+        if name == 'envelope' and rendered >= 24_000 > rendered - frame_size:
+            events.append(NoteEvent(note_number=0, is_press=False))
+        if name == 'overlap' and rendered >= 32_000 > rendered - frame_size:
+            events.extend(
+                [
+                    NoteEvent(note_number=0, is_press=False),
+                    NoteEvent(note_number=7, is_press=False),
+                ]
+            )
+        if name == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
+            renderer.stop_all()
+        blocks.append(renderer.render(events, frame_size, np.float32))
+        rendered += frame_size
+        block_index += 1
+    return np.concatenate(blocks)
+
+
+def _wav(audio: np.ndarray) -> bytes:
+    output = BytesIO()
+    soundfile.write(output, audio, SAMPLE_RATE, format='WAV', subtype='PCM_16')
+    return output.getvalue()
+
+
+@pytest.mark.parametrize(
+    'scenario',
+    ['phase_continuity', 'envelope', 'overlap', 'stop_all'],
+)
+def test_audio_rendering(
+    file_regression: FileRegressionFixture, scenario: str
+) -> None:
+    audio = _render_scenario(scenario)
+
+    assert len(audio) == SAMPLE_COUNT
+    file_regression.check(_wav(audio), binary=True, extension='.wav')
+
+
+def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
+    renderer = _renderer()
+    press = NoteEvent(note_number=0, is_press=True)
+    release = NoteEvent(note_number=1, is_press=False)
+
+    assert renderer.apply(press)
+    assert not renderer.apply(press)
+    assert not renderer.apply(release)
+
+
+class _DiagnosticPlayer(Player):
+    _fill_result: bool = PrivateAttr(True)
+
+    def _fill(self, out: np.ndarray) -> bool | None:
+        return self._fill_result
+
+
+class _FailingStream:
+    def __enter__(self) -> None:
+        raise PortAudioError('device unavailable')
+
+    def __exit__(self, *_: Any) -> None:
+        pass
+
+
+class _StreamFailurePlayer(_DiagnosticPlayer):
+    @property
+    def stream(self) -> _FailingStream:
+        return _FailingStream()
+
+
+def test_callback_records_status_without_printing(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    player = _DiagnosticPlayer()
+
+    with pytest.raises(CallbackStop):
+        player.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
+
+    assert player.diagnostics.callback_statuses == ['underflow']
+    assert capsys.readouterr().out == ''
+
+
+def test_stream_failure_is_recorded() -> None:
+    player = _StreamFailurePlayer()
+
+    with pytest.raises(PortAudioError, match='device unavailable'):
+        player.run()
+
+    assert player.diagnostics.stream_errors == ['device unavailable']
