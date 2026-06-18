@@ -16,7 +16,7 @@ from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
-from tuney.audio.voice import Voice
+from tuney.audio.voice import Voice, VoiceState
 
 SAMPLE_RATE = 48_000
 SAMPLE_COUNT = SAMPLE_RATE
@@ -25,8 +25,8 @@ SAMPLE_COUNT = SAMPLE_RATE
 def _sound(note_number: int) -> Voice:
     return Voice(
         frequency=220 * 2 ** (note_number / 12),
-        fade_in_samples=4_800,
-        fade_out_samples=4_800,
+        fade_in=0.1,
+        fade_out=0.1,
         oscillator=Oscillator(waveform=Waveform.sine),
         sample_rate=SAMPLE_RATE,
     )
@@ -144,6 +144,7 @@ class _EngineStream:
         self.callback = callback
         self.active = False
         self.closed = False
+        self.samplerate = 44_100
         self.instances.append(self)
 
     def start(self) -> None:
@@ -169,6 +170,69 @@ def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     player.engine.callback(out, len(out), None, None)
 
     assert player.engine.mixer.pressed_notes == [0, 7]
+    assert all(
+        state.voice.sample_rate == 44_100
+        for state in player.engine.mixer.voices.values()
+    )
+
+
+def test_mixer_limits_max_polyphony() -> None:
+    voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
+    mixer = Mixer(sound=lambda _: voice)
+    for note_number in range(mixer.max_polyphony):
+        assert mixer.apply(NotePress(note_number=note_number, is_press=True))
+
+    assert not mixer.apply(
+        NotePress(note_number=mixer.max_polyphony, is_press=True)
+    )
+
+    out = mixer.render(48_000, np.float32)
+
+    assert np.max(np.abs(out)) <= 1
+
+
+def test_envelope_duration_is_stable_across_sample_rates_and_blocks() -> None:
+    def render(sample_rate: int, block_size: int) -> np.ndarray:
+        state = VoiceState(
+            voice=Voice(
+                frequency=100,
+                fade_in=0.1,
+                fade_out=0.1,
+                oscillator=Oscillator(waveform=Waveform.sine),
+                sample_rate=sample_rate,
+            )
+        )
+        release_frame = sample_rate // 10
+        sample_count = sample_rate // 5
+        blocks: list[np.ndarray] = []
+        rendered = 0
+        while rendered < sample_count:
+            if rendered == release_frame:
+                state.release()
+            frame_size = min(
+                block_size,
+                release_frame - rendered if rendered < release_frame else sample_count,
+                sample_count - rendered,
+            )
+            blocks.append(state.render(frame_size))
+            rendered += frame_size
+        return np.concatenate(blocks)
+
+    at_48_khz = render(48_000, 997)
+    at_96_khz = render(96_000, 1_024)
+
+    np.testing.assert_allclose(at_48_khz, at_96_khz[::2], atol=1e-12)
+
+
+def test_mixer_maps_mono_signal_to_each_channel() -> None:
+    mixer = _renderer().mixer
+    mixer.apply(NotePress(note_number=0, is_press=True))
+
+    out = mixer.render(48_000, np.float32, channels=3)
+
+    assert out.shape == (48_000, 3)
+    np.testing.assert_array_equal(out[:, 0], out[:, 1])
+    np.testing.assert_array_equal(out[:, 1], out[:, 2])
 
 
 def test_engine_applies_stop_all_on_next_block() -> None:

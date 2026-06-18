@@ -43,7 +43,9 @@
       }
     },
     "gain": 1.0,
-    "note_offset": 32
+    "note_offset": 32,
+    "polyphonic_headroom": 4,
+    "max_polyphony": 32
   },
   "midi": {
     "enable": false,

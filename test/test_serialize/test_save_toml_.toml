@@ -13,6 +13,8 @@ offset = 0
 [player]
 gain = 1.0
 note_offset = 32
+polyphonic_headroom = 4
+max_polyphony = 32
 
 [player.device]
 

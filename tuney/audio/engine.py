@@ -20,6 +20,8 @@ class Configure(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     sound: Callable[[NoteNumber], Voice]
+    polyphonic_headroom: float
+    max_polyphony: int
 
 
 class StopAll(BaseModel, frozen=True):
@@ -66,7 +68,7 @@ class AudioEngine(BaseModel):
             self.diagnostics.record_callback_status(str(status))
 
         self._drain_commands()
-        out[:] = self.mixer.render(frame_size, out.dtype)
+        out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
         if self.stop_when_silent and not self.mixer.voices:
             raise CallbackStop
 
@@ -82,6 +84,8 @@ class AudioEngine(BaseModel):
                 self.mixer.apply(command)
             elif isinstance(command, Configure):
                 self.mixer.sound = command.sound
+                self.mixer.polyphonic_headroom = command.polyphonic_headroom
+                self.mixer.max_polyphony = command.max_polyphony
             else:
                 self.stop_when_silent = True
                 self.mixer.stop_all()

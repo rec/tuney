@@ -41,6 +41,10 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: 1.0)                                                                                                  
   --player.note-offset INT                                                                                              
         (default: 32)                                                                                                   
+  --player.polyphonic-headroom FLOAT                                                                                    
+        (default: 4)                                                                                                    
+  --player.max-polyphony INT                                                                                            
+        (default: 32)                                                                                                   
                                                                                                                         
  player.device options                                                                                                  
  ---------------------------------------------------------------------------------------------------------------------- 

@@ -5,14 +5,17 @@ from functools import cached_property
 import numpy as np
 from pydantic import BaseModel
 
+from ..types import Seconds
 from .oscillator import Oscillator
+
+DEFAULT_FADE: Seconds = 0x1000 / 48_000
 
 
 class Voice(BaseModel, frozen=True):
     frequency: float = 48_000 / 0x100
     gain: float = 1.0
-    fade_in_samples: float = 0x1000
-    fade_out_samples: float = 0x1000
+    fade_in: Seconds = DEFAULT_FADE
+    fade_out: Seconds = DEFAULT_FADE
     oscillator: Oscillator = Oscillator()
     sample_rate: float = 48_000
 
@@ -23,6 +26,14 @@ class Voice(BaseModel, frozen=True):
     @cached_property
     def sample_period(self) -> float:
         return self.sample_rate * self.period
+
+    @cached_property
+    def fade_in_samples(self) -> float:
+        return self.fade_in * self.sample_rate
+
+    @cached_property
+    def fade_out_samples(self) -> float:
+        return self.fade_out * self.sample_rate
 
 
 class VoiceState(BaseModel):
