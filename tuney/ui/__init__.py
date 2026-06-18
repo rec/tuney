@@ -1,2 +1,0 @@
-PAD = 16
-QUARTER = PAD // 4

@@ -1,9 +1,4 @@
 ## TODO
-
-### Fixup
-
-* Center the Replay button vertically in the section it is in
-
 ### Make a plan to split up control_panel.py
 
 ###
@@ -98,3 +93,7 @@ should be centered in both height and width.
 
 * Make the Replay button 50% taller
 * Center it vertically in the section it is in
+
+### Move layout constants to their own file.
+
+Bring the constants PAD and QUARTER, and all the constants in control_panel.py, into a new file, ui/constants.py. Do not import individual constants from this file; always import just the symbol `constants`.

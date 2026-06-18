@@ -8,7 +8,7 @@ from typing import Any
 from customtkinter import CTkButton, CTkFrame
 
 from ..char_press import CharPress
-from . import QUARTER
+from . import constants
 
 FONT_FAMILY = 'Arial'
 MAX_FONT_SIZE = 23
@@ -41,7 +41,13 @@ class NoteButton(CTkButton):
         self._font_size = MAX_FONT_SIZE
         self._resize_after_id: str | None = None
         self.bind('<Configure>', self._queue_font_resize)
-        self.grid(row=row, column=column, padx=2 * QUARTER, pady=QUARTER, sticky='nsew')
+        self.grid(
+            row=row,
+            column=column,
+            padx=2 * constants.QUARTER,
+            pady=constants.QUARTER,
+            sticky='nsew',
+        )
         self.configure(**RELEASED)
         self.note_name = text
 

@@ -4,7 +4,7 @@ from functools import cached_property
 
 from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
 
-from . import PAD, QUARTER
+from . import constants
 from .app import REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
@@ -51,8 +51,8 @@ class Layout:
         frame.pack(
             fill='both',
             expand=False,
-            padx=PAD,
-            pady=PAD,
+            padx=constants.PAD,
+            pady=constants.PAD,
         )
         f = ControlPanel(frame, self.app.tuney, CONTROL_PANEL_HEIGHT)
         f.pack(fill='both', expand=True)
@@ -75,7 +75,12 @@ class Layout:
     @cached_property
     def note_grid(self) -> CTkFrame:
         f = CTkFrame(self.app)
-        f.pack(fill='both', expand=True, padx=PAD, pady=PAD - 8)
+        f.pack(
+            fill='both',
+            expand=True,
+            padx=constants.PAD,
+            pady=constants.PAD - 8,
+        )
         return f
 
     @cached_property
@@ -85,7 +90,7 @@ class Layout:
             height=REPLAY_FRAME_HEIGHT,
             fg_color='transparent',
         )
-        f.pack(fill='x', padx=PAD)
+        f.pack(fill='x', padx=constants.PAD)
         f.pack_propagate(False)
 
         replay = CTkButton(
@@ -101,13 +106,17 @@ class Layout:
     @cached_property
     def stats_frame(self) -> CTkFrame:
         f = CTkFrame(self.app, fg_color='transparent')
-        f.pack(fill='x', padx=PAD)
+        f.pack(fill='x', padx=constants.PAD)
         return f
 
     @cached_property
     def textbox(self) -> CTkTextbox:
         t = CTkTextbox(self.app, height=TEXT_BOX_HEIGHT, font=FONT)
-        t.pack(fill='x', padx=PAD, pady=(QUARTER, 2 * QUARTER))
+        t.pack(
+            fill='x',
+            padx=constants.PAD,
+            pady=(constants.QUARTER, 2 * constants.QUARTER),
+        )
         t.configure(state='disabled')
         return t
 

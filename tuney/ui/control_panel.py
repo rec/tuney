@@ -11,74 +11,13 @@ import customtkinter as ctk
 from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
 
-from ..audio.device import dtype_names, output_device_names
-from ..audio.midi import output_names as midi_output_names
+from . import constants
 
 Scalar: TypeAlias = bool | float | int | str | None
 
-FONT = 'Arial', 12
-TITLE_FONT = 'Arial', 13, 'bold'
-CHECKBOX_SIZE = 14
-RADIO_SIZE = 14
-TOGGLE_HEIGHT = 18
-ENTRY_CHAR_WIDTH = 10
-SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
-GUI_HIDDEN_FIELDS = {'Tuney': {'config_file', 'text', 'disable_gui'}}
-GENERAL_HIDDEN_FIELDS = {
-    'Tuney': {'max_gap', 'disable_sound', 'run_in_background'},
-    'MultiPlayer': {'gain', 'note_offset'},
-    'PitchToFrequency': {'function'},
-}
-CONTROL_ROWS = {
-    'Device': [['samplerate', 'device', 'dtype']],
-    'Mapper': [['alphabet'], ['length', 'offset', 'case_sensitive', 'invert']],
-    'Oscillator': [['waveform', 'period', 'duty_cycle']],
-    'Scale': [
-        ['alphabet', 'root', 'begin', 'end', 'offset'],
-        ['notes', 'intervals'],
-    ],
-    'TuningImpl': [
-        [
-            'detune',
-            'limit',
-            'notes_per_octave',
-            'octave_ratio',
-            'root_frequency',
-            'root_note',
-            'table_blend',
-        ],
-        ['table'],
-    ],
-    'MIDI': [['enable', 'output', 'channel', 'velocity', 'note_offset']],
-    'TextTimings': [
-        ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
-        ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
-        ['other', 'timings'],
-    ],
-}
-ENTRY_WIDTHS = {
-    'Device.samplerate': 6,
-    'MIDI.output': 12,
-    'Scale.root': 1,
-    'Scale.begin': 1,
-    'Scale.end': 1,
-    'TextTimings.space': 5,
-    'TextTimings.period': 5,
-    'TextTimings.comma': 5,
-    'TextTimings.colon': 5,
-    'TextTimings.semicolon': 5,
-    'TextTimings.blank_line': 5,
-}
-OPTION_VALUES: dict[str, Callable[[], list[str]]] = {
-    'Device.device': output_device_names,
-    'Device.dtype': dtype_names,
-    'MIDI.output': midi_output_names,
-}
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 CONTROL_FG_COLORS: dict[int, Any] = {}
 WIDGET_TEXT_COLORS: dict[int, Any] = {}
-DISABLED_CONTROL_FG_COLOR = 'gray88', 'gray42'
-DISABLED_TEXT_COLOR = 'gray96', 'gray96'
 
 
 class _OptionControl:
@@ -160,7 +99,7 @@ def _add_general_controls(
 def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) -> None:
     title_frame = ctk.CTkFrame(parent, corner_radius=0)
     title_frame.pack(fill='x', pady=(0, 2))
-    ctk.CTkLabel(title_frame, text=title, font=TITLE_FONT).pack(
+    ctk.CTkLabel(title_frame, text=title, font=constants.TITLE_FONT).pack(
         anchor='w',
         padx=4,
         pady=(2, 2),
@@ -220,7 +159,7 @@ def _add_control_grid(
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
-    configured = CONTROL_ROWS.get(type(data).__name__)
+    configured = constants.CONTROL_ROWS.get(type(data).__name__)
     if configured is None:
         return _grid_rows(fields)
 
@@ -273,9 +212,9 @@ def _add_control_cell(
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     cls = type(data)
-    hidden = GUI_HIDDEN_FIELDS.get(cls.__name__, set()) | GENERAL_HIDDEN_FIELDS.get(
+    hidden = constants.GUI_HIDDEN_FIELDS.get(
         cls.__name__, set()
-    )
+    ) | constants.GENERAL_HIDDEN_FIELDS.get(cls.__name__, set())
     return tuple(
         name
         for name in cls.model_fields
@@ -338,7 +277,7 @@ def _add_control(
     annotation = type(data).model_fields[name].annotation
     enum_cls = _enum_class(annotation, value)
 
-    if values := OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
+    if values := constants.OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
         _add_option_control(parent, data, name, value, values, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
@@ -365,7 +304,9 @@ def _add_option_control(
     width = _entry_width(name, annotation, type(data).__name__)
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
+        side='left', padx=(0, 4)
+    )
     menu = (
         ctk.CTkOptionMenu(
             frame,
@@ -373,7 +314,7 @@ def _add_option_control(
             values=_option_values(values),
             variable=string_var,
             command=command,
-            font=FONT,
+            font=constants.FONT,
         )
         if width
         else ctk.CTkOptionMenu(
@@ -381,7 +322,7 @@ def _add_option_control(
             values=_option_values(values),
             variable=string_var,
             command=command,
-            font=FONT,
+            font=constants.FONT,
         )
     )
     menu.pack(side='left')
@@ -404,10 +345,10 @@ def _add_bool_control(
         text=name,
         variable=var,
         command=command,
-        font=FONT,
-        height=TOGGLE_HEIGHT,
-        checkbox_width=CHECKBOX_SIZE,
-        checkbox_height=CHECKBOX_SIZE,
+        font=constants.FONT,
+        height=constants.TOGGLE_HEIGHT,
+        checkbox_width=constants.CHECKBOX_SIZE,
+        checkbox_height=constants.CHECKBOX_SIZE,
     ).pack(anchor='w')
 
 
@@ -440,7 +381,7 @@ def _set_widget_text_color(widget: Any, state: str) -> None:
     if state == 'disabled':
         WIDGET_TEXT_COLORS.setdefault(id(widget), text_color)
         try:
-            widget.configure(text_color=DISABLED_TEXT_COLOR)
+            widget.configure(text_color=constants.DISABLED_TEXT_COLOR)
         except (TclError, ValueError):
             pass
         return
@@ -459,7 +400,7 @@ def _set_control_fg_color(widget: Any, state: str) -> None:
     if state == 'disabled':
         try:
             CONTROL_FG_COLORS.setdefault(id(widget), widget.cget('fg_color'))
-            widget.configure(fg_color=DISABLED_CONTROL_FG_COLOR)
+            widget.configure(fg_color=constants.DISABLED_CONTROL_FG_COLOR)
         except (AttributeError, TclError, ValueError):
             pass
         return
@@ -487,7 +428,9 @@ def _add_entry_control(
     width = _entry_width(name, annotation, type(data).__name__)
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
+        side='left', padx=(0, 4)
+    )
     entry = (
         ctk.CTkEntry(frame, width=width, textvariable=var)
         if width
@@ -531,7 +474,9 @@ def _add_enum_control(
 
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
-    ctk.CTkLabel(frame, text=name, font=FONT).pack(side='left', padx=(0, 4))
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
+        side='left', padx=(0, 4)
+    )
     radio_pad = 3 if name in {'dtype', 'waveform', 'function'} else 6
     radio_width = (
         70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
@@ -544,10 +489,10 @@ def _add_enum_control(
             variable=var,
             value=i,
             command=command,
-            font=FONT,
-            height=TOGGLE_HEIGHT,
-            radiobutton_width=RADIO_SIZE,
-            radiobutton_height=RADIO_SIZE,
+            font=constants.FONT,
+            height=constants.TOGGLE_HEIGHT,
+            radiobutton_width=constants.RADIO_SIZE,
+            radiobutton_height=constants.RADIO_SIZE,
         ).pack(side='left', padx=(0, radio_pad))
 
 
@@ -577,16 +522,20 @@ def _parse_entry_value(raw: str, annotation: Any, old_value: object) -> object:
 def _entry_width(
     name: str, annotation: Any, model_name: str | None = None
 ) -> int | None:
-    if model_name and (characters := ENTRY_WIDTHS.get(f'{model_name}.{name}')):
-        return characters * ENTRY_CHAR_WIDTH
+    if model_name and (
+        characters := constants.ENTRY_WIDTHS.get(f'{model_name}.{name}')
+    ):
+        return characters * constants.ENTRY_CHAR_WIDTH
 
     types = set(_annotation_types(annotation))
     if str in types:
         return None
     if int in types and float not in types and bool not in types:
-        return 4 * ENTRY_CHAR_WIDTH
+        return 4 * constants.ENTRY_CHAR_WIDTH
     if float in types:
-        return (4 if name in SMALL_FLOAT_FIELDS else 6) * ENTRY_CHAR_WIDTH
+        return (
+            4 if name in constants.SMALL_FLOAT_FIELDS else 6
+        ) * constants.ENTRY_CHAR_WIDTH
     return None
 
 
