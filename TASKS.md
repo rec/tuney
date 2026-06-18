@@ -1,5 +1,17 @@
 ## TODO
 
+### Write a plan for better audio
+
+#### Goals
+
+* Use shared memory and numpy arrays.
+* Have each oscillator render in a subprocess separately.
+* Have another subprocess sum all these oscillators
+* Be able to record and save audio files
+
+
+### Fix envelope rendering
+
 ## DONE
 ### Clean up control_panel.py
 
@@ -107,3 +119,5 @@ In a new commit, create one data classes that represents all the constants
 in constants.py, perhaps with other data ckasses foir
 
 ### Make a plan to split up control_panel.py
+
+## Remove multiprocessing mode and all references to it
