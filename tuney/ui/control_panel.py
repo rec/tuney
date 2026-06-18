@@ -3,8 +3,9 @@ from __future__ import annotations
 import enum
 import json
 import math
+from collections.abc import Callable
 from tkinter import TclError
-from typing import Any, get_args, get_origin
+from typing import Any, TypeAlias, get_args, get_origin
 
 import customtkinter as ctk
 from customtkinter import CTkFrame
@@ -12,6 +13,8 @@ from pydantic import BaseModel, ValidationError
 
 from ..audio.device import dtype_names, output_device_names
 from ..audio.midi import output_names as midi_output_names
+
+Scalar: TypeAlias = bool | float | int | str | None
 
 FONT = 'Arial', 12
 TITLE_FONT = 'Arial', 13, 'bold'
@@ -66,7 +69,7 @@ ENTRY_WIDTHS = {
     'TextTimings.semicolon': 5,
     'TextTimings.blank_line': 5,
 }
-OPTION_VALUES = {
+OPTION_VALUES: dict[str, Callable[[], list[str]]] = {
     'Device.device': output_device_names,
     'Device.dtype': dtype_names,
     'MIDI.output': midi_output_names,
@@ -84,7 +87,7 @@ class _OptionControl:
         menu: ctk.CTkOptionMenu,
         data: BaseModel,
         name: str,
-        values: Any,
+        values: Callable[[], list[str]],
     ) -> None:
         self.menu = menu
         self.data = data
@@ -317,11 +320,11 @@ def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
     }
 
 
-def _option_values(values: Any) -> list[str]:
+def _option_values(values: Callable[[], list[str]]) -> list[str]:
     return ['', *values()]
 
 
-def _option_text(value: Any) -> str:
+def _option_text(value: Scalar) -> str:
     return '' if value is None else str(value)
 
 
@@ -349,8 +352,8 @@ def _add_option_control(
     parent: CTkFrame,
     data: BaseModel,
     name: str,
-    value: Any,
-    values: Any,
+    value: Scalar,
+    values: Callable[[], list[str]],
     option_controls: list[_OptionControl],
 ) -> None:
     string_var = ctk.StringVar(parent, _option_text(value))
@@ -469,7 +472,7 @@ def _set_control_fg_color(widget: Any, state: str) -> None:
 
 
 def _add_entry_control(
-    parent: CTkFrame, data: BaseModel, name: str, value: Any
+    parent: CTkFrame, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
@@ -548,7 +551,7 @@ def _add_enum_control(
         ).pack(side='left', padx=(0, radio_pad))
 
 
-def _set_model_value(data: BaseModel, name: str, value: Any) -> None:
+def _set_model_value(data: BaseModel, name: str, value: object) -> None:
     values = data.model_dump()
     values[name] = value
     validated = type(data).model_validate(values)
@@ -563,7 +566,7 @@ def _clear_cached_values(data: BaseModel) -> None:
             data.__dict__.pop(key, None)
 
 
-def _parse_entry_value(raw: str, annotation: Any, old_value: Any) -> Any:
+def _parse_entry_value(raw: str, annotation: Any, old_value: object) -> object:
     if raw == '':
         return None
     if isinstance(old_value, list | dict) or _expects_json(annotation):
@@ -600,7 +603,7 @@ def _expects_json(annotation: Any) -> bool:
     return bool(origins & {list, dict})
 
 
-def _enum_class(annotation: Any, value: Any) -> type[enum.Enum] | None:
+def _enum_class(annotation: Any, value: object) -> type[enum.Enum] | None:
     if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
         return annotation
     if isinstance(value, enum.Enum):
