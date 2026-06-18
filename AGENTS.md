@@ -30,9 +30,9 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 
 
 ## 4. Specific Coding Conventions & Rules
-- **Type Hinting:** Explicit type hints are REQUIRED
+- **Type Hinting:** Explicit type hints are REQUIRED. Always prefer `typing.Any` to `object` as a type. Avoid creating type aliases for types that are less than 40 characters long.
 - **Async:** This project does not use async/await patterns or network IO.
-- **Error Handling:** Avoid catching exceptions unless necesssary. Do not use broad `except Exception:` blocks. Always catch specific exceptions. Log by printing to sys.stderr.
+- **Error Handling:** Avoid catching exceptions unless necesssary. Do not use broad `except Exception:` blocks. Always catch specific exceptions. Log using the project's logging if it exists, or by printing to sys.stderr.
 - **State Management:** The application is entirely stateless. Do not store data in memory between API calls.
 
 ## 5. How to Verify Your Work
