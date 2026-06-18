@@ -81,6 +81,10 @@ class App(CTk):
     def start(self) -> None:
         self._handle_queue()
 
+    def destroy(self) -> None:
+        self.tuney.player.close()
+        super().destroy()
+
     def on_char(self, c: CharPress) -> None:
         if c.char:
             self.queue.put(c)

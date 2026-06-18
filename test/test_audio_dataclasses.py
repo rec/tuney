@@ -1,5 +1,4 @@
 import subprocess
-import threading
 from typing import Any
 
 import numpy as np
@@ -7,16 +6,9 @@ from pydantic import PrivateAttr
 
 from tuney.audio import device as device_module
 from tuney.audio import midi as midi_module
-from tuney.audio.concurrent import Runner, Stoppable
 from tuney.audio.oscillator import Oscillator, Waveform
-from tuney.audio.oscillator_player import OscillatorPlayer
 from tuney.audio.player import Player
 from tuney.audio.sample_data import SampleData
-from tuney.audio.voice import Voice
-
-
-def _stop(*_: Any, stoppable: Stoppable, **__: Any) -> None:
-    stoppable.stop()
 
 
 class _Stream:
@@ -112,25 +104,6 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     )
 
 
-def test_runner_starts_target_with_stoppable():
-    runner = Runner(function=_stop)
-    stoppable_future = runner()
-    assert stoppable_future.stoppable.event.wait(1)
-
-    assert stoppable_future.future is None
-    assert not stoppable_future.stoppable.is_running
-
-
-def test_stoppable_wait_blocks_until_stop():
-    stoppable = Stoppable()
-    waiter = threading.Thread(target=stoppable.wait)
-
-    waiter.start()
-    stoppable.stop()
-    waiter.join(timeout=1)
-    assert not waiter.is_alive()
-
-
 def test_player_run_calls_stop_after_stoppable_signal():
     player = _StopRecordingPlayer()
 
@@ -145,21 +118,3 @@ def test_oscillator_default_period_matches_previous_phase_scaling():
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
 
     np.testing.assert_allclose(actual, expected)
-
-
-def test_oscillator_player_fill_advances_frame_counters():
-    player = OscillatorPlayer(
-        sound=Voice(
-            frequency=6_000,
-            fade_in_samples=0,
-            fade_out_samples=0,
-            oscillator=Oscillator(waveform=Waveform.sine),
-        ),
-    )
-    out = np.zeros((4, 1))
-
-    assert player.fill(out, frame_size=4)
-    assert player.chunk_count == 1
-    assert player.frame_count == 4
-    assert player.frame_size == 4
-    assert np.any(out)

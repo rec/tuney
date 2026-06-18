@@ -1,22 +1,8 @@
 from __future__ import annotations
 
 import threading
-import traceback
-from collections.abc import Sequence
-from concurrent import futures
-from functools import cached_property
-from typing import Any, NamedTuple, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Protocol
-
-
-class StoppableFuture(NamedTuple):
-    stoppable: Stoppable
-    future: futures.Future | None = None
-
-    def stop(self) -> None:
-        self.stoppable.stop()
 
 
 class Stoppable(BaseModel):
@@ -33,51 +19,3 @@ class Stoppable(BaseModel):
 
     def wait(self) -> None:
         self.event.wait()
-
-
-@runtime_checkable
-class StoppableFunction(Protocol):
-    def __call__(self, *args: Any, stoppable: Stoppable, **kwargs: Any) -> None: ...
-
-
-class Target(BaseModel, frozen=True):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    function: StoppableFunction
-    args: Sequence[Any]
-    kwargs: dict[str, Any]
-    stoppable: Stoppable
-
-    def model_post_init(self, __context: Any) -> None:
-        assert callable(self.function), self
-
-    def __call__(self) -> None:
-        try:
-            self.function(*self.args, stoppable=self.stoppable, **self.kwargs)
-        except Exception:
-            traceback.print_exc()
-            raise
-
-
-class Runner(BaseModel, frozen=True):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    function: StoppableFunction
-    use_pool: bool = False
-    max_workers: int = 10
-
-    @cached_property
-    def executor(self) -> futures.Executor:
-        return futures.ThreadPoolExecutor(max_workers=self.max_workers)
-
-    def __call__(self, *args: Any, **kwargs: Any) -> StoppableFuture:
-        stoppable = Stoppable()
-        target = Target(
-            function=self.function, args=args, kwargs=kwargs, stoppable=stoppable
-        )
-        if self.use_pool:
-            future = self.executor.submit(target)
-        else:
-            threading.Thread(target=target).start()
-            future = None
-        return StoppableFuture(stoppable, future)

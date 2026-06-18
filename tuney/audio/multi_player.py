@@ -6,8 +6,9 @@ from pydantic import BaseModel
 
 from ..scale.scale import Scale
 from ..types import NoteNumber
-from . import concurrent, oscillator_player
 from .device import Device
+from .engine import AudioEngine, Configure, StopAll
+from .mixer import Mixer, NotePress
 from .oscillator import Oscillator
 from .voice import Voice
 
@@ -20,12 +21,12 @@ class MultiPlayer(BaseModel, frozen=True):
     note_offset: NoteNumber = 32
 
     @cached_property
-    def stoppable_futures(self) -> dict[int, concurrent.StoppableFuture]:
-        return {}
+    def pressed_notes(self) -> list[NoteNumber]:
+        return []
 
     @cached_property
-    def runner(self) -> concurrent.Runner:
-        return concurrent.Runner(function=oscillator_player.run)
+    def engine(self) -> AudioEngine:
+        return AudioEngine(mixer=Mixer(sound=self.sound), device=self.device)
 
     def sound(self, note_number: int) -> Voice:
         frequency = self.scale.tuning(note_number + self.note_offset)
@@ -40,20 +41,26 @@ class MultiPlayer(BaseModel, frozen=True):
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
-        if success := note_number not in self.stoppable_futures:
-            self.stoppable_futures[note_number] = self.runner(
-                device=self.device,
-                sound=self.sound(note_number),
-            )
-        return success
+        if note_number in self.pressed_notes:
+            return False
+        self.pressed_notes.append(note_number)
+        self.engine.submit(Configure(sound=self.sound))
+        self.engine.submit(NotePress(note_number=note_number, is_press=True))
+        self.engine.start()
+        return True
 
     def stop(self, note_number: NoteNumber) -> bool:
-        if sf := self.stoppable_futures.pop(note_number, None):
-            sf.stop()
-        return bool(sf)
+        if note_number not in self.pressed_notes:
+            return False
+        self.pressed_notes.remove(note_number)
+        self.engine.submit(NotePress(note_number=note_number, is_press=False))
+        return True
 
     def stop_all(self) -> None:
-        sfs = list(self.stoppable_futures.values())
-        self.stoppable_futures.clear()
-        for sf in sfs:
-            sf.stop()
+        self.pressed_notes.clear()
+        self.engine.submit(StopAll())
+
+    def close(self) -> None:
+        self.pressed_notes.clear()
+        if 'engine' in self.__dict__:
+            self.engine.close()

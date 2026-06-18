@@ -9,7 +9,10 @@ from pydantic import PrivateAttr
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackStop, PortAudioError
 
+from tuney.audio import engine as engine_module
+from tuney.audio.engine import AudioEngine, StopAll
 from tuney.audio.mixer import Mixer, NotePress
+from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
@@ -132,3 +135,71 @@ def test_stream_failure_is_recorded() -> None:
         player.run()
 
     assert player.diagnostics.stream_errors == ['device unavailable']
+
+
+class _EngineStream:
+    instances: list['_EngineStream'] = []
+
+    def __init__(self, callback: Callable[..., None], **_: Any) -> None:
+        self.callback = callback
+        self.active = False
+        self.closed = False
+        self.instances.append(self)
+
+    def start(self) -> None:
+        self.active = True
+
+    def stop(self) -> None:
+        self.active = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    player = MultiPlayer()
+
+    assert player.start(0)
+    assert player.start(7)
+    assert len(_EngineStream.instances) == 1
+
+    out = np.zeros((128, 1), dtype=np.float32)
+    player.engine.callback(out, len(out), None, None)
+
+    assert player.engine.mixer.pressed_notes == [0, 7]
+
+
+def test_engine_applies_stop_all_on_next_block() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.submit(NotePress(note_number=0, is_press=True))
+    engine.submit(StopAll())
+    out = np.zeros((4_800, 1), dtype=np.float32)
+
+    with pytest.raises(CallbackStop):
+        engine.callback(out, len(out), None, None)
+
+    assert not engine.mixer.pressed_notes
+    assert not engine.mixer.voices
+
+
+def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+
+    engine.close()
+
+    assert not _EngineStream.instances
+
+
+def test_engine_close_closes_existing_stream(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+
+    engine.start()
+    engine.close()
+
+    assert _EngineStream.instances[0].closed
