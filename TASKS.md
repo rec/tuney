@@ -1,6 +1,4 @@
 ## TODO
-### Add an accelerator to the File/Refresh command
-
 ### Move the area containing the Replay button to above the note_grid, and make sure that it's of fixed height.
 
 ### In control_panel, fix the types of values and value, which are currently Any
@@ -76,3 +74,7 @@ Two more issues:
 2. The scaling should also handle height, as well as width: when the height gets small, the labels get cut off.
 
 ### If seed is not set, pick a seed by calling random.randint, using it to set the randomizer seed, and storing it in
+
+### Add an accelerator to the File/Refresh command
+
+Rename it to File/Refresh Devices and use command-D.

@@ -26,6 +26,7 @@ STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
+REFRESH_DEVICES_ACCELERATOR = 'Command-D' if sys.platform == 'darwin' else 'Ctrl+D'
 SAVE_ACCELERATOR = 'Command-S' if sys.platform == 'darwin' else 'Ctrl+S'
 APP_NAME = 'Tuney'
 
@@ -72,6 +73,8 @@ class App(CTk):
         self.bind('<Command-b>', self.on_clear)
         self.bind('<Control-s>', self.on_save)
         self.bind('<Command-s>', self.on_save)
+        self.bind('<Control-d>', self.on_refresh_devices)
+        self.bind('<Command-d>', self.on_refresh_devices)
         self.configure(menu=self.menu)
         self.layout = Layout(self)
 
@@ -101,7 +104,7 @@ class App(CTk):
             self._is_saving = False
             self._has_focus = False
 
-    def on_refresh_devices(self) -> None:
+    def on_refresh_devices(self, *_) -> None:
         self.layout.refresh_devices()
 
     @property
@@ -133,7 +136,8 @@ class App(CTk):
             command=self.tuney.clear,
         )
         file_menu.add_command(
-            label='Refresh devices',
+            label='Refresh Devices',
+            accelerator=REFRESH_DEVICES_ACCELERATOR,
             command=self.on_refresh_devices,
         )
         menu.add_cascade(label='File', menu=file_menu)
