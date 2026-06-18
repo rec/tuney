@@ -1,5 +1,17 @@
 ## TODO
 
+
+
+### Notes should have a minimum time length
+
+Notes from the keyboard or button should have a configurable minimum time length in seconds, default = 0, and should be recorded that way.
+
+
+### Add a configurable minimum length for a
+
+
+
+
 ### Fix envelope rendering
 
 ## DONE
@@ -128,3 +140,8 @@ in constants.py, perhaps with other data ckasses foir
 Write a plan to implement the above Goals. Describe the overall approach in a couple of paragraphs, then try to partition the solution into two to four separate, self-contained commits.
 
 Store this plan in BETTER_AUDIO.md and commit it.
+
+### Fixup
+
+* Turn OfflineRenderer into a data class
+* Reread AGENTS.md and use that information to rewrite the audio unit tests as regression tests
