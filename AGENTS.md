@@ -35,10 +35,11 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 - **Error Handling:** Avoid catching exceptions unless necesssary. Do not use broad `except Exception:` blocks. Always catch specific exceptions. Log using the project's logging if it exists, or by printing to sys.stderr.
 - **State Management:** The application is entirely stateless. Do not store data in memory between API calls.
 - **Data classes:** Never put `set`, `tuple` or `frozenset` into any data class unless instructed otherwise; always prefer `list`.
-- **Unit tests for audio:** Any tests involving digital audio should be regression tests that write to WAV files at 48,000 samples per second. The length of that file should be at least one second or 48k samples.
-- **Always
+- **Unit tests for audio:** Any tests involving digital audio should be regression tests that write to WAV files at 48,000 samples per second. The length of that file should be at least one second or 48k samples.**
+- **Lazy properties:** Always prefer functools.cached_property to maintaining a protectected member
 
 ## 5. How to Verify Your Work
+
 Before commiting:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check --fix --select B,E,F,I $project test*`

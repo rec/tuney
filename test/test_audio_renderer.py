@@ -9,37 +9,39 @@ from pydantic import PrivateAttr
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackStop, PortAudioError
 
+from tuney.audio.mixer import Mixer, NoteEvent
 from tuney.audio.oscillator import Oscillator, Waveform
-from tuney.audio.oscillator_player import Sound
 from tuney.audio.player import Player
-from tuney.audio.renderer import NoteEvent, OfflineRenderer
+from tuney.audio.renderer import OfflineRenderer
+from tuney.audio.voice import Voice
 
 SAMPLE_RATE = 48_000
 SAMPLE_COUNT = SAMPLE_RATE
 
 
-def _sound(note_number: int) -> Sound:
-    return Sound(
-        period=SAMPLE_RATE / (220 * 2 ** (note_number / 12)),
+def _sound(note_number: int) -> Voice:
+    return Voice(
+        frequency=220 * 2 ** (note_number / 12),
         fade_in_samples=4_800,
         fade_out_samples=4_800,
-    )
-
-
-def _renderer(sound: Callable[[int], Sound] = _sound) -> OfflineRenderer:
-    return OfflineRenderer(
-        sound=sound,
         oscillator=Oscillator(waveform=Waveform.sine),
+        sample_rate=SAMPLE_RATE,
     )
 
 
-def _render_scenario(name: str) -> np.ndarray:
+def _renderer(sound: Callable[[int], Voice] = _sound) -> OfflineRenderer:
+    return OfflineRenderer(
+        mixer=Mixer(sound=sound)
+    )
+
+
+def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
     renderer = _renderer()
     blocks: list[np.ndarray] = []
     rendered = 0
     block_index = 0
     while rendered < SAMPLE_COUNT:
-        frame_size = min(997, SAMPLE_COUNT - rendered)
+        frame_size = min(block_size, SAMPLE_COUNT - rendered)
         events: list[NoteEvent] = []
         if block_index == 0:
             events.append(NoteEvent(note_number=0, is_press=True))
@@ -47,13 +49,10 @@ def _render_scenario(name: str) -> np.ndarray:
                 events.append(NoteEvent(note_number=7, is_press=True))
         if name == 'envelope' and rendered >= 24_000 > rendered - frame_size:
             events.append(NoteEvent(note_number=0, is_press=False))
-        if name == 'overlap' and rendered >= 32_000 > rendered - frame_size:
-            events.extend(
-                [
-                    NoteEvent(note_number=0, is_press=False),
-                    NoteEvent(note_number=7, is_press=False),
-                ]
-            )
+        if name == 'overlap' and rendered >= 24_000 > rendered - frame_size:
+            events.append(NoteEvent(note_number=0, is_press=False))
+        if name == 'overlap' and rendered >= 36_000 > rendered - frame_size:
+            events.append(NoteEvent(note_number=7, is_press=False))
         if name == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
             renderer.stop_all()
         blocks.append(renderer.render(events, frame_size, np.float32))
@@ -78,6 +77,12 @@ def test_audio_rendering(
     audio = _render_scenario(scenario)
 
     assert len(audio) == SAMPLE_COUNT
+    if scenario == 'phase_continuity':
+        np.testing.assert_allclose(
+            audio,
+            _render_scenario(scenario, 1_024),
+            atol=1e-12,
+        )
     file_regression.check(_wav(audio), binary=True, extension='.wav')
 
 

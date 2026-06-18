@@ -9,9 +9,10 @@ from tuney.audio import device as device_module
 from tuney.audio import midi as midi_module
 from tuney.audio.concurrent import Runner, Stoppable
 from tuney.audio.oscillator import Oscillator, Waveform
-from tuney.audio.oscillator_player import OscillatorPlayer, Sound
+from tuney.audio.oscillator_player import OscillatorPlayer
 from tuney.audio.player import Player
 from tuney.audio.sample_data import SampleData
+from tuney.audio.voice import Voice
 
 
 def _stop(*_: Any, stoppable: Stoppable, **__: Any) -> None:
@@ -148,8 +149,12 @@ def test_oscillator_default_period_matches_previous_phase_scaling():
 
 def test_oscillator_player_fill_advances_frame_counters():
     player = OscillatorPlayer(
-        oscillator=Oscillator(waveform=Waveform.sine),
-        sound=Sound(period=8, fade_in_samples=0, fade_out_samples=0),
+        sound=Voice(
+            frequency=6_000,
+            fade_in_samples=0,
+            fade_out_samples=0,
+            oscillator=Oscillator(waveform=Waveform.sine),
+        ),
     )
     out = np.zeros((4, 1))
 
