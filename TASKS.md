@@ -1,17 +1,5 @@
 ## TODO
 
-
-
-### Notes should have a minimum time length
-
-Notes from the keyboard or button should have a configurable minimum time length in seconds, default = 0, and should be recorded that way.
-
-
-### Add a configurable minimum length for a
-
-
-
-
 ### Fix envelope rendering
 
 ## DONE
@@ -145,3 +133,10 @@ Store this plan in BETTER_AUDIO.md and commit it.
 
 * Turn OfflineRenderer into a data class
 * Reread AGENTS.md and use that information to rewrite the audio unit tests as regression tests
+
+### Notes should have a minimum time length
+
+There should be a configurable `minimum_note_time: float = 0.5` which controls how short note playback can be
+and applies to notes from the keyboard, button, or being replayed.
+
+Tuney.char_presses will be unchanged: this only happens during playback.
