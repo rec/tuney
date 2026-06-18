@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from collections.abc import Callable, Iterable, Iterator
 from functools import cached_property, partial
+from random import Random
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -38,8 +39,12 @@ class TextTimings(BaseModel, frozen=True):
         return sum(self.timings_) / len(self.timings_)
 
     @cached_property
-    def random(self):
-        return random.Random(self.seed)
+    def random(self) -> Random:
+        seed = self.seed
+        if seed is None:
+            seed = random.randint(0, 2**32 - 1)
+            object.__setattr__(self, 'seed', seed)
+        return random.Random(seed)
 
     @cached_property
     def char_to_time(self) -> dict[str, Milliseconds]:

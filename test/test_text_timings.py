@@ -1,3 +1,7 @@
+import random
+
+import pytest
+
 from tuney.time.text_timings import TextTimings
 
 
@@ -9,6 +13,18 @@ def test_text_timings():
     begins = [int(e.time) for e in cps if e.is_press]
     ends = [int(e.time) for e in cps if not e.is_press]
     assert (text, begins, ends) == ('One, .\nThree!', BEGINS, ENDS)
+
+
+def test_text_timings_generates_and_stores_seed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(random, 'randint', lambda start, end: 23)
+    timings = TextTimings()
+
+    actual = timings.random.random()
+
+    assert timings.seed == 23
+    assert actual == random.Random(23).random()
 
 
 TEXT = """\
