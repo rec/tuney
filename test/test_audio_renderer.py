@@ -9,7 +9,7 @@ from pydantic import PrivateAttr
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackStop, PortAudioError
 
-from tuney.audio.mixer import Mixer, NoteEvent
+from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
@@ -40,20 +40,20 @@ def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
     block_index = 0
     while rendered < SAMPLE_COUNT:
         frame_size = min(block_size, SAMPLE_COUNT - rendered)
-        events: list[NoteEvent] = []
+        notes: list[NotePress] = []
         if block_index == 0:
-            events.append(NoteEvent(note_number=0, is_press=True))
+            notes.append(NotePress(note_number=0, is_press=True))
             if name in {'overlap', 'stop_all'}:
-                events.append(NoteEvent(note_number=7, is_press=True))
+                notes.append(NotePress(note_number=7, is_press=True))
         if name == 'envelope' and rendered >= 24_000 > rendered - frame_size:
-            events.append(NoteEvent(note_number=0, is_press=False))
+            notes.append(NotePress(note_number=0, is_press=False))
         if name == 'overlap' and rendered >= 24_000 > rendered - frame_size:
-            events.append(NoteEvent(note_number=0, is_press=False))
+            notes.append(NotePress(note_number=0, is_press=False))
         if name == 'overlap' and rendered >= 36_000 > rendered - frame_size:
-            events.append(NoteEvent(note_number=7, is_press=False))
+            notes.append(NotePress(note_number=7, is_press=False))
         if name == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
             renderer.stop_all()
-        blocks.append(renderer.render(events, frame_size, np.float32))
+        blocks.append(renderer.render(notes, frame_size, np.float32))
         rendered += frame_size
         block_index += 1
     return np.concatenate(blocks)
@@ -84,8 +84,8 @@ def test_audio_rendering(file_regression: FileRegressionFixture, scenario: str) 
 
 def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
     renderer = _renderer()
-    press = NoteEvent(note_number=0, is_press=True)
-    release = NoteEvent(note_number=1, is_press=False)
+    press = NotePress(note_number=0, is_press=True)
+    release = NotePress(note_number=1, is_press=False)
 
     assert renderer.apply(press)
     assert not renderer.apply(press)

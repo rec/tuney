@@ -11,7 +11,7 @@ from .player import MASTER_GAIN
 from .voice import Voice, VoiceState
 
 
-class NoteEvent(BaseModel, frozen=True):
+class NotePress(BaseModel, frozen=True):
     note_number: NoteNumber
     is_press: bool
 
@@ -22,9 +22,9 @@ class Mixer(BaseModel):
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
-    def apply(self, event: NoteEvent) -> bool:
-        note_number = event.note_number
-        if event.is_press:
+    def apply(self, note: NotePress) -> bool:
+        note_number = note.note_number
+        if note.is_press:
             if note_number in self.voices:
                 return False
             self.voices[note_number] = VoiceState(voice=self.sound(note_number))
