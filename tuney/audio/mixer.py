@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from ..types import NoteNumber
 from .player import MASTER_GAIN
-from .voice import PlayingVoice, Voice
+from .voice import Voice, VoiceState
 
 
 class NoteEvent(BaseModel, frozen=True):
@@ -19,7 +19,7 @@ class NoteEvent(BaseModel, frozen=True):
 class Mixer(BaseModel):
     sound: Callable[[NoteNumber], Voice]
     channels: int = 1
-    voices: dict[NoteNumber, PlayingVoice] = Field(default_factory=dict)
+    voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
     def apply(self, event: NoteEvent) -> bool:
@@ -27,7 +27,7 @@ class Mixer(BaseModel):
         if event.is_press:
             if note_number in self.voices:
                 return False
-            self.voices[note_number] = PlayingVoice(sound=self.sound(note_number))
+            self.voices[note_number] = VoiceState(voice=self.sound(note_number))
             self.pressed_notes.append(note_number)
             return True
 

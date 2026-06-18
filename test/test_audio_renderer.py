@@ -30,9 +30,7 @@ def _sound(note_number: int) -> Voice:
 
 
 def _renderer(sound: Callable[[int], Voice] = _sound) -> OfflineRenderer:
-    return OfflineRenderer(
-        mixer=Mixer(sound=sound)
-    )
+    return OfflineRenderer(mixer=Mixer(sound=sound))
 
 
 def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
@@ -71,9 +69,7 @@ def _wav(audio: np.ndarray) -> bytes:
     'scenario',
     ['phase_continuity', 'envelope', 'overlap', 'stop_all'],
 )
-def test_audio_rendering(
-    file_regression: FileRegressionFixture, scenario: str
-) -> None:
+def test_audio_rendering(file_regression: FileRegressionFixture, scenario: str) -> None:
     audio = _render_scenario(scenario)
 
     assert len(audio) == SAMPLE_COUNT

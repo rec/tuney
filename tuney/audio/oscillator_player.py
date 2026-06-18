@@ -4,18 +4,17 @@ from functools import cached_property, wraps
 from typing import Any
 
 import numpy as np
-from pydantic import PrivateAttr
 
 from .player import Player
-from .voice import PlayingVoice, Voice
+from .voice import Voice, VoiceState
 
 
 class OscillatorPlayer(Player):
     sound: Voice = Voice()
 
     @cached_property
-    def voice(self) -> PlayingVoice:
-        return PlayingVoice(sound=self.sound)
+    def voice(self) -> VoiceState:
+        return VoiceState(voice=self.sound)
 
     def stop(self) -> None:
         self.voice.release()
