@@ -5,7 +5,6 @@ from typing import Any
 import numpy as np
 import pytest
 import soundfile
-from pydantic import PrivateAttr
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackStop, PortAudioError
 
@@ -14,7 +13,6 @@ from tuney.audio.engine import AudioEngine, StopAll
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator, Waveform
-from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.voice import Voice, VoiceState
 
@@ -95,46 +93,15 @@ def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
     assert not renderer.apply(release)
 
 
-class _DiagnosticPlayer(Player):
-    _fill_result: bool = PrivateAttr(True)
-
-    def _fill(self, out: np.ndarray) -> bool | None:
-        return self._fill_result
-
-
-class _FailingStream:
-    def __enter__(self) -> None:
-        raise PortAudioError('device unavailable')
-
-    def __exit__(self, *_: Any) -> None:
-        pass
-
-
-class _StreamFailurePlayer(_DiagnosticPlayer):
-    @property
-    def stream(self) -> _FailingStream:
-        return _FailingStream()
-
-
 def test_callback_records_status_without_printing(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    player = _DiagnosticPlayer()
+    engine = AudioEngine(mixer=_renderer().mixer)
 
-    with pytest.raises(CallbackStop):
-        player.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
+    engine.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
 
-    assert player.diagnostics.callback_statuses == ['underflow']
+    assert engine.diagnostics.callback_statuses == ['underflow']
     assert capsys.readouterr().out == ''
-
-
-def test_stream_failure_is_recorded() -> None:
-    player = _StreamFailurePlayer()
-
-    with pytest.raises(PortAudioError, match='device unavailable'):
-        player.run()
-
-    assert player.diagnostics.stream_errors == ['device unavailable']
 
 
 class _EngineStream:
@@ -155,6 +122,21 @@ class _EngineStream:
 
     def close(self) -> None:
         self.closed = True
+
+
+class _FailingEngineStream(_EngineStream):
+    def start(self) -> None:
+        raise PortAudioError('device unavailable')
+
+
+def test_stream_failure_is_recorded(monkeypatch) -> None:
+    monkeypatch.setattr(engine_module, 'OutputStream', _FailingEngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+
+    with pytest.raises(PortAudioError, match='device unavailable'):
+        engine.start()
+
+    assert engine.diagnostics.stream_errors == ['device unavailable']
 
 
 def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
@@ -182,9 +164,7 @@ def test_mixer_limits_max_polyphony() -> None:
     for note_number in range(mixer.max_polyphony):
         assert mixer.apply(NotePress(note_number=note_number, is_press=True))
 
-    assert not mixer.apply(
-        NotePress(note_number=mixer.max_polyphony, is_press=True)
-    )
+    assert not mixer.apply(NotePress(note_number=mixer.max_polyphony, is_press=True))
 
     out = mixer.render(48_000, np.float32)
 
