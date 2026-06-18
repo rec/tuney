@@ -16,6 +16,7 @@ class Voice(BaseModel, frozen=True):
     gain: float = 1.0
     fade_in: Seconds = DEFAULT_FADE
     fade_out: Seconds = DEFAULT_FADE
+    minimum_note_time: Seconds = 0.5
     oscillator: Oscillator = Oscillator()
     sample_rate: float = 48_000
 
@@ -35,25 +36,29 @@ class Voice(BaseModel, frozen=True):
     def fade_out_samples(self) -> float:
         return self.fade_out * self.sample_rate
 
+    @cached_property
+    def minimum_note_samples(self) -> float:
+        return self.minimum_note_time * self.sample_rate
+
 
 class VoiceState(BaseModel):
     voice: Voice
     phase: float = 0
     frame_count: int = 0
-    release_frame: int | None = None
+    release_frame: float | None = None
     release_gain: float = 1.0
     complete: bool = False
 
     def release(self) -> bool:
         if self.release_frame is not None or self.complete:
             return False
-        if self.voice.fade_out_samples <= 0:
+        self.release_frame = max(self.frame_count, self.voice.minimum_note_samples)
+        if self.voice.fade_out_samples <= 0 and self.release_frame <= self.frame_count:
             self.complete = True
         else:
-            self.release_frame = self.frame_count
             self.release_gain = 1.0
             if (fade := self.voice.fade_in_samples) > 0:
-                self.release_gain = min(1.0, self.frame_count / fade)
+                self.release_gain = min(1.0, self.release_frame / fade)
         return True
 
     def render(self, frame_size: int) -> np.ndarray:
@@ -73,12 +78,18 @@ class VoiceState(BaseModel):
         return wave
 
     def _envelope(self, frames: np.ndarray) -> np.ndarray | int:
-        if self.voice.fade_out_samples <= 0:
-            return 1
-        if self.release_frame is not None:
-            elapsed = frames - self.release_frame
-            samples = 1 - elapsed / self.voice.fade_out_samples
-            return self.release_gain * np.clip(samples, 0, 1)
         if self.voice.fade_in_samples <= 0:
-            return 1
-        return np.clip(frames / self.voice.fade_in_samples, 0, 1)
+            fade_in: np.ndarray | int = 1
+        else:
+            fade_in = np.clip(frames / self.voice.fade_in_samples, 0, 1)
+
+        if self.release_frame is None:
+            return fade_in
+        if self.voice.fade_out_samples <= 0:
+            return fade_in * (frames < self.release_frame)
+
+        elapsed = frames - self.release_frame
+        fade_out = self.release_gain * np.clip(
+            1 - elapsed / self.voice.fade_out_samples, 0, 1
+        )
+        return np.minimum(fade_in, fade_out)

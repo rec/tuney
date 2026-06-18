@@ -204,6 +204,28 @@ def test_envelope_duration_is_stable_across_sample_rates_and_blocks() -> None:
     np.testing.assert_allclose(at_48_khz, at_96_khz[::2], atol=1e-12)
 
 
+def test_voice_holds_early_release_until_minimum_note_time() -> None:
+    state = VoiceState(
+        voice=Voice(
+            fade_in=0,
+            fade_out=0,
+            minimum_note_time=0.5,
+            oscillator=Oscillator(waveform=Waveform.triangle),
+            sample_rate=SAMPLE_RATE,
+        )
+    )
+
+    state.render(1)
+    state.release()
+    state.render(SAMPLE_RATE // 2 - 2)
+
+    assert not state.complete
+
+    state.render(1)
+
+    assert state.complete
+
+
 def test_mixer_maps_mono_signal_to_each_channel() -> None:
     mixer = _renderer().mixer
     mixer.apply(NotePress(note_number=0, is_press=True))
@@ -221,10 +243,15 @@ def test_engine_applies_stop_all_on_next_block() -> None:
     engine.submit(StopAll())
     out = np.zeros((4_800, 1), dtype=np.float32)
 
+    engine.callback(out, len(out), None, None)
+
+    assert not engine.mixer.pressed_notes
+    assert engine.mixer.voices
+
+    out = np.zeros((24_000, 1), dtype=np.float32)
     with pytest.raises(CallbackStop):
         engine.callback(out, len(out), None, None)
 
-    assert not engine.mixer.pressed_notes
     assert not engine.mixer.voices
 
 

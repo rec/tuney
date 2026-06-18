@@ -45,6 +45,8 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         (default: 4)                                                                                                    
   --player.max-polyphony INT                                                                                            
         (default: 32)                                                                                                   
+  --player.minimum-note-time FLOAT                                                                                      
+        (default: 0.5)                                                                                                  
                                                                                                                         
  player.device options                                                                                                  
  ---------------------------------------------------------------------------------------------------------------------- 

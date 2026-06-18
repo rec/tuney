@@ -21,6 +21,7 @@ class MultiPlayer(BaseModel, frozen=True):
     note_offset: NoteNumber = 32
     polyphonic_headroom: float = Field(4, gt=0)
     max_polyphony: int = Field(32, gt=0)
+    minimum_note_time: float = Field(0.5, ge=0)
 
     @cached_property
     def pressed_notes(self) -> list[NoteNumber]:
@@ -42,6 +43,7 @@ class MultiPlayer(BaseModel, frozen=True):
         return Voice(
             frequency=frequency,
             gain=self.gain,
+            minimum_note_time=self.minimum_note_time,
             oscillator=self.oscillator,
             sample_rate=sample_rate or self.device.samplerate or 48_000,
         )
