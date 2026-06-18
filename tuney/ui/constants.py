@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from pydantic import BaseModel, Field
 
-from ..audio.device import dtype_names, output_device_names
+from ..audio.device import DType, device_names
 from ..audio.midi import output_names as midi_output_names
 
 PAD = 16
@@ -81,8 +81,8 @@ ENTRY_WIDTHS = {
     'TextTimings.blank_line': 5,
 }
 OPTION_VALUES: dict[str, Callable[[], list[str]]] = {
-    'Device.device': output_device_names,
-    'Device.dtype': dtype_names,
+    'Device.device': device_names,
+    'Device.dtype': lambda: [dtype.value for dtype in DType],
     'MIDI.output': midi_output_names,
 }
 DISABLED_CONTROL_FG_COLOR = 'gray88', 'gray42'

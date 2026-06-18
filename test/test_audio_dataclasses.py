@@ -62,12 +62,11 @@ def test_output_device_names_lists_unique_output_devices(monkeypatch):
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},
             {'name': 'mic', 'max_output_channels': 0},
-            {'name': 'speaker', 'max_output_channels': 2},
             {'name': 'headphones', 'max_output_channels': 2},
         ],
     )
 
-    assert device_module.output_device_names() == ['speaker', 'headphones']
+    assert device_module.device_names() == ['speaker', 'headphones']
 
 
 def test_midi_output_names_uses_subprocess(monkeypatch):

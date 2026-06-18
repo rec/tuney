@@ -1,5 +1,5 @@
-from collections.abc import Iterable
 from enum import StrEnum, auto
+from functools import cache
 
 import sounddevice
 import tyro
@@ -16,10 +16,11 @@ class DType(StrEnum):
 
 class Device(BaseModel, frozen=True):
     samplerate: int | None = None
-    blocksize: tyro.conf.Suppress[int | None] = None
     device: int | str | None = None
-    channels: tyro.conf.Suppress[int | None] = None
     dtype: DType | None = None
+
+    blocksize: tyro.conf.Suppress[int | None] = None
+    channels: tyro.conf.Suppress[int | None] = None
     latency: tyro.conf.Suppress[int | None] = None
     extra_settings: tyro.conf.Suppress[str | None] = None
     clip_off: tyro.conf.Suppress[bool | None] = None
@@ -28,18 +29,7 @@ class Device(BaseModel, frozen=True):
     prime_output_buffers_using_stream_callback: tyro.conf.Suppress[bool | None] = None
 
 
-def output_device_names() -> list[str]:
+@cache
+def device_names() -> list[str]:
     devices = sounddevice.query_devices()
-    return _unique(
-        device['name']
-        for device in devices
-        if int(device.get('max_output_channels') or 0) > 0
-    )
-
-
-def dtype_names() -> list[str]:
-    return [dtype.value for dtype in DType]
-
-
-def _unique(names: Iterable[str]) -> list[str]:
-    return list(dict.fromkeys(names))
+    return [d['name'] for d in devices if int(d.get('max_output_channels', 0)) > 0]
