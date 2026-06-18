@@ -11,6 +11,7 @@ from .note_button import NoteButton
 
 TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
+REPLAY_FRAME_HEIGHT = 43
 FONT = 'Arial', 14
 
 WIDTH, HEIGHT = 70, 80
@@ -27,7 +28,7 @@ class Layout:
         _ = self.control_panel
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
-        _ = self.textbox, self.note_buttons, self.replay
+        _ = self.textbox, self.replay, self.note_buttons
 
         self.set_text(app.tuney.display_text)
 
@@ -74,16 +75,27 @@ class Layout:
     @cached_property
     def note_grid(self) -> CTkFrame:
         f = CTkFrame(self.app)
-        f.pack(fill='both', expand=True, padx=PAD, pady=PAD)
+        f.pack(fill='both', expand=True, padx=PAD, pady=PAD - 8)
         return f
 
     @cached_property
     def replay(self) -> CTkButton:
-        f = CTkFrame(self.app, fg_color='transparent')
-        f.pack(fill='x', padx=PAD, pady=(0, PAD))
+        f = CTkFrame(
+            self.app,
+            height=REPLAY_FRAME_HEIGHT,
+            fg_color='transparent',
+        )
+        f.pack(fill='x', padx=PAD)
+        f.pack_propagate(False)
 
-        replay = CTkButton(f, command=self.app.on_replay, **REPLAY)  # ty:ignore[invalid-argument-type]
-        replay.pack(side='right')
+        replay = CTkButton(
+            f,
+            height=REPLAY_FRAME_HEIGHT,
+            font=('Arial', 18),
+            command=self.app.on_replay,
+            **REPLAY,  # ty:ignore[invalid-argument-type]
+        )
+        replay.place(relx=0.5, rely=0.5, anchor='center')
         return replay
 
     @cached_property

@@ -1,7 +1,8 @@
 ## TODO
-### Move the area containing the Replay button to above the note_grid, and make sure that it's of fixed height.
 
-### In control_panel, fix the types of values and value, which are currently Any
+### Fixup
+
+* Center the Replay button vertically in the section it is in
 
 ### Make a plan to split up control_panel.py
 
@@ -78,3 +79,20 @@ Two more issues:
 ### Add an accelerator to the File/Refresh command
 
 Rename it to File/Refresh Devices and use command-D.
+
+### Move the area containing the Replay button to above the note_grid, and make sure that it's of fixed height.
+### In control_panel, fix the types of `values` and `value`, which are currently Any
+
+### Fixup
+
+Inline OptionValues
+
+### Fixup
+
+The region containing the Replay button needs to be 30% shorter, and the Replay button
+should be centered in both height and width.
+
+### Fixup
+
+* Make the Replay button 50% taller
+* Center it vertically in the section it is in
