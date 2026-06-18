@@ -1,7 +1,10 @@
 ## TODO
-### Make a plan to split up control_panel.py
+### Create data classes for the constants and read it from a file
 
-###
+In a new commit, create one data classes that represents all the constants
+in constants.py, perhaps with other data ckasses foir
+
+### Make a plan to split up control_panel.py
 
 ## DONE
 ### Clean up control_panel.py
@@ -97,3 +100,9 @@ should be centered in both height and width.
 ### Move layout constants to their own file.
 
 Bring the constants PAD and QUARTER, and all the constants in control_panel.py, into a new file, ui/constants.py. Do not import individual constants from this file; always import just the symbol `constants`.
+
+### Consolidate tables in constants.py
+
+In a new commit, consolidate the first three dicts in constants.py into one dict whose value is a new data class.
+
+### Fixup: change ControlConfig to use lists instead of tuples, sets or frozensets

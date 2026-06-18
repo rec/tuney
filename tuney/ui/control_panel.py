@@ -159,13 +159,13 @@ def _add_control_grid(
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
-    configured = constants.CONTROL_ROWS.get(type(data).__name__)
-    if configured is None:
+    config = constants.CONTROL_CONFIGS.get(type(data).__name__)
+    if config is None or not config.rows:
         return _grid_rows(fields)
 
     used: set[str] = set()
     rows: list[list[str]] = []
-    for configured_row in configured:
+    for configured_row in config.rows:
         if row := [name for name in configured_row if name in fields]:
             rows.append(row)
             used.update(row)
@@ -212,9 +212,8 @@ def _add_control_cell(
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     cls = type(data)
-    hidden = constants.GUI_HIDDEN_FIELDS.get(
-        cls.__name__, set()
-    ) | constants.GENERAL_HIDDEN_FIELDS.get(cls.__name__, set())
+    config = constants.CONTROL_CONFIGS.get(cls.__name__)
+    hidden = config.hidden_fields + config.general_fields if config else []
     return tuple(
         name
         for name in cls.model_fields
@@ -304,9 +303,7 @@ def _add_option_control(
     width = _entry_width(name, annotation, type(data).__name__)
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
-        side='left', padx=(0, 4)
-    )
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
     menu = (
         ctk.CTkOptionMenu(
             frame,
@@ -428,9 +425,7 @@ def _add_entry_control(
     width = _entry_width(name, annotation, type(data).__name__)
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
-        side='left', padx=(0, 4)
-    )
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
     entry = (
         ctk.CTkEntry(frame, width=width, textvariable=var)
         if width
@@ -474,9 +469,7 @@ def _add_enum_control(
 
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(
-        side='left', padx=(0, 4)
-    )
+    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
     radio_pad = 3 if name in {'dtype', 'waveform', 'function'} else 6
     radio_width = (
         70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
