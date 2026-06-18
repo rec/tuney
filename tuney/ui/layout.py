@@ -59,7 +59,8 @@ class Layout:
         return f
 
     def refresh_devices(self) -> None:
-        self.control_panel.refresh_devices()
+        for option_control in self.control_panel.option_controls:
+            option_control.refresh()
 
     @cached_property
     def count_label(self) -> CTkLabel:

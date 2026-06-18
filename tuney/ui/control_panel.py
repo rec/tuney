@@ -49,10 +49,6 @@ class ControlPanel(ctk.CTkScrollableFrame):
             _add_general_controls(self, data, self.option_controls)
         _add_model_controls(self, data, self.option_controls)
 
-    def refresh_devices(self) -> None:
-        for option_control in self.option_controls:
-            option_control.refresh()
-
 
 def _add_model_controls(
     parent: CTkFrame | ctk.CTkScrollableFrame,
