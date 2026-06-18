@@ -19,7 +19,7 @@ class Tuning(Protocol):
 @runtime_checkable
 class ToFrequency(Protocol):
     def __call__(
-        self, root_frequency: float, octave_change: float, octaves: float
+        self, root_frequency: float, octave_ratio: float, octaves: float
     ) -> Frequency: ...
 
 
@@ -60,17 +60,17 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: Detune everything, in cents of an octave division
     detune: float = 0
 
-    #: If limit_denominator is greater than zero, use rounded N-limit just intonation
-    limit_denominator: int = 0
+    #: If limit is greater than zero, use rounded N-limit just intonation
+    limit: int = 0
 
     #: Number of divisions of an octave
-    octave_divisions: int = 12
+    notes_per_octave: int = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
     #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
-    octave_change: float = 2
+    octave_ratio: float = 2
 
     #: The rule for converting a pitch to a frequency
     pitch_to_frequency: PitchToFrequency = PitchToFrequency()
@@ -98,11 +98,11 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
                     raise
 
         divisions = note_number - self.root_note + self.detune / 100.0
-        octaves = divisions / self.octave_divisions
+        octaves = divisions / self.notes_per_octave
 
-        f = self.pitch_to_frequency(self.root_frequency, self.octave_change, octaves)
-        if self.limit_denominator:
-            return float(Fraction(f).limit_denominator(self.limit_denominator))
+        f = self.pitch_to_frequency(self.root_frequency, self.octave_ratio, octaves)
+        if self.limit:
+            return float(Fraction(f).limit_denominator(self.limit))
         return f
 
 

@@ -30,9 +30,9 @@
       "offset": 0,
       "tuning": {
         "detune": 0,
-        "limit_denominator": 0,
-        "octave_divisions": 12,
-        "octave_change": 2,
+        "limit": 0,
+        "notes_per_octave": 12,
+        "octave_ratio": 2,
         "pitch_to_frequency": {
           "function": "power"
         },

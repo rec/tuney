@@ -70,10 +70,10 @@ class Scale(BaseModel, frozen=True):
     #: The Last note from the alphabet
     end: str = 'G'
 
-    # If `notes_used` is set, once the scale is generated, only the notes in
-    # `notes_used` are actually used in the list. For example, notes_used='CDEFGAB'
+    # If `notes` is set, once the scale is generated, only the notes in
+    # `notes` are actually used in the list. For example, notes='CDEFGAB'
     # would correspond to only the white notes on the piano.
-    notes_used: str | None = None
+    notes: str | None = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[list[int], validate_intervals] = Field(

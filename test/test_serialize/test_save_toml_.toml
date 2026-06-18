@@ -32,9 +32,9 @@ offset = 0
 
 [player.scale.tuning]
 detune = 0
-limit_denominator = 0
-octave_divisions = 12
-octave_change = 2
+limit = 0
+notes_per_octave = 12
+octave_ratio = 2
 root_frequency = 440
 root_note = 69
 table = []

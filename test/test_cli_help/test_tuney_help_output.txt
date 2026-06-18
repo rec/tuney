@@ -70,10 +70,10 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
         The first note from the alphabet: TODO: validate begin <= base <= end (default: A)                              
   --player.scale.end STR                                                                                                
         The Last note from the alphabet (default: G)                                                                    
-  --player.scale.notes-used {None}|STR                                                                                  
-        If `notes_used` is set, once the scale is generated, only the notes in                                          
-        `notes_used` are actually used in the list. For example, notes_used='CDEFGAB' would correspond to only the white
-        notes on the piano. (default: None)                                                                             
+  --player.scale.notes {None}|STR                                                                                       
+        If `notes` is set, once the scale is generated, only the notes in                                               
+        `notes` are actually used in the list. For example, notes='CDEFGAB' would correspond to only the white notes on 
+        the piano. (default: None)                                                                                      
   --player.scale.intervals [INT [INT ...]]                                                                              
         The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)                
   --player.scale.offset INT                                                                                             
@@ -85,11 +85,11 @@ usage: tuney [-h] [OPTIONS] [{text:str,text:list-char-press,text:none}]
   ----------------------------------------------------------------------------------------------------------------------
   --player.scale.tuning.detune FLOAT                                                                                    
         Detune everything, in cents of an octave division (default: 0)                                                  
-  --player.scale.tuning.limit-denominator INT                                                                           
-        If limit_denominator is greater than zero, use rounded N-limit just intonation (default: 0)                     
-  --player.scale.tuning.octave-divisions INT                                                                            
+  --player.scale.tuning.limit INT                                                                                       
+        If limit is greater than zero, use rounded N-limit just intonation (default: 0)                                 
+  --player.scale.tuning.notes-per-octave INT                                                                            
         Number of divisions of an octave (default: 12)                                                                  
-  --player.scale.tuning.octave-change FLOAT                                                                             
+  --player.scale.tuning.octave-ratio FLOAT                                                                              
         Frequency change between octaves. For the default "power" pitch_to_frequency the change is a ratio, so if it's  
         2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave 
         would be                                                                                                        

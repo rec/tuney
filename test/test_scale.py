@@ -11,7 +11,7 @@ def test_flat_sharp():
 
 
 def DONT_test_white_notes():
-    actual = [''.join(i) for i in Scale(notes_used='C#DEFGAB').flats_sharps]
+    actual = [''.join(i) for i in Scale(notes='C#DEFGAB').flats_sharps]
     expected = ['CDEFGAB', 'CDEFGAB']
     # FLAT, SHARP = '♭', '♯'
 

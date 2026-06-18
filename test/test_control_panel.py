@@ -140,16 +140,16 @@ def test_control_rows_use_compact_model_layouts():
     ) == [['waveform', 'period', 'duty_cycle']]
     assert _control_rows(tuney.player.scale, _control_fields(tuney.player.scale)) == [
         ['alphabet', 'root', 'begin', 'end', 'offset'],
-        ['notes_used', 'intervals'],
+        ['notes', 'intervals'],
     ]
     assert _control_rows(
         tuney.player.scale.tuning, _control_fields(tuney.player.scale.tuning)
     ) == [
         [
             'detune',
-            'limit_denominator',
-            'octave_divisions',
-            'octave_change',
+            'limit',
+            'notes_per_octave',
+            'octave_ratio',
             'root_frequency',
             'root_note',
             'table_blend',

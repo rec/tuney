@@ -2,16 +2,6 @@
 
 ## TODO
 
-### Rename some variables in Tuney
-
-Make sure there aren't any conflicts and in both the GUI and the CLI, rename:
-
-* notes_used -> notes
-* limit_denominator -> limit
-* octave_divisions -> notes_per_octave
-* octave_change -> octave ratio
-
-
 ### When the grid gets resized, the edges of the note names get cut off
 
 Fix this by making the note name font smaller at small button sizes
@@ -65,3 +55,12 @@ Fix this by making the note name font smaller at small button sizes
 
 * When MIDI is disabled, the captions channel, velocity and note_offset in the MIDI segment of the GUI have to get a lot lighter.
 * Codex did a bad job on this.
+
+### Rename some variables in Tuney
+
+Making sure there aren't any conflicts with existing names, in both the GUI and the CLI, rename:
+
+* notes_used -> notes
+* limit_denominator -> limit
+* octave_divisions -> notes_per_octave
+* octave_change -> octave_ratio
