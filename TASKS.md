@@ -2,10 +2,6 @@
 
 ## TODO
 
-### Fixup:
-
-* When MIDI is disabled, the captions channel, velocity and note_offset in the MIDI segment of the GUI have to get a lot lighter.
-
 ### Rename some variables in Tuney
 
 Make sure there aren't any conflicts and in both the GUI and the CLI, rename:
@@ -64,3 +60,8 @@ Fix this by making the note name font smaller at small button sizes
 ### Fixup:
 
 * When MIDI is disabled, the captions in the MIDI segment have to get a lot lighter.
+
+### Fixup:
+
+* When MIDI is disabled, the captions channel, velocity and note_offset in the MIDI segment of the GUI have to get a lot lighter.
+* Codex did a bad job on this.
