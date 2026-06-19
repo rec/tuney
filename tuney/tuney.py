@@ -276,9 +276,7 @@ class Tuney(BaseModel):
         for press in self.char_presses:
             if (note := self.mapper(press.char)) is not None:
                 frame = round(press.time * self.player.sample_rate / 1000)
-                events.append(
-                    (frame, NotePress(note_number=note, is_press=press.is_press))
-                )
+                events.append((frame, NotePress(note, press.is_press)))
         return events
 
     def _output_comment(self) -> Callable[[], str]:

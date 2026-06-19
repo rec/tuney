@@ -128,7 +128,7 @@ class MultiPlayer(BaseModel, frozen=True):
                     max_polyphony=self.max_polyphony,
                 )
             )
-            self.engine.submit(NotePress(note_number=note_number, is_press=True))
+            self.engine.submit(NotePress(note_number))
             self.engine.start()
         except PortAudioError:
             self.pressed_notes.remove(note_number)
@@ -140,7 +140,7 @@ class MultiPlayer(BaseModel, frozen=True):
         if note_number not in self.pressed_notes:
             return False
         self.pressed_notes.remove(note_number)
-        self.engine.submit(NotePress(note_number=note_number, is_press=False))
+        self.engine.submit(NotePress(note_number, False))
         return True
 
     def stop_all(self) -> None:

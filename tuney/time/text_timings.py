@@ -83,7 +83,7 @@ class TextTimings(BaseModel, frozen=True):
                 dt = (dt or 0.0) + self.random.choice(self.timings_)
                 begin = time * self.scale
                 end = (time + dt) * self.scale
-                presses.append(CharPress(char, True, begin))
+                presses.append(CharPress(char, time=begin))
                 presses.append(CharPress(char, False, end))
                 time += max(0, dt - self.overlap)
         return iter(sorted(presses, key=lambda press: press.time))

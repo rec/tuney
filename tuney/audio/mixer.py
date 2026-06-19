@@ -12,7 +12,10 @@ from .voice import Voice, VoiceState
 
 class NotePress(BaseModel, frozen=True):
     note_number: NoteNumber
-    is_press: bool
+    is_press: bool = True
+
+    def __init__(self, note_number: NoteNumber, is_press: bool = True) -> None:
+        super().__init__(note_number=note_number, is_press=is_press)
 
 
 class Mixer(BaseModel):

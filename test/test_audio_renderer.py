@@ -45,15 +45,15 @@ def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
         frame_size = min(block_size, SAMPLE_COUNT - rendered)
         notes: list[NotePress] = []
         if block_index == 0:
-            notes.append(NotePress(note_number=0, is_press=True))
+            notes.append(NotePress(0))
             if name in {'overlap', 'stop_all'}:
-                notes.append(NotePress(note_number=7, is_press=True))
+                notes.append(NotePress(7))
         if name == 'envelope' and rendered >= 24_000 > rendered - frame_size:
-            notes.append(NotePress(note_number=0, is_press=False))
+            notes.append(NotePress(0, False))
         if name == 'overlap' and rendered >= 24_000 > rendered - frame_size:
-            notes.append(NotePress(note_number=0, is_press=False))
+            notes.append(NotePress(0, False))
         if name == 'overlap' and rendered >= 36_000 > rendered - frame_size:
-            notes.append(NotePress(note_number=7, is_press=False))
+            notes.append(NotePress(7, False))
         if name == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
             renderer.stop_all()
         blocks.append(renderer.render(notes, frame_size, np.float32))
@@ -87,8 +87,8 @@ def test_audio_rendering(file_regression: FileRegressionFixture, scenario: str) 
 
 def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
     renderer = _renderer()
-    press = NotePress(note_number=0, is_press=True)
-    release = NotePress(note_number=1, is_press=False)
+    press = NotePress(0)
+    release = NotePress(1, False)
 
     assert renderer.apply(press)
     assert not renderer.apply(press)
@@ -189,7 +189,7 @@ def test_engine_records_rendered_callback_block(tmp_path) -> None:
     path = tmp_path / 'out.wav'
     engine = AudioEngine(mixer=_renderer().mixer)
     engine.recorder = AudioFileWriter(path, SAMPLE_RATE, 1)
-    engine.submit(NotePress(note_number=0, is_press=True))
+    engine.submit(NotePress(0))
     out = np.zeros((1_024, 1), dtype=np.float32)
 
     engine.callback(out, len(out), None, None)
@@ -286,9 +286,9 @@ def test_mixer_limits_max_polyphony() -> None:
     voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
     mixer = Mixer(sound=lambda _: voice)
     for note_number in range(mixer.max_polyphony):
-        assert mixer.apply(NotePress(note_number=note_number, is_press=True))
+        assert mixer.apply(NotePress(note_number))
 
-    assert not mixer.apply(NotePress(note_number=mixer.max_polyphony, is_press=True))
+    assert not mixer.apply(NotePress(mixer.max_polyphony))
 
     out = mixer.render(48_000, np.float32)
 
@@ -352,7 +352,7 @@ def test_voice_holds_early_release_until_minimum_note_time() -> None:
 
 def test_mixer_maps_mono_signal_to_each_channel() -> None:
     mixer = _renderer().mixer
-    mixer.apply(NotePress(note_number=0, is_press=True))
+    mixer.apply(NotePress(0))
 
     out = mixer.render(48_000, np.float32, channels=3)
 
@@ -363,7 +363,7 @@ def test_mixer_maps_mono_signal_to_each_channel() -> None:
 
 def test_engine_applies_stop_all_on_next_block() -> None:
     engine = AudioEngine(mixer=_renderer().mixer)
-    engine.submit(NotePress(note_number=0, is_press=True))
+    engine.submit(NotePress(0))
     engine.submit(StopAll())
     out = np.zeros((4_800, 1), dtype=np.float32)
 
@@ -383,7 +383,7 @@ def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
-    engine.submit(NotePress(note_number=0, is_press=True))
+    engine.submit(NotePress(0))
     engine.submit(StopAll())
     engine.start()
     waiting = Event()

@@ -33,7 +33,7 @@ def test_cli_accepts_text_option() -> None:
 
 
 def test_cli_preserves_char_presses_from_config_default() -> None:
-    text = [CharPress('a', True, 0)]
+    text = [CharPress('a', time=0)]
 
     tuney = tyro.cli(Tuney, args=[], default=Tuney(text=text))
 
