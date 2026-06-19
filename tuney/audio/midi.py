@@ -14,10 +14,19 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 
 
 class MIDI(BaseModel, frozen=True):
+    # Enable MIDI output
     enable: bool = False
+
+    # MIDI output port name
     output: str | None = None
+
+    # MIDI channel, from 0 to 15
     channel: int = 0
+
+    # Velocity used for MIDI note-on messages
     velocity: int = 0x40
+
+    # Offset added to MIDI note numbers
     note_offset: int = 0
 
     @cached_property

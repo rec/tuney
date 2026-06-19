@@ -20,10 +20,20 @@ class MultiPlayer(BaseModel, frozen=True):
     device: Device = Field(default_factory=Device)
     oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()
+
+    # Audio output gain
     gain: float = 1.0
+
+    # Offset added to generated note numbers before tuning
     note_offset: NoteNumber = 44
+
+    # Divisor applied to mixed voices to provide polyphonic headroom
     polyphonic_headroom: float = Field(4, gt=0)
+
+    # Maximum number of notes that can play simultaneously
     max_polyphony: int = Field(32, gt=0)
+
+    # Minimum duration of each synthesized note, in seconds
     minimum_note_time: float = Field(0.5, ge=0)
 
     @cached_property

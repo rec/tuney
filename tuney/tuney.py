@@ -55,8 +55,13 @@ class Tuney(BaseModel):
     # Time to hover over a widget before showing help, in seconds
     hover_time: float = 1.0
 
+    # Run without opening the graphical interface
     cli: bool = False
+
+    # Disable synthesized audio output
     silent: bool = False
+
+    # Audio file to write while playing text
     output: Path | None = None
 
     # If True, listen to the keyboard even when other applications are in front

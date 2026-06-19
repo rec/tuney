@@ -16,11 +16,11 @@ usage: tuney [-h] [OPTIONS]
   --hover-time FLOAT                                                                                                    
         Time to hover over a widget before showing help, in seconds (default: 1.0)                                      
   --cli, --no-cli                                                                                                       
-        (default: False)                                                                                                
+        Run without opening the graphical interface (default: False)                                                    
   --silent, --no-silent                                                                                                 
-        (default: False)                                                                                                
+        Disable synthesized audio output (default: False)                                                               
   --output {None}|PATH                                                                                                  
-        (default: None)                                                                                                 
+        Audio file to write while playing text (default: None)                                                          
   --run-in-background, --no-run-in-background                                                                           
         If True, listen to the keyboard even when other applications are in front (default: False)                      
                                                                                                                         
@@ -29,48 +29,48 @@ usage: tuney [-h] [OPTIONS]
   Map letters to notes                                                                                                  
   ----------------------------------------------------------------------------------------------------------------------
   --mapper.alphabet {None}|STR                                                                                          
-        (default: None)                                                                                                 
+        Characters mapped to note numbers, or the default alphabet if empty (default: None)                             
   --mapper.length INT                                                                                                   
-        (default: 0)                                                                                                    
+        Number of note numbers to cycle through; zero uses the full alphabet (default: 0)                               
   --mapper.case-sensitive, --mapper.no-case-sensitive                                                                   
-        (default: True)                                                                                                 
+        Treat uppercase and lowercase characters as distinct (default: True)                                            
   --mapper.invert, --mapper.no-invert                                                                                   
-        (default: False)                                                                                                
+        Reverse the order of mapped note numbers (default: False)                                                       
   --mapper.offset INT                                                                                                   
-        (default: 0)                                                                                                    
+        Offset added to mapped note numbers (default: 0)                                                                
                                                                                                                         
  player options                                                                                                         
  ---------------------------------------------------------------------------------------------------------------------- 
   How to play back audio                                                                                                
   ----------------------------------------------------------------------------------------------------------------------
   --player.gain FLOAT                                                                                                   
-        (default: 1.0)                                                                                                  
+        Audio output gain (default: 1.0)                                                                                
   --player.note-offset INT                                                                                              
-        (default: 44)                                                                                                   
+        Offset added to generated note numbers before tuning (default: 44)                                              
   --player.polyphonic-headroom FLOAT                                                                                    
-        (default: 4)                                                                                                    
+        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)                                     
   --player.max-polyphony INT                                                                                            
-        (default: 32)                                                                                                   
+        Maximum number of notes that can play simultaneously (default: 32)                                              
   --player.minimum-note-time FLOAT                                                                                      
-        (default: 0.5)                                                                                                  
+        Minimum duration of each synthesized note, in seconds (default: 0.5)                                            
                                                                                                                         
  player.device options                                                                                                  
  ---------------------------------------------------------------------------------------------------------------------- 
   --player.device.samplerate {None}|INT                                                                                 
-        (default: None)                                                                                                 
+        Audio output sample rate, in frames per second (default: None)                                                  
   --player.device.device {None}|INT|STR                                                                                 
-        (default: None)                                                                                                 
+        Audio output device name or index (default: None)                                                               
   --player.device.dtype {None,int8,uint8,int32,int16,float32}                                                           
-        (default: None)                                                                                                 
+        Sample data type sent to the audio output device (default: None)                                                
                                                                                                                         
  player.oscillator options                                                                                              
  ---------------------------------------------------------------------------------------------------------------------- 
   --player.oscillator.waveform {sine,triangle}                                                                          
-        (default: triangle)                                                                                             
+        Waveform used to synthesize notes (default: triangle)                                                           
   --player.oscillator.period FLOAT                                                                                      
-        (default: 1.0)                                                                                                  
+        Number of waveform cycles per note period (default: 1.0)                                                        
   --player.oscillator.duty-cycle FLOAT                                                                                  
-        (default: 0.5)                                                                                                  
+        Fraction of each waveform cycle before its falling edge (default: 0.5)                                          
                                                                                                                         
  player.scale options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
@@ -129,44 +129,44 @@ usage: tuney [-h] [OPTIONS]
   How to send MIDI output                                                                                               
   ----------------------------------------------------------------------------------------------------------------------
   --midi.enable, --midi.no-enable                                                                                       
-        (default: False)                                                                                                
+        Enable MIDI output (default: False)                                                                             
   --midi.output {None}|STR                                                                                              
-        (default: None)                                                                                                 
+        MIDI output port name (default: None)                                                                           
   --midi.channel INT                                                                                                    
-        (default: 0)                                                                                                    
+        MIDI channel, from 0 to 15 (default: 0)                                                                         
   --midi.velocity INT                                                                                                   
-        (default: 64)                                                                                                   
+        Velocity used for MIDI note-on messages (default: 64)                                                           
   --midi.note-offset INT                                                                                                
-        (default: 0)                                                                                                    
+        Offset added to MIDI note numbers (default: 0)                                                                  
                                                                                                                         
  text-timings options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
   Timings for playing back texts                                                                                        
   ----------------------------------------------------------------------------------------------------------------------
   --text-timings.space FLOAT                                                                                            
-        (default: 100)                                                                                                  
+        Base duration for a space, in milliseconds (default: 100)                                                       
   --text-timings.period FLOAT                                                                                           
-        (default: 300)                                                                                                  
+        Base duration for a period, in milliseconds (default: 300)                                                      
   --text-timings.comma FLOAT                                                                                            
-        (default: 200)                                                                                                  
+        Base duration for a comma, in milliseconds (default: 200)                                                       
   --text-timings.colon FLOAT                                                                                            
-        (default: 400)                                                                                                  
+        Base duration for a colon, in milliseconds (default: 400)                                                       
   --text-timings.semicolon FLOAT                                                                                        
-        (default: 400)                                                                                                  
+        Base duration for a semicolon, in milliseconds (default: 400)                                                   
   --text-timings.blank-line FLOAT                                                                                       
-        (default: 1000)                                                                                                 
+        Base duration for a blank line, in milliseconds (default: 1000)                                                 
   --text-timings.overlap FLOAT                                                                                          
-        (default: 20)                                                                                                   
+        Time that consecutive characters overlap, in milliseconds (default: 20)                                         
   --text-timings.seed {None}|INT                                                                                        
-        (default: None)                                                                                                 
+        Seed for randomized character timings, or a random seed if empty (default: None)                                
   --text-timings.alpha-only, --text-timings.no-alpha-only                                                               
-        (default: True)                                                                                                 
+        Ignore characters without an explicit timing unless they are alphabetic (default: True)                         
   --text-timings.strip-accents, --text-timings.no-strip-accents                                                         
-        (default: True)                                                                                                 
+        Remove accents before generating character events (default: True)                                               
   --text-timings.scale FLOAT                                                                                            
-        (default: 3.0)                                                                                                  
+        Multiplier applied to all generated timing values (default: 3.0)                                                
   --text-timings.other [STR FLOAT [STR FLOAT ...]]                                                                      
-        (default: )                                                                                                     
+        Additional per-character base durations, in milliseconds (default: )                                            
   --text-timings.timings {None}|{[FLOAT [FLOAT ...]]}                                                                   
-        (default: None)                                                                                                 
+        Possible durations for alphabetic characters, in milliseconds (default: None)                                   
                                                                                                                         

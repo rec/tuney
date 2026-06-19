@@ -29,8 +29,13 @@ class Waveform(enum.Enum):
 
 
 class Oscillator(BaseModel, frozen=True):
+    # Waveform used to synthesize notes
     waveform: Waveform = Waveform.triangle
+
+    # Number of waveform cycles per note period
     period: float = 1.0
+
+    # Fraction of each waveform cycle before its falling edge
     duty_cycle: float = 0.5
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:

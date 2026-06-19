@@ -34,10 +34,20 @@ class Map(Enum):
 
 class Mapper(BaseModel, frozen=True):
     map: tyro.conf.Suppress[Map] = Map.linear
+
+    # Characters mapped to note numbers, or the default alphabet if empty
     alphabet: str | None = None
+
+    # Number of note numbers to cycle through; zero uses the full alphabet
     length: int = 0
+
+    # Treat uppercase and lowercase characters as distinct
     case_sensitive: bool = True
+
+    # Reverse the order of mapped note numbers
     invert: bool = False
+
+    # Offset added to mapped note numbers
     offset: int = 0
 
     @cached_property

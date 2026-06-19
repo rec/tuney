@@ -16,8 +16,13 @@ class DType(StrEnum):
 
 
 class Device(BaseModel, frozen=True):
+    # Audio output sample rate, in frames per second
     samplerate: int | None = None
+
+    # Audio output device name or index
     device: int | str | None = None
+
+    # Sample data type sent to the audio output device
     dtype: DType | None = None
 
     blocksize: tyro.conf.Suppress[int | None] = None
