@@ -201,6 +201,43 @@ def test_engine_records_rendered_callback_block(tmp_path) -> None:
     assert audio.any()
 
 
+class _UnsupportedCommentFile:
+    @property
+    def comment(self) -> str:
+        return ''
+
+    @comment.setter
+    def comment(self, _: str) -> None:
+        raise soundfile.LibsndfileError(
+            0, 'Error : File type does not support string data.'
+        )
+
+
+class _FailingCommentFile:
+    @property
+    def comment(self) -> str:
+        return ''
+
+    @comment.setter
+    def comment(self, _: str) -> None:
+        raise soundfile.LibsndfileError(0, 'Error : another failure.')
+
+
+def test_audio_file_writer_skips_comment_for_unsupported_formats() -> None:
+    writer = object.__new__(AudioFileWriter)
+    writer.file = _UnsupportedCommentFile()
+
+    writer._set_comment('metadata')
+
+
+def test_audio_file_writer_raises_unexpected_comment_errors() -> None:
+    writer = object.__new__(AudioFileWriter)
+    writer.file = _FailingCommentFile()
+
+    with pytest.raises(soundfile.LibsndfileError, match='another failure'):
+        writer._set_comment('metadata')
+
+
 def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)

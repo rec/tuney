@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import cached_property, partial
 from pathlib import Path
 
@@ -78,21 +79,29 @@ class MultiPlayer(BaseModel, frozen=True):
     def channels(self) -> int:
         return self.device.channels or 1
 
-    def render_file(self, path: Path, events: list[tuple[int, NotePress]]) -> None:
+    def render_file(
+        self,
+        path: Path,
+        events: list[tuple[int, NotePress]],
+        comment: Callable[[], str] | None = None,
+    ) -> None:
         mixer = Mixer(
             sound=partial(self.sound, sample_rate=self.sample_rate),
             channels=self.channels,
             polyphonic_headroom=self.polyphonic_headroom,
             max_polyphony=self.max_polyphony,
         )
-        render_file(path, mixer, events, self.sample_rate, self.channels)
+        render_file(path, mixer, events, self.sample_rate, self.channels, comment)
 
-    def start_recording(self, path: Path) -> None:
+    def start_recording(
+        self, path: Path, comment: Callable[[], str] | None = None
+    ) -> None:
         stream = self.engine.stream
         self.engine.recorder = AudioFileWriter(
             path,
             int(stream.samplerate),
             int(stream.channels),
+            comment,
         )
 
     def stop_recording(self) -> None:

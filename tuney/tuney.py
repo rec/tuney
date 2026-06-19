@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Callable
+from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
 from typing import Annotated
@@ -251,10 +253,12 @@ class Tuney(BaseModel):
         completed = False
         try:
             if self.output and self.silent:
-                self.player.render_file(self.output, self._note_events())
+                self.player.render_file(
+                    self.output, self._note_events(), self._output_comment()
+                )
             else:
                 if self.output:
-                    self.player.start_recording(self.output)
+                    self.player.start_recording(self.output, self._output_comment())
                 self._play_cli()
             completed = True
         finally:
@@ -276,6 +280,21 @@ class Tuney(BaseModel):
                     (frame, NotePress(note_number=note, is_press=press.is_press))
                 )
         return events
+
+    def _output_comment(self) -> Callable[[], str]:
+        start_time = datetime.now(timezone.utc)
+
+        def comment() -> str:
+            return tomlkit.dumps(
+                {
+                    'original_text': self.display_text,
+                    'recording_start_time': start_time.isoformat(),
+                    'recording_finish_time': datetime.now(timezone.utc).isoformat(),
+                    'settings': tomlkit.dumps(serialize(self.dump_data())),
+                }
+            )
+
+        return comment
 
     def _play_cli(self) -> None:
         def callback(c: CharPress | None) -> None:

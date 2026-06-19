@@ -1,3 +1,6 @@
+import tomllib
+from datetime import datetime
+
 import pytest
 import soundfile
 
@@ -182,8 +185,9 @@ def test_output_forces_cli_mode(tmp_path) -> None:
     assert tuney.cli
 
 
-def test_silent_cli_mode_writes_audio_file(tmp_path) -> None:
-    path = tmp_path / 'out.wav'
+@pytest.mark.parametrize('suffix', ['wav', 'mp3', 'flac'])
+def test_silent_cli_mode_writes_audio_file(tmp_path, suffix: str) -> None:
+    path = tmp_path / f'out.{suffix}'
     tuney = Tuney(
         output=path,
         silent=True,
@@ -195,11 +199,21 @@ def test_silent_cli_mode_writes_audio_file(tmp_path) -> None:
 
     tuney()
     audio, sample_rate = soundfile.read(path, always_2d=True)
+    with soundfile.SoundFile(path) as file:
+        metadata = tomllib.loads(file.copy_metadata()['comment'])
+    settings = tomllib.loads(metadata['settings'])
 
     assert sample_rate == 48_000
     assert len(audio) >= 24_000
     assert audio.shape[1] == 1
     assert audio.any()
+    assert metadata['original_text'] == 'a'
+    assert datetime.fromisoformat(metadata['recording_start_time'])
+    assert datetime.fromisoformat(metadata['recording_finish_time'])
+    assert settings['text'] == [
+        {'char': 'a', 'is_press': True, 'time': 0},
+        {'char': 'a', 'is_press': False, 'time': 100},
+    ]
 
 
 def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
@@ -209,7 +223,9 @@ def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(
         MultiPlayer,
         'start_recording',
-        lambda self, output: lifecycle.append(('start_recording', output)),
+        lambda self, output, comment=None: lifecycle.append(
+            ('start_recording', output, comment)
+        ),
     )
     monkeypatch.setattr(
         MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
@@ -229,8 +245,16 @@ def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
 
     tuney()
 
-    assert lifecycle == [
-        ('start_recording', path),
+    start_recording, stop_all, wait, stop_recording, close = lifecycle
+    assert start_recording[0] == 'start_recording'
+    assert start_recording[1] == path
+    assert callable(start_recording[2])
+    assert [
+        stop_all,
+        wait,
+        stop_recording,
+        close,
+    ] == [
         'stop_all',
         'wait',
         'stop_recording',
@@ -241,7 +265,7 @@ def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
 def test_interrupted_output_removes_partial_file(monkeypatch, tmp_path) -> None:
     path = tmp_path / 'out.wav'
 
-    def interrupt(self, output, events) -> None:
+    def interrupt(self, output, events, comment=None) -> None:
         output.write_bytes(b'partial')
         raise KeyboardInterrupt
 

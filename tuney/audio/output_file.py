@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 from queue import SimpleQueue
 from threading import Thread
@@ -11,13 +12,22 @@ BLOCK_SIZE = 1024
 
 
 class AudioFileWriter:
-    def __init__(self, path: Path, sample_rate: int, channels: int) -> None:
+    def __init__(
+        self,
+        path: Path,
+        sample_rate: int,
+        channels: int,
+        comment: Callable[[], str] | None = None,
+    ) -> None:
         self.file = soundfile.SoundFile(
             path,
             mode='w',
             samplerate=sample_rate,
             channels=channels,
         )
+        self.comment = comment
+        if self.comment is not None:
+            self._set_comment(self.comment())
         self.blocks = SimpleQueue[np.ndarray | None]()
         self.thread = Thread(target=self._write, daemon=True)
         self.thread.start()
@@ -28,7 +38,16 @@ class AudioFileWriter:
     def close(self) -> None:
         self.blocks.put(None)
         self.thread.join()
+        if self.comment is not None:
+            self._set_comment(self.comment())
         self.file.close()
+
+    def _set_comment(self, comment: str) -> None:
+        try:
+            self.file.comment = comment
+        except soundfile.LibsndfileError as error:
+            if 'File type does not support string data' not in str(error):
+                raise
 
     def _write(self) -> None:
         while (block := self.blocks.get()) is not None:
@@ -41,8 +60,9 @@ def render_file(
     events: list[tuple[int, NotePress]],
     sample_rate: int,
     channels: int,
+    comment: Callable[[], str] | None = None,
 ) -> None:
-    writer = AudioFileWriter(path, sample_rate, channels)
+    writer = AudioFileWriter(path, sample_rate, channels, comment)
     rendered = 0
     try:
         for frame, note in events:
