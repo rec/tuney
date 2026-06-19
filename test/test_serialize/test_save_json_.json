@@ -69,6 +69,6 @@
   },
   "max_gap": 4.0,
   "cli": false,
-  "disable_sound": false,
+  "silent": false,
   "run_in_background": false
 }

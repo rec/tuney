@@ -106,7 +106,7 @@ def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) ->
 def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
     return [
         (data, 'max_gap'),
-        (data, 'disable_sound'),
+        (data, 'silent'),
         (data, 'run_in_background'),
         (data.player, 'gain'),
         (data.player, 'note_offset'),

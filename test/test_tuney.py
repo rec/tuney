@@ -172,4 +172,4 @@ def test_cli_mode_requires_text() -> None:
 
 def test_cli_mode_requires_sound() -> None:
     with pytest.raises(SystemExit, match='CLI mode requires sound'):
-        Tuney(cli=True, disable_sound=True, text='a')()
+        Tuney(cli=True, silent=True, text='a')()

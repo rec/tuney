@@ -52,7 +52,7 @@ class Tuney(BaseModel):
     max_gap: float = 4.0
 
     cli: bool = False
-    disable_sound: bool = False
+    silent: bool = False
 
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
@@ -173,7 +173,7 @@ class Tuney(BaseModel):
 
     def _on_char(self, c: CharPress) -> None:
         if (note := self.mapper(c.char)) is not None:
-            if not self.disable_sound:
+            if not self.silent:
                 self.player.on_note(note, c.is_press)
             self.midi(note, c.is_press)
         if not self.cli:
@@ -231,7 +231,7 @@ class Tuney(BaseModel):
     def _run_cli(self) -> None:
         if not self.char_presses:
             sys.exit('CLI mode requires text to play')
-        if self.disable_sound:
+        if self.silent:
             sys.exit('CLI mode requires sound')
 
         def callback(c: CharPress | None) -> None:
