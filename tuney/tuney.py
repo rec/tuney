@@ -52,6 +52,9 @@ class Tuney(BaseModel):
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: float = 4.0
 
+    # Time to hover over a widget before showing help, in seconds
+    hover_time: float = 1.0
+
     cli: bool = False
     silent: bool = False
     output: Path | None = None

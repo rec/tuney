@@ -1,4 +1,5 @@
 max_gap = 4.0
+hover_time = 1.0
 cli = false
 silent = false
 run_in_background = false

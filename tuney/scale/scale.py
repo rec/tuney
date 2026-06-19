@@ -71,8 +71,10 @@ class Scale(BaseModel, frozen=True):
     end: str = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
-    # `notes` are actually used in the list. For example, notes='CDEFGAB'
-    # would correspond to only the white notes on the piano.
+    # `notes` are actually used in the list.
+    #
+    # For example, notes='CDEFGAB' would correspond to only
+    # the white notes on the piano.
     notes: str | None = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"

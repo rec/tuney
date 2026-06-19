@@ -13,6 +13,8 @@ usage: tuney [-h] [OPTIONS]
         Text to start the program with (optional)                                                                       
   --max-gap FLOAT                                                                                                       
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)                                             
+  --hover-time FLOAT                                                                                                    
+        Time to hover over a widget before showing help, in seconds (default: 1.0)                                      
   --cli, --no-cli                                                                                                       
         (default: False)                                                                                                
   --silent, --no-silent                                                                                                 
@@ -82,8 +84,9 @@ usage: tuney [-h] [OPTIONS]
         The Last note from the alphabet (default: G)                                                                    
   --player.scale.notes {None}|STR                                                                                       
         If `notes` is set, once the scale is generated, only the notes in                                               
-        `notes` are actually used in the list. For example, notes='CDEFGAB' would correspond to only the white notes on 
-        the piano. (default: None)                                                                                      
+        `notes` are actually used in the list.                                                                          
+                                                                                                                        
+        For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)             
   --player.scale.intervals [INT [INT ...]]                                                                              
         The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)                
   --player.scale.offset INT                                                                                             

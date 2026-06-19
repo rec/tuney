@@ -4,15 +4,17 @@ import enum
 import json
 import math
 from collections.abc import Callable
-from tkinter import TclError
+from tkinter import Misc, TclError
 from typing import Any, TypeAlias, get_args, get_origin
 
 import customtkinter as ctk
 from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
+from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
 from . import constants
+from .tooltip import Tooltip
 
 Scalar: TypeAlias = bool | float | int | str | None
 
@@ -45,6 +47,7 @@ class _OptionControl:
 class ControlPanel(ctk.CTkScrollableFrame):
     def __init__(self, parent: CTkFrame, data: BaseModel, height: int = 200) -> None:
         super().__init__(parent, height=height)
+        self.data = data
         self.option_controls: list[_OptionControl] = []
         if type(data).__name__ == 'Tuney':
             _add_general_controls(self, data, self.option_controls)
@@ -106,6 +109,7 @@ def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) ->
 def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
     return [
         (data, 'max_gap'),
+        (data, 'hover_time'),
         (data, 'silent'),
         (data, 'run_in_background'),
         (data.player, 'gain'),
@@ -198,6 +202,7 @@ def _add_control_cell(
     )
 
     _add_control(cell, data, name, option_controls)
+    _add_field_tooltips(cell, type(data), name)
     CONTROL_FIELD_NAMES[id(cell)] = name
     if (
         type(data).__name__ == 'MIDI'
@@ -216,6 +221,49 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
         for name in cls.model_fields
         if name not in hidden and not _is_suppressed_field(cls, name)
     )
+
+
+def _add_field_tooltips(parent: CTkFrame, model: type[BaseModel], name: str) -> None:
+    control_panel: Any = parent
+    while not isinstance(control_panel, ControlPanel):
+        control_panel = control_panel.master
+    for widget in _field_widgets(parent):
+        Tooltip(
+            widget,
+            _field_hover_text(model, name),
+            lambda: float(getattr(control_panel.data, 'hover_time', 1.0)),
+        )
+
+
+def _field_widgets(parent: Misc) -> list[Misc]:
+    children = parent.winfo_children()
+    if not children:
+        return [parent]
+    return [widget for child in children for widget in _field_widgets(child)]
+
+
+def _field_hover_text(model: type[BaseModel], name: str) -> str:
+    return _rewrap_hover_text(_field_help(model, name) or name)
+
+
+def _rewrap_hover_text(text: str) -> str:
+    return '\n\n'.join(' '.join(paragraph.split()) for paragraph in text.split('\n\n'))
+
+
+def _field_help(model: type[BaseModel], name: str) -> str | None:
+    result = field_list_from_type_or_callable(
+        model,
+        model(),
+        support_single_arg_types=False,
+        in_union_context=False,
+    )
+    if not isinstance(result, tuple):
+        return None
+    for field in result[1]:
+        if field.intern_name == name:
+            text = field.helptext
+            return text() if callable(text) else text
+    return None
 
 
 def _visible_control_names(data: BaseModel) -> list[str]:
