@@ -1,6 +1,11 @@
 ## TODO
 
-### Enable audio recordingm in GUI mode
+### Enable audio recording in GUI mode
+
+* When Transport's state switches from ready to recording, start recording audio.
+* When it changes from recording to pause, stop recording but keep the data
+* When it change state to ready again, bring up a new file dialog and save the audio to that file.
+* If they cancel on the file dialog, keep the audio, and remain in the original state.
 
 ## DONE
 ### Clean up control_panel.py
@@ -196,3 +201,16 @@ Transport will take a callback that accepts a State.
 
 
 # * Put it on the left side of the same panel containing the replay button
+
+### Add a clear button to Transport
+
+* Add a Clear button with two images: clear-image and disabled-clear-image
+* In state ready, the Clear button is disabled.
+* In state recording or paused, the clear button is enabled, and changes the state to ready
+
+### Add hover overs to every widget
+
+* Add a new config: `hover_time: float = 1`, meaning 1 second.
+* If the user hovers over a widget for more than a this time, bring up text.
+* Hover-over text is taken from the help or doc comment for the widget, in exactly the same way that `tyro` does it.
+
