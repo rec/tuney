@@ -1,6 +1,6 @@
 import pytest
 
-from tuney.ui.transport import State, _record_state, _stop_state
+from tuney.ui.transport import State, _ready_state, _record_state
 
 
 @pytest.mark.parametrize(
@@ -23,5 +23,7 @@ def test_record_button_changes_transport_state(state: State, expected: State) ->
         (State.paused, State.ready),
     ],
 )
-def test_stop_button_changes_transport_state(state: State, expected: State) -> None:
-    assert _stop_state(state) == expected
+def test_stop_and_clear_buttons_change_transport_state(
+    state: State, expected: State
+) -> None:
+    assert _ready_state(state) == expected

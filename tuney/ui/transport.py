@@ -31,6 +31,8 @@ class Transport(CTkFrame):
         self.disabled_stop_image = _square(GREY)
         self.stop_image = _square(BLACK)
         self.pause_image = _pause(RED)
+        self.clear_image = _cross(BLACK)
+        self.disabled_clear_image = _cross(GREY)
 
         self.record = CTkButton(
             self,
@@ -52,6 +54,16 @@ class Transport(CTkFrame):
             fg_color='transparent',
         )
         self.stop.pack(side='left')
+        self.clear = CTkButton(
+            self,
+            text='',
+            image=self.disabled_clear_image,
+            command=self._on_clear,
+            width=BUTTON_SIZE,
+            height=BUTTON_SIZE,
+            fg_color='transparent',
+        )
+        self.clear.pack(side='left')
         self._configure_buttons()
 
     @property
@@ -62,7 +74,10 @@ class Transport(CTkFrame):
         self._set_state(_record_state(self.state))
 
     def _on_stop(self) -> None:
-        self._set_state(_stop_state(self.state))
+        self._set_state(_ready_state(self.state))
+
+    def _on_clear(self) -> None:
+        self._set_state(_ready_state(self.state))
 
     def _set_state(self, state: State) -> None:
         if state == self.state:
@@ -82,13 +97,17 @@ class Transport(CTkFrame):
             image=self.disabled_stop_image if ready else self.stop_image,
             state='disabled' if ready else 'normal',
         )
+        self.clear.configure(
+            image=self.disabled_clear_image if ready else self.clear_image,
+            state='disabled' if ready else 'normal',
+        )
 
 
 def _record_state(state: State) -> State:
     return State.paused if state == State.recording else State.recording
 
 
-def _stop_state(state: State) -> State:
+def _ready_state(state: State) -> State:
     return State.ready if state != State.ready else state
 
 
@@ -109,6 +128,14 @@ def _pause(color: str) -> CTkImage:
     draw = ImageDraw.Draw(image)
     draw.rectangle((5, 3, 9, 20), fill=color)
     draw.rectangle((14, 3, 18, 20), fill=color)
+    return _ctk_image(image)
+
+
+def _cross(color: str) -> CTkImage:
+    image = _blank_image()
+    draw = ImageDraw.Draw(image)
+    draw.line((5, 5, 18, 18), fill=color, width=4)
+    draw.line((18, 5, 5, 18), fill=color, width=4)
     return _ctk_image(image)
 
 
