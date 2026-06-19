@@ -1,4 +1,5 @@
 import pytest
+import soundfile
 
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
@@ -173,3 +174,81 @@ def test_cli_mode_requires_text() -> None:
 def test_cli_mode_requires_sound() -> None:
     with pytest.raises(SystemExit, match='CLI mode requires sound'):
         Tuney(cli=True, silent=True, text='a')()
+
+
+def test_output_forces_cli_mode(tmp_path) -> None:
+    tuney = Tuney(output=tmp_path / 'out.wav')
+
+    assert tuney.cli
+
+
+def test_silent_cli_mode_writes_audio_file(tmp_path) -> None:
+    path = tmp_path / 'out.wav'
+    tuney = Tuney(
+        output=path,
+        silent=True,
+        text=[
+            CharPress('a', True, 0),
+            CharPress('a', False, 100),
+        ],
+    )
+
+    tuney()
+    audio, sample_rate = soundfile.read(path, always_2d=True)
+
+    assert sample_rate == 48_000
+    assert len(audio) >= 24_000
+    assert audio.shape[1] == 1
+    assert audio.any()
+
+
+def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
+    path = tmp_path / 'out.wav'
+    lifecycle: list[object] = []
+    monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    monkeypatch.setattr(
+        MultiPlayer,
+        'start_recording',
+        lambda self, output: lifecycle.append(('start_recording', output)),
+    )
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
+    )
+    monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+    )
+    monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
+    tuney = Tuney(
+        output=path,
+        text=[
+            CharPress('a', True, 0),
+            CharPress('a', False, 0),
+        ],
+    )
+
+    tuney()
+
+    assert lifecycle == [
+        ('start_recording', path),
+        'stop_all',
+        'wait',
+        'stop_recording',
+        'close',
+    ]
+
+
+def test_interrupted_output_removes_partial_file(monkeypatch, tmp_path) -> None:
+    path = tmp_path / 'out.wav'
+
+    def interrupt(self, output, events) -> None:
+        output.write_bytes(b'partial')
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(MultiPlayer, 'render_file', interrupt)
+    tuney = Tuney(output=path, silent=True, text='a')
+
+    with pytest.raises(KeyboardInterrupt):
+        tuney()
+
+    assert not path.exists()

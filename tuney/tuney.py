@@ -11,6 +11,7 @@ import tyro
 from pydantic import BaseModel, ConfigDict
 
 from .audio.midi import MIDI
+from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
 from .char_press import CharPress
 from .keyboard.listener import KeyboardListener
@@ -53,6 +54,7 @@ class Tuney(BaseModel):
 
     cli: bool = False
     silent: bool = False
+    output: Path | None = None
 
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
@@ -64,6 +66,10 @@ class Tuney(BaseModel):
     _recording_time_offset: Milliseconds = 0.0
     _recording_insert_time: Milliseconds | None = None
     _replay_text: str = ''
+
+    def model_post_init(self, __context: object) -> None:
+        if self.output:
+            object.__setattr__(self, 'cli', True)
 
     @cached_property
     def app(self) -> App:
@@ -231,16 +237,42 @@ class Tuney(BaseModel):
     def _run_cli(self) -> None:
         if not self.char_presses:
             sys.exit('CLI mode requires text to play')
-        if self.silent:
+        if self.silent and not self.output:
             sys.exit('CLI mode requires sound')
+
+        completed = False
+        try:
+            if self.output and self.silent:
+                self.player.render_file(self.output, self._note_events())
+            else:
+                if self.output:
+                    self.player.start_recording(self.output)
+                self._play_cli()
+            completed = True
+        finally:
+            if not self.silent:
+                self.player.stop_all()
+                self.player.wait()
+                if self.output:
+                    self.player.stop_recording()
+                self.player.close()
+            if self.output and not completed:
+                self.output.unlink(missing_ok=True)
+
+    def _note_events(self) -> list[tuple[int, NotePress]]:
+        events: list[tuple[int, NotePress]] = []
+        for press in self.char_presses:
+            if (note := self.mapper(press.char)) is not None:
+                frame = round(press.time * self.player.sample_rate / 1000)
+                events.append(
+                    (frame, NotePress(note_number=note, is_press=press.is_press))
+                )
+        return events
+
+    def _play_cli(self) -> None:
 
         def callback(c: CharPress | None) -> None:
             if c:
                 self._on_char(c)
 
-        try:
-            Sequencer(char_presses=self.char_presses, callback=callback).run()
-        finally:
-            self.player.stop_all()
-            self.player.wait()
-            self.player.close()
+        Sequencer(char_presses=self.char_presses, callback=callback).run()

@@ -17,6 +17,8 @@ usage: tuney [-h] [OPTIONS]
         (default: False)                                                                                                
   --silent, --no-silent                                                                                                 
         (default: False)                                                                                                
+  --output {None}|PATH                                                                                                  
+        (default: None)                                                                                                 
   --run-in-background, --no-run-in-background                                                                           
         If True, listen to the keyboard even when other applications are in front (default: False)                      
                                                                                                                         

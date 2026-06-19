@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import tyro
 from pytest_regressions.file_regression import FileRegressionFixture
@@ -36,3 +38,10 @@ def test_cli_preserves_char_presses_from_config_default() -> None:
     tuney = tyro.cli(Tuney, args=[], default=Tuney(text=text))
 
     assert tuney.text == text
+
+
+def test_output_option_forces_cli_mode() -> None:
+    tuney = tyro.cli(Tuney, args=['--output=out.wav', '--text=a'])
+
+    assert tuney.output == Path('out.wav')
+    assert tuney.cli

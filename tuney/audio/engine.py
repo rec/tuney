@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
+from threading import Event
 from typing import Any
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
-from sounddevice import CallbackAbort, CallbackStop, OutputStream, PortAudioError
+from sounddevice import CallbackAbort, OutputStream, PortAudioError
 
 from ..types import NoteNumber
 from .device import Device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
+from .output_file import AudioFileWriter
 from .voice import Voice
 
 
@@ -30,14 +31,21 @@ class StopAll(BaseModel, frozen=True):
 
 
 class AudioEngine(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     mixer: Mixer
     device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
+    recorder: AudioFileWriter | None = Field(default=None, exclude=True)
     stop_when_silent: bool = False
 
     @cached_property
     def commands(self) -> SimpleQueue[NotePress | Configure | StopAll]:
         return SimpleQueue()
+
+    @cached_property
+    def playback_complete(self) -> Event:
+        return Event()
 
     @cached_property
     def stream(self) -> OutputStream:
@@ -51,6 +59,7 @@ class AudioEngine(BaseModel):
         self.commands.put(command)
 
     def start(self) -> None:
+        self.playback_complete.clear()
         if 'stream' in self.__dict__ and self.stream.active:
             return
         try:
@@ -78,8 +87,9 @@ class AudioEngine(BaseModel):
 
     def wait(self) -> None:
         stream = self.__dict__.get('stream')
-        while stream is not None and stream.active:
-            time.sleep(0.001)
+        if stream is not None:
+            self.playback_complete.wait()
+            stream.stop()
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: Any, status: Any
@@ -90,11 +100,14 @@ class AudioEngine(BaseModel):
         try:
             self._drain_commands()
             out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
+            if self.recorder:
+                self.recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
             self.diagnostics.record_callback_error(str(error))
+            self.playback_complete.set()
             raise CallbackAbort from error
         if self.stop_when_silent and not self.mixer.voices:
-            raise CallbackStop
+            self.playback_complete.set()
 
     def _drain_commands(self) -> None:
         while True:

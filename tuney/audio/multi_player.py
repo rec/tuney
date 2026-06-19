@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property, partial
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 from sounddevice import PortAudioError
@@ -11,6 +12,7 @@ from .device import Device
 from .engine import AudioEngine, Configure, StopAll
 from .mixer import Mixer, NotePress
 from .oscillator import Oscillator
+from .output_file import AudioFileWriter, render_file
 from .voice import Voice
 
 
@@ -57,6 +59,36 @@ class MultiPlayer(BaseModel, frozen=True):
             oscillator=self.oscillator,
             sample_rate=sample_rate or self.device.samplerate or 48_000,
         )
+
+    @property
+    def sample_rate(self) -> int:
+        return self.device.samplerate or 48_000
+
+    @property
+    def channels(self) -> int:
+        return self.device.channels or 1
+
+    def render_file(self, path: Path, events: list[tuple[int, NotePress]]) -> None:
+        mixer = Mixer(
+            sound=partial(self.sound, sample_rate=self.sample_rate),
+            channels=self.channels,
+            polyphonic_headroom=self.polyphonic_headroom,
+            max_polyphony=self.max_polyphony,
+        )
+        render_file(path, mixer, events, self.sample_rate, self.channels)
+
+    def start_recording(self, path: Path) -> None:
+        stream = self.engine.stream
+        self.engine.recorder = AudioFileWriter(
+            path,
+            int(stream.samplerate),
+            int(stream.channels),
+        )
+
+    def stop_recording(self) -> None:
+        recorder, self.engine.recorder = self.engine.recorder, None
+        if recorder:
+            recorder.close()
 
     def on_note(self, note_number: NoteNumber, is_press: bool) -> bool:
         return self.start(note_number) if is_press else self.stop(note_number)

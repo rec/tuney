@@ -1,18 +1,20 @@
 from collections.abc import Callable
 from io import BytesIO
+from threading import Event, Thread
 from typing import Any
 
 import numpy as np
 import pytest
 import soundfile
 from pytest_regressions.file_regression import FileRegressionFixture
-from sounddevice import CallbackAbort, CallbackStop, PortAudioError
+from sounddevice import CallbackAbort, PortAudioError
 
 from tuney.audio import engine as engine_module
 from tuney.audio.engine import AudioEngine, StopAll
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator, Waveform
+from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.voice import Voice, VoiceState
 
@@ -183,6 +185,22 @@ def test_callback_failure_is_recorded() -> None:
     assert engine.diagnostics.take_errors() == ['cannot render block']
 
 
+def test_engine_records_rendered_callback_block(tmp_path) -> None:
+    path = tmp_path / 'out.wav'
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.recorder = AudioFileWriter(path, SAMPLE_RATE, 1)
+    engine.submit(NotePress(note_number=0, is_press=True))
+    out = np.zeros((1_024, 1), dtype=np.float32)
+
+    engine.callback(out, len(out), None, None)
+    engine.recorder.close()
+    audio, sample_rate = soundfile.read(path, always_2d=True)
+
+    assert sample_rate == SAMPLE_RATE
+    assert len(audio) == len(out)
+    assert audio.any()
+
+
 def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
@@ -318,10 +336,37 @@ def test_engine_applies_stop_all_on_next_block() -> None:
     assert engine.mixer.voices
 
     out = np.zeros((24_000, 1), dtype=np.float32)
-    with pytest.raises(CallbackStop):
-        engine.callback(out, len(out), None, None)
+    engine.callback(out, len(out), None, None)
 
     assert not engine.mixer.voices
+    assert engine.playback_complete.is_set()
+
+
+def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.submit(NotePress(note_number=0, is_press=True))
+    engine.submit(StopAll())
+    engine.start()
+    waiting = Event()
+
+    def wait() -> None:
+        waiting.set()
+        engine.wait()
+
+    thread = Thread(target=wait)
+    thread.start()
+    waiting.wait()
+
+    assert thread.is_alive()
+    assert engine.stream.active
+
+    engine.callback(np.zeros((30_000, 1)), 30_000, None, None)
+    thread.join(timeout=1)
+
+    assert not thread.is_alive()
+    assert not engine.stream.active
 
 
 def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
