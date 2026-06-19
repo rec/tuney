@@ -46,7 +46,7 @@ usage: tuney [-h] [OPTIONS]
   --player.gain FLOAT                                                                                                   
         (default: 1.0)                                                                                                  
   --player.note-offset INT                                                                                              
-        (default: 32)                                                                                                   
+        (default: 44)                                                                                                   
   --player.polyphonic-headroom FLOAT                                                                                    
         (default: 4)                                                                                                    
   --player.max-polyphony INT                                                                                            

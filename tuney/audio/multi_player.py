@@ -21,7 +21,7 @@ class MultiPlayer(BaseModel, frozen=True):
     oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()
     gain: float = 1.0
-    note_offset: NoteNumber = 32
+    note_offset: NoteNumber = 44
     polyphonic_headroom: float = Field(4, gt=0)
     max_polyphony: int = Field(32, gt=0)
     minimum_note_time: float = Field(0.5, ge=0)
