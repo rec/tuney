@@ -270,7 +270,6 @@ class Tuney(BaseModel):
         return events
 
     def _play_cli(self) -> None:
-
         def callback(c: CharPress | None) -> None:
             if c:
                 self._on_char(c)

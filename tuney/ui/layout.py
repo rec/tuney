@@ -8,6 +8,7 @@ from . import constants
 from .app import REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
+from .transport import Transport
 
 TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
@@ -28,7 +29,8 @@ class Layout:
         _ = self.control_panel
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
-        _ = self.textbox, self.replay, self.note_buttons
+        _ = self.textbox, self.replay_frame, self.transport, self.replay
+        _ = self.note_buttons
 
         self.set_text(app.tuney.display_text)
 
@@ -85,7 +87,7 @@ class Layout:
         return f
 
     @cached_property
-    def replay(self) -> CTkButton:
+    def replay_frame(self) -> CTkFrame:
         f = CTkFrame(
             self.app,
             height=REPLAY_FRAME_HEIGHT,
@@ -93,9 +95,18 @@ class Layout:
         )
         f.pack(fill='x', padx=constants.PAD)
         f.pack_propagate(False)
+        return f
 
+    @cached_property
+    def transport(self) -> Transport:
+        transport = Transport(self.replay_frame, lambda _: None)
+        transport.pack(side='left')
+        return transport
+
+    @cached_property
+    def replay(self) -> CTkButton:
         replay = CTkButton(
-            f,
+            self.replay_frame,
             height=REPLAY_FRAME_HEIGHT,
             font=('Arial', 18),
             command=self.app.on_replay,
