@@ -1,0 +1,5 @@
+silent = true
+
+[midi]
+enable = true
+velocity = 96

@@ -5,7 +5,7 @@ import json
 import math
 from collections.abc import Callable
 from tkinter import Misc, TclError
-from typing import Any, TypeAlias, get_args, get_origin
+from typing import Any, TypeAlias, cast, get_args, get_origin
 
 import customtkinter as ctk
 from customtkinter import CTkFrame
@@ -108,6 +108,7 @@ def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) ->
 
 def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
     return [
+        (data, 'preset'),
         (data, 'max_gap'),
         (data, 'hover_time'),
         (data, 'silent'),
@@ -224,9 +225,7 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
 
 
 def _add_field_tooltips(parent: CTkFrame, model: type[BaseModel], name: str) -> None:
-    control_panel: Any = parent
-    while not isinstance(control_panel, ControlPanel):
-        control_panel = control_panel.master
+    control_panel = _control_panel(parent)
     for widget in _field_widgets(parent):
         Tooltip(
             widget,
@@ -342,7 +341,11 @@ def _add_option_control(
     string_var = ctk.StringVar(parent, _option_text(value))
 
     def command(raw: str) -> None:
-        _set_model_value(data, name, raw or None)
+        if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
+            cast(Any, data).apply_preset(raw)
+            parent.after(0, _rebuild_control_panel, parent)
+        else:
+            _set_model_value(data, name, raw or None)
 
     annotation = type(data).model_fields[name].annotation
     width = _entry_width(name, annotation, type(data).__name__)
@@ -369,6 +372,27 @@ def _add_option_control(
     )
     menu.pack(side='left')
     option_controls.append(_OptionControl(menu, data, name, values))
+
+
+def _control_panel(parent: Misc) -> ControlPanel:
+    control_panel: Any = parent
+    while not isinstance(control_panel, ControlPanel):
+        control_panel = control_panel.master
+    return control_panel
+
+
+def _rebuild_control_panel(parent: Misc) -> None:
+    control_panel = _control_panel(parent)
+    for child in control_panel.winfo_children():
+        child.destroy()
+    control_panel.option_controls.clear()
+    if type(control_panel.data).__name__ == 'Tuney':
+        _add_general_controls(
+            control_panel, control_panel.data, control_panel.option_controls
+        )
+    _add_model_controls(
+        control_panel, control_panel.data, control_panel.option_controls
+    )
 
 
 def _add_bool_control(

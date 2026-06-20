@@ -6,6 +6,7 @@ from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.__main__ import main
 from tuney.char_press import CharPress
+from tuney.cli import cli
 from tuney.tuney import Tuney
 
 
@@ -73,3 +74,21 @@ def test_gui_option_opens_gui_mode() -> None:
     tuney = tyro.cli(Tuney, args=['--gui'])
 
     assert tuney.gui
+
+
+def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: list[Tuney] = []
+
+    def call(tuney: Tuney) -> None:
+        captured.append(tuney)
+
+    monkeypatch.setattr(Tuney, '__call__', call)
+    monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli(Tuney, prog='tuney')
+
+    assert exc_info.value.code is None
+    assert captured[0].preset == 'white-notes'
+    assert captured[0].player.scale.notes == 'ABCDEFG'
+    assert captured[0].text == 'abc'

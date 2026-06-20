@@ -20,6 +20,7 @@ from .audio.multi_player import MultiPlayer
 from .char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
+from .presets import merged_data, read_preset
 from .serialize import serialize
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
@@ -29,6 +30,9 @@ from .ui.transport import Action, State
 
 
 class Tuney(BaseModel):
+    # Named performance preset to load
+    preset: str | None = None
+
     # Load configs from a JSON or toml file
     config_file: Path | None = None
 
@@ -197,6 +201,16 @@ class Tuney(BaseModel):
                 raise ValueError(f'Do not understand file {path}')
         path.write_text(text)
 
+    def apply_preset(self, name: str) -> None:
+        char_presses = self.__dict__.get('char_presses')
+        data = merged_data(self.model_dump(), read_preset(name), {'preset': name})
+        validated = type(self).model_validate(data)
+        for field in type(self).model_fields:
+            object.__setattr__(self, field, getattr(validated, field))
+        self._clear_cached_values()
+        if char_presses is not None:
+            self.__dict__['char_presses'] = char_presses
+
     def dump_data(self) -> dict[str, object]:
         data = self.model_dump()
         if self.char_presses:
@@ -210,6 +224,12 @@ class Tuney(BaseModel):
             self.midi(note, c.is_press)
         if self.gui:
             self.app.on_char(c)
+
+    def _clear_cached_values(self) -> None:
+        fields = type(self).model_fields
+        for key in tuple(self.__dict__):
+            if key not in fields:
+                self.__dict__.pop(key, None)
 
     def on_transport_state(
         self,

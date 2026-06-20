@@ -1,39 +1,25 @@
-import json
 import sys
-import tomllib
 from pathlib import Path
-from typing import Any
 
 import tyro
 from pydantic import ValidationError
-from typing_extensions import TypeIs
 
-
-def is_str_dict(x: Any) -> TypeIs[dict[str, Any]]:
-    return isinstance(x, dict) and all(isinstance(k, str) for k in x.keys())
-
-
-def read_file(path: Path) -> dict[str, Any]:
-    data = path.read_text()
-    match path.suffix:
-        case '.toml':
-            result = tomllib.loads(data)
-        case '.json':
-            result = json.loads(data)
-        case _:
-            raise ValueError(f'Do not understand file {path}')
-    if not is_str_dict(result):
-        raise ValueError(f'File {path} does not contain a string dictionary')
-    return result
+from .presets import merged_data, read_file, read_preset
 
 
 def cli(cls, prog: str):
     try:
         f = tyro.cli(cls, prog=prog)
         assert hasattr(f, 'config_file')
-        if f.config_file:
-            assert isinstance(f.config_file, Path)
-            default = cls(**read_file(f.config_file))
+        assert hasattr(f, 'preset')
+        if f.config_file or f.preset:
+            data = {}
+            if f.preset:
+                data = merged_data(data, read_preset(f.preset), {'preset': f.preset})
+            if f.config_file:
+                assert isinstance(f.config_file, Path)
+                data = merged_data(data, read_file(f.config_file))
+            default = cls(**data)
             f = tyro.cli(cls, prog=prog, default=default)
         assert callable(f), f
         result = f()

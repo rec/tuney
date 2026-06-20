@@ -8,6 +8,8 @@ usage: tuney [-h] [OPTIONS]
  ---------------------------------------------------------------------------------------------------------------------- 
   -h, --help                                                                                                            
         show this help message and exit                                                                                 
+  --preset {None}|STR                                                                                                   
+        Named performance preset to load (default: None)                                                                
   --config-file {None}|PATH                                                                                             
         Load configs from a JSON or toml file (default: None)                                                           
   --text TEXT                                                                                                           

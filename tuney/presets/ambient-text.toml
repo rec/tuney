@@ -1,0 +1,11 @@
+[player]
+gain = 0.5
+minimum_note_time = 0.75
+
+[player.oscillator]
+waveform = "sine"
+period = 0.5
+
+[text_timings]
+scale = 4.0
+overlap = 80

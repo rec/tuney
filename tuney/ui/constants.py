@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from ..audio.device import DType, device_names
 from ..audio.midi import output_names as midi_output_names
+from ..presets import preset_names
 
 PAD = 16
 QUARTER = PAD // 4
@@ -26,7 +27,13 @@ class ControlConfig(BaseModel, frozen=True):
 CONTROL_CONFIGS = {
     'Tuney': ControlConfig(
         hidden_fields=['config_file', 'text', 'text_args', 'gui', 'output'],
-        general_fields=['max_gap', 'hover_time', 'silent', 'run_in_background'],
+        general_fields=[
+            'preset',
+            'max_gap',
+            'hover_time',
+            'silent',
+            'run_in_background',
+        ],
     ),
     'MultiPlayer': ControlConfig(general_fields=['gain', 'note_offset']),
     'PitchToFrequency': ControlConfig(general_fields=['function']),
@@ -81,6 +88,7 @@ ENTRY_WIDTHS = {
     'TextTimings.blank_line': 5,
 }
 OPTION_VALUES: dict[str, Callable[[], list[str]]] = {
+    'Tuney.preset': preset_names,
     'Device.device': device_names,
     'Device.dtype': lambda: [dtype.value for dtype in DType],
     'MIDI.output': midi_output_names,
