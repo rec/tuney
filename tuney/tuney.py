@@ -227,8 +227,9 @@ class Tuney(BaseModel):
 
     def _clear_cached_values(self) -> None:
         fields = type(self).model_fields
+        keep = {'app', 'listener'}
         for key in tuple(self.__dict__):
-            if key not in fields:
+            if key not in fields and key not in keep:
                 self.__dict__.pop(key, None)
 
     def on_transport_state(
