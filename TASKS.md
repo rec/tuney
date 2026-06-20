@@ -1,8 +1,13 @@
 ## TODO
 
-### Limit modes for notes: wrap around and reflect
+### Centering issue for scales
 
-#### centering issue
+The problem: if you decrease the number of notes in a scale, the sound goes way up in pitch!
+
+The reason is that the scale is attached to the bottom of the range, in mapper.
+
+Limit modes for notes: wrap around and reflect
+
 
 ### Better layout for the control panels
 
@@ -244,3 +249,24 @@ If Tuney already has non-empty `char_presses`, those should be discarded.
 * Add a Clear button with two images: clear-image and disabled-clear-image.
 * In state ready, the Clear button is disabled.
 * In state recording or paused, the Clear button is enabled, and changes the state to ready.
+
+### When running in CLI mode, print each character to the terminal as it is played back.
+
+* Do not print extra carriage returns,
+* If the program is interrupted, print a carriage return before printing any message.
+
+### Loading a preset, or just changing some parameters, needs to destroy and recreate the button grid
+
+If any parameter in Scale changes, recompute the entire button grid.
+
+### Fixup
+
+it might be after a change, the `notes` field contains note names that are no longer valid. This causes an exception.
+
+Sharten Scale._to_notes to return `values, errors[:-1]`. Do not fail on notes that are not understood; simply ignore them.
+Turn the `notes` field red, and then turn it back when it is all notes or spaces.
+
+If the user makes a change in a control panel field that reduces the number of notes in the note_grid to non-positive, erase all the NoteButtons, and turn that field red. When the number of notes in the note_grid changes from non-positive to positive, turn all those red field back to normal.
+
+
+Make sure that if `notes` is empty or only contains bad notes, the full list of note names in Scale.names should used.
