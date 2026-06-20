@@ -26,9 +26,9 @@ def test_tuney_help_output(
 
 
 def test_cli_accepts_text_option() -> None:
-    tuney = tyro.cli(Tuney, args=['--cli', '--text=Now is the time'])
+    tuney = tyro.cli(Tuney, args=['--text=Now is the time'])
 
-    assert tuney.cli
+    assert not tuney.gui
     assert tuney.text == 'Now is the time'
 
 
@@ -66,4 +66,10 @@ def test_output_option_forces_cli_mode() -> None:
     tuney = tyro.cli(Tuney, args=['--output=out.wav', '--text=a'])
 
     assert tuney.output == Path('out.wav')
-    assert tuney.cli
+    assert not tuney.gui
+
+
+def test_gui_option_opens_gui_mode() -> None:
+    tuney = tyro.cli(Tuney, args=['--gui'])
+
+    assert tuney.gui

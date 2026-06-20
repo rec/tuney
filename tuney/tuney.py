@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import sys
+import warnings
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import tomlkit
 import tyro
@@ -64,8 +65,8 @@ class Tuney(BaseModel):
     # Time to hover over a widget before showing help, in seconds
     hover_time: float = 1.0
 
-    # Run without opening the graphical interface
-    cli: bool = False
+    # Open the graphical interface
+    gui: bool = False
 
     # Disable synthesized audio output
     silent: bool = False
@@ -89,11 +90,11 @@ class Tuney(BaseModel):
             object.__setattr__(self, 'text', ' '.join(self.text_args))
             self.__dict__.pop('char_presses', None)
         if self.output:
-            object.__setattr__(self, 'cli', True)
+            object.__setattr__(self, 'gui', False)
 
     @cached_property
     def app(self) -> App:
-        assert not self.cli
+        assert self.gui
         return App(self)
 
     @cached_property
@@ -177,7 +178,7 @@ class Tuney(BaseModel):
         self._recording_time_offset = 0.0
         self._recording_insert_time = None
         self._replay_text = ''
-        if not self.cli:
+        if self.gui:
             self.app.layout.set_text('')
 
     def save(self, path: Path) -> None:
@@ -202,7 +203,7 @@ class Tuney(BaseModel):
             if not self.silent:
                 self.player.on_note(note, c.is_press)
             self.midi(note, c.is_press)
-        if not self.cli:
+        if self.gui:
             self.app.on_char(c)
 
     @property
@@ -244,11 +245,11 @@ class Tuney(BaseModel):
         self.app.is_replaying = False
 
     def __call__(self) -> None:
-        if self.cli:
-            self._run_cli()
-        else:
+        if self.gui:
             self.start()
             self.app.mainloop()
+        else:
+            self._run_cli()
 
     def start(self) -> None:
         self.app.start()
@@ -256,7 +257,7 @@ class Tuney(BaseModel):
 
     def _run_cli(self) -> None:
         if not self.char_presses:
-            sys.exit('CLI mode requires text to play')
+            _exit_with_missing_text()
         if self.silent and not self.output:
             sys.exit('CLI mode requires sound')
 
@@ -310,3 +311,11 @@ class Tuney(BaseModel):
                 self._on_char(c)
 
         Sequencer(char_presses=self.char_presses, callback=callback).run()
+
+
+def _exit_with_missing_text() -> NoReturn:
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', DeprecationWarning)
+        parser = tyro.extras.get_parser(Tuney, prog='tuney')  # ty: ignore[deprecated]
+    parser.error('the following arguments are required: TEXT')
+    raise AssertionError('unreachable')

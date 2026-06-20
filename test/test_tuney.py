@@ -102,7 +102,7 @@ def test_display_text_uses_only_key_presses():
 
 
 def test_clear_resets_recording_state():
-    tuney = Tuney(text=[CharPress('a', time=0.0)])
+    tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     object.__setattr__(tuney, 'app', FakeApp())
     tuney._recording_start_time = 100.0
     tuney._recording_time_offset = 20.0
@@ -119,7 +119,7 @@ def test_clear_resets_recording_state():
 
 
 def test_on_char_ignores_input_while_saving():
-    tuney = Tuney()
+    tuney = Tuney(gui=True)
     app = FakeApp()
     app.is_saving = True
     object.__setattr__(tuney, 'app', app)
@@ -130,7 +130,7 @@ def test_on_char_ignores_input_while_saving():
 
 
 def test_on_char_ignores_input_without_app_focus():
-    tuney = Tuney()
+    tuney = Tuney(gui=True)
     app = FakeApp()
     app.has_focus = False
     object.__setattr__(tuney, 'app', app)
@@ -154,7 +154,6 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
     monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
     tuney = Tuney(
-        cli=True,
         text=[
             CharPress('a', time=0),
             CharPress('a', False, 0),
@@ -169,20 +168,25 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     assert 'listener' not in tuney.__dict__
 
 
-def test_cli_mode_requires_text() -> None:
-    with pytest.raises(SystemExit, match='CLI mode requires text to play'):
-        Tuney(cli=True)()
+def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        Tuney()()
+
+    error = capsys.readouterr().err
+    assert exc_info.value.code == 2
+    assert 'Required options were not provided: TEXT' in error
+    assert 'For full helptext, run tuney --help' in error
 
 
 def test_cli_mode_requires_sound() -> None:
     with pytest.raises(SystemExit, match='CLI mode requires sound'):
-        Tuney(cli=True, silent=True, text='a')()
+        Tuney(silent=True, text='a')()
 
 
 def test_output_forces_cli_mode(tmp_path) -> None:
-    tuney = Tuney(output=tmp_path / 'out.wav')
+    tuney = Tuney(gui=True, output=tmp_path / 'out.wav')
 
-    assert tuney.cli
+    assert not tuney.gui
 
 
 @pytest.mark.parametrize('suffix', ['wav', 'mp3', 'flac'])

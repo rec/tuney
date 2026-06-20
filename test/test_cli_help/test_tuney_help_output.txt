@@ -16,8 +16,8 @@ usage: tuney [-h] [OPTIONS]
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)                                             
   --hover-time FLOAT                                                                                                    
         Time to hover over a widget before showing help, in seconds (default: 1.0)                                      
-  --cli, --no-cli                                                                                                       
-        Run without opening the graphical interface (default: False)                                                    
+  --gui, --no-gui                                                                                                       
+        Open the graphical interface (default: False)                                                                   
   --silent, --no-silent                                                                                                 
         Disable synthesized audio output (default: False)                                                               
   --output {None}|PATH                                                                                                  
