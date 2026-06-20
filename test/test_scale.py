@@ -45,6 +45,21 @@ def test_white_notes_reject_accidentals():
         raise AssertionError('C♯ should not be allowed')
 
 
+def test_bad_notes_are_ignored() -> None:
+    scale = Scale(notes='C frog D')
+
+    assert scale._to_notes(scale.notes or '') == (['C', 'D'], ['frog'])
+    assert [''.join(i) for i in scale.flats_sharps] == ['CD', 'CD']
+
+
+def test_empty_or_bad_notes_use_scale_names() -> None:
+    assert Scale(notes='')._to_notes('') == (list('CDEFGAB'), [])
+    assert [''.join(i) for i in Scale(notes='frog').flats_sharps] == [
+        'CDEFGAB',
+        'CDEFGAB',
+    ]
+
+
 def test_scale():
     for i in range(-100, 100):
         name = tt.to_name(i)  # ty: ignore[missing-argument] !

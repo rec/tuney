@@ -140,12 +140,13 @@ class Scale(BaseModel, frozen=True):
     def _note_re(self) -> re.Pattern:
         return re.compile(rf'([{self.names}][{FLAT}{SHARP}]*)')
 
-    def _to_notes(self, s: str) -> list[str]:
+    def _to_notes(self, s: str) -> tuple[list[str], list[str]]:
         split = self._note_re.split(canonical(s)) + ['']
         errors, values = zip(*batched(split, 2), strict=True)
-        if errors := [v for e in errors if (v := e.strip())]:
-            raise ValueError(f'Do not understand notes {", ".join(errors)}')
-        return values[:-1]
+        notes = [v for v in values[:-1] if v]
+        if not notes:
+            notes = list(self.names)
+        return notes, [v for e in errors[:-1] if (v := e.strip())]
 
     @cached_property
     def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -174,9 +175,10 @@ class Scale(BaseModel, frozen=True):
     def note_numbers(self) -> tuple[NoteNumber, ...]:
         if self.notes is None:
             return tuple(range(self.octave_length))
+        allowed_notes, _ = self._to_notes(self.notes)
         it = enumerate(zip(*self.all_flats_sharps, strict=True))
         return tuple(
-            i for i, notes in it if set(notes).intersection(self._to_notes(self.notes))
+            i for i, notes in it if set(notes).intersection(allowed_notes)
         )
 
     @cached_property

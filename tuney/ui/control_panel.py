@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..scale.scale import Scale
 from . import constants
 from .tooltip import Tooltip
 
@@ -21,6 +22,7 @@ Scalar: TypeAlias = bool | float | int | str | None
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 CONTROL_FG_COLORS: dict[int, Any] = {}
 WIDGET_TEXT_COLORS: dict[int, Any] = {}
+INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[Any, Any]] = {}
 
 
 class _OptionControl:
@@ -398,7 +400,7 @@ def _rebuild_control_panel(parent: Misc) -> None:
 
 
 def _rebuild_note_grid_if_scale_changed(parent: Misc, data: BaseModel) -> None:
-    if type(data).__name__ == 'Scale':
+    if isinstance(data, Scale):
         parent.after(0, _rebuild_note_grid, parent)
 
 
@@ -519,13 +521,14 @@ def _add_entry_control(
         raw = var.get()
         try:
             _set_model_value(data, name, _parse_entry_value(raw, annotation, value))
-            _rebuild_note_grid_if_scale_changed(parent, data)
         except ValidationError:
-            entry.configure(text_color='red')
+            _set_invalid_scale_widget(entry, text_color)
             return
         except (TypeError, ValueError):
-            entry.configure(text_color='red')
+            _set_invalid_scale_widget(entry, text_color)
         else:
+            if _set_scale_entry_state(parent, data, name, entry, text_color):
+                return
             entry.configure(text_color=text_color)
 
     entry.bind('<FocusOut>', update)
@@ -588,6 +591,55 @@ def _clear_cached_values(data: BaseModel) -> None:
     for key in tuple(data.__dict__):
         if key not in fields:
             data.__dict__.pop(key, None)
+
+
+def _set_scale_entry_state(
+    parent: Misc, data: BaseModel, name: str, entry: Any, text_color: Any
+) -> bool:
+    if not isinstance(data, Scale):
+        return False
+
+    note_errors = _scale_note_errors(data)
+    has_note_buttons = _scale_has_note_buttons(data)
+    if (name == 'notes' and note_errors) or not has_note_buttons:
+        _set_invalid_scale_widget(entry, text_color)
+        _rebuild_note_grid_if_scale_changed(parent, data)
+        return True
+
+    if not note_errors:
+        _clear_invalid_scale_widgets()
+    _rebuild_note_grid_if_scale_changed(parent, data)
+    return False
+
+
+def _scale_note_errors(scale: Scale) -> list[str]:
+    if not scale.notes:
+        return []
+    _, errors = scale._to_notes(scale.notes)
+    return errors
+
+
+def _scale_has_note_buttons(scale: Scale) -> bool:
+    try:
+        return scale.note_count > 0
+    except (AssertionError, ValueError, ZeroDivisionError):
+        return False
+
+
+def _set_invalid_scale_widget(widget: Any, text_color: Any) -> None:
+    INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(id(widget), (widget, text_color))
+    widget.configure(text_color='red')
+
+
+def _clear_invalid_scale_widgets() -> None:
+    for widget_id, (widget, text_color) in tuple(
+        INVALID_SCALE_WIDGET_TEXT_COLORS.items()
+    ):
+        try:
+            widget.configure(text_color=text_color)
+        except (TclError, ValueError):
+            pass
+        INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget_id, None)
 
 
 def _parse_entry_value(raw: str, annotation: Any, old_value: object) -> object:

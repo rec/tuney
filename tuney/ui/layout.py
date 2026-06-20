@@ -80,6 +80,12 @@ class Layout:
         self.__dict__.pop('note_buttons', None)
         for child in self.note_grid.winfo_children():
             child.destroy()
+        try:
+            has_note_buttons = self.app.tuney.player.scale.note_count > 0
+        except (AssertionError, ValueError, ZeroDivisionError):
+            has_note_buttons = False
+        if not has_note_buttons:
+            return
         _ = self.note_buttons
 
     @cached_property

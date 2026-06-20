@@ -12,6 +12,8 @@ from tuney.ui.control_panel import (
     _entry_width,
     _parse_entry_value,
     _rebuild_note_grid_if_scale_changed,
+    _scale_has_note_buttons,
+    _scale_note_errors,
     _set_model_value,
     _visible_field_names,
 )
@@ -67,6 +69,16 @@ def test_scale_changes_schedule_note_grid_rebuild() -> None:
 
     assert len(scheduled) == 1
     assert scheduled[0][0] == 0
+
+
+def test_scale_note_errors_report_bad_notes_without_failing() -> None:
+    assert _scale_note_errors(Scale(notes='C frog D')) == ['frog']
+    assert _scale_note_errors(Scale(notes='C D')) == []
+
+
+def test_scale_has_note_buttons_rejects_non_positive_note_count() -> None:
+    assert _scale_has_note_buttons(Scale())
+    assert not _scale_has_note_buttons(Scale(intervals=[0]))
 
 
 def test_parse_entry_value_parses_optional_lists_as_json():
