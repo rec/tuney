@@ -36,7 +36,7 @@ def _renderer(sound: Callable[[int], Voice] = _sound) -> OfflineRenderer:
     return OfflineRenderer(mixer=Mixer(sound=sound))
 
 
-def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
+def _render_scenario(scenario: str, block_size: int = 997) -> np.ndarray:
     renderer = _renderer()
     blocks: list[np.ndarray] = []
     rendered = 0
@@ -46,15 +46,15 @@ def _render_scenario(name: str, block_size: int = 997) -> np.ndarray:
         notes: list[NotePress] = []
         if block_index == 0:
             notes.append(NotePress(0))
-            if name in {'overlap', 'stop_all'}:
+            if scenario in {'overlap', 'stop_all'}:
                 notes.append(NotePress(7))
-        if name == 'envelope' and rendered >= 24_000 > rendered - frame_size:
+        if scenario == 'envelope' and rendered >= 24_000 > rendered - frame_size:
             notes.append(NotePress(0, False))
-        if name == 'overlap' and rendered >= 24_000 > rendered - frame_size:
+        if scenario == 'overlap' and rendered >= 24_000 > rendered - frame_size:
             notes.append(NotePress(0, False))
-        if name == 'overlap' and rendered >= 36_000 > rendered - frame_size:
+        if scenario == 'overlap' and rendered >= 36_000 > rendered - frame_size:
             notes.append(NotePress(7, False))
-        if name == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
+        if scenario == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
             renderer.stop_all()
         blocks.append(renderer.render(notes, frame_size, np.float32))
         rendered += frame_size
