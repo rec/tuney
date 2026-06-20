@@ -170,6 +170,39 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     assert 'listener' not in tuney.__dict__
 
 
+def test_cli_mode_prints_characters_as_they_play(
+    monkeypatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    tuney = Tuney(
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 0),
+            CharPress('b', time=0),
+            CharPress('b', False, 0),
+        ],
+    )
+
+    tuney._play_cli()
+
+    assert capsys.readouterr().out == 'ab\n'
+
+
+def test_cli_mode_prints_newline_before_keyboard_interrupt(
+    monkeypatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def interrupt(*args: object) -> bool:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(MultiPlayer, 'on_note', interrupt)
+    tuney = Tuney(text=[CharPress('a', time=0)])
+
+    with pytest.raises(KeyboardInterrupt):
+        tuney._play_cli()
+
+    assert capsys.readouterr().out == 'a\n'
+
+
 def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc_info:
         Tuney()()

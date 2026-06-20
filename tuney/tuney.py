@@ -367,9 +367,16 @@ class Tuney(BaseModel):
     def _play_cli(self) -> None:
         def callback(c: CharPress | None) -> None:
             if c:
+                if c.is_press:
+                    print(c.char, end='', flush=True)
                 self._on_char(c)
 
-        Sequencer(char_presses=self.char_presses, callback=callback).run()
+        try:
+            Sequencer(char_presses=self.char_presses, callback=callback).run()
+        except KeyboardInterrupt:
+            print()
+            raise
+        print()
 
 
 def _exit_with_missing_text() -> NoReturn:
