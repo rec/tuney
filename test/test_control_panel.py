@@ -4,12 +4,14 @@ from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.audio.device import Device, DType
 from tuney.mapper.mapper import Mapper
+from tuney.scale.scale import Scale
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui.control_panel import (
     _control_rows,
     _entry_width,
     _parse_entry_value,
+    _rebuild_note_grid_if_scale_changed,
     _set_model_value,
     _visible_field_names,
 )
@@ -49,6 +51,22 @@ def test_set_model_value_notifies_device_change():
     _set_model_value(device, 'device', 'speaker')
 
     assert changes == [True]
+
+
+def test_scale_changes_schedule_note_grid_rebuild() -> None:
+    scheduled: list[object] = []
+
+    class Parent:
+        def after(self, delay: int, callback: object, *args: object) -> None:
+            scheduled.append((delay, callback, args))
+
+    parent = Parent()
+
+    _rebuild_note_grid_if_scale_changed(parent, Scale())
+    _rebuild_note_grid_if_scale_changed(parent, Mapper())
+
+    assert len(scheduled) == 1
+    assert scheduled[0][0] == 0
 
 
 def test_parse_entry_value_parses_optional_lists_as_json():

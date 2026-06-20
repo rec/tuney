@@ -75,6 +75,13 @@ class Layout:
         it = self.app.tuney.note_labels.items()
         return {k: self._note_frame(i, k, n) for i, (k, n) in enumerate(it)}
 
+    def rebuild_note_grid(self) -> None:
+        self.app.tuney.__dict__.pop('note_labels', None)
+        self.__dict__.pop('note_buttons', None)
+        for child in self.note_grid.winfo_children():
+            child.destroy()
+        _ = self.note_buttons
+
     @cached_property
     def note_grid(self) -> CTkFrame:
         f = CTkFrame(self.app)

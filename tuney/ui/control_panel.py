@@ -344,8 +344,10 @@ def _add_option_control(
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
             cast(Any, data).apply_preset(raw)
             parent.after(0, _rebuild_control_panel, parent)
+            parent.after(0, _rebuild_note_grid, parent)
         else:
             _set_model_value(data, name, raw or None)
+            _rebuild_note_grid_if_scale_changed(parent, data)
 
     annotation = type(data).model_fields[name].annotation
     width = _entry_width(name, annotation, type(data).__name__)
@@ -395,6 +397,16 @@ def _rebuild_control_panel(parent: Misc) -> None:
     )
 
 
+def _rebuild_note_grid_if_scale_changed(parent: Misc, data: BaseModel) -> None:
+    if type(data).__name__ == 'Scale':
+        parent.after(0, _rebuild_note_grid, parent)
+
+
+def _rebuild_note_grid(parent: Misc) -> None:
+    layout = cast(Any, _control_panel(parent).data).app.layout
+    layout.rebuild_note_grid()
+
+
 def _add_bool_control(
     parent: CTkFrame, data: BaseModel, name: str, value: bool
 ) -> None:
@@ -402,6 +414,7 @@ def _add_bool_control(
 
     def command() -> None:
         _set_model_value(data, name, bool(var.get()))
+        _rebuild_note_grid_if_scale_changed(parent, data)
         if type(data).__name__ == 'MIDI' and name == 'enable':
             _set_midi_controls_state(parent, bool(var.get()))
 
@@ -506,6 +519,7 @@ def _add_entry_control(
         raw = var.get()
         try:
             _set_model_value(data, name, _parse_entry_value(raw, annotation, value))
+            _rebuild_note_grid_if_scale_changed(parent, data)
         except ValidationError:
             entry.configure(text_color='red')
             return
@@ -535,6 +549,7 @@ def _add_enum_control(
 
     def command() -> None:
         _set_model_value(data, name, members[var.get()])
+        _rebuild_note_grid_if_scale_changed(parent, data)
 
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
