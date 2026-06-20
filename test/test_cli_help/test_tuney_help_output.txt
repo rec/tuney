@@ -40,7 +40,7 @@ usage: tuney [-h] [OPTIONS]
   --mapper.invert, --mapper.no-invert                                                                                   
         Reverse the order of mapped note numbers (default: False)                                                       
   --mapper.offset INT                                                                                                   
-        Offset added to mapped note numbers (default: 0)                                                                
+        Offset from the center of the mapped note range (default: 0)                                                    
                                                                                                                         
  player options                                                                                                         
  ---------------------------------------------------------------------------------------------------------------------- 

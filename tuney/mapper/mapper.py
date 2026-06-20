@@ -2,19 +2,29 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import cached_property
+from math import floor
 from string import ascii_letters, ascii_lowercase
 
 import tyro
 from pydantic import BaseModel
 
+MIDDLE_NOTE: float = 63.5
+DEFAULT_PLAYER_NOTE_OFFSET: int = 44
+MAPPER_CENTER: float = MIDDLE_NOTE - DEFAULT_PLAYER_NOTE_OFFSET
+
+
+def centered_note_number(index: int, span: int, offset: int) -> int:
+    return floor(index - (span - 1) / 2 + MAPPER_CENTER + offset + 0.5)
+
 
 def linear(m: Mapper) -> dict[str, int]:
     def char_to_number(index: int, c: str) -> int:
+        span = m.length or len(m.alphabet_)
         if m.invert:
             index = len(m.alphabet_) - index - 1
         if m.length:
             index %= m.length
-        return index + m.offset
+        return centered_note_number(index, span, m.offset)
 
     return {a: char_to_number(i, a) for i, a in enumerate(m.alphabet_)}
 
@@ -47,7 +57,7 @@ class Mapper(BaseModel, frozen=True):
     # Reverse the order of mapped note numbers
     invert: bool = False
 
-    # Offset added to mapped note numbers
+    # Offset from the center of the mapped note range
     offset: int = 0
 
     @cached_property

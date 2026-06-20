@@ -29,12 +29,12 @@ def _control_fields(data: BaseModel) -> list[str]:
 
 def test_set_model_value_validates_and_clears_cached_values():
     mapper = Mapper()
-    assert mapper.char_to_number['b'] == 1
+    assert mapper.char_to_number['b'] == -5
 
     _set_model_value(mapper, 'length', '1')
 
     assert mapper.length == 1
-    assert mapper.char_to_number['b'] == 0
+    assert mapper.char_to_number['b'] == 20
 
 
 def test_set_model_value_converts_dtype_string():

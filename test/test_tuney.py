@@ -176,7 +176,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 
     tuney()
 
-    assert events == [(0, True), (0, False)]
+    assert events == [(-6, True), (-6, False)]
     assert lifecycle == ['stop_all', 'wait', 'close']
     assert 'app' not in tuney.__dict__
     assert 'listener' not in tuney.__dict__
