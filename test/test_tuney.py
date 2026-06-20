@@ -15,6 +15,7 @@ class FakeApp:
     is_replaying = False
     is_saving = False
     has_focus = True
+    focus_in_control_panel = False
 
     class layout:
         @staticmethod
@@ -135,6 +136,17 @@ def test_on_char_ignores_input_without_app_focus():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.has_focus = False
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('a', time=100.0))
+
+    assert tuney.char_presses == []
+
+
+def test_on_char_ignores_input_with_control_panel_focus():
+    tuney = Tuney(gui=True)
+    app = FakeApp()
+    app.focus_in_control_panel = True
     object.__setattr__(tuney, 'app', app)
 
     tuney.on_char(CharPress('a', time=100.0))

@@ -137,6 +137,15 @@ class App(CTk):
     def has_focus(self) -> bool:
         return self._has_focus
 
+    @property
+    def focus_in_control_panel(self) -> bool:
+        widget = self.focus_get()
+        while widget is not None:
+            if widget is self.layout.control_panel:
+                return True
+            widget = widget.master
+        return False
+
     def on_activate(self, *_) -> None:
         self._has_focus = True
 

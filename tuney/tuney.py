@@ -291,6 +291,7 @@ class Tuney(BaseModel):
         return (
             not self.app.is_replaying
             and not self.app.is_saving
+            and not self.app.focus_in_control_panel
             and (self.run_in_background or self.app.has_focus)
         )
 
