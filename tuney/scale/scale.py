@@ -14,8 +14,8 @@ from ..types import NoteNumber
 from .tuning import TuningImpl
 
 FLAT, SHARP = '♭', '♯'
-CANONICAL = {'b': '♭', '#': '♯'}
-ACCIDENTAL_TO_OFFSET = {'#': 1, 'b': -1, '♭': -1, '♯': 1}
+CANONICAL = {'b': FLAT, '#': SHARP}
+ACCIDENTAL_TO_OFFSET = {'#': 1, 'b': -1, FLAT: -1, SHARP: 1}
 INTERVALS = [int(i) for i in '2212221']
 
 
@@ -51,7 +51,7 @@ class Scale(BaseModel, frozen=True):
     The common Western scale has
     * 12 equal-tempered semitones per octave
     * Note names CDEFGAB, with intervals of 2212221 semitones between them
-    * ♭ to lower pitch by a semitone, '♯' to raise it
+    * FLAT to lower pitch by a semitone, SHARP to raise it
 
     Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
     custom tunings, different note names and intervals.
@@ -129,7 +129,7 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def _note_re(self) -> re.Pattern:
-        return re.compile(f'([{self.names}][♭♯]*)')
+        return re.compile(rf'([{self.names}][{FLAT}{SHARP}]*)')
 
     def _to_notes(self, s: str) -> list[str]:
         split = self._note_re.split(canonical(s)) + ['']

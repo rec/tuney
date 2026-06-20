@@ -1,14 +1,12 @@
 ## TODO
 
-### Enable white notes mode.
-
-Uses the unused
-
 ### Limit modes for notes: wrap around and reflect
 
 ### Better layout for the control panels
 
 ### Beginner and advanced modes
+
+### Have a preloaded library of scales
 
 ### Enable audio recording in GUI mode
 
@@ -231,3 +229,17 @@ config_file should not be a positional argument anymore.
 Instead the positional arguments to `tuney` should be joined together with spaces, and used to populate `text`.
 
 If Tuney already has non-empty `char_presses`, those should be discarded.
+
+### Make cli mode the default
+
+* Rename --cli to --gui and negate it, so `tuney Hello world` does not bring up a GUI
+* If `char_presses` is empty in cli mode, print a usage message and exit with a non-zero code.
+
+### Allow subsets of the scales to be used ("white note mode")
+
+* This is partly implemented already, and will use the existing unused "notes" config field.
+* The field is a string containing note names, which can be split by Scale._to_notes
+* If this is set by the user, then only those notes are allowed in the scale and can be triggered by a CharPress
+* This doesn't change any frequencies of note names, but prevents some notes from being used or enumerated.
+* The canonical example is "white notes" - setting `notes` to be "ABCDEFG".
+

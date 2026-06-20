@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from tuney.scale.scale import FLAT, SHARP
 from tuney.types import NoteNumber
 
 # Standard: 60 = C3, C-1 == 0 Yamaha: 60 = C4, C0 == 0
@@ -10,7 +11,6 @@ A440 = 69
 MIDI_ZERO_OCTAVE = -1
 ACCIDENTAL_DICT = {'#': '♯', 'b': '♭', '♭': '♭', '♯': '♯'}
 ACCIDENTALS = '#b♭♯'
-FLAT, SHARP = '♭', '♯'
 CANONICALS = FLAT + SHARP
 NAME_TO_NUMBER = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
 NAMES = ''.join(NAME_TO_NUMBER)
