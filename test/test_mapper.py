@@ -27,3 +27,39 @@ def test_mapper_length_is_centered() -> None:
     mapper = Mapper(alphabet='abcdef', length=3)
 
     assert [mapper(char) for char in 'abcdef'] == [19, 20, 21, 19, 20, 21]
+
+
+def test_mapper_wraps_notes_outside_range_limit() -> None:
+    mapper = Mapper(alphabet=''.join(chr(i) for i in range(70)))
+    values = list(mapper.char_to_number.values())
+
+    assert min(values) == -10
+    assert max(values) == 49
+    assert values[:6] == [45, 46, 47, 48, 49, -10]
+    assert values[-6:] == [49, -10, -9, -8, -7, -6]
+
+
+def test_mapper_reflects_notes_outside_range_limit() -> None:
+    mapper = Mapper(
+        alphabet=''.join(chr(i) for i in range(70)),
+        limiter='reflect',
+    )
+    values = list(mapper.char_to_number.values())
+
+    assert min(values) == -10
+    assert max(values) == 49
+    assert values[:6] == [-5, -6, -7, -8, -9, -10]
+    assert values[-6:] == [49, 48, 47, 46, 45, 44]
+
+
+def test_mapper_reflects_notes_with_repeated_turnaround() -> None:
+    mapper = Mapper(
+        alphabet=''.join(chr(i) for i in range(70)),
+        limiter='reflect_repeat',
+    )
+    values = list(mapper.char_to_number.values())
+
+    assert min(values) == -10
+    assert max(values) == 49
+    assert values[:6] == [-6, -7, -8, -9, -10, -10]
+    assert values[-6:] == [49, 49, 48, 47, 46, 45]

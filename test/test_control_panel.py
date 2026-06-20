@@ -11,7 +11,7 @@ from tuney.ui.control_panel import (
     _control_rows,
     _entry_width,
     _parse_entry_value,
-    _rebuild_note_grid_if_scale_changed,
+    _rebuild_note_grid_if_mapping_changed,
     _scale_has_note_buttons,
     _scale_note_errors,
     _set_model_value,
@@ -55,7 +55,7 @@ def test_set_model_value_notifies_device_change():
     assert changes == [True]
 
 
-def test_scale_changes_schedule_note_grid_rebuild() -> None:
+def test_scale_and_mapper_changes_schedule_note_grid_rebuild() -> None:
     scheduled: list[object] = []
 
     class Parent:
@@ -64,11 +64,12 @@ def test_scale_changes_schedule_note_grid_rebuild() -> None:
 
     parent = Parent()
 
-    _rebuild_note_grid_if_scale_changed(parent, Scale())
-    _rebuild_note_grid_if_scale_changed(parent, Mapper())
+    _rebuild_note_grid_if_mapping_changed(parent, Scale())
+    _rebuild_note_grid_if_mapping_changed(parent, Mapper())
 
-    assert len(scheduled) == 1
+    assert len(scheduled) == 2
     assert scheduled[0][0] == 0
+    assert scheduled[1][0] == 0
 
 
 def test_scale_note_errors_report_bad_notes_without_failing() -> None:
@@ -173,7 +174,7 @@ def test_control_rows_use_compact_model_layouts():
     ]
     assert _control_rows(tuney.mapper, _control_fields(tuney.mapper)) == [
         ['alphabet'],
-        ['length', 'offset', 'case_sensitive', 'invert'],
+        ['length', 'offset', 'range_limit', 'limiter', 'case_sensitive', 'invert'],
     ]
     assert _control_rows(
         tuney.player.oscillator, _control_fields(tuney.player.oscillator)

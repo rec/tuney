@@ -4,7 +4,9 @@
     "length": 0,
     "case_sensitive": true,
     "invert": false,
-    "offset": 0
+    "offset": 0,
+    "range_limit": 60,
+    "limiter": "wrap"
   },
   "player": {
     "device": {},

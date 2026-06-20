@@ -42,6 +42,44 @@ class Map(Enum):
         return self.value[0](m)
 
 
+class Limiter(Enum):
+    wrap = 'wrap'
+    reflect = 'reflect'
+    reflect_repeat = 'reflect_repeat'
+
+    @classmethod
+    def _missing_(cls, value: object) -> Limiter | None:
+        return (
+            cls[value] if isinstance(value, str) and value in cls.__members__ else None
+        )
+
+    def __call__(self, note_number: int, range_limit: int, offset: int) -> int:
+        if range_limit <= 0:
+            return note_number
+
+        low = centered_note_number(0, range_limit, offset)
+        high = low + range_limit - 1
+        match self:
+            case Limiter.wrap:
+                return low + (note_number - low) % range_limit
+            case Limiter.reflect:
+                if range_limit == 1:
+                    return low
+                period = range_limit * 2 - 2
+                wrapped = (note_number - low) % period
+                return (
+                    low + wrapped if wrapped < range_limit else low + period - wrapped
+                )
+            case Limiter.reflect_repeat:
+                period = range_limit * 2
+                wrapped = (note_number - low) % period
+                return (
+                    low + wrapped
+                    if wrapped < range_limit
+                    else high - wrapped % range_limit
+                )
+
+
 class Mapper(BaseModel, frozen=True):
     map: tyro.conf.Suppress[Map] = Map.linear
 
@@ -60,6 +98,12 @@ class Mapper(BaseModel, frozen=True):
     # Offset from the center of the mapped note range
     offset: int = 0
 
+    # Limit pitch range to this many notes
+    range_limit: int = 60
+
+    # What to do when mapped notes are outside the pitch range
+    limiter: Limiter = Limiter.wrap
+
     @cached_property
     def alphabet_(self) -> str:
         return self.alphabet or (
@@ -71,4 +115,7 @@ class Mapper(BaseModel, frozen=True):
 
     @cached_property
     def char_to_number(self) -> dict[str, int]:
-        return self.map(self)
+        return {
+            char: self.limiter(note_number, self.range_limit, self.offset)
+            for char, note_number in self.map(self).items()
+        }

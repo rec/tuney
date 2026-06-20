@@ -39,7 +39,10 @@ CONTROL_CONFIGS = {
     'PitchToFrequency': ControlConfig(general_fields=['function']),
     'Device': ControlConfig(rows=[['samplerate', 'device', 'dtype']]),
     'Mapper': ControlConfig(
-        rows=[['alphabet'], ['length', 'offset', 'case_sensitive', 'invert']]
+        rows=[
+            ['alphabet'],
+            ['length', 'offset', 'range_limit', 'limiter', 'case_sensitive', 'invert'],
+        ]
     ),
     'Oscillator': ControlConfig(rows=[['waveform', 'period', 'duty_cycle']]),
     'Scale': ControlConfig(

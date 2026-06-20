@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
 from .tooltip import Tooltip
@@ -349,7 +350,7 @@ def _add_option_control(
             parent.after(0, _rebuild_note_grid, parent)
         else:
             _set_model_value(data, name, raw or None)
-            _rebuild_note_grid_if_scale_changed(parent, data)
+            _rebuild_note_grid_if_mapping_changed(parent, data)
 
     annotation = type(data).model_fields[name].annotation
     width = _entry_width(name, annotation, type(data).__name__)
@@ -399,8 +400,8 @@ def _rebuild_control_panel(parent: Misc) -> None:
     )
 
 
-def _rebuild_note_grid_if_scale_changed(parent: Misc, data: BaseModel) -> None:
-    if isinstance(data, Scale):
+def _rebuild_note_grid_if_mapping_changed(parent: Misc, data: BaseModel) -> None:
+    if isinstance(data, Scale | Mapper):
         parent.after(0, _rebuild_note_grid, parent)
 
 
@@ -416,7 +417,7 @@ def _add_bool_control(
 
     def command() -> None:
         _set_model_value(data, name, bool(var.get()))
-        _rebuild_note_grid_if_scale_changed(parent, data)
+        _rebuild_note_grid_if_mapping_changed(parent, data)
         if type(data).__name__ == 'MIDI' and name == 'enable':
             _set_midi_controls_state(parent, bool(var.get()))
 
@@ -527,7 +528,7 @@ def _add_entry_control(
         except (TypeError, ValueError):
             _set_invalid_scale_widget(entry, text_color)
         else:
-            if _set_scale_entry_state(parent, data, name, entry, text_color):
+            if _set_mapping_entry_state(parent, data, name, entry, text_color):
                 return
             entry.configure(text_color=text_color)
 
@@ -552,14 +553,26 @@ def _add_enum_control(
 
     def command() -> None:
         _set_model_value(data, name, members[var.get()])
-        _rebuild_note_grid_if_scale_changed(parent, data)
+        _rebuild_note_grid_if_mapping_changed(parent, data)
 
     frame = ctk.CTkFrame(parent, fg_color='transparent')
     frame.pack(anchor='w')
     ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
-    radio_pad = 3 if name in {'dtype', 'waveform', 'function'} else 6
+    radio_pad = (
+        1
+        if name == 'limiter'
+        else 3
+        if name in {'dtype', 'waveform', 'function'}
+        else 6
+    )
     radio_width = (
-        70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
+        0
+        if name == 'limiter'
+        else 70
+        if name in {'waveform', 'function'}
+        else 50
+        if name == 'dtype'
+        else 100
     )
     for i, member in enumerate(members):
         ctk.CTkRadioButton(
@@ -593,9 +606,13 @@ def _clear_cached_values(data: BaseModel) -> None:
             data.__dict__.pop(key, None)
 
 
-def _set_scale_entry_state(
+def _set_mapping_entry_state(
     parent: Misc, data: BaseModel, name: str, entry: Any, text_color: Any
 ) -> bool:
+    if isinstance(data, Mapper):
+        _rebuild_note_grid_if_mapping_changed(parent, data)
+        return False
+
     if not isinstance(data, Scale):
         return False
 
@@ -603,12 +620,12 @@ def _set_scale_entry_state(
     has_note_buttons = _scale_has_note_buttons(data)
     if (name == 'notes' and note_errors) or not has_note_buttons:
         _set_invalid_scale_widget(entry, text_color)
-        _rebuild_note_grid_if_scale_changed(parent, data)
+        _rebuild_note_grid_if_mapping_changed(parent, data)
         return True
 
     if not note_errors:
         _clear_invalid_scale_widgets()
-    _rebuild_note_grid_if_scale_changed(parent, data)
+    _rebuild_note_grid_if_mapping_changed(parent, data)
     return False
 
 

@@ -41,6 +41,10 @@ usage: tuney [-h] [OPTIONS]
         Reverse the order of mapped note numbers (default: False)                                                       
   --mapper.offset INT                                                                                                   
         Offset from the center of the mapped note range (default: 0)                                                    
+  --mapper.range-limit INT                                                                                              
+        Limit pitch range to this many notes (default: 60)                                                              
+  --mapper.limiter {wrap,reflect,reflect_repeat}                                                                        
+        What to do when mapped notes are outside the pitch range (default: wrap)                                        
                                                                                                                         
  player options                                                                                                         
  ---------------------------------------------------------------------------------------------------------------------- 
