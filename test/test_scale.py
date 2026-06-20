@@ -10,11 +10,39 @@ def test_flat_sharp():
     assert actual == expected
 
 
-def DONT_test_white_notes():
-    actual = [''.join(i) for i in Scale(notes='C#DEFGAB').flats_sharps]
+def test_white_notes():
+    actual = [''.join(i) for i in Scale(notes='ABCDEFG').flats_sharps]
     expected = ['CDEFGAB', 'CDEFGAB']
 
     assert actual == expected
+
+
+def test_white_notes_are_enumerated_without_accidentals():
+    scale = Scale(notes='ABCDEFG')
+
+    assert [scale.to_name(i) for i in range(8)] == [
+        'C0',
+        'D0',
+        'E0',
+        'F0',
+        'G0',
+        'A0',
+        'B0',
+        'C1',
+    ]
+    assert scale.to_number('D0') == 1
+    assert scale.tuning_number(1) == Scale().to_number('D0')
+
+
+def test_white_notes_reject_accidentals():
+    scale = Scale(notes='ABCDEFG')
+
+    try:
+        scale.to_number('C♯0')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('C♯ should not be allowed')
 
 
 def test_scale():

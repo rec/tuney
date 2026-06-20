@@ -90,22 +90,23 @@ class Scale(BaseModel, frozen=True):
 
     # Implements Scale.to_name
     def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
-        octave, offset = divmod(note_number - self.offset, self.octave_length)
+        octave, offset = divmod(note_number - self.offset, self.note_count)
         name = self.flats_sharps[use_sharp][offset]
         return f'{name}{octave}'
 
     # Implements Scale.to_number
     # This is only used in tests!
     def to_number(self, s: str) -> NoteNumber:
-        if (n := self._note_to_semitones.get(s[0])) is not None:
-            s = s[1:]
-            while s and (a := ACCIDENTAL_TO_OFFSET.get(s[0])):
-                n += a
-                s = s[1:]
+        note, octave_text = self._split_note_octave(s)
+        if (semitones := self._note_to_semitones.get(note)) is not None:
             with suppress(ValueError):
-                return n + self.offset + self.octave_length * int(s)
+                note_number = self.note_numbers.index(semitones)
+                return note_number + self.offset + self.note_count * int(octave_text)
 
         raise ValueError(f'Bad number {s=}')
+
+    def frequency(self, note_number: NoteNumber) -> float:
+        return self.tuning(self.tuning_number(note_number))
 
     @cached_property
     def names(self) -> str:
@@ -116,7 +117,15 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def octave_length(self) -> int:
+        return sum(self.intervals)
+
+    @cached_property
+    def note_count(self) -> int:
         return len(self.flats_sharps[0])
+
+    def tuning_number(self, note_number: NoteNumber) -> NoteNumber:
+        octave, offset = divmod(note_number - self.offset, self.note_count)
+        return self.note_numbers[offset] + self.octave_length * octave + self.offset
 
     def _note_interval_number(self) -> Iterator[tuple[str, int, int]]:
         assert self.intervals
@@ -140,6 +149,38 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        return (
+            tuple(
+                note
+                for i, note in enumerate(self.all_flats_sharps[0])
+                if i in self.note_numbers
+            ),
+            tuple(
+                note
+                for i, note in enumerate(self.all_flats_sharps[1])
+                if i in self.note_numbers
+            ),
+        )
+
+    @cached_property
+    def _note_to_semitones(self) -> dict[str, NoteNumber]:
+        return {
+            note: n
+            for n, notes in enumerate(zip(*self.all_flats_sharps, strict=True))
+            for note in notes
+        }
+
+    @cached_property
+    def note_numbers(self) -> tuple[NoteNumber, ...]:
+        if self.notes is None:
+            return tuple(range(self.octave_length))
+        it = enumerate(zip(*self.all_flats_sharps, strict=True))
+        return tuple(
+            i for i, notes in it if set(notes).intersection(self._to_notes(self.notes))
+        )
+
+    @cached_property
+    def all_flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
         flats, sharps = [], []
         for i, (note, interval, _) in enumerate(self._note_interval_number()):
             flats.append(note)
@@ -152,6 +193,12 @@ class Scale(BaseModel, frozen=True):
 
         return tuple(flats), tuple(sharps)
 
-    @cached_property
-    def _note_to_semitones(self) -> dict[str, NoteNumber]:
-        return {note: n for note, _, n in self._note_interval_number()}
+    def _split_note_octave(self, s: str) -> tuple[str, str]:
+        if s and s[0] in self.names:
+            note = s[0]
+            s = s[1:]
+            while s and (a := ACCIDENTAL_TO_OFFSET.get(s[0])):
+                note += SHARP if a > 0 else FLAT
+                s = s[1:]
+            return note, s
+        raise ValueError(f'Bad number {s=}')

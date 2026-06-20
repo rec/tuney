@@ -17,6 +17,7 @@ from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.voice import Voice, VoiceState
+from tuney.scale.scale import Scale
 
 SAMPLE_RATE = 48_000
 SAMPLE_COUNT = SAMPLE_RATE
@@ -255,6 +256,13 @@ def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
         state.voice.sample_rate == 44_100
         for state in player.engine.mixer.voices.values()
     )
+
+
+def test_multi_player_uses_scale_note_subset_for_frequencies() -> None:
+    chromatic = MultiPlayer(note_offset=0)
+    white_notes = MultiPlayer(note_offset=0, scale=Scale(notes='ABCDEFG'))
+
+    assert white_notes.sound(1).frequency == chromatic.sound(2).frequency
 
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
