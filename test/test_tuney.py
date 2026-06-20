@@ -1,5 +1,6 @@
 import tomllib
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import soundfile
@@ -7,6 +8,7 @@ import soundfile
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
 from tuney.tuney import Tuney
+from tuney.ui.transport import Action, State
 
 
 class FakeApp:
@@ -280,3 +282,94 @@ def test_interrupted_output_removes_partial_file(monkeypatch, tmp_path) -> None:
         tuney()
 
     assert not path.exists()
+
+
+def test_gui_transport_records_audio_until_save(monkeypatch, tmp_path) -> None:
+    output = tmp_path / 'out.wav'
+    lifecycle: list[object] = []
+
+    def start_recording(
+        self,
+        path: Path,
+        comment: object | None = None,
+        append: bool = False,
+    ) -> None:
+        lifecycle.append(('start_recording', path, comment, append))
+
+    monkeypatch.setattr(MultiPlayer, 'start_recording', start_recording)
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+    )
+    tuney = Tuney(gui=True)
+
+    assert tuney.on_transport_state(State.ready, State.recording, Action.record)
+    comment = tuney._audio_recording_comment
+    assert tuney.on_transport_state(State.recording, State.paused, Action.record)
+    assert tuney.on_transport_state(State.paused, State.recording, Action.record)
+    assert tuney.on_transport_state(State.recording, State.ready, Action.save, output)
+
+    first_start, stop, second_start, stop_before_save = lifecycle
+    assert first_start[0] == 'start_recording'
+    assert first_start[2] is comment
+    assert first_start[3] is False
+    assert stop == 'stop_recording'
+    assert second_start[0] == 'start_recording'
+    assert second_start[1] == first_start[1]
+    assert second_start[2] is comment
+    assert second_start[3] is True
+    assert stop_before_save == 'stop_recording'
+    assert output.exists()
+    assert tuney._audio_recording_path is None
+    assert tuney._audio_recording_comment is None
+
+
+def test_gui_transport_cancel_keeps_audio_recording(monkeypatch) -> None:
+    lifecycle: list[object] = []
+    monkeypatch.setattr(
+        MultiPlayer,
+        'start_recording',
+        lambda self, path, comment=None, append=False: lifecycle.append(
+            ('start_recording', path, comment, append)
+        ),
+    )
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+    )
+    tuney = Tuney(gui=True)
+
+    assert tuney.on_transport_state(State.ready, State.recording, Action.record)
+    recording_path = tuney._audio_recording_path
+
+    assert not tuney.on_transport_state(State.recording, State.ready, Action.save)
+    assert tuney._audio_recording_path == recording_path
+    assert lifecycle[0][0] == 'start_recording'
+    assert lifecycle == [lifecycle[0]]
+    if recording_path is not None:
+        recording_path.unlink(missing_ok=True)
+
+
+def test_gui_transport_clear_discards_audio_recording(monkeypatch) -> None:
+    lifecycle: list[object] = []
+    monkeypatch.setattr(
+        MultiPlayer,
+        'start_recording',
+        lambda self, path, comment=None, append=False: lifecycle.append(
+            ('start_recording', path, comment, append)
+        ),
+    )
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+    )
+    tuney = Tuney(gui=True)
+
+    assert tuney.on_transport_state(State.ready, State.recording, Action.record)
+    recording_path = tuney._audio_recording_path
+    assert recording_path is not None
+
+    assert tuney.on_transport_state(State.recording, State.ready, Action.clear)
+
+    assert lifecycle[0][0] == 'start_recording'
+    assert lifecycle[1] == 'stop_recording'
+    assert not recording_path.exists()
+    assert tuney._audio_recording_path is None
+    assert tuney._audio_recording_comment is None

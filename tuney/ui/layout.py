@@ -99,7 +99,11 @@ class Layout:
 
     @cached_property
     def transport(self) -> Transport:
-        transport = Transport(self.replay_frame, lambda _: None)
+        transport = Transport(
+            self.replay_frame,
+            self.app.on_transport_state,
+            lambda: self.app.tuney.hover_time,
+        )
         transport.pack(side='left')
         return transport
 

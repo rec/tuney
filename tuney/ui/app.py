@@ -13,6 +13,7 @@ from customtkinter import CTk
 from pydantic import BaseModel
 
 from ..char_press import CharPress
+from .transport import Action, State
 
 if TYPE_CHECKING:
     from ..tuney import Tuney
@@ -107,6 +108,23 @@ class App(CTk):
         finally:
             self._is_saving = False
             self._has_focus = False
+
+    def on_transport_state(
+        self, old_state: State, state: State, action: Action
+    ) -> bool:
+        filename = None
+        if action == Action.save:
+            self._is_saving = True
+            try:
+                filename = filedialog.asksaveasfilename(
+                    defaultextension='.wav',
+                    filetypes=[('WAV', '*.wav')],
+                )
+            finally:
+                self._is_saving = False
+                self._has_focus = False
+        path = Path(filename) if filename else None
+        return self.tuney.on_transport_state(old_state, state, action, path)
 
     def on_refresh_devices(self, *_) -> None:
         self.layout.refresh_devices()

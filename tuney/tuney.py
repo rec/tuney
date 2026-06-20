@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import warnings
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -24,6 +25,7 @@ from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .types import Milliseconds, Seconds, to_ms
 from .ui.app import App, NoteLabel
+from .ui.transport import Action, State
 
 
 class Tuney(BaseModel):
@@ -84,6 +86,9 @@ class Tuney(BaseModel):
     _recording_time_offset: Milliseconds = 0.0
     _recording_insert_time: Milliseconds | None = None
     _replay_text: str = ''
+    _audio_recording_path: Path | None = None
+    _audio_recording_started: bool = False
+    _audio_recording_comment: Callable[[], str] | None = None
 
     def model_post_init(self, __context: object) -> None:
         if self.text_args:
@@ -205,6 +210,60 @@ class Tuney(BaseModel):
             self.midi(note, c.is_press)
         if self.gui:
             self.app.on_char(c)
+
+    def on_transport_state(
+        self,
+        old_state: State,
+        state: State,
+        action: Action,
+        path: Path | None = None,
+    ) -> bool:
+        if action == Action.save:
+            if path is None:
+                return False
+            if old_state == State.recording:
+                self._stop_audio_recording()
+            self._save_audio_recording(path)
+        elif action == Action.clear:
+            if old_state == State.recording:
+                self._stop_audio_recording()
+            self._clear_audio_recording()
+        elif state == State.paused:
+            self._stop_audio_recording()
+        else:
+            self._start_audio_recording()
+        return True
+
+    def _start_audio_recording(self) -> None:
+        if self._audio_recording_path is None:
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as file:
+                self._audio_recording_path = Path(file.name)
+            self._audio_recording_comment = self._output_comment()
+        assert self._audio_recording_path is not None
+        self.player.start_recording(
+            self._audio_recording_path,
+            self._audio_recording_comment,
+            append=self._audio_recording_started,
+        )
+        self._audio_recording_started = True
+
+    def _stop_audio_recording(self) -> None:
+        self.player.stop_recording()
+
+    def _save_audio_recording(self, path: Path) -> None:
+        if self._audio_recording_path is None:
+            return
+        self._audio_recording_path.replace(path)
+        self._audio_recording_path = None
+        self._audio_recording_started = False
+        self._audio_recording_comment = None
+
+    def _clear_audio_recording(self) -> None:
+        if self._audio_recording_path is not None:
+            self._audio_recording_path.unlink(missing_ok=True)
+        self._audio_recording_path = None
+        self._audio_recording_started = False
+        self._audio_recording_comment = None
 
     @property
     def _is_listening(self) -> bool:

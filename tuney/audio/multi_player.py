@@ -94,7 +94,10 @@ class MultiPlayer(BaseModel, frozen=True):
         render_file(path, mixer, events, self.sample_rate, self.channels, comment)
 
     def start_recording(
-        self, path: Path, comment: Callable[[], str] | None = None
+        self,
+        path: Path,
+        comment: Callable[[], str] | None = None,
+        append: bool = False,
     ) -> None:
         stream = self.engine.stream
         self.engine.recorder = AudioFileWriter(
@@ -102,6 +105,7 @@ class MultiPlayer(BaseModel, frozen=True):
             int(stream.samplerate),
             int(stream.channels),
             comment,
+            append,
         )
 
     def stop_recording(self) -> None:

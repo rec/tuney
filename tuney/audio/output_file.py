@@ -18,13 +18,17 @@ class AudioFileWriter:
         sample_rate: int,
         channels: int,
         comment: Callable[[], str] | None = None,
+        append: bool = False,
     ) -> None:
+        mode = 'r+' if append else 'w'
         self.file = soundfile.SoundFile(
             path,
-            mode='w',
+            mode=mode,
             samplerate=sample_rate,
             channels=channels,
         )
+        if append:
+            self.file.seek(0, soundfile.SEEK_END)
         self.comment = comment
         if self.comment is not None:
             self._set_comment(self.comment())

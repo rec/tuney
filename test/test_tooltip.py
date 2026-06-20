@@ -17,6 +17,7 @@ from tuney.ui.control_panel import (
     _visible_child_names,
     _visible_control_names,
 )
+from tuney.ui.transport import TOOLTIPS
 
 
 class _Widget:
@@ -68,3 +69,12 @@ def test_all_visible_fields_have_hover_text() -> None:
         for data, name in controls
         if _field_help(type(data), name) is None
     ] == []
+
+
+def test_transport_button_tooltips_cover_all_buttons() -> None:
+    assert TOOLTIPS == {
+        'record': 'Record',
+        'stop': 'Stop',
+        'save': 'Save',
+        'clear': 'Clear',
+    }
