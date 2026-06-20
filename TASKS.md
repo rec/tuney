@@ -1,5 +1,15 @@
 ## TODO
 
+### Enable white notes mode.
+
+Uses the unused
+
+### Limit modes for notes: wrap around and reflect
+
+### Better layout for the control panels
+
+### Beginner and advanced modes
+
 ### Enable audio recording in GUI mode
 
 * When Transport's state switches from ready to recording, start recording audio.
@@ -214,3 +224,10 @@ Transport will take a callback that accepts a State.
 * If the user hovers over a widget for more than a this time, bring up text.
 * Hover-over text is taken from the help or doc comment for the widget, in exactly the same way that `tyro` does it.
 
+### The positional arguments to `tuney` should make up `text`.
+
+config_file should not be a positional argument anymore.
+
+Instead the positional arguments to `tuney` should be joined together with spaces, and used to populate `text`.
+
+If Tuney already has non-empty `char_presses`, those should be discarded.
