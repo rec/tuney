@@ -2,13 +2,14 @@ usage: tuney [-h] [OPTIONS]
 
  positional arguments                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
-  [{None}|PATH]                                                                                                         
-        Load configs from a JSON or toml file (default: None)                                                           
+  TEXT  Positional text to start the program with (default: )                                                           
                                                                                                                         
  options                                                                                                                
  ---------------------------------------------------------------------------------------------------------------------- 
   -h, --help                                                                                                            
         show this help message and exit                                                                                 
+  --config-file {None}|PATH                                                                                             
+        Load configs from a JSON or toml file (default: None)                                                           
   --text TEXT                                                                                                           
         Text to start the program with (optional)                                                                       
   --max-gap FLOAT                                                                                                       

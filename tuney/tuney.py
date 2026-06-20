@@ -10,7 +10,7 @@ from typing import Annotated
 
 import tomlkit
 import tyro
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
@@ -27,7 +27,7 @@ from .ui.app import App, NoteLabel
 
 class Tuney(BaseModel):
     # Load configs from a JSON or toml file
-    config_file: Annotated[Path | None, tyro.conf.Positional] = None
+    config_file: Path | None = None
 
     # Map letters to notes
     mapper: Mapper = Mapper()
@@ -50,6 +50,13 @@ class Tuney(BaseModel):
             metavar='TEXT',
         ),
     ] = None
+
+    # Positional text to start the program with
+    text_args: Annotated[
+        list[str],
+        tyro.conf.Positional,
+        tyro.conf.arg(name='text', metavar='TEXT'),
+    ] = Field(default_factory=list, exclude=True)
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: float = 4.0
@@ -78,6 +85,9 @@ class Tuney(BaseModel):
     _replay_text: str = ''
 
     def model_post_init(self, __context: object) -> None:
+        if self.text_args:
+            object.__setattr__(self, 'text', ' '.join(self.text_args))
+            self.__dict__.pop('char_presses', None)
         if self.output:
             object.__setattr__(self, 'cli', True)
 

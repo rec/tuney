@@ -32,12 +32,34 @@ def test_cli_accepts_text_option() -> None:
     assert tuney.text == 'Now is the time'
 
 
+def test_cli_uses_positional_arguments_as_text() -> None:
+    tuney = tyro.cli(Tuney, args=['Now', 'is', 'the', 'time'])
+
+    assert tuney.text == 'Now is the time'
+
+
+def test_cli_treats_positional_config_file_as_text() -> None:
+    tuney = tyro.cli(Tuney, args=['config.toml'])
+
+    assert tuney.config_file is None
+    assert tuney.text == 'config.toml'
+
+
 def test_cli_preserves_char_presses_from_config_default() -> None:
     text = [CharPress('a', time=0)]
 
     tuney = tyro.cli(Tuney, args=[], default=Tuney(text=text))
 
     assert tuney.text == text
+
+
+def test_cli_positional_text_replaces_default_char_presses() -> None:
+    default = Tuney(text=[CharPress('a', time=0), CharPress('a', False, 100)])
+
+    tuney = tyro.cli(Tuney, args=['new', 'text'], default=default)
+
+    assert tuney.text == 'new text'
+    assert tuney.char_presses != default.char_presses
 
 
 def test_output_option_forces_cli_mode() -> None:
