@@ -1,31 +1,14 @@
 ## TODO
 
-### Accidentals: Implement halftones, third tones and quarter tones in scales.
+### EG bias
 
-This is a naming-only thing: it won't change any frequencies.
-
-Let's add two new accidentals - for half flat and + for half sharp
-
-Add a new radio button and enum `Accidentals` with these states:
-
-* `none`: No accidentals are allowed.
-* `whole`: Just sharp and flats are allowed
-* `half`: All accidentals are allowed
-
-For scales with many steps between notes,
-
-
-
-### Port to Dear GUI
-
+### Stuck note display
 
 ### Beginner and advanced modes
 
-
 ### Better layout for the control panels
 
-
-### Have a preloaded library of scales
+DW### Have a preloaded library of scales
 
 ## DONE
 ### Clean up control_panel.py
@@ -305,3 +288,23 @@ To fix this, we add `mapper.range_limit`, and `mapper.limiter`.
 * Wrap: wrap around using modular arithmetic
 * Reflect: turn around and go the other way
 * Reflect Repeat: turn around, but repeat the note at the turnaround, so all the notes are distributed equally
+
+### Accidentals: Implement halftones, third tones and quarter tones in scales.
+
+This is a naming-only thing: it won't change any frequencies.
+
+Let's add two new accidentals - for half flat and + for half sharp
+
+Add a new radio button and enum `Accidentals` with these states:
+
+* `none`: No accidentals are allowed.
+* `whole`: Just sharp and flats are allowed
+* `half`: All accidentals are allowed
+
+For scales with many steps between notes, the larger accidentals (#, b) always come before the smaller ones (+, -)
+
+### Better focus in the control panel
+
+It's too easy to type into the wrong place.
+
+If the user clicks anywhere that isn't an editable field on the control panel, direct focus to the textbox so the keystrokes get played.
