@@ -55,6 +55,7 @@ class ControlPanel(ctk.CTkScrollableFrame):
         if type(data).__name__ == 'Tuney':
             _add_general_controls(self, data, self.option_controls)
         _add_model_controls(self, data, self.option_controls)
+        _bind_textbox_focus(self, include_root=True)
 
 
 def _add_model_controls(
@@ -398,6 +399,45 @@ def _rebuild_control_panel(parent: Misc) -> None:
     _add_model_controls(
         control_panel, control_panel.data, control_panel.option_controls
     )
+    _bind_textbox_focus(control_panel)
+
+
+def _bind_textbox_focus(
+    control_panel: ControlPanel, include_root: bool = False
+) -> None:
+    widgets = [control_panel] if include_root else []
+    widgets.extend(_child_widgets(control_panel))
+    for widget in widgets:
+        widget.bind(
+            '<ButtonRelease-1>',
+            lambda event: _focus_textbox_if_not_editable(control_panel, event),
+            add='+',
+        )
+
+
+def _child_widgets(widget: Misc) -> list[Misc]:
+    children = list(widget.winfo_children())
+    return children + [i for child in children for i in _child_widgets(child)]
+
+
+def _focus_textbox_if_not_editable(control_panel: ControlPanel, event: object) -> None:
+    widget = cast(Any, event).widget
+    if _is_editable_control(control_panel, widget):
+        return
+
+    layout = getattr(control_panel.winfo_toplevel(), 'layout', None)
+    if layout is None:
+        return
+    control_panel.after_idle(cast(Any, layout).textbox.focus_set)
+
+
+def _is_editable_control(control_panel: ControlPanel, widget: Misc) -> bool:
+    current: Misc | None = widget
+    while current is not control_panel and current is not None:
+        if isinstance(current, ctk.CTkEntry | ctk.CTkOptionMenu):
+            return True
+        current = current.master
+    return False
 
 
 def _rebuild_note_grid_if_mapping_changed(parent: Misc, data: BaseModel) -> None:
