@@ -14,6 +14,10 @@ from tuney.ui.transport import Action, State
 class FakeApp:
     is_replaying = False
     is_saving = False
+    loop_replay = False
+    loop_before = 0.0
+    loop_after = 0.0
+    loop_tempo = 1.0
     has_focus = True
     focus_in_control_panel = False
 
@@ -119,6 +123,92 @@ def test_clear_resets_recording_state():
     assert tuney._recording_time_offset == 0.0
     assert tuney._recording_insert_time is None
     assert tuney._replay_text == ''
+
+
+def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
+    calls: list[str] = []
+    tuney = Tuney(gui=True, text=[CharPress('a', time=0)])
+    app = FakeApp()
+    app.is_replaying = True
+    app.loop_replay = True
+    object.__setattr__(tuney, 'app', app)
+    monkeypatch.setattr(Tuney, 'on_replay', lambda self: calls.append('replay'))
+
+    tuney._finish_replay()
+
+    assert calls == ['replay']
+    assert app.is_replaying
+
+
+def test_finished_empty_replay_stops_when_looping() -> None:
+    tuney = Tuney(gui=True)
+    app = FakeApp()
+    app.is_replaying = True
+    app.loop_replay = True
+    object.__setattr__(tuney, 'app', app)
+
+    tuney._finish_replay()
+
+    assert not app.is_replaying
+
+
+def test_replay_char_presses_use_loop_tempo() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 1000),
+        ],
+    )
+    app = FakeApp()
+    app.loop_tempo = 2.0
+    object.__setattr__(tuney, 'app', app)
+
+    assert tuney._replay_char_presses() == [
+        CharPress('a', time=0),
+        CharPress('a', False, 500),
+    ]
+
+
+def test_replay_char_presses_cut_loop_start_and_end() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 500),
+            CharPress('b', time=1000),
+            CharPress('b', False, 1500),
+        ],
+    )
+    app = FakeApp()
+    app.loop_before = 0.5
+    app.loop_after = 0.25
+    object.__setattr__(tuney, 'app', app)
+
+    assert tuney._replay_char_presses() == [
+        CharPress('a', False, 0),
+        CharPress('b', time=500),
+    ]
+
+
+def test_replay_char_presses_add_loop_start_and_end_space() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 500),
+        ],
+    )
+    app = FakeApp()
+    app.loop_before = -0.25
+    app.loop_after = -0.75
+    object.__setattr__(tuney, 'app', app)
+
+    assert tuney._replay_char_presses() == [
+        CharPress('a', time=250),
+        CharPress('a', False, 750),
+        CharPress(time=1500),
+    ]
 
 
 def test_on_char_ignores_input_while_saving():

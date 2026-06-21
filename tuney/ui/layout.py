@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from customtkinter import CTkButton, CTkFrame, CTkLabel, CTkTextbox
+from customtkinter import CTkButton, CTkEntry, CTkFrame, CTkLabel, CTkTextbox
 
 from . import constants
-from .app import REPLAY, App, NoteLabel
+from .app import LOOP, REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
 from .transport import Transport
@@ -13,6 +13,7 @@ from .transport import Transport
 TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
 REPLAY_FRAME_HEIGHT = 43
+LOOP_CONTROLS_HEIGHT = 28
 FONT = 'Arial', 14
 
 WIDTH, HEIGHT = 70, 80
@@ -22,14 +23,20 @@ NEW_CODE = True
 class Layout:
     def __init__(self, app: App) -> None:
         width = WIDTH * app.columns
-        height = HEIGHT * app.rows + TEXT_BOX_HEIGHT + CONTROL_PANEL_HEIGHT
+        height = (
+            HEIGHT * app.rows
+            + TEXT_BOX_HEIGHT
+            + CONTROL_PANEL_HEIGHT
+            + LOOP_CONTROLS_HEIGHT
+        )
         app.geometry(f'{width}x{height}')
 
         self.app = app
         _ = self.control_panel
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
-        _ = self.textbox, self.replay_frame, self.transport, self.replay
+        _ = self.textbox, self.replay_frame, self.transport, self.replay, self.loop
+        _ = self.loop_controls
         _ = self.note_buttons
 
         self.set_text(app.tuney.display_text)
@@ -131,6 +138,71 @@ class Layout:
         )
         replay.place(relx=0.5, rely=0.5, anchor='center')
         return replay
+
+    @cached_property
+    def loop(self) -> CTkButton:
+        loop = CTkButton(
+            self.replay_frame,
+            width=64,
+            height=REPLAY_FRAME_HEIGHT,
+            font=('Arial', 14),
+            command=self.app.on_loop_replay,
+            **LOOP,  # ty:ignore[invalid-argument-type]
+        )
+        loop.pack(side='right')
+        return loop
+
+    @cached_property
+    def loop_controls(self) -> CTkFrame:
+        frame = CTkFrame(self.app, height=LOOP_CONTROLS_HEIGHT, fg_color='transparent')
+        frame.pack(fill='x', padx=constants.PAD, pady=(2, 0))
+        frame.pack_propagate(False)
+
+        CTkLabel(frame, text='Before', font=FONT).pack(side='left', padx=(0, 4))
+        before = CTkEntry(frame, width=48, font=FONT)
+        before.insert(0, str(self.app.loop_before))
+        before.pack(side='left', padx=(0, 8))
+        before.bind(
+            '<FocusOut>',
+            lambda _: self.app.on_loop_before(before.get()),
+            add='+',
+        )
+        before.bind(
+            '<Return>',
+            lambda _: self.app.on_loop_before(before.get()),
+            add='+',
+        )
+
+        CTkLabel(frame, text='After', font=FONT).pack(side='left', padx=(0, 4))
+        after = CTkEntry(frame, width=48, font=FONT)
+        after.insert(0, str(self.app.loop_after))
+        after.pack(side='left', padx=(0, 8))
+        after.bind(
+            '<FocusOut>',
+            lambda _: self.app.on_loop_after(after.get()),
+            add='+',
+        )
+        after.bind(
+            '<Return>',
+            lambda _: self.app.on_loop_after(after.get()),
+            add='+',
+        )
+
+        CTkLabel(frame, text='Tempo', font=FONT).pack(side='left', padx=(0, 4))
+        tempo = CTkEntry(frame, width=48, font=FONT)
+        tempo.insert(0, str(self.app.loop_tempo))
+        tempo.pack(side='left')
+        tempo.bind(
+            '<FocusOut>',
+            lambda _: self.app.on_loop_tempo(tempo.get()),
+            add='+',
+        )
+        tempo.bind(
+            '<Return>',
+            lambda _: self.app.on_loop_tempo(tempo.get()),
+            add='+',
+        )
+        return frame
 
     @cached_property
     def stats_frame(self) -> CTkFrame:

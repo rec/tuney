@@ -306,12 +306,25 @@ class Tuney(BaseModel):
             self._replay_text = ''
             self.app.layout.set_text(self._replay_text)
             self._sequencer = Sequencer(
-                char_presses=self.char_presses, callback=self._on_replay
+                char_presses=self._replay_char_presses(), callback=self._on_replay
             )
             self._sequencer.start()
         else:
             self._replay_text = ''
             self.app.layout.set_text(self.display_text)
+
+    def _replay_char_presses(self) -> list[CharPress]:
+        char_presses = _loop_window(
+            self.char_presses,
+            self.app.loop_before * 1000,
+            self.app.loop_after * 1000,
+        )
+        if self.app.loop_tempo == 1:
+            return char_presses
+        return [
+            CharPress(c.char, c.is_press, time=c.time / self.app.loop_tempo)
+            for c in char_presses
+        ]
 
     def _on_replay(self, c: CharPress | None) -> None:
         if c:
@@ -323,6 +336,10 @@ class Tuney(BaseModel):
             self.app.after(0, self._finish_replay)
 
     def _finish_replay(self) -> None:
+        if self.app.loop_replay and self._replay_char_presses():
+            self.on_replay()
+            return
+        self.player.stop_all()
         self.app.is_replaying = False
 
     def __call__(self) -> None:
@@ -399,6 +416,27 @@ class Tuney(BaseModel):
             print()
             raise
         print()
+
+
+def _loop_window(
+    char_presses: list[CharPress], loop_before: float, loop_after: float
+) -> list[CharPress]:
+    if not char_presses:
+        return []
+
+    start = max(0.0, loop_before)
+    end = max(c.time for c in char_presses) - max(0.0, loop_after)
+    prefix = max(0.0, -loop_before)
+    suffix = max(0.0, -loop_after)
+
+    result = [
+        CharPress(c.char, c.is_press, time=c.time - start + prefix)
+        for c in char_presses
+        if start <= c.time <= end
+    ]
+    if result and suffix:
+        result.append(CharPress(time=result[-1].time + suffix))
+    return result
 
 
 def _exit_with_missing_text() -> NoReturn:

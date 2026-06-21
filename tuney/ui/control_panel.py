@@ -610,11 +610,7 @@ def _add_enum_control(
         else 6
     )
     radio_width = (
-        70
-        if name in {'waveform', 'function'}
-        else 50
-        if name == 'dtype'
-        else 100
+        70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
     )
     for i, member in enumerate(members):
         compact_radio = name in {'accidentals', 'limiter'}

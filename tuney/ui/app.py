@@ -9,7 +9,7 @@ from queue import Queue
 from tkinter import Menu, Misc, PhotoImage, filedialog, messagebox
 from typing import TYPE_CHECKING
 
-from customtkinter import CTk
+from customtkinter import CTk, CTkEntry
 from pydantic import BaseModel
 
 from ..char_press import CharPress
@@ -23,6 +23,8 @@ HOVER = {'hover_color': '#248060'}
 
 REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
+LOOP = {'text': 'Loop', 'fg_color': '#707890', **HOVER}
+LOOP_ON = {'text': 'Loop', 'fg_color': '#30a870', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
@@ -62,6 +64,10 @@ class App(CTk):
         r += n > (r * c)
         self.rows, self.columns = r, c
         self._is_replaying = False
+        self._loop_replay = False
+        self.loop_before = 0.0
+        self.loop_after = 0.0
+        self.loop_tempo = 1.0
         self._is_saving = False
         self._has_focus = True
 
@@ -141,6 +147,8 @@ class App(CTk):
     def focus_in_control_panel(self) -> bool:
         widget = self.focus_get()
         while widget is not None:
+            if isinstance(widget, CTkEntry):
+                return True
             if widget is self.layout.control_panel:
                 return True
             widget = widget.master
@@ -188,6 +196,35 @@ class App(CTk):
     def on_replay(self, *_) -> None:
         self.is_replaying = not self.is_replaying
 
+    @property
+    def loop_replay(self) -> bool:
+        return self._loop_replay
+
+    @loop_replay.setter
+    def loop_replay(self, loop_replay: bool) -> None:
+        if self._loop_replay != loop_replay:
+            self._loop_replay = loop_replay
+            self.layout.loop.configure(**(LOOP_ON if loop_replay else LOOP))
+
+    def on_loop_replay(self, *_) -> None:
+        self.loop_replay = not self.loop_replay
+
+    def on_loop_tempo(self, tempo: str) -> None:
+        try:
+            value = float(tempo)
+        except ValueError:
+            return
+        if value > 0:
+            self.loop_tempo = value
+
+    def on_loop_before(self, before: str) -> None:
+        if (value := _float_or_none(before)) is not None:
+            self.loop_before = value
+
+    def on_loop_after(self, after: str) -> None:
+        if (value := _float_or_none(after)) is not None:
+            self.loop_after = value
+
     def _handle_queue(self):
         while not self.queue.empty():
             self._on_char(self.queue.get())
@@ -200,3 +237,10 @@ class App(CTk):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.layout.note_buttons.get(c.char):
             frame.is_press = c.is_press
+
+
+def _float_or_none(text: str) -> float | None:
+    try:
+        return float(text)
+    except ValueError:
+        return None
