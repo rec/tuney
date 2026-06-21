@@ -17,6 +17,10 @@ def test_white_notes():
     assert actual == expected
 
 
+def test_interval_string_ignores_whitespace() -> None:
+    assert Scale(intervals='221 2221').intervals == [2, 2, 1, 2, 2, 2, 1]
+
+
 def test_white_notes_are_enumerated_without_accidentals():
     scale = Scale(notes='ABCDEFG')
 

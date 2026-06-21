@@ -88,6 +88,12 @@ def test_parse_entry_value_parses_optional_lists_as_json():
     assert _parse_entry_value('[1, 2]', annotation, None) == [1, 2]
 
 
+def test_parse_entry_value_keeps_intervals_as_text():
+    annotation = Scale.model_fields['intervals'].annotation
+
+    assert _parse_entry_value('221 2221', annotation, [2], 'intervals') == '221 2221'
+
+
 def test_parse_entry_value_keeps_text_as_text():
     annotation = Tuney.model_fields['text'].annotation
 

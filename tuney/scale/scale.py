@@ -29,6 +29,8 @@ def canonical(s: str) -> str:
 def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     intervals, errors = [], []
     for c in it:
+        if isinstance(c, str) and c.isspace():
+            continue
         try:
             i = int(c)
         except ValueError:
@@ -177,9 +179,7 @@ class Scale(BaseModel, frozen=True):
             return tuple(range(self.octave_length))
         allowed_notes, _ = self._to_notes(self.notes)
         it = enumerate(zip(*self.all_flats_sharps, strict=True))
-        return tuple(
-            i for i, notes in it if set(notes).intersection(allowed_notes)
-        )
+        return tuple(i for i, notes in it if set(notes).intersection(allowed_notes))
 
     @cached_property
     def all_flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:

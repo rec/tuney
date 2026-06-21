@@ -500,7 +500,9 @@ def _add_entry_control(
     annotation = type(data).model_fields[name].annotation
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
         value = data.alphabet_
-    if value is None:
+    if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
+        text = ''.join(str(i) for i in value)
+    elif value is None:
         text = ''
     elif isinstance(value, list | dict):
         text = json.dumps(value)
@@ -521,7 +523,9 @@ def _add_entry_control(
     def update(*_: Any) -> None:
         raw = var.get()
         try:
-            _set_model_value(data, name, _parse_entry_value(raw, annotation, value))
+            _set_model_value(
+                data, name, _parse_entry_value(raw, annotation, value, name)
+            )
         except ValidationError:
             _set_invalid_scale_widget(entry, text_color)
             return
@@ -659,9 +663,13 @@ def _clear_invalid_scale_widgets() -> None:
         INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget_id, None)
 
 
-def _parse_entry_value(raw: str, annotation: Any, old_value: object) -> object:
+def _parse_entry_value(
+    raw: str, annotation: Any, old_value: object, name: str = ''
+) -> object:
     if raw == '':
         return None
+    if name == 'intervals' and isinstance(old_value, list):
+        return raw
     if isinstance(old_value, list | dict) or _expects_json(annotation):
         return json.loads(raw)
     return raw
