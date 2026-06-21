@@ -71,6 +71,16 @@ class Layout:
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 
+    def rebuild_control_panel(self) -> None:
+        from .control_panel import rebuild_control_panel
+
+        rebuild_control_panel(self.control_panel)
+
+    def refresh_loop_controls(self) -> None:
+        _set_entry_text(self.loop_before, str(self.app.loop_before))
+        _set_entry_text(self.loop_after, str(self.app.loop_after))
+        _set_entry_text(self.loop_tempo, str(self.app.loop_tempo))
+
     @cached_property
     def count_label(self) -> CTkLabel:
         cl = CTkLabel(self.stats_frame, text='Chars: 0', font=FONT)
@@ -159,47 +169,47 @@ class Layout:
         frame.pack_propagate(False)
 
         CTkLabel(frame, text='Before', font=FONT).pack(side='left', padx=(0, 4))
-        before = CTkEntry(frame, width=48, font=FONT)
-        before.insert(0, str(self.app.loop_before))
-        before.pack(side='left', padx=(0, 8))
-        before.bind(
+        self.loop_before = CTkEntry(frame, width=48, font=FONT)
+        self.loop_before.insert(0, str(self.app.loop_before))
+        self.loop_before.pack(side='left', padx=(0, 8))
+        self.loop_before.bind(
             '<FocusOut>',
-            lambda _: self.app.on_loop_before(before.get()),
+            lambda _: self.app.on_loop_before(self.loop_before.get()),
             add='+',
         )
-        before.bind(
+        self.loop_before.bind(
             '<Return>',
-            lambda _: self.app.on_loop_before(before.get()),
+            lambda _: self.app.on_loop_before(self.loop_before.get()),
             add='+',
         )
 
         CTkLabel(frame, text='After', font=FONT).pack(side='left', padx=(0, 4))
-        after = CTkEntry(frame, width=48, font=FONT)
-        after.insert(0, str(self.app.loop_after))
-        after.pack(side='left', padx=(0, 8))
-        after.bind(
+        self.loop_after = CTkEntry(frame, width=48, font=FONT)
+        self.loop_after.insert(0, str(self.app.loop_after))
+        self.loop_after.pack(side='left', padx=(0, 8))
+        self.loop_after.bind(
             '<FocusOut>',
-            lambda _: self.app.on_loop_after(after.get()),
+            lambda _: self.app.on_loop_after(self.loop_after.get()),
             add='+',
         )
-        after.bind(
+        self.loop_after.bind(
             '<Return>',
-            lambda _: self.app.on_loop_after(after.get()),
+            lambda _: self.app.on_loop_after(self.loop_after.get()),
             add='+',
         )
 
         CTkLabel(frame, text='Tempo', font=FONT).pack(side='left', padx=(0, 4))
-        tempo = CTkEntry(frame, width=48, font=FONT)
-        tempo.insert(0, str(self.app.loop_tempo))
-        tempo.pack(side='left')
-        tempo.bind(
+        self.loop_tempo = CTkEntry(frame, width=48, font=FONT)
+        self.loop_tempo.insert(0, str(self.app.loop_tempo))
+        self.loop_tempo.pack(side='left')
+        self.loop_tempo.bind(
             '<FocusOut>',
-            lambda _: self.app.on_loop_tempo(tempo.get()),
+            lambda _: self.app.on_loop_tempo(self.loop_tempo.get()),
             add='+',
         )
-        tempo.bind(
+        self.loop_tempo.bind(
             '<Return>',
-            lambda _: self.app.on_loop_tempo(tempo.get()),
+            lambda _: self.app.on_loop_tempo(self.loop_tempo.get()),
             add='+',
         )
         return frame
@@ -231,3 +241,8 @@ class Layout:
             nl.text,
             self.app.tuney.on_char,
         )
+
+
+def _set_entry_text(entry: CTkEntry, text: str) -> None:
+    entry.delete(0, 'end')
+    entry.insert(0, text)

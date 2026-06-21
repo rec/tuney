@@ -346,11 +346,12 @@ def _add_option_control(
 
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
+            _record_undo(parent)
             cast(Any, data).apply_preset(raw)
-            parent.after(0, _rebuild_control_panel, parent)
+            parent.after(0, _rebuild_parent_control_panel, parent)
             parent.after(0, _rebuild_note_grid, parent)
         else:
-            _set_model_value(data, name, raw or None)
+            _set_model_value(data, name, raw or None, parent)
             _rebuild_note_grid_if_mapping_changed(parent, data)
 
     annotation = type(data).model_fields[name].annotation
@@ -387,8 +388,7 @@ def _control_panel(parent: Misc) -> ControlPanel:
     return control_panel
 
 
-def _rebuild_control_panel(parent: Misc) -> None:
-    control_panel = _control_panel(parent)
+def rebuild_control_panel(control_panel: ControlPanel) -> None:
     for child in control_panel.winfo_children():
         child.destroy()
     control_panel.option_controls.clear()
@@ -400,6 +400,10 @@ def _rebuild_control_panel(parent: Misc) -> None:
         control_panel, control_panel.data, control_panel.option_controls
     )
     _bind_textbox_focus(control_panel)
+
+
+def _rebuild_parent_control_panel(parent: Misc) -> None:
+    rebuild_control_panel(_control_panel(parent))
 
 
 def _bind_textbox_focus(
@@ -456,7 +460,7 @@ def _add_bool_control(
     var = ctk.IntVar(parent, int(value))
 
     def command() -> None:
-        _set_model_value(data, name, bool(var.get()))
+        _set_model_value(data, name, bool(var.get()), parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
         if type(data).__name__ == 'MIDI' and name == 'enable':
             _set_midi_controls_state(parent, bool(var.get()))
@@ -564,7 +568,7 @@ def _add_entry_control(
         raw = var.get()
         try:
             _set_model_value(
-                data, name, _parse_entry_value(raw, annotation, value, name)
+                data, name, _parse_entry_value(raw, annotation, value, name), parent
             )
         except ValidationError:
             _set_invalid_scale_widget(entry, text_color)
@@ -596,7 +600,7 @@ def _add_enum_control(
     var = ctk.IntVar(parent, index)
 
     def command() -> None:
-        _set_model_value(data, name, members[var.get()])
+        _set_model_value(data, name, members[var.get()], parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
 
     frame = ctk.CTkFrame(parent, fg_color='transparent')
@@ -632,14 +636,24 @@ def _compact_radio_width(text: str) -> int:
     return constants.RADIO_SIZE + 8 + len(text) * 7
 
 
-def _set_model_value(data: BaseModel, name: str, value: object) -> None:
+def _set_model_value(
+    data: BaseModel, name: str, value: object, parent: Misc | None = None
+) -> None:
     values = data.model_dump()
     values[name] = value
     validated = type(data).model_validate(values)
+    if parent is not None and getattr(data, name) != getattr(validated, name):
+        _record_undo(parent)
     object.__setattr__(data, name, getattr(validated, name))
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
+
+
+def _record_undo(parent: Misc) -> None:
+    root = _control_panel(parent).data
+    if type(root).__name__ == 'Tuney':
+        cast(Any, root).app.record_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:

@@ -132,6 +132,8 @@ class Tuney(BaseModel):
 
     def on_char(self, c: CharPress) -> None:
         if self._is_listening:
+            if c.char != '\b' or (c.is_press and self.char_presses):
+                self.app.record_undo()
             recorded = self.recorded_char_press(c)
             if c.is_press:
                 if c.char != '\b':
@@ -182,6 +184,8 @@ class Tuney(BaseModel):
         return result
 
     def clear(self) -> None:
+        if self.gui and self.char_presses:
+            self.app.record_undo()
         self.char_presses.clear()
         self._recording_start_time = None
         self._recording_time_offset = 0.0
@@ -210,6 +214,12 @@ class Tuney(BaseModel):
         self._clear_cached_values()
         if char_presses is not None:
             self.__dict__['char_presses'] = char_presses
+
+    def restore_data(self, data: dict[str, object]) -> None:
+        validated = type(self).model_validate(data)
+        for field in type(self).model_fields:
+            object.__setattr__(self, field, getattr(validated, field))
+        self._clear_cached_values()
 
     def dump_data(self) -> dict[str, object]:
         data = self.model_dump()

@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import sys
 from collections.abc import Sequence
+from copy import deepcopy
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
@@ -31,6 +32,8 @@ ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Command-B' if sys.platform == 'darwin' else 'Ctrl+B'
 REFRESH_DEVICES_ACCELERATOR = 'Command-D' if sys.platform == 'darwin' else 'Ctrl+D'
 SAVE_ACCELERATOR = 'Command-S' if sys.platform == 'darwin' else 'Ctrl+S'
+UNDO_ACCELERATOR = 'Command-Z' if sys.platform == 'darwin' else 'Ctrl+Z'
+REDO_ACCELERATOR = 'Command-Shift-Z' if sys.platform == 'darwin' else 'Ctrl+Y'
 APP_NAME = 'Tuney'
 
 
@@ -45,6 +48,18 @@ class NoteLabel(BaseModel, frozen=True):
     @cached_property
     def text(self) -> str:
         return '\n'.join(self.labels)
+
+
+class HistoryState(BaseModel, frozen=True):
+    tuney: dict[str, object]
+    recording_start_time: float | None
+    recording_time_offset: float
+    recording_insert_time: float | None
+    replay_text: str
+    loop_replay: bool
+    loop_before: float
+    loop_after: float
+    loop_tempo: float
 
 
 class App(CTk):
@@ -68,6 +83,8 @@ class App(CTk):
         self.loop_before = 0.0
         self.loop_after = 0.0
         self.loop_tempo = 1.0
+        self._undo_stack: list[HistoryState] = []
+        self._redo_stack: list[HistoryState] = []
         self._is_saving = False
         self._has_focus = True
 
@@ -82,6 +99,10 @@ class App(CTk):
         self.bind('<Command-s>', self.on_save)
         self.bind('<Control-d>', self.on_refresh_devices)
         self.bind('<Command-d>', self.on_refresh_devices)
+        self.bind('<Control-z>', self.on_undo)
+        self.bind('<Command-z>', self.on_undo)
+        self.bind('<Control-y>', self.on_redo)
+        self.bind('<Command-Shift-Z>', self.on_redo)
         self.configure(menu=self.menu)
         self.layout = Layout(self)
 
@@ -164,6 +185,17 @@ class App(CTk):
     def menu(self) -> Menu:
         menu = Menu(self)
         file_menu = Menu(menu, tearoff=False)
+        edit_menu = Menu(menu, tearoff=False)
+        edit_menu.add_command(
+            label='Undo',
+            accelerator=UNDO_ACCELERATOR,
+            command=self.on_undo,
+        )
+        edit_menu.add_command(
+            label='Redo',
+            accelerator=REDO_ACCELERATOR,
+            command=self.on_redo,
+        )
         file_menu.add_command(
             label='Save',
             accelerator=SAVE_ACCELERATOR,
@@ -172,7 +204,7 @@ class App(CTk):
         file_menu.add_command(
             label='Clear',
             accelerator=CLEAR_ACCELERATOR,
-            command=self.tuney.clear,
+            command=self.on_clear,
         )
         file_menu.add_command(
             label='Refresh Devices',
@@ -180,6 +212,7 @@ class App(CTk):
             command=self.on_refresh_devices,
         )
         menu.add_cascade(label='File', menu=file_menu)
+        menu.add_cascade(label='Edit', menu=edit_menu)
         return menu
 
     @property
@@ -207,6 +240,7 @@ class App(CTk):
             self.layout.loop.configure(**(LOOP_ON if loop_replay else LOOP))
 
     def on_loop_replay(self, *_) -> None:
+        self.record_undo()
         self.loop_replay = not self.loop_replay
 
     def on_loop_tempo(self, tempo: str) -> None:
@@ -214,16 +248,66 @@ class App(CTk):
             value = float(tempo)
         except ValueError:
             return
-        if value > 0:
+        if value > 0 and value != self.loop_tempo:
+            self.record_undo()
             self.loop_tempo = value
 
     def on_loop_before(self, before: str) -> None:
-        if (value := _float_or_none(before)) is not None:
+        if (value := _float_or_none(before)) is not None and value != self.loop_before:
+            self.record_undo()
             self.loop_before = value
 
     def on_loop_after(self, after: str) -> None:
-        if (value := _float_or_none(after)) is not None:
+        if (value := _float_or_none(after)) is not None and value != self.loop_after:
+            self.record_undo()
             self.loop_after = value
+
+    def record_undo(self) -> None:
+        state = self._history_state()
+        if not self._undo_stack or self._undo_stack[-1] != state:
+            self._undo_stack.append(state)
+        self._redo_stack.clear()
+
+    def on_undo(self, *_) -> None:
+        if not self._undo_stack:
+            return
+        self._redo_stack.append(self._history_state())
+        self._restore_history_state(self._undo_stack.pop())
+
+    def on_redo(self, *_) -> None:
+        if not self._redo_stack:
+            return
+        self._undo_stack.append(self._history_state())
+        self._restore_history_state(self._redo_stack.pop())
+
+    def _history_state(self) -> HistoryState:
+        return HistoryState(
+            tuney=deepcopy(self.tuney.dump_data()),
+            recording_start_time=self.tuney._recording_start_time,
+            recording_time_offset=self.tuney._recording_time_offset,
+            recording_insert_time=self.tuney._recording_insert_time,
+            replay_text=self.tuney._replay_text,
+            loop_replay=self.loop_replay,
+            loop_before=self.loop_before,
+            loop_after=self.loop_after,
+            loop_tempo=self.loop_tempo,
+        )
+
+    def _restore_history_state(self, state: HistoryState) -> None:
+        self.tuney.restore_data(state.tuney)
+        self.tuney._recording_start_time = state.recording_start_time
+        self.tuney._recording_time_offset = state.recording_time_offset
+        self.tuney._recording_insert_time = state.recording_insert_time
+        self.tuney._replay_text = state.replay_text
+        self._loop_replay = state.loop_replay
+        self.loop_before = state.loop_before
+        self.loop_after = state.loop_after
+        self.loop_tempo = state.loop_tempo
+        self.layout.set_text(self.tuney.display_text)
+        self.layout.rebuild_control_panel()
+        self.layout.rebuild_note_grid()
+        self.layout.refresh_loop_controls()
+        self.layout.loop.configure(**(LOOP_ON if self.loop_replay else LOOP))
 
     def _handle_queue(self):
         while not self.queue.empty():

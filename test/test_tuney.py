@@ -8,6 +8,7 @@ import soundfile
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
 from tuney.tuney import Tuney
+from tuney.ui.app import App
 from tuney.ui.transport import Action, State
 
 
@@ -26,8 +27,34 @@ class FakeApp:
         def set_text(_: str) -> None:
             pass
 
+    undo_count = 0
+
+    def record_undo(self) -> None:
+        self.undo_count += 1
+
     @staticmethod
     def on_char(_: CharPress) -> None:
+        pass
+
+
+class FakeLoop:
+    def configure(self, **_: object) -> None:
+        pass
+
+
+class FakeLayout:
+    loop = FakeLoop()
+
+    def set_text(self, _: str) -> None:
+        pass
+
+    def rebuild_control_panel(self) -> None:
+        pass
+
+    def rebuild_note_grid(self) -> None:
+        pass
+
+    def refresh_loop_controls(self) -> None:
         pass
 
 
@@ -110,7 +137,8 @@ def test_display_text_uses_only_key_presses():
 
 def test_clear_resets_recording_state():
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
-    object.__setattr__(tuney, 'app', FakeApp())
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
     tuney._recording_start_time = 100.0
     tuney._recording_time_offset = 20.0
     tuney._recording_insert_time = 10.0
@@ -123,6 +151,51 @@ def test_clear_resets_recording_state():
     assert tuney._recording_time_offset == 0.0
     assert tuney._recording_insert_time is None
     assert tuney._replay_text == ''
+    assert app.undo_count == 1
+
+
+def test_on_char_records_undo_for_added_char_press() -> None:
+    tuney = Tuney(gui=True)
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('a', time=100.0))
+
+    assert app.undo_count == 1
+
+
+def test_restore_data_restores_char_presses_and_model_values() -> None:
+    tuney = Tuney(max_gap=1.0, text=[CharPress('a', time=0)])
+
+    tuney.restore_data({'max_gap': 2.0, 'text': [CharPress('b', time=0).model_dump()]})
+
+    assert tuney.max_gap == 2.0
+    assert tuney.char_presses == [CharPress('b', time=0)]
+
+
+def test_app_undo_and_redo_restore_history_state() -> None:
+    app = object.__new__(App)
+    app.tuney = Tuney(max_gap=1.0)
+    app.layout = FakeLayout()
+    app._loop_replay = False
+    app.loop_before = 0.0
+    app.loop_after = 0.0
+    app.loop_tempo = 1.0
+    app._undo_stack = []
+    app._redo_stack = []
+
+    app.record_undo()
+    object.__setattr__(app.tuney, 'max_gap', 2.0)
+    app.loop_before = 0.5
+    app.on_undo()
+
+    assert app.tuney.max_gap == 1.0
+    assert app.loop_before == 0.0
+
+    app.on_redo()
+
+    assert app.tuney.max_gap == 2.0
+    assert app.loop_before == 0.5
 
 
 def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
