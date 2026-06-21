@@ -187,7 +187,7 @@ def test_control_rows_use_compact_model_layouts():
     ) == [['waveform', 'period', 'duty_cycle']]
     assert _control_rows(tuney.player.scale, _control_fields(tuney.player.scale)) == [
         ['alphabet', 'root', 'begin', 'end', 'offset'],
-        ['notes', 'intervals'],
+        ['notes', 'intervals', 'accidentals'],
     ]
     assert _control_rows(
         tuney.player.scale.tuning, _control_fields(tuney.player.scale.tuning)

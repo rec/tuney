@@ -48,7 +48,7 @@ CONTROL_CONFIGS = {
     'Scale': ControlConfig(
         rows=[
             ['alphabet', 'root', 'begin', 'end', 'offset'],
-            ['notes', 'intervals'],
+            ['notes', 'intervals', 'accidentals'],
         ]
     ),
     'TuningImpl': ControlConfig(

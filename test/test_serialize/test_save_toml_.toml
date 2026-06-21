@@ -33,6 +33,7 @@ root = "C"
 begin = "A"
 end = "G"
 intervals = [2, 2, 1, 2, 2, 2, 1]
+accidentals = "whole"
 offset = 0
 
 [player.scale.tuning]

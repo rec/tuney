@@ -1,6 +1,8 @@
+import pytest
+
 from test import twelve_tet as tt
 from tuney.scale.nearest_note import nearest_note
-from tuney.scale.scale import Scale
+from tuney.scale.scale import Accidentals, Scale
 
 
 def test_flat_sharp():
@@ -8,6 +10,69 @@ def test_flat_sharp():
     expected = ['CD♭DE♭EFG♭GA♭AB♭B', 'CC♯DD♯EFF♯GG♯AA♯B']
 
     assert actual == expected
+
+
+def test_accidentals_none_keeps_octave_steps_without_accidental_names() -> None:
+    scale = Scale(accidentals=Accidentals.none)
+
+    assert scale.note_count == 12
+    assert scale.to_name(1) == 'C0'
+    assert scale.to_number('C0') == 0
+    assert scale._to_notes('C♯ D') == (['C', 'D'], ['♯'])
+    with pytest.raises(ValueError, match='Bad number'):
+        scale.to_number('C♯0')
+
+
+def test_accidentals_half_adds_half_sharps_and_flats() -> None:
+    scale = Scale(accidentals=Accidentals.half)
+
+    assert [''.join(i) for i in scale.flats_sharps] == [
+        'CDvDEvEFGvGAvABvB',
+        'CC^DD^EFF^GG^AA^B',
+    ]
+    assert scale.to_number('C^0') == 1
+    assert scale.to_number('Dv0') == 1
+
+
+def test_accidentals_half_orders_larger_accidentals_before_smaller() -> None:
+    scale = Scale(
+        alphabet='CD',
+        root='C',
+        begin='C',
+        end='D',
+        intervals=[5, 5],
+        accidentals='half',
+    )
+
+    assert [scale.to_name(i) for i in range(6)] == [
+        'C0',
+        'C^0',
+        'C♯0',
+        'D♭0',
+        'Dv0',
+        'D0',
+    ]
+    assert scale.to_number('C#0') == 2
+    assert scale.to_number('D♭0') == 3
+
+
+def test_accidentals_half_names_third_tones() -> None:
+    scale = Scale(
+        alphabet='CD',
+        root='C',
+        begin='C',
+        end='D',
+        intervals=[3, 3],
+        accidentals=Accidentals.half,
+    )
+
+    assert [scale.to_name(i) for i in range(4)] == ['C0', 'C^0', 'Dv0', 'D0']
+    assert [scale.to_name(i, use_sharp=False) for i in range(4)] == [
+        'C0',
+        'D♭0',
+        'C♯0',
+        'D0',
+    ]
 
 
 def test_white_notes():

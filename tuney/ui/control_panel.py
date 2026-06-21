@@ -564,24 +564,23 @@ def _add_enum_control(
     ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
     radio_pad = (
         1
-        if name == 'limiter'
+        if name in {'accidentals', 'limiter'}
         else 3
         if name in {'dtype', 'waveform', 'function'}
         else 6
     )
     radio_width = (
-        0
-        if name == 'limiter'
-        else 70
+        70
         if name in {'waveform', 'function'}
         else 50
         if name == 'dtype'
         else 100
     )
     for i, member in enumerate(members):
+        compact_radio = name in {'accidentals', 'limiter'}
         ctk.CTkRadioButton(
             frame,
-            width=radio_width,
+            width=_compact_radio_width(member.name) if compact_radio else radio_width,
             text=member.name,
             variable=var,
             value=i,
@@ -591,6 +590,10 @@ def _add_enum_control(
             radiobutton_width=constants.RADIO_SIZE,
             radiobutton_height=constants.RADIO_SIZE,
         ).pack(side='left', padx=(0, radio_pad))
+
+
+def _compact_radio_width(text: str) -> int:
+    return constants.RADIO_SIZE + 8 + len(text) * 7
 
 
 def _set_model_value(data: BaseModel, name: str, value: object) -> None:

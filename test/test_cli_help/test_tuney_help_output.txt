@@ -96,6 +96,8 @@ usage: tuney [-h] [OPTIONS]
         For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)             
   --player.scale.intervals [INT [INT ...]]                                                                              
         The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)                
+  --player.scale.accidentals {none,whole,half}                                                                          
+        Which accidentals are allowed in note names (default: whole)                                                    
   --player.scale.offset INT                                                                                             
         Offset all note numbers by this (default: 0)                                                                    
                                                                                                                         
