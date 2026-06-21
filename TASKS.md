@@ -1,17 +1,29 @@
 ## TODO
 
-### Centering issue for scales
+### Accidentals: Implement halftones, third tones and quarter tones in scales.
 
-The problem: if you decrease the number of notes in a scale, the sound goes way up in pitch!
+This is a naming-only thing: it won't change any frequencies.
 
-The reason is that the scale is attached to the bottom of the range, in mapper.
+Let's add two new accidentals - for half flat and + for half sharp
 
-Limit modes for notes: wrap around and reflect
+Add a new radio button and enum `Accidentals` with these states:
+
+* `none`: No accidentals are allowed.
+* `whole`: Just sharp and flats are allowed
+* `half`: All accidentals are allowed
+
+For scales with many steps between notes,
+
+
+
+### Port to Dear GUI
+
+
+### Beginner and advanced modes
 
 
 ### Better layout for the control panels
 
-### Beginner and advanced modes
 
 ### Have a preloaded library of scales
 
@@ -270,3 +282,26 @@ If the user makes a change in a control panel field that reduces the number of n
 
 
 Make sure that if `notes` is empty or only contains bad notes, the full list of note names in Scale.names should used.
+
+### Centering issue for scales
+
+The problem: if you decrease the number of notes in a scale, the sound goes way up in pitch!
+
+The reason is that in mapper the scale is attached to the bottom of the range, and the offset is from the bottom
+of the range, so if there are fewer notes in the scale, you use more of them to get to the same letter.
+
+Change the mapper only to fix this. Mapper.offset should be the offset from the center, which is between notes 63 and 64.
+
+### Add a `range_limit` parameter to the mapper with comment "Limit pitch range to this many notes"
+
+The issue is that if you have very few notes, the top and bottom notes are very low and very high.
+
+To fix this, we add `mapper.range_limit`, and `mapper.limiter`.
+
+`range_limit: int = 60` limits the total range of the mapper, in notes.  Counting starts at the center (taking into account `offset`).
+
+`mapper.limiter`, an enum class/radio button, with three possible values which say what to do at the limit
+
+* Wrap: wrap around using modular arithmetic
+* Reflect: turn around and go the other way
+* Reflect Repeat: turn around, but repeat the note at the turnaround, so all the notes are distributed equally
