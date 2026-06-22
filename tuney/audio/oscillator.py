@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import enum
-
 import numpy as np
 from pydantic import BaseModel
 
+from ..named_enum import NamedEnum
 from .scipy import sawtooth
 
 
@@ -17,15 +16,9 @@ def triangle(out: np.ndarray, duty_cycle: float) -> np.ndarray:
     return out
 
 
-class Waveform(enum.Enum):
+class Waveform(NamedEnum):
     sine = (sine,)
     triangle = (triangle,)
-
-    @classmethod
-    def _missing_(cls, value: object) -> Waveform | None:
-        return (
-            cls[value] if isinstance(value, str) and value in cls.__members__ else None
-        )
 
 
 class Oscillator(BaseModel, frozen=True):

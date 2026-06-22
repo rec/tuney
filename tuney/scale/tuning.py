@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
 from fractions import Fraction
 from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from ..named_enum import NamedEnum
 from ..types import Frequency, NoteNumber
 
 # TODO: make sure we can serialize and deserialize Fraction (as str)
@@ -31,15 +31,9 @@ def linear(root: Frequency, change: float, octaves: float) -> float:
     return root + change * octaves
 
 
-class PitchToFrequencyFunction(Enum):
+class PitchToFrequencyFunction(NamedEnum):
     power = (power,)
     linear = (linear,)
-
-    @classmethod
-    def _missing_(cls, value: object) -> PitchToFrequencyFunction | None:
-        return (
-            cls[value] if isinstance(value, str) and value in cls.__members__ else None
-        )
 
 
 class PitchToFrequency(BaseModel, frozen=True):

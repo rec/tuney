@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from enum import Enum, StrEnum, auto
+from enum import StrEnum, auto
 from functools import cached_property
 from math import floor
 from string import ascii_letters, ascii_lowercase
 
 import tyro
 from pydantic import BaseModel
+
+from ..named_enum import NamedEnum
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44
@@ -29,14 +31,8 @@ def linear(m: Mapper) -> dict[str, int]:
     return {a: char_to_number(i, a) for i, a in enumerate(m.alphabet_)}
 
 
-class Map(Enum):
+class Map(NamedEnum):
     linear = (linear,)
-
-    @classmethod
-    def _missing_(cls, value: object) -> Map | None:
-        return (
-            cls[value] if isinstance(value, str) and value in cls.__members__ else None
-        )
 
     def __call__(self, m: Mapper) -> dict[str, int]:
         return self.value[0](m)

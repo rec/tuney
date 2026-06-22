@@ -1,5 +1,9 @@
 ## TODO
 
+### Extract the Scale code relating to Accidentals
+
+### Re-randomize timing command
+
 ### EG bias
 
 ### Stuck note display
@@ -8,7 +12,7 @@
 
 ### Better layout for the control panels
 
-DW### Have a preloaded library of scales
+### Have a preloaded library of scales
 
 ## DONE
 ### Clean up control_panel.py
@@ -308,3 +312,22 @@ For scales with many steps between notes, the larger accidentals (#, b) always c
 It's too easy to type into the wrong place.
 
 If the user clicks anywhere that isn't an editable field on the control panel, direct focus to the textbox so the keystrokes get played.
+
+### Undo and redo
+
+Add undo and redo menu commands under a new "Edit" menu.
+
+Everything is undoable back to the start and then redoable to the end.
+
+All new commands in future should be undoable unless explicitly instructed not to.
+
+Commands that should be undoable are:
+
+* Changing anything in the control panel.
+* Adding or deleting a char_press
+* Changing the loop settings)
+
+Commands that should not be undoable are:
+
+* The transport controls
+* Commands that write a file to disk
