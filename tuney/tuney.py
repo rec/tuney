@@ -71,6 +71,12 @@ class Tuney(BaseModel):
     # Time to hover over a widget before showing help, in seconds
     hover_time: float = 1.0
 
+    # Time to hold backspace before it starts repeating, in seconds
+    backspace_repeat_delay: float = 2.0
+
+    # Backspace repeats per second after backspace_repeat_delay
+    backspace_repeat_rate: float = 4.0
+
     # Open the graphical interface
     gui: bool = False
 
@@ -93,6 +99,7 @@ class Tuney(BaseModel):
     _audio_recording_path: Path | None = None
     _audio_recording_started: bool = False
     _audio_recording_comment: Callable[[], str] | None = None
+    _backspace_repeat_after_id: str | None = None
 
     def model_post_init(self, __context: object) -> None:
         if self.text_args:
@@ -131,6 +138,8 @@ class Tuney(BaseModel):
         return ''.join(c.char for c in self.char_presses if c.is_press)
 
     def on_char(self, c: CharPress) -> None:
+        if c.char == '\b' and not c.is_press:
+            self._stop_backspace_repeat()
         if self._is_listening:
             if c.char != '\b' or (c.is_press and self.char_presses):
                 self.app.record_undo()
@@ -139,14 +148,8 @@ class Tuney(BaseModel):
                 if c.char != '\b':
                     self.char_presses.append(recorded)
                 elif self.char_presses:
-                    deleted_time = None
-                    while self.char_presses:
-                        deleted = self.char_presses.pop()
-                        if deleted.is_press:
-                            deleted_time = deleted.time
-                            break
-                    if deleted_time is not None:
-                        self._recording_insert_time = deleted_time
+                    self._delete_last_char()
+                    self._start_backspace_repeat()
                 self.app.layout.set_text(self.display_text)
             else:
                 if c.char != '\b':
@@ -155,6 +158,43 @@ class Tuney(BaseModel):
                 # while the alphabetic key is held down.
                 self._on_char(CharPress(c.char.swapcase(), False))
             self._on_char(c)
+
+    def _delete_last_char(self) -> None:
+        deleted_time = None
+        while self.char_presses:
+            deleted = self.char_presses.pop()
+            if deleted.is_press:
+                deleted_time = deleted.time
+                break
+        if deleted_time is not None:
+            self._recording_insert_time = deleted_time
+
+    def _start_backspace_repeat(self) -> None:
+        self._stop_backspace_repeat()
+        if self.backspace_repeat_delay >= 0 and self.backspace_repeat_rate > 0:
+            self._backspace_repeat_after_id = self.app.after(
+                round(to_ms(self.backspace_repeat_delay)),
+                self._repeat_backspace,
+            )
+
+    def _repeat_backspace(self) -> None:
+        self._backspace_repeat_after_id = None
+        if not self._is_listening or not self.char_presses:
+            return
+        self.app.record_undo()
+        self._delete_last_char()
+        self.app.layout.set_text(self.display_text)
+        self._on_char(CharPress('\b', time=0))
+        if self.char_presses:
+            self._backspace_repeat_after_id = self.app.after(
+                round(1000 / self.backspace_repeat_rate),
+                self._repeat_backspace,
+            )
+
+    def _stop_backspace_repeat(self) -> None:
+        if self._backspace_repeat_after_id is not None:
+            self.app.after_cancel(self._backspace_repeat_after_id)
+            self._backspace_repeat_after_id = None
 
     def recorded_char_press(self, c: CharPress) -> CharPress:
         if self._recording_start_time is None and c.is_press:

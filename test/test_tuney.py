@@ -24,15 +24,26 @@ class FakeApp:
     has_focus = True
     focus_in_control_panel = False
 
+    def __init__(self) -> None:
+        self.after_calls: list[tuple[str, int, object, tuple[object, ...]]] = []
+        self.cancelled_after_ids: list[str] = []
+        self.undo_count = 0
+
     class layout:
         @staticmethod
         def set_text(_: str) -> None:
             pass
 
-    undo_count = 0
-
     def record_undo(self) -> None:
         self.undo_count += 1
+
+    def after(self, delay: int, callback: object, *args: object) -> str:
+        after_id = f'after-{len(self.after_calls)}'
+        self.after_calls.append((after_id, delay, callback, args))
+        return after_id
+
+    def after_cancel(self, after_id: str) -> None:
+        self.cancelled_after_ids.append(after_id)
 
     @staticmethod
     def on_char(_: CharPress) -> None:
@@ -210,6 +221,74 @@ def test_on_char_records_undo_for_added_char_press() -> None:
     tuney.on_char(CharPress('a', time=100.0))
 
     assert app.undo_count == 1
+
+
+def test_backspace_autorepeat_starts_after_configured_delay() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0.0),
+            CharPress('b', time=100.0),
+        ],
+        backspace_repeat_delay=1.5,
+        backspace_repeat_rate=4.0,
+    )
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('\b', time=200.0))
+
+    assert tuney.display_text == 'a'
+    assert app.after_calls[0][1] == 1500
+
+
+def test_backspace_autorepeat_repeats_at_configured_rate() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0.0),
+            CharPress('b', time=100.0),
+            CharPress('c', time=200.0),
+        ],
+        backspace_repeat_delay=2.0,
+        backspace_repeat_rate=5.0,
+    )
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('\b', time=300.0))
+    first_callback = app.after_calls[0][2]
+    assert callable(first_callback)
+    first_callback()
+
+    assert tuney.display_text == 'a'
+    assert app.after_calls[1][1] == 200
+
+
+def test_backspace_release_cancels_autorepeat() -> None:
+    tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('\b', time=100.0))
+    tuney.on_char(CharPress('\b', False, time=200.0))
+
+    assert app.cancelled_after_ids == ['after-0']
+    assert tuney._backspace_repeat_after_id is None
+
+
+def test_backspace_autorepeat_can_be_disabled() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[CharPress('a', time=0.0)],
+        backspace_repeat_rate=0,
+    )
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    tuney.on_char(CharPress('\b', time=100.0))
+
+    assert app.after_calls == []
 
 
 def test_restore_data_restores_char_presses_and_model_values() -> None:

@@ -26,7 +26,15 @@ class ControlConfig(BaseModel, frozen=True):
 
 CONTROL_CONFIGS = {
     'Tuney': ControlConfig(
-        hidden_fields=['config_file', 'text', 'text_args', 'gui', 'output'],
+        hidden_fields=[
+            'config_file',
+            'text',
+            'text_args',
+            'backspace_repeat_delay',
+            'backspace_repeat_rate',
+            'gui',
+            'output',
+        ],
         general_fields=[
             'preset',
             'max_gap',
