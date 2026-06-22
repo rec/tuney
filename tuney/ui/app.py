@@ -24,6 +24,7 @@ HOVER = {'hover_color': '#248060'}
 
 REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
+RANDOMIZE = {'text': 'Randomize', 'fg_color': '#707890', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
@@ -154,6 +155,9 @@ class App(CTk):
     def on_refresh_devices(self, *_) -> None:
         self.layout.refresh_devices()
 
+    def on_randomize_timing(self, *_) -> None:
+        self.tuney.randomize_timing()
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -193,6 +197,10 @@ class App(CTk):
             label='Redo',
             accelerator=REDO_ACCELERATOR,
             command=self.on_redo,
+        )
+        edit_menu.add_command(
+            label='Randomize Timing',
+            command=self.on_randomize_timing,
         )
         file_menu.add_command(
             label='Save',

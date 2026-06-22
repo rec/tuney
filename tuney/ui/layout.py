@@ -5,7 +5,7 @@ from functools import cached_property
 from customtkinter import CTkButton, CTkEntry, CTkFrame, CTkLabel, CTkSwitch, CTkTextbox
 
 from . import constants
-from .app import REPLAY, App, NoteLabel
+from .app import RANDOMIZE, REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
 from .transport import Transport
@@ -35,7 +35,8 @@ class Layout:
         _ = self.control_panel
         label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
         label.pack(side='left')
-        _ = self.textbox, self.replay_frame, self.transport, self.replay, self.loop
+        _ = self.textbox, self.replay_frame, self.transport, self.replay
+        _ = self.randomize, self.loop
         _ = self.loop_controls
         _ = self.note_buttons
 
@@ -154,6 +155,19 @@ class Layout:
         )
         replay.place(relx=0.5, rely=0.5, anchor='center')
         return replay
+
+    @cached_property
+    def randomize(self) -> CTkButton:
+        randomize = CTkButton(
+            self.replay_frame,
+            width=96,
+            height=REPLAY_FRAME_HEIGHT,
+            font=FONT,
+            command=self.app.on_randomize_timing,
+            **RANDOMIZE,  # ty:ignore[invalid-argument-type]
+        )
+        randomize.pack(side='right', padx=(0, 8))
+        return randomize
 
     @cached_property
     def loop(self) -> CTkSwitch:

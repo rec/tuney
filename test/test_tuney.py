@@ -163,6 +163,36 @@ def test_clear_resets_recording_state():
     assert app.undo_count == 1
 
 
+def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=100.0),
+            CharPress('a', False, 200.0),
+            CharPress('b', time=10_000.0),
+            CharPress('b', False, 10_500.0),
+        ],
+    )
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+    original_char_presses = list(tuney.char_presses)
+    tuney._recording_start_time = 100.0
+    tuney._recording_time_offset = 20.0
+    tuney._recording_insert_time = 10.0
+    tuney._replay_text = 'a'
+
+    tuney.randomize_timing()
+
+    assert tuney.display_text == 'ab'
+    assert tuney.char_presses != original_char_presses
+    assert [c.char for c in tuney.char_presses if c.is_press] == ['a', 'b']
+    assert tuney._recording_start_time is None
+    assert tuney._recording_time_offset == 0.0
+    assert tuney._recording_insert_time is None
+    assert tuney._replay_text == ''
+    assert app.undo_count == 1
+
+
 def test_on_char_records_undo_for_added_char_press() -> None:
     tuney = Tuney(gui=True)
     app = FakeApp()

@@ -194,6 +194,20 @@ class Tuney(BaseModel):
         if self.gui:
             self.app.layout.set_text('')
 
+    def randomize_timing(self) -> None:
+        text = self.display_text
+        if not text:
+            return
+        if self.gui:
+            self.app.record_undo()
+        self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
+        self._recording_start_time = None
+        self._recording_time_offset = 0.0
+        self._recording_insert_time = None
+        self._replay_text = ''
+        if self.gui:
+            self.app.layout.set_text(text)
+
     def save(self, path: Path) -> None:
         data = serialize(self.dump_data())
         match path.suffix:
