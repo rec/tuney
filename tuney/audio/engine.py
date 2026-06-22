@@ -35,7 +35,7 @@ class Stream(Protocol):
 OutputStream: Callable[..., Stream] | None = None
 
 
-def port_audio_error() -> type['PortAudioError']:
+def port_audio_error() -> type[PortAudioError]:
     from sounddevice import PortAudioError
 
     return PortAudioError

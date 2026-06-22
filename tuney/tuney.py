@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import tomlkit
 import tyro
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
@@ -119,6 +119,15 @@ class Tuney(BaseModel):
     _audio_recording_comment: Callable[[], str] | None = None
     _backspace_repeat_after_id: str | None = None
 
+    @field_validator('text')
+    @classmethod
+    def _validate_text(
+        cls, value: str | list[CharPress] | None
+    ) -> str | list[CharPress] | None:
+        if isinstance(value, list):
+            Sequencer(char_presses=value, callback=lambda _: None)
+        return value
+
     def model_post_init(self, __context: object) -> None:
         if self.text_args:
             object.__setattr__(self, 'text', ' '.join(self.text_args))
@@ -166,18 +175,24 @@ class Tuney(BaseModel):
             recorded = self.recorded_char_press(c)
             if c.is_press:
                 if c.char != '\b':
-                    self.char_presses.append(recorded)
+                    self.append_char_press(recorded)
                 elif self.char_presses:
                     self._delete_last_char()
                     self._start_backspace_repeat()
                 self.app.ui.set_text(self.display_text)
             else:
                 if c.char != '\b':
-                    self.char_presses.append(recorded)
+                    self.append_char_press(recorded)
                 # Deal with the case where the user changes the shift key status
                 # while the alphabetic key is held down.
                 self._on_char(CharPress(c.char.swapcase(), False))
             self._on_char(c)
+
+    def append_char_press(self, c: CharPress) -> None:
+        self.char_presses.append(c)
+        if len(self.char_presses) > 1 and c < (d := self.char_presses[-2]):
+            print(f'Out-of-order char_press: {c} follows {d}', file=sys.stderr)
+            self.char_presses.sort()
 
     def _delete_last_char(self) -> None:
         deleted_time = None

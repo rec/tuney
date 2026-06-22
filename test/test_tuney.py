@@ -126,7 +126,7 @@ def test_recorded_char_press_caps_silent_gap():
         CharPress('a', time=100.0),
         CharPress('a', False, 100.25),
     ]:
-        tuney.char_presses.append(tuney.recorded_char_press(c))
+        tuney.append_char_press(tuney.recorded_char_press(c))
 
     actual = [
         tuney.recorded_char_press(CharPress('b', time=110.0)),
@@ -141,11 +141,28 @@ def test_recorded_char_press_caps_silent_gap():
 
 def test_recorded_char_press_does_not_cap_time_while_note_is_held():
     tuney = Tuney(max_gap=0.5)
-    tuney.char_presses.append(tuney.recorded_char_press(CharPress('a', time=100.0)))
+    tuney.append_char_press(tuney.recorded_char_press(CharPress('a', time=100.0)))
 
     actual = tuney.recorded_char_press(CharPress('b', time=110.0))
 
     assert actual == CharPress('b', time=10000.0)
+
+
+def test_text_char_presses_must_be_sorted() -> None:
+    with pytest.raises(ValueError, match='char_presses are not sorted by time'):
+        Tuney(text=[CharPress('b', time=1000), CharPress('a', time=0)])
+
+
+def test_append_char_press_sorts_late_char_press(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    tuney = Tuney()
+
+    tuney.append_char_press(CharPress('b', time=1000))
+    tuney.append_char_press(CharPress('a', time=0))
+
+    assert tuney.char_presses == [CharPress('a', time=0), CharPress('b', time=1000)]
+    assert 'Out-of-order char_press' in capsys.readouterr().err
 
 
 def test_display_text_uses_only_key_presses():

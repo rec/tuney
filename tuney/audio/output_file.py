@@ -47,6 +47,7 @@ class AudioFileWriter:
     def _set_comment(self, comment: str) -> None:
         _set_comment(self.file, comment)
 
+
 def render_file(
     path: Path,
     mixer: Mixer,
