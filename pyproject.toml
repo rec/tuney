@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.13.3",
     "pydantic-settings>=2.14.0",
     "pynput>=1.8.1",
+    "pyside6>=6.11.1",
     "python-rtmidi>=1.5.8",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
