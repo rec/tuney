@@ -1,8 +1,10 @@
 ## TODO
 
-### Extract the Scale code relating to Accidentals
+### Automatically save the current state so that the user can quit and reload and get back to where they were.
 
-### Re-randomize timing command
+Do not save the state of the transport or replay buttons.
+
+### Make textbox editable
 
 ### EG bias
 
@@ -10,9 +12,13 @@
 
 ### Beginner and advanced modes
 
+### Dials for
+
 ### Better layout for the control panels
 
 ### Have a preloaded library of scales
+
+### Record test timings
 
 ## DONE
 ### Clean up control_panel.py
@@ -331,3 +337,22 @@ Commands that should not be undoable are:
 
 * The transport controls
 * Commands that write a file to disk
+
+### Turn Loop into a toggle button
+
+### Extract the Scale code relating to Accidentals into a separate class and file
+
+### Randomizing timing
+
+Add a new command, 'Randomize Timing', available in the Edit menu and also as a button marked "Randomize"
+in the Replay/Loop area.
+
+When clicked, it takes `display_text`, throws away the timing in `char_presses`, and then computes a new set of timings
+using the `text_timings`.
+
+### Add a new setting, `randomize_on_each_loop`, default `False`.
+
+This setting is edited in the Replay/Loop area, not the control panel.
+
+`randomize_on_each_loop` does not change `char_presses`, but if it is set, on loop play back a new random set of timings
+are used instead of those in `char_presses`.
