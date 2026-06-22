@@ -10,7 +10,7 @@ from queue import Queue
 from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
-from PySide6.QtCore import QEvent, QTimer
+from PySide6.QtCore import QEvent, QObject, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QCloseEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -64,6 +64,11 @@ class HistoryState(BaseModel, frozen=True):
     randomize_on_each_loop: bool
 
 
+class _AfterDispatcher(QObject):
+    schedule = Signal(str, int, object, tuple)
+    cancel = Signal(str)
+
+
 class App(QMainWindow):
     def __init__(self, tuney: Tuney) -> None:
         self.qt_app = _application()
@@ -77,6 +82,9 @@ class App(QMainWindow):
         self.queue = Queue[CharPress]()
         self._after_timers: dict[str, QTimer] = {}
         self._after_count = 0
+        self._after_dispatcher = _AfterDispatcher(self)
+        self._after_dispatcher.schedule.connect(self._schedule_after)
+        self._after_dispatcher.cancel.connect(self._cancel_after)
         n = len(tuney.note_labels)
         c = int(math.ceil(n**0.5))
         r = n // c
@@ -103,6 +111,17 @@ class App(QMainWindow):
     ) -> str:
         after_id = f'after-{self._after_count}'
         self._after_count += 1
+        self._after_dispatcher.schedule.emit(after_id, delay, callback, args)
+        return after_id
+
+    @Slot(str, int, object, tuple)
+    def _schedule_after(
+        self,
+        after_id: str,
+        delay: int,
+        callback: Callable[..., object],
+        args: tuple[object, ...],
+    ) -> None:
         timer = QTimer(self)
         timer.setSingleShot(True)
 
@@ -113,9 +132,12 @@ class App(QMainWindow):
         timer.timeout.connect(fire)
         self._after_timers[after_id] = timer
         timer.start(delay)
-        return after_id
 
     def after_cancel(self, after_id: str) -> None:
+        self._after_dispatcher.cancel.emit(after_id)
+
+    @Slot(str)
+    def _cancel_after(self, after_id: str) -> None:
         if timer := self._after_timers.pop(after_id, None):
             timer.stop()
             timer.deleteLater()
