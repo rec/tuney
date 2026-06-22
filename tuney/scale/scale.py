@@ -4,7 +4,7 @@ import re
 import string
 from collections.abc import Iterable, Iterator
 from contextlib import suppress
-from enum import Enum
+from enum import StrEnum, auto
 from functools import cached_property
 from itertools import batched, chain
 from typing import Annotated
@@ -57,16 +57,10 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     return intervals
 
 
-class Accidentals(Enum):
-    none = 'none'
-    whole = 'whole'
-    half = 'half'
-
-    @classmethod
-    def _missing_(cls, value: object) -> Accidentals | None:
-        return (
-            cls[value] if isinstance(value, str) and value in cls.__members__ else None
-        )
+class Accidentals(StrEnum):
+    none = auto()
+    whole = auto()
+    half = auto()
 
 
 class Scale(BaseModel, frozen=True):

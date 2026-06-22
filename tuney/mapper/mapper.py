@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, StrEnum, auto
 from functools import cached_property
 from math import floor
 from string import ascii_letters, ascii_lowercase
@@ -42,16 +42,10 @@ class Map(Enum):
         return self.value[0](m)
 
 
-class Limiter(Enum):
-    wrap = 'wrap'
-    reflect = 'reflect'
-    reflect_repeat = 'reflect_repeat'
-
-    @classmethod
-    def _missing_(cls, value: object) -> Limiter | None:
-        return (
-            cls[value] if isinstance(value, str) and value in cls.__members__ else None
-        )
+class Limiter(StrEnum):
+    wrap = auto()
+    reflect = auto()
+    reflect_repeat = auto()
 
     def __call__(self, note_number: int, range_limit: int, offset: int) -> int:
         if range_limit <= 0:
