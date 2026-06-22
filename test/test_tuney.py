@@ -7,6 +7,7 @@ import soundfile
 
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
+from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui.app import App
 from tuney.ui.transport import Action, State
@@ -19,6 +20,7 @@ class FakeApp:
     loop_before = 0.0
     loop_after = 0.0
     loop_tempo = 1.0
+    randomize_on_each_loop = False
     has_focus = True
     focus_in_control_panel = False
 
@@ -47,6 +49,7 @@ class FakeLoop:
 
 class FakeLayout:
     loop = FakeLoop()
+    randomize_on_each_loop = FakeLoop()
 
     def set_text(self, _: str) -> None:
         pass
@@ -65,6 +68,12 @@ class FakeLayout:
             self.loop.select()
         else:
             self.loop.deselect()
+
+    def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
+        if randomize_on_each_loop:
+            self.randomize_on_each_loop.select()
+        else:
+            self.randomize_on_each_loop.deselect()
 
 
 def test_recorded_char_press_uses_time_relative_to_first_key_press():
@@ -220,6 +229,7 @@ def test_app_undo_and_redo_restore_history_state() -> None:
     app.loop_before = 0.0
     app.loop_after = 0.0
     app.loop_tempo = 1.0
+    app.randomize_on_each_loop = False
     app._undo_stack = []
     app._redo_stack = []
 
@@ -321,6 +331,53 @@ def test_replay_char_presses_add_loop_start_and_end_space() -> None:
         CharPress('a', False, 750),
         CharPress(time=1500),
     ]
+
+
+def test_loop_randomize_replaces_playback_timing_without_changing_recording() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+            CharPress('b', time=10_000),
+            CharPress('b', False, 11_000),
+            CharPress('c', time=20_000),
+            CharPress('c', False, 21_000),
+            CharPress('d', time=30_000),
+            CharPress('d', False, 31_000),
+        ],
+        text_timings=TextTimings(seed=1, overlap=0, timings=[10, 20, 30]),
+    )
+    app = FakeApp()
+    app.loop_replay = True
+    app.randomize_on_each_loop = True
+    object.__setattr__(tuney, 'app', app)
+    recorded_char_presses = list(tuney.char_presses)
+
+    first_loop = tuney._replay_char_presses()
+    second_loop = tuney._replay_char_presses()
+
+    assert tuney.char_presses == recorded_char_presses
+    assert first_loop != recorded_char_presses
+    assert second_loop != first_loop
+    assert ''.join(c.char for c in first_loop if c.is_press) == 'abcd'
+    assert ''.join(c.char for c in second_loop if c.is_press) == 'abcd'
+
+
+def test_randomize_on_each_loop_only_affects_loop_replay() -> None:
+    tuney = Tuney(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+        ],
+        text_timings=TextTimings(seed=1, overlap=0, timings=[10, 20, 30]),
+    )
+    app = FakeApp()
+    app.randomize_on_each_loop = True
+    object.__setattr__(tuney, 'app', app)
+
+    assert tuney._replay_char_presses() == tuney.char_presses
 
 
 def test_on_char_ignores_input_while_saving():

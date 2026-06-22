@@ -59,6 +59,7 @@ class HistoryState(BaseModel, frozen=True):
     loop_before: float
     loop_after: float
     loop_tempo: float
+    randomize_on_each_loop: bool
 
 
 class App(CTk):
@@ -82,6 +83,7 @@ class App(CTk):
         self.loop_before = 0.0
         self.loop_after = 0.0
         self.loop_tempo = 1.0
+        self.randomize_on_each_loop = False
         self._undo_stack: list[HistoryState] = []
         self._redo_stack: list[HistoryState] = []
         self._is_saving = False
@@ -268,6 +270,10 @@ class App(CTk):
             self.record_undo()
             self.loop_after = value
 
+    def on_randomize_on_each_loop(self, *_) -> None:
+        self.record_undo()
+        self.randomize_on_each_loop = not self.randomize_on_each_loop
+
     def record_undo(self) -> None:
         state = self._history_state()
         if not self._undo_stack or self._undo_stack[-1] != state:
@@ -297,6 +303,7 @@ class App(CTk):
             loop_before=self.loop_before,
             loop_after=self.loop_after,
             loop_tempo=self.loop_tempo,
+            randomize_on_each_loop=self.randomize_on_each_loop,
         )
 
     def _restore_history_state(self, state: HistoryState) -> None:
@@ -309,11 +316,13 @@ class App(CTk):
         self.loop_before = state.loop_before
         self.loop_after = state.loop_after
         self.loop_tempo = state.loop_tempo
+        self.randomize_on_each_loop = state.randomize_on_each_loop
         self.layout.set_text(self.tuney.display_text)
         self.layout.rebuild_control_panel()
         self.layout.rebuild_note_grid()
         self.layout.refresh_loop_controls()
         self.layout.set_loop_state(self.loop_replay)
+        self.layout.set_randomize_on_each_loop_state(self.randomize_on_each_loop)
 
     def _handle_queue(self):
         while not self.queue.empty():

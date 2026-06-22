@@ -82,6 +82,12 @@ class Layout:
         _set_entry_text(self.loop_after, str(self.app.loop_after))
         _set_entry_text(self.loop_tempo, str(self.app.loop_tempo))
 
+    def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
+        if randomize_on_each_loop:
+            self.randomize_on_each_loop.select()
+        else:
+            self.randomize_on_each_loop.deselect()
+
     def set_loop_state(self, loop_replay: bool) -> None:
         if loop_replay:
             self.loop.select()
@@ -236,6 +242,20 @@ class Layout:
             lambda _: self.app.on_loop_tempo(self.loop_tempo.get()),
             add='+',
         )
+
+        self.randomize_on_each_loop = CTkSwitch(
+            frame,
+            text='Randomize each loop',
+            width=158,
+            height=LOOP_CONTROLS_HEIGHT,
+            switch_width=36,
+            switch_height=18,
+            font=FONT,
+            command=self.app.on_randomize_on_each_loop,
+            progress_color='#30a870',
+            fg_color='#707890',
+        )
+        self.randomize_on_each_loop.pack(side='left', padx=(12, 0))
         return frame
 
     @cached_property

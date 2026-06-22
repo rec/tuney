@@ -339,7 +339,7 @@ class Tuney(BaseModel):
 
     def _replay_char_presses(self) -> list[CharPress]:
         char_presses = _loop_window(
-            self.char_presses,
+            self._replay_source_char_presses(),
             self.app.loop_before * 1000,
             self.app.loop_after * 1000,
         )
@@ -349,6 +349,11 @@ class Tuney(BaseModel):
             CharPress(c.char, c.is_press, time=c.time / self.app.loop_tempo)
             for c in char_presses
         ]
+
+    def _replay_source_char_presses(self) -> list[CharPress]:
+        if self.app.loop_replay and self.app.randomize_on_each_loop:
+            return list(self.text_timings.char_presses(self.display_text))
+        return self.char_presses
 
     def _on_replay(self, c: CharPress | None) -> None:
         if c:
