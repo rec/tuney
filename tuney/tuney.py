@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import warnings
@@ -20,7 +21,7 @@ from .audio.multi_player import MultiPlayer
 from .char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
-from .presets import merged_data, read_preset
+from .presets import merged_data, read_file, read_preset
 from .serialize import serialize
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
@@ -29,6 +30,9 @@ from .types import Milliseconds, Seconds, to_ms
 
 if TYPE_CHECKING:
     from .ui.app import App
+
+XDG_STATE_HOME = 'XDG_STATE_HOME'
+AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -99,6 +103,9 @@ class Tuney(BaseModel):
 
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
+
+    # Path to the automatically saved GUI state
+    autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)
 
     model_config = ConfigDict(exclude=['_sequencer'])  # ty:ignore[invalid-key]
 
@@ -272,6 +279,34 @@ class Tuney(BaseModel):
                 raise ValueError(f'Do not understand file {path}')
         path.write_text(text)
 
+    def autosave(self) -> None:
+        path = self.autosave_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.save(path)
+
+    def restore_autosave(self) -> None:
+        if self._should_restore_autosave and self.autosave_path.exists():
+            self.restore_data(read_file(self.autosave_path))
+
+    @cached_property
+    def autosave_path(self) -> Path:
+        if self.autosave_file is not None:
+            return self.autosave_file
+        state_home = os.environ.get(XDG_STATE_HOME)
+        if state_home and Path(state_home).is_absolute():
+            return Path(state_home) / AUTOSAVE_FILE
+        return Path.home() / '.local' / 'state' / AUTOSAVE_FILE
+
+    @property
+    def _should_restore_autosave(self) -> bool:
+        return (
+            self.gui
+            and self.config_file is None
+            and self.preset is None
+            and self.text is None
+            and not self.text_args
+        )
+
     def apply_preset(self, name: str) -> None:
         char_presses = self.__dict__.get('char_presses')
         data = merged_data(self.model_dump(), read_preset(name), {'preset': name})
@@ -283,9 +318,12 @@ class Tuney(BaseModel):
             self.__dict__['char_presses'] = char_presses
 
     def restore_data(self, data: dict[str, object]) -> None:
+        autosave_file = self.autosave_file
         validated = type(self).model_validate(data)
         for field in type(self).model_fields:
             object.__setattr__(self, field, getattr(validated, field))
+        if 'autosave_file' not in data:
+            object.__setattr__(self, 'autosave_file', autosave_file)
         self._clear_cached_values()
 
     def dump_data(self) -> dict[str, object]:
@@ -426,6 +464,7 @@ class Tuney(BaseModel):
 
     def __call__(self) -> None:
         if self.gui:
+            self.restore_autosave()
             self.start()
             self.app.mainloop()
         else:

@@ -34,6 +34,7 @@ CONTROL_CONFIGS = {
             'backspace_repeat_rate',
             'gui',
             'output',
+            'autosave_file',
         ],
         general_fields=[
             'preset',

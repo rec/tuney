@@ -147,6 +147,7 @@ class App(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        self.tuney.autosave()
         self.tuney.player.close()
         super().closeEvent(event)
 

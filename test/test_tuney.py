@@ -346,6 +346,73 @@ def test_restore_data_restores_char_presses_and_model_values() -> None:
     assert tuney.char_presses == [CharPress('b', time=0)]
 
 
+def test_autosave_path_uses_xdg_state_home(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+
+    assert Tuney().autosave_path == tmp_path / 'tuney' / 'state.toml'
+
+
+def test_autosave_writes_current_model_without_app_state(tmp_path) -> None:
+    path = tmp_path / 'state.toml'
+    tuney = Tuney(
+        gui=True,
+        max_gap=2.0,
+        autosave_file=path,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+        ],
+    )
+
+    tuney.autosave()
+
+    data = tomllib.loads(path.read_text())
+    assert data['gui']
+    assert data['max_gap'] == 2.0
+    assert data['text'] == [
+        {'char': 'a', 'is_press': True, 'time': 0},
+        {'char': 'a', 'is_press': False, 'time': 100},
+    ]
+    assert 'autosave_file' not in data
+    assert 'is_replaying' not in data
+    assert 'loop_replay' not in data
+
+
+def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
+    tmp_path,
+) -> None:
+    path = tmp_path / 'state.toml'
+    Tuney(
+        gui=True,
+        max_gap=2.0,
+        autosave_file=path,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+        ],
+    ).autosave()
+    tuney = Tuney(gui=True, autosave_file=path)
+
+    tuney.restore_autosave()
+
+    assert tuney.max_gap == 2.0
+    assert tuney.char_presses == [
+        CharPress('a', time=0),
+        CharPress('a', False, 100),
+    ]
+    assert tuney.autosave_file == path
+
+
+def test_restore_autosave_does_not_override_explicit_text(tmp_path) -> None:
+    path = tmp_path / 'state.toml'
+    Tuney(gui=True, autosave_file=path, text=[CharPress('a', time=0)]).autosave()
+    tuney = Tuney(gui=True, autosave_file=path, text='b')
+
+    tuney.restore_autosave()
+
+    assert tuney.display_text == 'b'
+
+
 def test_app_undo_and_redo_restore_history_state() -> None:
     app = App.__new__(App)
     app.tuney = Tuney(max_gap=1.0)
