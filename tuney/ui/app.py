@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from copy import deepcopy
 from functools import cached_property
 from pathlib import Path
@@ -40,15 +40,6 @@ APP_NAME = 'Tuney'
 
 def set_app_name(app: QMainWindow) -> None:
     app.setWindowTitle(APP_NAME)
-
-
-class NoteLabel(BaseModel, frozen=True):
-    labels: Sequence[str]
-    on: bool = False
-
-    @cached_property
-    def text(self) -> str:
-        return '\n'.join(self.labels)
 
 
 class HistoryState(BaseModel, frozen=True):

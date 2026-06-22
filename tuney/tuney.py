@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import tomlkit
 import tyro
@@ -24,9 +24,20 @@ from .presets import merged_data, read_preset
 from .serialize import serialize
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
+from .transport_state import Action, State
 from .types import Milliseconds, Seconds, to_ms
-from .ui.app import App, NoteLabel
-from .ui.transport import Action, State
+
+if TYPE_CHECKING:
+    from .ui.app import App
+
+
+class NoteLabel(BaseModel, frozen=True):
+    labels: list[str]
+    on: bool = False
+
+    @cached_property
+    def text(self) -> str:
+        return '\n'.join(self.labels)
 
 
 class Tuney(BaseModel):
@@ -111,6 +122,8 @@ class Tuney(BaseModel):
     @cached_property
     def app(self) -> App:
         assert self.gui
+        from .ui.app import App
+
         return App(self)
 
     @cached_property

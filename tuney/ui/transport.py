@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import StrEnum, auto
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
+from ..transport_state import Action, State
 from .tooltip import Tooltip
 
 IMAGE_SIZE = 24
@@ -22,18 +22,6 @@ TOOLTIPS = {
     'save': 'Save',
     'clear': 'Clear',
 }
-
-
-class State(StrEnum):
-    ready = auto()
-    recording = auto()
-    paused = auto()
-
-
-class Action(StrEnum):
-    record = auto()
-    save = auto()
-    clear = auto()
 
 
 class Transport(QWidget):

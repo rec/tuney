@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import tomllib
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +13,21 @@ from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui.app import App
 from tuney.ui.transport import Action, State
+
+
+def test_model_import_does_not_load_pyside() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            'import sys; import tuney.tuney; print("PySide6" in sys.modules)',
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout == 'False\n'
 
 
 class FakeApp:
