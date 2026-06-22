@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pynput.keyboard import Key
-
 
 class Modifiers(int):
     none = 0
@@ -48,7 +46,7 @@ class Modifiers(int):
     def is_command(self) -> bool:
         return self.has_alt or self.has_cmd or self.has_ctrl
 
-    def apply(self, kp: Key, is_press: bool) -> Modifiers:
-        if mask := getattr(Modifiers, kp.name, None):
+    def apply(self, key: object, is_press: bool) -> Modifiers:
+        if mask := getattr(Modifiers, str(getattr(key, 'name', '')), None):
             return Modifiers((self | mask) if is_press else (self & ~mask))
         return self

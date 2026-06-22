@@ -2,18 +2,15 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from functools import wraps
+from functools import cached_property, wraps
 from typing import Any, Literal
-
-from pynput import keyboard
-from pynput.keyboard import Key, KeyCode
 
 from ..char_press import CharPress
 from ..runnable import Runnable
 from .modifiers import Modifiers
 
-WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
-IGNORED_KEYS = {Key.caps_lock}
+WHITESPACE = {'space': ' ', 'enter': '\n', 'backspace': '\b'}
+IGNORED_KEYS = {'caps_lock'}
 
 
 class KeyboardListener(Runnable):
@@ -23,19 +20,23 @@ class KeyboardListener(Runnable):
         deduplicate_keys: bool = True,
     ) -> None:
         self.callback = callback
-        self.listener = _make_listener(self)
         self.modifiers = Modifiers(0)
         self.deduplicate_keys = deduplicate_keys
         self.held_keys = set()
 
-    def on_press(self, key: Key | KeyCode | None) -> None | Literal[False]:
+    @cached_property
+    def listener(self) -> Any:
+        return _make_listener(self)
+
+    def on_press(self, key: object | None) -> None | Literal[False]:
         return self.is_running and self._on(key, True)
 
-    def on_release(self, key: Key | KeyCode | None) -> None | Literal[False]:
+    def on_release(self, key: object | None) -> None | Literal[False]:
         return self.is_running and self._on(key, False)
 
-    def _on(self, key: Key | KeyCode, is_press: bool) -> None:
-        if key in IGNORED_KEYS:
+    def _on(self, key: object, is_press: bool) -> None:
+        key_name = str(getattr(key, 'name', ''))
+        if key_name in IGNORED_KEYS:
             return
         if self.deduplicate_keys:
             if not is_press:
@@ -44,10 +45,10 @@ class KeyboardListener(Runnable):
                 return
             else:
                 self.held_keys.add(key)
-        if isinstance(key, Key):
+        if key_name:
             self.modifiers = self.modifiers.apply(key, is_press)
 
-        c = WHITESPACE.get(key, getattr(key, 'char', ''))
+        c = WHITESPACE.get(key_name, getattr(key, 'char', ''))
         if c and (not is_press or not self.modifiers.is_command):
             self.callback(CharPress(c, is_press, time=time.time()))
 
@@ -57,10 +58,13 @@ class KeyboardListener(Runnable):
 
     def stop(self) -> None:
         super().stop()
-        self.listener.stop()
+        if 'listener' in self.__dict__:
+            self.listener.stop()
 
 
-def _make_listener(kl: KeyboardListener) -> keyboard.Listener:
+def _make_listener(kl: KeyboardListener) -> Any:
+    from pynput import keyboard
+
     listener = keyboard.Listener(
         on_press=kl.on_press,
         on_release=kl.on_release,
