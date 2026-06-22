@@ -136,8 +136,15 @@ class App(QMainWindow):
         self._queue_timer.start(QUEUE_POLL_IN_MS)
 
     def mainloop(self) -> None:
-        self.show()
+        self.activate()
         self.qt_app.exec()
+
+    def activate(self) -> None:
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        self.setFocus()
+        self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.tuney.player.close()

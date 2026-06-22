@@ -110,6 +110,21 @@ class FakeLayout:
             self.randomize_on_each_loop.deselect()
 
 
+def test_app_activate_focuses_window() -> None:
+    calls: list[str] = []
+    app = App.__new__(App)
+    app.show = lambda: calls.append('show')
+    app.raise_ = lambda: calls.append('raise')
+    app.activateWindow = lambda: calls.append('activate')
+    app.setFocus = lambda: calls.append('focus')
+    app._has_focus = False
+
+    App.activate(app)
+
+    assert calls == ['show', 'raise', 'activate', 'focus']
+    assert app._has_focus
+
+
 def test_recorded_char_press_uses_time_relative_to_first_key_press():
     tuney = Tuney()
 
