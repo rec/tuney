@@ -68,6 +68,10 @@ class FakeApp:
     def on_char(_: CharPress) -> None:
         pass
 
+    @staticmethod
+    def on_key(_: CharPress) -> None:
+        pass
+
 
 class FakeLoop:
     def select(self) -> None:
@@ -240,6 +244,14 @@ def test_on_char_records_undo_for_added_char_press() -> None:
     tuney.on_char(CharPress('a', time=100.0))
 
     assert app.undo_count == 1
+
+
+def test_gui_listener_queues_keys_through_app() -> None:
+    tuney = Tuney(gui=True)
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+
+    assert tuney.listener.callback == app.on_key
 
 
 def test_backspace_autorepeat_starts_after_configured_delay() -> None:

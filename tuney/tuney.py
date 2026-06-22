@@ -128,7 +128,7 @@ class Tuney(BaseModel):
 
     @cached_property
     def listener(self) -> KeyboardListener:
-        return KeyboardListener(self.on_char)
+        return KeyboardListener(self.app.on_key if self.gui else self.on_char)
 
     @cached_property
     def note_labels(self) -> dict[str, NoteLabel]:

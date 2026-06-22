@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
 from PySide6.QtCore import QEvent, QObject, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QCloseEvent, QIcon
+from PySide6.QtGui import QAction, QCloseEvent, QFocusEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -71,6 +71,7 @@ class App(QMainWindow):
             self.setWindowIcon(QIcon(str(ICON_PATH)))
         self.tuney = tuney
         self.queue = Queue[CharPress]()
+        self.key_queue = Queue[CharPress]()
         self._after_timers: dict[str, QTimer] = {}
         self._after_count = 0
         self._after_dispatcher = _AfterDispatcher(self)
@@ -97,9 +98,7 @@ class App(QMainWindow):
         self.ui = Layout(self)
         self.setCentralWidget(self.ui)
 
-    def after(
-        self, delay: int, callback: Callable[..., object], *args: object
-    ) -> str:
+    def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:
         after_id = f'after-{self._after_count}'
         self._after_count += 1
         self._after_dispatcher.schedule.emit(after_id, delay, callback, args)
@@ -153,6 +152,10 @@ class App(QMainWindow):
         if c.char:
             self.queue.put(c)
 
+    def on_key(self, c: CharPress) -> None:
+        if c.char:
+            self.key_queue.put(c)
+
     def on_clear(self, *_: object) -> None:
         self.tuney.clear()
 
@@ -204,7 +207,7 @@ class App(QMainWindow):
 
     @property
     def has_focus(self) -> bool:
-        return self._has_focus
+        return self._has_focus or self.isActiveWindow()
 
     @property
     def focus_in_control_panel(self) -> bool:
@@ -220,6 +223,14 @@ class App(QMainWindow):
     def changeEvent(self, event: QEvent) -> None:
         self._has_focus = self.isActiveWindow()
         super().changeEvent(event)
+
+    def focusInEvent(self, event: QFocusEvent) -> None:
+        self._has_focus = True
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event: QFocusEvent) -> None:
+        self._has_focus = self.isActiveWindow()
+        super().focusOutEvent(event)
 
     @cached_property
     def menu(self):
@@ -341,6 +352,8 @@ class App(QMainWindow):
         self.ui.set_randomize_on_each_loop_state(self.randomize_on_each_loop)
 
     def _handle_queue(self) -> None:
+        while not self.key_queue.empty():
+            self.tuney.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
         engine = self.tuney.player.__dict__.get('engine')
