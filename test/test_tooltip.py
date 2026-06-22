@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
 from typing import Any, cast
 
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
 from pydantic import BaseModel
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
@@ -50,6 +54,20 @@ def test_tooltips_bind_only_to_leaf_widgets() -> None:
     root = _Widget(_Widget(first), second)
 
     assert _field_widgets(cast(Any, root)) == [first, second]
+
+
+def test_field_widgets_walks_qt_leaf_widgets() -> None:
+    _ = QApplication.instance() or QApplication([])
+    first, second = QWidget(), QWidget()
+    root = QWidget()
+    middle = QWidget(root)
+    layout = QVBoxLayout(root)
+    middle_layout = QVBoxLayout(middle)
+    middle_layout.addWidget(first)
+    layout.addWidget(middle)
+    layout.addWidget(second)
+
+    assert _field_widgets(root) == [first, second]
 
 
 def test_all_visible_fields_have_hover_text() -> None:

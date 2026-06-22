@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import Any, TypeAlias, cast, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -266,7 +266,10 @@ def _field_widgets(parent: Any) -> list[Any]:
     elif isinstance(parent, QWidget):
         children = [
             child
-            for child in parent.findChildren(QWidget, options=cast(Any, 0))
+            for child in parent.findChildren(
+                QWidget,
+                options=Qt.FindChildOption.FindDirectChildrenOnly,
+            )
             if child.parent() is parent
         ]
     else:
