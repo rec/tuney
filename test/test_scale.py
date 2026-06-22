@@ -1,8 +1,9 @@
 import pytest
 
 from test import twelve_tet as tt
+from tuney.scale.accidentals import Accidentals
 from tuney.scale.nearest_note import nearest_note
-from tuney.scale.scale import Accidentals, Scale
+from tuney.scale.scale import Scale
 
 
 def test_flat_sharp():

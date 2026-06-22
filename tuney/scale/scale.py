@@ -4,7 +4,6 @@ import re
 import string
 from collections.abc import Iterable, Iterator
 from contextlib import suppress
-from enum import StrEnum, auto
 from functools import cached_property
 from itertools import batched, chain
 from typing import Annotated
@@ -12,27 +11,10 @@ from typing import Annotated
 from pydantic import BaseModel, BeforeValidator, Field
 
 from ..types import NoteNumber
+from .accidentals import AccidentalNames, Accidentals
 from .tuning import TuningImpl
 
-FLAT, SHARP = '♭', '♯'
-HALF_FLAT, HALF_SHARP = 'v', '^'
-CANONICAL = {'b': FLAT, '#': SHARP}
-ACCIDENTALS = FLAT + SHARP + HALF_FLAT + HALF_SHARP
-ACCIDENTAL_CANONICAL = {
-    '#': SHARP,
-    'b': FLAT,
-    FLAT: FLAT,
-    SHARP: SHARP,
-    HALF_FLAT: HALF_FLAT,
-    HALF_SHARP: HALF_SHARP,
-}
 INTERVALS = [int(i) for i in '2212221']
-
-
-def canonical(s: str) -> str:
-    for k, v in CANONICAL.items():
-        s = s.replace(k, v)
-    return s
 
 
 @BeforeValidator
@@ -55,12 +37,6 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     if errors:
         raise ValueError(*errors)
     return intervals
-
-
-class Accidentals(StrEnum):
-    none = auto()
-    whole = auto()
-    half = auto()
 
 
 class Scale(BaseModel, frozen=True):
@@ -159,12 +135,14 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def _note_re(self) -> re.Pattern:
-        if not self._accidentals:
+        if not self.accidental_names.symbols:
             return re.compile(rf'([{self.names}])')
-        return re.compile(rf'([{self.names}][{re.escape(self._accidentals)}]*)')
+        return re.compile(
+            rf'([{self.names}][{re.escape(self.accidental_names.symbols)}]*)'
+        )
 
     def _to_notes(self, s: str) -> tuple[list[str], list[str]]:
-        split = self._note_re.split(canonical(s)) + ['']
+        split = self._note_re.split(self.accidental_names.canonical(s)) + ['']
         errors, values = zip(*batched(split, 2), strict=True)
         notes = [v for v in values[:-1] if v]
         if not notes:
@@ -211,47 +189,17 @@ class Scale(BaseModel, frozen=True):
             if interval > 1:
                 next_note = self.names[(i + 1) % len(self.names)]
                 for j in range(1, interval):
-                    flat = self._accidental_name(next_note, interval - j, False)
-                    sharp = self._accidental_name(note, j, True)
-                    if self.accidentals == Accidentals.half and j > interval // 2:
-                        flats.append(sharp)
-                        sharps.append(flat)
-                    else:
-                        flats.append(flat)
-                        sharps.append(sharp)
+                    flat, sharp = self.accidental_names.flat_sharp_names(
+                        note, next_note, interval, j
+                    )
+                    flats.append(flat)
+                    sharps.append(sharp)
 
         return tuple(flats), tuple(sharps)
 
     @cached_property
-    def _accidentals(self) -> str:
-        return {
-            Accidentals.none: '',
-            Accidentals.whole: FLAT + SHARP,
-            Accidentals.half: ACCIDENTALS,
-        }[self.accidentals]
-
-    def _accidental_name(self, note: str, offset: int, use_sharp: bool) -> str:
-        match self.accidentals:
-            case Accidentals.none:
-                return note
-            case Accidentals.whole:
-                accidental = SHARP if use_sharp else FLAT
-                return note + accidental * offset
-            case Accidentals.half:
-                large = SHARP if use_sharp else FLAT
-                small = HALF_SHARP if use_sharp else HALF_FLAT
-                return note + large * (offset // 2) + small * (offset % 2)
+    def accidental_names(self) -> AccidentalNames:
+        return AccidentalNames(self.accidentals)
 
     def _split_note_octave(self, s: str) -> tuple[str, str]:
-        if s and s[0] in self.names:
-            note = s[0]
-            s = s[1:]
-            while (
-                s
-                and (accidental := ACCIDENTAL_CANONICAL.get(s[0]))
-                and accidental in self._accidentals
-            ):
-                note += accidental
-                s = s[1:]
-            return note, s
-        raise ValueError(f'Bad number {s=}')
+        return self.accidental_names.split_note(s, self.names)
