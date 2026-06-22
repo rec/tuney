@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from tkinter import Misc
-from typing import cast
+from typing import Any, cast
 
 from pydantic import BaseModel
 
@@ -50,7 +49,7 @@ def test_tooltips_bind_only_to_leaf_widgets() -> None:
     first, second = _Widget(), _Widget()
     root = _Widget(_Widget(first), second)
 
-    assert _field_widgets(cast(Misc, root)) == [first, second]
+    assert _field_widgets(cast(Any, root)) == [first, second]
 
 
 def test_all_visible_fields_have_hover_text() -> None:
