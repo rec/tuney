@@ -62,10 +62,11 @@ class MultiPlayer(BaseModel, frozen=True):
             pass
 
     def sound(self, note_number: int, sample_rate: float | None = None) -> Voice:
-        frequency = self.scale.frequency(note_number + self.note_offset)
+        scaled_note_number = note_number + self.note_offset
+        frequency = self.scale.frequency(scaled_note_number)
         return Voice(
             frequency=frequency,
-            gain=self.gain,
+            gain=self.gain * self.oscillator.gain(scaled_note_number),
             minimum_note_time=self.minimum_note_time,
             oscillator=self.oscillator,
             sample_rate=sample_rate or self.device.samplerate or 48_000,

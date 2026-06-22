@@ -184,7 +184,7 @@ def test_control_rows_use_compact_model_layouts():
     ]
     assert _control_rows(
         tuney.player.oscillator, _control_fields(tuney.player.oscillator)
-    ) == [['waveform', 'period', 'duty_cycle']]
+    ) == [['waveform', 'period', 'duty_cycle', 'key_scale_note', 'key_scale']]
     assert _control_rows(tuney.player.scale, _control_fields(tuney.player.scale)) == [
         ['alphabet', 'root', 'begin', 'end', 'offset'],
         ['notes', 'intervals', 'accidentals'],

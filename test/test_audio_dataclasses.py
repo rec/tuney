@@ -84,3 +84,11 @@ def test_oscillator_default_period_matches_previous_phase_scaling():
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
 
     np.testing.assert_allclose(actual, expected)
+
+
+def test_oscillator_key_scale_changes_gain_by_octave() -> None:
+    oscillator = Oscillator(key_scale_note=64, key_scale=1)
+
+    assert oscillator.gain(64) == 1
+    assert oscillator.gain(76) == 2
+    assert oscillator.gain(52) == 0.5

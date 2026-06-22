@@ -53,7 +53,9 @@ CONTROL_CONFIGS = {
             ['length', 'offset', 'range_limit', 'limiter', 'case_sensitive', 'invert'],
         ]
     ),
-    'Oscillator': ControlConfig(rows=[['waveform', 'period', 'duty_cycle']]),
+    'Oscillator': ControlConfig(
+        rows=[['waveform', 'period', 'duty_cycle', 'key_scale_note', 'key_scale']]
+    ),
     'Scale': ControlConfig(
         rows=[
             ['alphabet', 'root', 'begin', 'end', 'offset'],

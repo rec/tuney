@@ -13,7 +13,9 @@
     "oscillator": {
       "waveform": "triangle",
       "period": 1.0,
-      "duty_cycle": 0.5
+      "duty_cycle": 0.5,
+      "key_scale_note": 64,
+      "key_scale": 0.0
     },
     "scale": {
       "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",

@@ -82,6 +82,10 @@ usage: tuney [-h] [OPTIONS]
         Number of waveform cycles per note period (default: 1.0)                                                        
   --player.oscillator.duty-cycle FLOAT                                                                                  
         Fraction of each waveform cycle before its falling edge (default: 0.5)                                          
+  --player.oscillator.key-scale-note INT                                                                                
+        Note number with no keyboard gain adjustment (default: 64)                                                      
+  --player.oscillator.key-scale FLOAT                                                                                   
+        Gain octaves added per keyboard octave above key_scale_note (default: 0.0)                                      
                                                                                                                         
  player.scale options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 

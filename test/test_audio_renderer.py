@@ -265,6 +265,16 @@ def test_multi_player_uses_scale_note_subset_for_frequencies() -> None:
     assert white_notes.sound(1).frequency == chromatic.sound(2).frequency
 
 
+def test_multi_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
+    player = MultiPlayer(
+        note_offset=0,
+        gain=0.25,
+        oscillator=Oscillator(key_scale_note=12, key_scale=1),
+    )
+
+    assert player.sound(24).gain == 0.5
+
+
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
