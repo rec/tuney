@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from customtkinter import CTkButton, CTkEntry, CTkFrame, CTkLabel, CTkTextbox
+from customtkinter import CTkButton, CTkEntry, CTkFrame, CTkLabel, CTkSwitch, CTkTextbox
 
 from . import constants
-from .app import LOOP, REPLAY, App, NoteLabel
+from .app import REPLAY, App, NoteLabel
 from .control_panel import ControlPanel
 from .note_button import NoteButton
 from .transport import Transport
@@ -81,6 +81,12 @@ class Layout:
         _set_entry_text(self.loop_after, str(self.app.loop_after))
         _set_entry_text(self.loop_tempo, str(self.app.loop_tempo))
 
+    def set_loop_state(self, loop_replay: bool) -> None:
+        if loop_replay:
+            self.loop.select()
+        else:
+            self.loop.deselect()
+
     @cached_property
     def count_label(self) -> CTkLabel:
         cl = CTkLabel(self.stats_frame, text='Chars: 0', font=FONT)
@@ -150,14 +156,18 @@ class Layout:
         return replay
 
     @cached_property
-    def loop(self) -> CTkButton:
-        loop = CTkButton(
+    def loop(self) -> CTkSwitch:
+        loop = CTkSwitch(
             self.replay_frame,
-            width=64,
+            text='Loop',
+            width=74,
             height=REPLAY_FRAME_HEIGHT,
+            switch_width=36,
+            switch_height=18,
             font=('Arial', 14),
             command=self.app.on_loop_replay,
-            **LOOP,  # ty:ignore[invalid-argument-type]
+            progress_color='#30a870',
+            fg_color='#707890',
         )
         loop.pack(side='right')
         return loop

@@ -38,7 +38,10 @@ class FakeApp:
 
 
 class FakeLoop:
-    def configure(self, **_: object) -> None:
+    def select(self) -> None:
+        pass
+
+    def deselect(self) -> None:
         pass
 
 
@@ -56,6 +59,12 @@ class FakeLayout:
 
     def refresh_loop_controls(self) -> None:
         pass
+
+    def set_loop_state(self, loop_replay: bool) -> None:
+        if loop_replay:
+            self.loop.select()
+        else:
+            self.loop.deselect()
 
 
 def test_recorded_char_press_uses_time_relative_to_first_key_press():

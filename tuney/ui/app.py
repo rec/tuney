@@ -24,8 +24,6 @@ HOVER = {'hover_color': '#248060'}
 
 REPLAY = {'text': 'Replay (Ctrl+R)', 'fg_color': '#30a870', **HOVER}
 STOP = {'text': 'Stop (Ctrl+R)', 'fg_color': '#b0a8b0', **HOVER}
-LOOP = {'text': 'Loop', 'fg_color': '#707890', **HOVER}
-LOOP_ON = {'text': 'Loop', 'fg_color': '#30a870', **HOVER}
 
 QUEUE_POLL_IN_MS = 25
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
@@ -237,7 +235,7 @@ class App(CTk):
     def loop_replay(self, loop_replay: bool) -> None:
         if self._loop_replay != loop_replay:
             self._loop_replay = loop_replay
-            self.layout.loop.configure(**(LOOP_ON if loop_replay else LOOP))
+            self.layout.set_loop_state(loop_replay)
 
     def on_loop_replay(self, *_) -> None:
         self.record_undo()
@@ -307,7 +305,7 @@ class App(CTk):
         self.layout.rebuild_control_panel()
         self.layout.rebuild_note_grid()
         self.layout.refresh_loop_controls()
-        self.layout.loop.configure(**(LOOP_ON if self.loop_replay else LOOP))
+        self.layout.set_loop_state(self.loop_replay)
 
     def _handle_queue(self):
         while not self.queue.empty():
