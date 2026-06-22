@@ -34,6 +34,8 @@ class FakeApp:
         def set_text(_: str) -> None:
             pass
 
+    ui = layout
+
     def record_undo(self) -> None:
         self.undo_count += 1
 
@@ -301,9 +303,9 @@ def test_restore_data_restores_char_presses_and_model_values() -> None:
 
 
 def test_app_undo_and_redo_restore_history_state() -> None:
-    app = object.__new__(App)
+    app = App.__new__(App)
     app.tuney = Tuney(max_gap=1.0)
-    app.layout = FakeLayout()
+    app.ui = FakeLayout()
     app._loop_replay = False
     app.loop_before = 0.0
     app.loop_after = 0.0

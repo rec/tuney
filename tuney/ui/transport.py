@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from enum import StrEnum, auto
 
-from customtkinter import CTkButton, CTkFrame, CTkImage
-from PIL import Image, ImageDraw
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from .tooltip import Tooltip
 
@@ -12,7 +15,7 @@ FLASH_INTERVAL_MS = 1000
 RED = '#d02020'
 GREY = '#a0a0a0'
 BLACK = '#101010'
-HOVER = '#d8d8d8'
+HOVER_STYLE = 'QPushButton:hover { background: #d8d8d8; }'
 TOOLTIPS = {
     'record': 'Record',
     'stop': 'Stop',
@@ -33,72 +36,38 @@ class Action(StrEnum):
     clear = auto()
 
 
-class Transport(CTkFrame):
+class Transport(QWidget):
     def __init__(
         self,
-        parent: CTkFrame,
+        parent: QWidget,
         callback: Callable[[State, State, Action], bool],
         hover_time: Callable[[], float],
     ) -> None:
-        super().__init__(parent, fg_color='transparent')
+        super().__init__(parent)
         self.callback = callback
         self.hover_time = hover_time
         self._state = State.ready
-        self._flash_after: str | None = None
         self._flash_on = False
-        self.record_image = _circle(RED)
-        self.disabled_stop_image = _square(GREY)
-        self.stop_image = _square(BLACK)
-        self.pause_image = _pause(RED)
-        self.save_image = _save(BLACK)
-        self.disabled_save_image = _save(GREY)
-        self.clear_image = _cross(BLACK)
-        self.disabled_clear_image = _cross(GREY)
+        self._flash_timer = QTimer(self)
+        self._flash_timer.timeout.connect(self._flash_record)
+        self.record_icon = _circle(RED)
+        self.disabled_stop_icon = _square(GREY)
+        self.stop_icon = _square(BLACK)
+        self.pause_icon = _pause(RED)
+        self.save_icon = _save(BLACK)
+        self.disabled_save_icon = _save(GREY)
+        self.clear_icon = _cross(BLACK)
+        self.disabled_clear_icon = _cross(GREY)
 
-        self.record = CTkButton(
-            self,
-            text='',
-            image=self.record_image,
-            command=self._on_record,
-            width=BUTTON_SIZE,
-            height=BUTTON_SIZE,
-            fg_color='transparent',
-            hover_color=HOVER,
-        )
-        self.record.pack(side='left')
-        self.stop = CTkButton(
-            self,
-            text='',
-            image=self.disabled_stop_image,
-            command=self._on_stop,
-            width=BUTTON_SIZE,
-            height=BUTTON_SIZE,
-            fg_color='transparent',
-            hover_color=HOVER,
-        )
-        self.stop.pack(side='left')
-        self.save = CTkButton(
-            self,
-            text='',
-            image=self.disabled_save_image,
-            command=self._on_save,
-            width=BUTTON_SIZE,
-            height=BUTTON_SIZE,
-            fg_color='transparent',
-            hover_color=HOVER,
-        )
-        self.save.pack(side='left')
-        self.clear = CTkButton(
-            self,
-            text='',
-            image=self.disabled_clear_image,
-            command=self._on_clear,
-            width=BUTTON_SIZE,
-            height=BUTTON_SIZE,
-            fg_color='transparent',
-            hover_color=HOVER,
-        )
-        self.clear.pack(side='left')
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.record = _button(self.record_icon, self._on_record)
+        self.stop = _button(self.disabled_stop_icon, self._on_stop)
+        self.save = _button(self.disabled_save_icon, self._on_save)
+        self.clear = _button(self.disabled_clear_icon, self._on_clear)
+        for button in [self.record, self.stop, self.save, self.clear]:
+            layout.addWidget(button)
         self._add_tooltips()
         self._configure_buttons()
 
@@ -132,49 +101,49 @@ class Transport(CTkFrame):
             self._start_flashing()
         else:
             self._stop_flashing()
-            self.record.configure(image=self.record_image)
+            self.record.setIcon(self.record_icon)
 
         ready = self.state == State.ready
-        self.stop.configure(
-            image=self.disabled_stop_image if ready else self.stop_image,
-            state='disabled' if ready else 'normal',
-        )
-        self.save.configure(
-            image=self.disabled_save_image if ready else self.save_image,
-            state='disabled' if ready else 'normal',
-        )
-        self.clear.configure(
-            image=self.disabled_clear_image if ready else self.clear_image,
-            state='disabled' if ready else 'normal',
-        )
+        self.stop.setIcon(self.disabled_stop_icon if ready else self.stop_icon)
+        self.stop.setEnabled(not ready)
+        self.save.setIcon(self.disabled_save_icon if ready else self.save_icon)
+        self.save.setEnabled(not ready)
+        self.clear.setIcon(self.disabled_clear_icon if ready else self.clear_icon)
+        self.clear.setEnabled(not ready)
 
     def _start_flashing(self) -> None:
-        if self._flash_after is not None:
+        if self._flash_timer.isActive():
             return
         self._flash_on = True
-        self.record.configure(image=self.pause_image)
-        self._flash_after = self.after(FLASH_INTERVAL_MS, self._flash_record)
+        self.record.setIcon(self.pause_icon)
+        self._flash_timer.start(FLASH_INTERVAL_MS)
 
     def _stop_flashing(self) -> None:
-        if self._flash_after is not None:
-            self.after_cancel(self._flash_after)
-            self._flash_after = None
+        self._flash_timer.stop()
         self._flash_on = False
 
     def _flash_record(self) -> None:
-        self._flash_after = None
         if self.state != State.recording:
+            self._stop_flashing()
             return
         self._flash_on = not self._flash_on
-        image = self.pause_image if self._flash_on else self.record_image
-        self.record.configure(image=image)
-        self._flash_after = self.after(FLASH_INTERVAL_MS, self._flash_record)
+        self.record.setIcon(self.pause_icon if self._flash_on else self.record_icon)
 
     def _add_tooltips(self) -> None:
         Tooltip(self.record, TOOLTIPS['record'], self.hover_time)
         Tooltip(self.stop, TOOLTIPS['stop'], self.hover_time)
         Tooltip(self.save, TOOLTIPS['save'], self.hover_time)
         Tooltip(self.clear, TOOLTIPS['clear'], self.hover_time)
+
+
+def _button(icon: QIcon, callback: Callable[[], None]) -> QPushButton:
+    button = QPushButton()
+    button.setIcon(icon)
+    button.setIconSize(QSize(IMAGE_SIZE, IMAGE_SIZE))
+    button.setFixedSize(BUTTON_SIZE, BUTTON_SIZE)
+    button.setStyleSheet(HOVER_STYLE)
+    button.clicked.connect(callback)
+    return button
 
 
 def _record_state(state: State) -> State:
@@ -185,48 +154,58 @@ def _ready_state(state: State) -> State:
     return State.ready if state != State.ready else state
 
 
-def _circle(color: str) -> CTkImage:
-    image = _blank_image()
-    ImageDraw.Draw(image).ellipse((3, 3, 20, 20), fill=color)
-    return _ctk_image(image)
+def _circle(color: str) -> QIcon:
+    pixmap = _blank_pixmap()
+    painter = QPainter(pixmap)
+    painter.setBrush(QColor(color))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(3, 3, 18, 18)
+    painter.end()
+    return QIcon(pixmap)
 
 
-def _square(color: str) -> CTkImage:
-    image = _blank_image()
-    ImageDraw.Draw(image).rectangle((4, 4, 19, 19), fill=color)
-    return _ctk_image(image)
+def _square(color: str) -> QIcon:
+    pixmap = _blank_pixmap()
+    painter = QPainter(pixmap)
+    painter.fillRect(4, 4, 16, 16, QColor(color))
+    painter.end()
+    return QIcon(pixmap)
 
 
-def _pause(color: str) -> CTkImage:
-    image = _blank_image()
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((5, 3, 9, 20), fill=color)
-    draw.rectangle((14, 3, 18, 20), fill=color)
-    return _ctk_image(image)
+def _pause(color: str) -> QIcon:
+    pixmap = _blank_pixmap()
+    painter = QPainter(pixmap)
+    painter.fillRect(5, 3, 5, 18, QColor(color))
+    painter.fillRect(14, 3, 5, 18, QColor(color))
+    painter.end()
+    return QIcon(pixmap)
 
 
-def _save(color: str) -> CTkImage:
-    image = _blank_image()
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((4, 3, 20, 21), outline=color, width=3)
-    draw.rectangle((7, 5, 16, 11), outline=color, width=2)
-    draw.rectangle((14, 5, 16, 11), fill=color)
-    draw.rectangle((8, 15, 16, 21), outline=color, width=2)
-    draw.line((10, 17, 14, 17), fill=color, width=1)
-    return _ctk_image(image)
+def _save(color: str) -> QIcon:
+    pixmap = _blank_pixmap()
+    painter = QPainter(pixmap)
+    pen = QPen(QColor(color), 2)
+    painter.setPen(pen)
+    painter.drawRect(4, 3, 16, 18)
+    painter.drawRect(7, 5, 9, 6)
+    painter.fillRect(14, 5, 3, 6, QColor(color))
+    painter.drawRect(8, 15, 8, 6)
+    painter.drawLine(10, 17, 14, 17)
+    painter.end()
+    return QIcon(pixmap)
 
 
-def _cross(color: str) -> CTkImage:
-    image = _blank_image()
-    draw = ImageDraw.Draw(image)
-    draw.line((5, 5, 18, 18), fill=color, width=4)
-    draw.line((18, 5, 5, 18), fill=color, width=4)
-    return _ctk_image(image)
+def _cross(color: str) -> QIcon:
+    pixmap = _blank_pixmap()
+    painter = QPainter(pixmap)
+    painter.setPen(QPen(QColor(color), 4))
+    painter.drawLine(5, 5, 18, 18)
+    painter.drawLine(18, 5, 5, 18)
+    painter.end()
+    return QIcon(pixmap)
 
 
-def _blank_image() -> Image.Image:
-    return Image.new('RGBA', (IMAGE_SIZE, IMAGE_SIZE), (0, 0, 0, 0))
-
-
-def _ctk_image(image: Image.Image) -> CTkImage:
-    return CTkImage(light_image=image, dark_image=image, size=(IMAGE_SIZE, IMAGE_SIZE))
+def _blank_pixmap() -> QPixmap:
+    pixmap = QPixmap(IMAGE_SIZE, IMAGE_SIZE)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    return pixmap

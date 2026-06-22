@@ -2,10 +2,22 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from customtkinter import CTkButton, CTkEntry, CTkFrame, CTkLabel, CTkSwitch, CTkTextbox
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from . import constants
-from .app import RANDOMIZE, REPLAY, App, NoteLabel
+from .app import App
 from .control_panel import ControlPanel
 from .note_button import NoteButton
 from .transport import Transport
@@ -14,14 +26,15 @@ TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
 REPLAY_FRAME_HEIGHT = 43
 LOOP_CONTROLS_HEIGHT = 28
-FONT = 'Arial', 14
+FONT_FAMILY = 'Arial'
+FONT_SIZE = 14
 
 WIDTH, HEIGHT = 70, 80
-NEW_CODE = True
 
 
-class Layout:
+class Layout(QWidget):
     def __init__(self, app: App) -> None:
+        super().__init__(app)
         width = WIDTH * app.columns
         height = (
             HEIGHT * app.rows
@@ -29,53 +42,40 @@ class Layout:
             + CONTROL_PANEL_HEIGHT
             + LOOP_CONTROLS_HEIGHT
         )
-        app.geometry(f'{width}x{height}')
+        app.resize(width, height)
 
         self.app = app
+        self.root = QVBoxLayout(self)
+        self.root.setContentsMargins(
+            constants.PAD, constants.PAD, constants.PAD, constants.PAD
+        )
+        self.root.setSpacing(constants.QUARTER)
         _ = self.control_panel
-        label = CTkLabel(self.stats_frame, text='Text:', font=(*FONT, 'bold'))
-        label.pack(side='left')
-        _ = self.textbox, self.replay_frame, self.transport, self.replay
-        _ = self.randomize, self.loop
+        _ = self.stats_frame
+        _ = self.textbox
+        _ = self.replay_frame
         _ = self.loop_controls
+        _ = self.note_grid_widget
         _ = self.note_buttons
-
         self.set_text(app.tuney.display_text)
 
-        for c in range(app.columns):
-            self.note_grid.grid_columnconfigure(c, weight=1)
-        for r in range(app.rows):
-            self.note_grid.grid_rowconfigure(r, weight=1)
-
     def set_text(self, s: str) -> None:
-        self.textbox.configure(state='normal')
-        self.textbox.delete('1.0', 'end')
-        self.textbox.insert('end', s)
-        self.textbox.see('end')
-        self.textbox.configure(state='disabled')
-        self.count_label.configure(text=f'Chars: {len(s)}')
+        self.textbox.setPlainText(s)
+        self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
+        self.count_label.setText(f'Chars: {len(s)}')
 
     @cached_property
     def control_panel(self) -> ControlPanel:
-        frame = CTkFrame(self.app, fg_color='transparent')
-        frame.pack(
-            fill='both',
-            expand=False,
-            padx=constants.PAD,
-            pady=constants.PAD,
-        )
-        f = ControlPanel(frame, self.app.tuney, CONTROL_PANEL_HEIGHT)
-        f.pack(fill='both', expand=True)
-        return f
+        panel = ControlPanel(self, self.app.tuney, CONTROL_PANEL_HEIGHT)
+        self.root.addWidget(panel)
+        return panel
 
     def refresh_devices(self) -> None:
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 
     def rebuild_control_panel(self) -> None:
-        from .control_panel import rebuild_control_panel
-
-        rebuild_control_panel(self.control_panel)
+        self.control_panel.rebuild()
 
     def refresh_loop_controls(self) -> None:
         _set_entry_text(self.loop_before, str(self.app.loop_before))
@@ -83,210 +83,158 @@ class Layout:
         _set_entry_text(self.loop_tempo, str(self.app.loop_tempo))
 
     def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
-        if randomize_on_each_loop:
-            self.randomize_on_each_loop.select()
-        else:
-            self.randomize_on_each_loop.deselect()
+        self.randomize_on_each_loop.setChecked(randomize_on_each_loop)
 
     def set_loop_state(self, loop_replay: bool) -> None:
-        if loop_replay:
-            self.loop.select()
-        else:
-            self.loop.deselect()
+        self.loop.setChecked(loop_replay)
+
+    def set_replay_state(self, is_replaying: bool) -> None:
+        self.replay.setText('Stop (Ctrl+R)' if is_replaying else 'Replay (Ctrl+R)')
+        self.replay.setStyleSheet(
+            'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
+        )
 
     @cached_property
-    def count_label(self) -> CTkLabel:
-        cl = CTkLabel(self.stats_frame, text='Chars: 0', font=FONT)
-        cl.pack(side='right')
-        return cl
+    def stats_frame(self) -> QWidget:
+        frame = QWidget(self)
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+        label = QLabel('Text:', frame)
+        font = QFont(FONT_FAMILY, FONT_SIZE)
+        font.setBold(True)
+        label.setFont(font)
+        layout.addWidget(label)
+        layout.addStretch()
+        self.count_label = QLabel('Chars: 0', frame)
+        self.count_label.setFont(QFont(FONT_FAMILY, FONT_SIZE))
+        layout.addWidget(self.count_label)
+        self.root.addWidget(frame)
+        return frame
+
+    @cached_property
+    def textbox(self) -> QTextEdit:
+        textbox = QTextEdit(self)
+        textbox.setFixedHeight(TEXT_BOX_HEIGHT)
+        textbox.setFont(QFont(FONT_FAMILY, FONT_SIZE))
+        textbox.setReadOnly(True)
+        self.root.addWidget(textbox)
+        return textbox
+
+    @cached_property
+    def replay_frame(self) -> QWidget:
+        frame = QWidget(self)
+        frame.setFixedHeight(REPLAY_FRAME_HEIGHT)
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        self.transport = Transport(
+            frame,
+            self.app.on_transport_state,
+            lambda: self.app.tuney.hover_time,
+        )
+        layout.addWidget(self.transport, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addStretch()
+        self.replay = QPushButton('Replay (Ctrl+R)', frame)
+        self.replay.setMinimumHeight(REPLAY_FRAME_HEIGHT)
+        self.replay.setFont(QFont(FONT_FAMILY, 18))
+        self.replay.clicked.connect(self.app.on_replay)
+        layout.addWidget(self.replay, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addStretch()
+        self.randomize = QPushButton('Randomize', frame)
+        self.randomize.setFixedWidth(96)
+        self.randomize.clicked.connect(self.app.on_randomize_timing)
+        layout.addWidget(self.randomize)
+        self.loop = QCheckBox('Loop', frame)
+        self.loop.toggled.connect(lambda _: self.app.on_loop_replay())
+        layout.addWidget(self.loop)
+        self.root.addWidget(frame)
+        self.set_replay_state(False)
+        return frame
+
+    @cached_property
+    def loop_controls(self) -> QWidget:
+        frame = QWidget(self)
+        frame.setFixedHeight(LOOP_CONTROLS_HEIGHT)
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        self.loop_before = _labeled_entry(frame, layout, 'Before', self.app.loop_before)
+        self.loop_before.editingFinished.connect(
+            lambda: self.app.on_loop_before(self.loop_before.text())
+        )
+        self.loop_after = _labeled_entry(frame, layout, 'After', self.app.loop_after)
+        self.loop_after.editingFinished.connect(
+            lambda: self.app.on_loop_after(self.loop_after.text())
+        )
+        self.loop_tempo = _labeled_entry(frame, layout, 'Tempo', self.app.loop_tempo)
+        self.loop_tempo.editingFinished.connect(
+            lambda: self.app.on_loop_tempo(self.loop_tempo.text())
+        )
+        self.randomize_on_each_loop = QCheckBox('Randomize each loop', frame)
+        self.randomize_on_each_loop.toggled.connect(
+            lambda _: self.app.on_randomize_on_each_loop()
+        )
+        layout.addWidget(self.randomize_on_each_loop)
+        layout.addStretch()
+        self.root.addWidget(frame)
+        return frame
+
+    @cached_property
+    def note_grid_widget(self) -> QWidget:
+        widget = QWidget(self)
+        self.note_grid = QGridLayout(widget)
+        self.note_grid.setContentsMargins(0, 0, 0, 0)
+        self.note_grid.setSpacing(constants.QUARTER)
+        self.root.addWidget(widget, stretch=1)
+        return widget
 
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
         it = self.app.tuney.note_labels.items()
-        return {k: self._note_frame(i, k, n) for i, (k, n) in enumerate(it)}
+        return {k: self._note_frame(i, k, n.text) for i, (k, n) in enumerate(it)}
 
     def rebuild_note_grid(self) -> None:
         self.app.tuney.__dict__.pop('note_labels', None)
         self.__dict__.pop('note_buttons', None)
-        for child in self.note_grid.winfo_children():
-            child.destroy()
+        _clear_grid(self.note_grid)
         try:
             has_note_buttons = self.app.tuney.player.scale.note_count > 0
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
-        if not has_note_buttons:
-            return
-        _ = self.note_buttons
+        if has_note_buttons:
+            _ = self.note_buttons
 
-    @cached_property
-    def note_grid(self) -> CTkFrame:
-        f = CTkFrame(self.app)
-        f.pack(
-            fill='both',
-            expand=True,
-            padx=constants.PAD,
-            pady=constants.PAD - 8,
-        )
-        return f
-
-    @cached_property
-    def replay_frame(self) -> CTkFrame:
-        f = CTkFrame(
-            self.app,
-            height=REPLAY_FRAME_HEIGHT,
-            fg_color='transparent',
-        )
-        f.pack(fill='x', padx=constants.PAD)
-        f.pack_propagate(False)
-        return f
-
-    @cached_property
-    def transport(self) -> Transport:
-        transport = Transport(
-            self.replay_frame,
-            self.app.on_transport_state,
-            lambda: self.app.tuney.hover_time,
-        )
-        transport.pack(side='left')
-        return transport
-
-    @cached_property
-    def replay(self) -> CTkButton:
-        replay = CTkButton(
-            self.replay_frame,
-            height=REPLAY_FRAME_HEIGHT,
-            font=('Arial', 18),
-            command=self.app.on_replay,
-            **REPLAY,  # ty:ignore[invalid-argument-type]
-        )
-        replay.place(relx=0.5, rely=0.5, anchor='center')
-        return replay
-
-    @cached_property
-    def randomize(self) -> CTkButton:
-        randomize = CTkButton(
-            self.replay_frame,
-            width=96,
-            height=REPLAY_FRAME_HEIGHT,
-            font=FONT,
-            command=self.app.on_randomize_timing,
-            **RANDOMIZE,  # ty:ignore[invalid-argument-type]
-        )
-        randomize.pack(side='right', padx=(0, 8))
-        return randomize
-
-    @cached_property
-    def loop(self) -> CTkSwitch:
-        loop = CTkSwitch(
-            self.replay_frame,
-            text='Loop',
-            width=74,
-            height=REPLAY_FRAME_HEIGHT,
-            switch_width=36,
-            switch_height=18,
-            font=('Arial', 14),
-            command=self.app.on_loop_replay,
-            progress_color='#30a870',
-            fg_color='#707890',
-        )
-        loop.pack(side='right')
-        return loop
-
-    @cached_property
-    def loop_controls(self) -> CTkFrame:
-        frame = CTkFrame(self.app, height=LOOP_CONTROLS_HEIGHT, fg_color='transparent')
-        frame.pack(fill='x', padx=constants.PAD, pady=(2, 0))
-        frame.pack_propagate(False)
-
-        CTkLabel(frame, text='Before', font=FONT).pack(side='left', padx=(0, 4))
-        self.loop_before = CTkEntry(frame, width=48, font=FONT)
-        self.loop_before.insert(0, str(self.app.loop_before))
-        self.loop_before.pack(side='left', padx=(0, 8))
-        self.loop_before.bind(
-            '<FocusOut>',
-            lambda _: self.app.on_loop_before(self.loop_before.get()),
-            add='+',
-        )
-        self.loop_before.bind(
-            '<Return>',
-            lambda _: self.app.on_loop_before(self.loop_before.get()),
-            add='+',
-        )
-
-        CTkLabel(frame, text='After', font=FONT).pack(side='left', padx=(0, 4))
-        self.loop_after = CTkEntry(frame, width=48, font=FONT)
-        self.loop_after.insert(0, str(self.app.loop_after))
-        self.loop_after.pack(side='left', padx=(0, 8))
-        self.loop_after.bind(
-            '<FocusOut>',
-            lambda _: self.app.on_loop_after(self.loop_after.get()),
-            add='+',
-        )
-        self.loop_after.bind(
-            '<Return>',
-            lambda _: self.app.on_loop_after(self.loop_after.get()),
-            add='+',
-        )
-
-        CTkLabel(frame, text='Tempo', font=FONT).pack(side='left', padx=(0, 4))
-        self.loop_tempo = CTkEntry(frame, width=48, font=FONT)
-        self.loop_tempo.insert(0, str(self.app.loop_tempo))
-        self.loop_tempo.pack(side='left')
-        self.loop_tempo.bind(
-            '<FocusOut>',
-            lambda _: self.app.on_loop_tempo(self.loop_tempo.get()),
-            add='+',
-        )
-        self.loop_tempo.bind(
-            '<Return>',
-            lambda _: self.app.on_loop_tempo(self.loop_tempo.get()),
-            add='+',
-        )
-
-        self.randomize_on_each_loop = CTkSwitch(
-            frame,
-            text='Randomize each loop',
-            width=158,
-            height=LOOP_CONTROLS_HEIGHT,
-            switch_width=36,
-            switch_height=18,
-            font=FONT,
-            command=self.app.on_randomize_on_each_loop,
-            progress_color='#30a870',
-            fg_color='#707890',
-        )
-        self.randomize_on_each_loop.pack(side='left', padx=(12, 0))
-        return frame
-
-    @cached_property
-    def stats_frame(self) -> CTkFrame:
-        f = CTkFrame(self.app, fg_color='transparent')
-        f.pack(fill='x', padx=constants.PAD)
-        return f
-
-    @cached_property
-    def textbox(self) -> CTkTextbox:
-        t = CTkTextbox(self.app, height=TEXT_BOX_HEIGHT, font=FONT)
-        t.pack(
-            fill='x',
-            padx=constants.PAD,
-            pady=(constants.QUARTER, 2 * constants.QUARTER),
-        )
-        t.configure(state='disabled')
-        return t
-
-    def _note_frame(self, i: int, char: str, nl: NoteLabel) -> NoteButton:
-        r, c = divmod(i, self.app.columns)
+    def _note_frame(self, i: int, char: str, text: str) -> NoteButton:
+        row, column = divmod(i, self.app.columns)
         return NoteButton(
             self.note_grid,
-            r,
-            c,
+            row,
+            column,
             char,
-            nl.text,
+            text,
             self.app.tuney.on_char,
         )
 
 
-def _set_entry_text(entry: CTkEntry, text: str) -> None:
-    entry.delete(0, 'end')
-    entry.insert(0, text)
+def _labeled_entry(
+    parent: QWidget, layout: QHBoxLayout, label: str, value: float
+) -> QLineEdit:
+    layout.addWidget(QLabel(label, parent))
+    entry = QLineEdit(str(value), parent)
+    entry.setFixedWidth(48)
+    layout.addWidget(entry)
+    return entry
+
+
+def _set_entry_text(entry: QLineEdit, text: str) -> None:
+    entry.setText(text)
+
+
+def _clear_grid(layout: QGridLayout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        if item is None:
+            continue
+        widget = item.widget()
+        if widget is not None:
+            widget.deleteLater()

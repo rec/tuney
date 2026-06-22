@@ -150,7 +150,7 @@ class Tuney(BaseModel):
                 elif self.char_presses:
                     self._delete_last_char()
                     self._start_backspace_repeat()
-                self.app.layout.set_text(self.display_text)
+                self.app.ui.set_text(self.display_text)
             else:
                 if c.char != '\b':
                     self.char_presses.append(recorded)
@@ -183,7 +183,7 @@ class Tuney(BaseModel):
             return
         self.app.record_undo()
         self._delete_last_char()
-        self.app.layout.set_text(self.display_text)
+        self.app.ui.set_text(self.display_text)
         self._on_char(CharPress('\b', time=0))
         if self.char_presses:
             self._backspace_repeat_after_id = self.app.after(
@@ -232,7 +232,7 @@ class Tuney(BaseModel):
         self._recording_insert_time = None
         self._replay_text = ''
         if self.gui:
-            self.app.layout.set_text('')
+            self.app.ui.set_text('')
 
     def randomize_timing(self) -> None:
         text = self.display_text
@@ -246,7 +246,7 @@ class Tuney(BaseModel):
         self._recording_insert_time = None
         self._replay_text = ''
         if self.gui:
-            self.app.layout.set_text(text)
+            self.app.ui.set_text(text)
 
     def save(self, path: Path) -> None:
         data = serialize(self.dump_data())
@@ -368,14 +368,14 @@ class Tuney(BaseModel):
 
         if self.app.is_replaying:
             self._replay_text = ''
-            self.app.layout.set_text(self._replay_text)
+            self.app.ui.set_text(self._replay_text)
             self._sequencer = Sequencer(
                 char_presses=self._replay_char_presses(), callback=self._on_replay
             )
             self._sequencer.start()
         else:
             self._replay_text = ''
-            self.app.layout.set_text(self.display_text)
+            self.app.ui.set_text(self.display_text)
 
     def _replay_char_presses(self) -> list[CharPress]:
         char_presses = _loop_window(
@@ -399,7 +399,7 @@ class Tuney(BaseModel):
         if c:
             if c.is_press:
                 self._replay_text += c.char
-                self.app.after(0, self.app.layout.set_text, self._replay_text)
+                self.app.after(0, self.app.ui.set_text, self._replay_text)
             self._on_char(c)
         elif self.app.is_replaying and self._sequencer is not None:
             self.app.after(0, self._finish_replay)

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from tkinter import Event
-from typing import Any
 
-from customtkinter import CTkButton, CTkFrame
+from PySide6.QtGui import QFont, QResizeEvent
+from PySide6.QtWidgets import QGridLayout, QPushButton
 
 from ..char_press import CharPress
 from . import constants
@@ -14,42 +13,36 @@ FONT_FAMILY = 'Arial'
 MAX_FONT_SIZE = 23
 MIN_FONT_SIZE = 10
 FONT_SCALING_THRESHOLD = 60
-BIG_FONT = FONT_FAMILY, MAX_FONT_SIZE, 'bold'
-PRESSED = {'fg_color': 'lightgreen', 'hover_color': 'lightgreen', 'corner_radius': 8}
-RELEASED = {'fg_color': 'grey90', 'hover_color': 'grey90', 'corner_radius': 8}
+PRESSED_STYLE = 'background: lightgreen; color: black; border-radius: 8px;'
+RELEASED_STYLE = 'background: #e5e5e5; color: black; border-radius: 8px;'
 
 
-class NoteButton(CTkButton):
+class NoteButton(QPushButton):
     def __init__(
         self,
-        parent: CTkFrame,
+        layout: QGridLayout,
         row: int,
         column: int,
         char: str,
         text: str,
-        on_char: Callable[[CharPress], Any],
+        on_char: Callable[[CharPress], object],
     ) -> None:
-        super().__init__(
-            parent,
-            text=text,
-            command=self.toggle,
-            font=BIG_FONT,
-            text_color='black',
-        )
+        super().__init__(text)
         self.char = char
         self._on_char = on_char
         self._font_size = MAX_FONT_SIZE
-        self._resize_after_id: str | None = None
-        self.bind('<Configure>', self._queue_font_resize)
-        self.grid(
-            row=row,
-            column=column,
-            padx=2 * constants.QUARTER,
-            pady=constants.QUARTER,
-            sticky='nsew',
-        )
-        self.configure(**RELEASED)
         self.note_name = text
+        self.setFont(QFont(FONT_FAMILY, MAX_FONT_SIZE, QFont.Weight.Bold))
+        self.setMinimumSize(48, 48)
+        self.clicked.connect(self.toggle)
+        layout.addWidget(self, row, column)
+        layout.setContentsMargins(
+            constants.QUARTER,
+            constants.QUARTER,
+            constants.QUARTER,
+            constants.QUARTER,
+        )
+        self.is_press = False
 
     @property
     def is_press(self) -> bool:
@@ -58,23 +51,18 @@ class NoteButton(CTkButton):
     @is_press.setter
     def is_press(self, is_press: bool) -> None:
         self._is_press = is_press
-        self.configure(**(PRESSED if is_press else RELEASED))
+        self.setStyleSheet(PRESSED_STYLE if is_press else RELEASED_STYLE)
 
     def toggle(self) -> None:
         self.is_press = not self.is_press
         self._on_char(CharPress(self.char, self.is_press, time.time()))
 
-    def _queue_font_resize(self, _: Event) -> None:
-        if self._resize_after_id is not None:
-            self.after_cancel(self._resize_after_id)
-        self._resize_after_id = self.after_idle(self._resize_font)
-
-    def _resize_font(self) -> None:
-        self._resize_after_id = None
-        font_size = _note_font_size(self.winfo_width(), self.winfo_height())
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        font_size = _note_font_size(self.width(), self.height())
         if font_size != self._font_size:
             self._font_size = font_size
-            self.configure(font=(FONT_FAMILY, font_size, 'bold'))
+            self.setFont(QFont(FONT_FAMILY, font_size, QFont.Weight.Bold))
 
 
 def _note_font_size(width: int, height: int) -> int:

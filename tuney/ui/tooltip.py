@@ -1,57 +1,57 @@
+from __future__ import annotations
+
 from collections.abc import Callable
-from tkinter import Event, Label, Misc, Toplevel
+
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
+from PySide6.QtWidgets import QLabel, QWidget
 
 
-class Tooltip:
+class Tooltip(QObject):
     def __init__(
         self,
-        widget: Misc,
+        widget: QWidget,
         text: str,
         hover_time: Callable[[], float],
     ) -> None:
+        super().__init__(widget)
         self.widget = widget
         self.text = text
         self.hover_time = hover_time
-        self.after_id: str | None = None
-        self.window: Toplevel | None = None
-        widget.bind('<Enter>', self._schedule, add='+')
-        widget.bind('<Leave>', self._hide, add='+')
-        widget.bind('<ButtonPress>', self._hide, add='+')
+        self.window: QLabel | None = None
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self._show)
+        widget.installEventFilter(self)
 
-    def _schedule(self, _: Event) -> None:
-        self._cancel()
-        self.after_id = self.widget.after(round(self.hover_time() * 1000), self._show)
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if watched is self.widget and event.type() == QEvent.Type.Enter:
+            self._schedule()
+        elif watched is self.widget and event.type() in {
+            QEvent.Type.Leave,
+            QEvent.Type.MouseButtonPress,
+        }:
+            self._hide()
+        return super().eventFilter(watched, event)
 
-    def _cancel(self) -> None:
-        if self.after_id is not None:
-            self.widget.after_cancel(self.after_id)
-            self.after_id = None
+    def _schedule(self) -> None:
+        self._hide()
+        self.timer.start(round(self.hover_time() * 1000))
 
     def _show(self) -> None:
-        self.after_id = None
-        self.window = Toplevel(self.widget)
-        self.window.wm_overrideredirect(True)
-        self.window.wm_attributes('-topmost', True)
-        self.window.wm_geometry(
-            f'+{self.widget.winfo_rootx()}+'
-            f'{self.widget.winfo_rooty() + self.widget.winfo_height() + 4}'
+        self.window = QLabel(self.text, self.widget, Qt.WindowType.ToolTip)
+        self.window.setWordWrap(True)
+        self.window.setStyleSheet(
+            'background: #ffffe0; color: black; border: 1px solid black;'
+            ' padding: 4px 6px;'
         )
-        Label(
-            self.window,
-            text=self.text,
-            background='#ffffe0',
-            foreground='black',
-            borderwidth=1,
-            relief='solid',
-            justify='left',
-            padx=6,
-            pady=4,
-            wraplength=320,
-        ).pack()
-        self.window.lift()
+        self.window.setMaximumWidth(320)
+        point = self.widget.mapToGlobal(QPoint(0, self.widget.height() + 4))
+        self.window.move(point)
+        self.window.show()
 
-    def _hide(self, _: Event) -> None:
-        self._cancel()
+    def _hide(self) -> None:
+        self.timer.stop()
         if self.window is not None:
-            self.window.destroy()
+            self.window.close()
+            self.window.deleteLater()
             self.window = None

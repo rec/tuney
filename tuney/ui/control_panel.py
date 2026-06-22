@@ -4,12 +4,23 @@ import enum
 import json
 import math
 from collections.abc import Callable
-from tkinter import Misc, TclError
 from typing import Any, TypeAlias, cast, get_args, get_origin
 
-import customtkinter as ctk
-from customtkinter import CTkFrame
 from pydantic import BaseModel, ValidationError
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QRadioButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
@@ -21,15 +32,13 @@ from .tooltip import Tooltip
 Scalar: TypeAlias = bool | float | int | str | None
 
 CONTROL_FIELD_NAMES: dict[int, str] = {}
-CONTROL_FG_COLORS: dict[int, Any] = {}
-WIDGET_TEXT_COLORS: dict[int, Any] = {}
-INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[Any, Any]] = {}
+INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
 
 
 class _OptionControl:
     def __init__(
         self,
-        menu: ctk.CTkOptionMenu,
+        menu: QComboBox,
         data: BaseModel,
         name: str,
         values: Callable[[], list[str]],
@@ -40,26 +49,37 @@ class _OptionControl:
         self.values = values
 
     def refresh(self) -> None:
-        values = _option_values(self.values)
-        self.menu.configure(values=values)
         value = _option_text(getattr(self.data, self.name))
-        if value:
-            self.menu.set(value)
+        self.menu.clear()
+        self.menu.addItems(_option_values(self.values))
+        self.menu.setCurrentText(value)
 
 
-class ControlPanel(ctk.CTkScrollableFrame):
-    def __init__(self, parent: CTkFrame, data: BaseModel, height: int = 200) -> None:
-        super().__init__(parent, height=height)
+class ControlPanel(QScrollArea):
+    def __init__(self, parent: QWidget, data: BaseModel, height: int = 200) -> None:
+        super().__init__(parent)
         self.data = data
         self.option_controls: list[_OptionControl] = []
-        if type(data).__name__ == 'Tuney':
-            _add_general_controls(self, data, self.option_controls)
-        _add_model_controls(self, data, self.option_controls)
-        _bind_textbox_focus(self, include_root=True)
+        self.setWidgetResizable(True)
+        self.setFixedHeight(height)
+        self.content = QWidget()
+        self.content.setObjectName('control_panel_content')
+        self.content_layout = QVBoxLayout(self.content)
+        self.content_layout.setContentsMargins(4, 4, 4, 4)
+        self.content_layout.setSpacing(6)
+        self.setWidget(self.content)
+        self.rebuild()
+
+    def rebuild(self) -> None:
+        _clear_layout(self.content_layout)
+        self.option_controls.clear()
+        if type(self.data).__name__ == 'Tuney':
+            _add_general_controls(self.content, self.data, self.option_controls)
+        _add_model_controls(self.content, self.data, self.option_controls)
 
 
 def _add_model_controls(
-    parent: CTkFrame | ctk.CTkScrollableFrame,
+    parent: QWidget,
     data: BaseModel,
     option_controls: list[_OptionControl],
     title: str | None = None,
@@ -81,33 +101,39 @@ def _add_model_controls(
         if not _visible_control_names(child):
             _add_model_controls(parent, child, option_controls)
             continue
-        section = ctk.CTkFrame(parent)
-        section.pack(fill='x', expand=True, pady=(6, 0))
+        section = QFrame(parent)
+        section.setFrameShape(QFrame.Shape.StyledPanel)
+        _parent_layout(parent).addWidget(section)
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(2)
         _add_model_controls(section, child, option_controls, name)
 
 
 def _add_general_controls(
-    parent: CTkFrame | ctk.CTkScrollableFrame,
+    parent: QWidget,
     data: BaseModel,
     option_controls: list[_OptionControl],
 ) -> None:
     controls = _general_controls(data)
     if not controls:
         return
-    section = ctk.CTkFrame(parent)
-    section.pack(fill='x', expand=True, pady=(0, 0))
+    section = QFrame(parent)
+    section.setFrameShape(QFrame.Shape.StyledPanel)
+    _parent_layout(parent).addWidget(section)
+    layout = QVBoxLayout(section)
+    layout.setContentsMargins(4, 4, 4, 4)
+    layout.setSpacing(2)
     _add_section_title(section, 'general')
     _add_control_group_grid(section, controls, option_controls)
 
 
-def _add_section_title(parent: CTkFrame | ctk.CTkScrollableFrame, title: str) -> None:
-    title_frame = ctk.CTkFrame(parent, corner_radius=0)
-    title_frame.pack(fill='x', pady=(0, 2))
-    ctk.CTkLabel(title_frame, text=title, font=constants.TITLE_FONT).pack(
-        anchor='w',
-        padx=4,
-        pady=(2, 2),
-    )
+def _add_section_title(parent: QWidget, title: str) -> None:
+    label = QLabel(title, parent)
+    font = label.font()
+    font.setBold(True)
+    label.setFont(font)
+    _parent_layout(parent).addWidget(label)
 
 
 def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
@@ -124,44 +150,43 @@ def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
 
 
 def _add_control_group_grid(
-    parent: CTkFrame | ctk.CTkScrollableFrame,
+    parent: QWidget,
     controls: list[tuple[BaseModel, str]],
     option_controls: list[_OptionControl],
 ) -> None:
-    frame = ctk.CTkFrame(parent, fg_color='transparent')
-    frame.pack(fill='x', expand=True)
-    row_frame = ctk.CTkFrame(frame, fg_color='transparent')
-    row_frame.pack(fill='x', expand=True)
-    for column in range(len(controls)):
-        row_frame.grid_columnconfigure(column, weight=0)
-    row_frame.grid_columnconfigure(len(controls), weight=1)
-
+    frame = QWidget(parent)
+    layout = QGridLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setHorizontalSpacing(4)
     for column, (data, name) in enumerate(controls):
-        _add_control_cell(row_frame, data, name, option_controls, 0, column, 1)
+        _add_control_cell(frame, data, name, option_controls, 0, column, 1)
+    _parent_layout(parent).addWidget(frame)
 
 
 def _add_control_grid(
-    parent: CTkFrame | ctk.CTkScrollableFrame,
+    parent: QWidget,
     data: BaseModel,
     fields: list[str],
     option_controls: list[_OptionControl],
 ) -> None:
-    frame = ctk.CTkFrame(parent, fg_color='transparent')
-    frame.pack(fill='x', expand=True)
+    frame = QWidget(parent)
+    layout = QVBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(2)
 
     for row_fields in _control_rows(data, fields):
-        row_frame = ctk.CTkFrame(frame, fg_color='transparent')
-        row_frame.pack(fill='x', expand=True)
+        row_frame = QWidget(frame)
+        row_layout = QGridLayout(row_frame)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setHorizontalSpacing(4)
         columns = max(1, len(row_fields))
-        for column in range(columns):
-            row_frame.grid_columnconfigure(column, weight=0)
-        row_frame.grid_columnconfigure(columns, weight=1)
-
         for column, name in enumerate(row_fields):
             columnspan = columns + 1 if len(row_fields) == 1 else 1
             _add_control_cell(
                 row_frame, data, name, option_controls, 0, column, columnspan
             )
+        layout.addWidget(row_frame)
+    _parent_layout(parent).addWidget(frame)
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
@@ -187,7 +212,7 @@ def _grid_rows(fields: list[str]) -> list[list[str]]:
 
 
 def _add_control_cell(
-    parent: CTkFrame,
+    parent: QWidget,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
@@ -195,16 +220,12 @@ def _add_control_cell(
     column: int,
     columnspan: int,
 ) -> None:
-    is_bool = isinstance(getattr(data, name), bool)
-    cell = ctk.CTkFrame(parent, border_width=1)
-    cell.grid(
-        row=row,
-        column=column,
-        columnspan=columnspan,
-        padx=2 if is_bool else 4,
-        pady=2 if is_bool else 4,
-        sticky='w' if is_bool else 'nsew',
-    )
+    cell = QFrame(parent)
+    cell.setFrameShape(QFrame.Shape.StyledPanel)
+    layout = QVBoxLayout(cell)
+    layout.setContentsMargins(3, 2, 3, 2)
+    layout.setSpacing(0)
+    cast(QGridLayout, parent.layout()).addWidget(cell, row, column, 1, columnspan)
 
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
@@ -214,7 +235,7 @@ def _add_control_cell(
         and name != 'enable'
         and not _is_midi_enabled(data)
     ):
-        _set_widget_state(cell, 'disabled')
+        _set_widget_state(cell, False)
 
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
@@ -228,18 +249,28 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     )
 
 
-def _add_field_tooltips(parent: CTkFrame, model: type[BaseModel], name: str) -> None:
+def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> None:
     control_panel = _control_panel(parent)
     for widget in _field_widgets(parent):
-        Tooltip(
-            widget,
-            _field_hover_text(model, name),
-            lambda: float(getattr(control_panel.data, 'hover_time', 1.0)),
-        )
+        if isinstance(widget, QWidget):
+            Tooltip(
+                widget,
+                _field_hover_text(model, name),
+                lambda: float(getattr(control_panel.data, 'hover_time', 1.0)),
+            )
 
 
-def _field_widgets(parent: Misc) -> list[Misc]:
-    children = parent.winfo_children()
+def _field_widgets(parent: Any) -> list[Any]:
+    if hasattr(parent, 'winfo_children'):
+        children = parent.winfo_children()
+    elif isinstance(parent, QWidget):
+        children = [
+            child
+            for child in parent.findChildren(QWidget, options=cast(Any, 0))
+            if child.parent() is parent
+        ]
+    else:
+        children = []
     if not children:
         return [parent]
     return [widget for child in children for widget in _field_widgets(child)]
@@ -315,7 +346,7 @@ def _option_text(value: Scalar) -> str:
 
 
 def _add_control(
-    parent: CTkFrame,
+    parent: QWidget,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
@@ -335,211 +366,106 @@ def _add_control(
 
 
 def _add_option_control(
-    parent: CTkFrame,
+    parent: QWidget,
     data: BaseModel,
     name: str,
     value: Scalar,
     values: Callable[[], list[str]],
     option_controls: list[_OptionControl],
 ) -> None:
-    string_var = ctk.StringVar(parent, _option_text(value))
+    frame = QWidget(parent)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+    layout.addWidget(QLabel(name, frame))
+    menu = QComboBox(frame)
+    width = _entry_width(
+        name, type(data).model_fields[name].annotation, type(data).__name__
+    )
+    if width:
+        menu.setFixedWidth(width)
+    menu.addItems(_option_values(values))
+    menu.setCurrentText(_option_text(value))
 
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
             _record_undo(parent)
             cast(Any, data).apply_preset(raw)
-            parent.after(0, _rebuild_parent_control_panel, parent)
-            parent.after(0, _rebuild_note_grid, parent)
+            _after(parent, 0, _rebuild_parent_control_panel, parent)
+            _after(parent, 0, _rebuild_note_grid, parent)
         else:
             _set_model_value(data, name, raw or None, parent)
             _rebuild_note_grid_if_mapping_changed(parent, data)
 
-    annotation = type(data).model_fields[name].annotation
-    width = _entry_width(name, annotation, type(data).__name__)
-    frame = ctk.CTkFrame(parent, fg_color='transparent')
-    frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
-    menu = (
-        ctk.CTkOptionMenu(
-            frame,
-            width=width,
-            values=_option_values(values),
-            variable=string_var,
-            command=command,
-            font=constants.FONT,
-        )
-        if width
-        else ctk.CTkOptionMenu(
-            frame,
-            values=_option_values(values),
-            variable=string_var,
-            command=command,
-            font=constants.FONT,
-        )
-    )
-    menu.pack(side='left')
+    menu.currentTextChanged.connect(command)
+    layout.addWidget(menu)
+    _parent_layout(parent).addWidget(frame)
     option_controls.append(_OptionControl(menu, data, name, values))
 
 
-def _control_panel(parent: Misc) -> ControlPanel:
+def _control_panel(parent: Any) -> ControlPanel:
     control_panel: Any = parent
     while not isinstance(control_panel, ControlPanel):
-        control_panel = control_panel.master
+        next_parent = (
+            control_panel.parent()
+            if hasattr(control_panel, 'parent')
+            else getattr(control_panel, 'master', None)
+        )
+        if next_parent is None:
+            raise RuntimeError('control panel not found')
+        control_panel = next_parent
     return control_panel
 
 
 def rebuild_control_panel(control_panel: ControlPanel) -> None:
-    for child in control_panel.winfo_children():
-        child.destroy()
-    control_panel.option_controls.clear()
-    if type(control_panel.data).__name__ == 'Tuney':
-        _add_general_controls(
-            control_panel, control_panel.data, control_panel.option_controls
-        )
-    _add_model_controls(
-        control_panel, control_panel.data, control_panel.option_controls
-    )
-    _bind_textbox_focus(control_panel)
+    control_panel.rebuild()
 
 
-def _rebuild_parent_control_panel(parent: Misc) -> None:
+def _rebuild_parent_control_panel(parent: QWidget) -> None:
     rebuild_control_panel(_control_panel(parent))
 
 
-def _bind_textbox_focus(
-    control_panel: ControlPanel, include_root: bool = False
-) -> None:
-    widgets = [control_panel] if include_root else []
-    widgets.extend(_child_widgets(control_panel))
-    for widget in widgets:
-        widget.bind(
-            '<ButtonRelease-1>',
-            lambda event: _focus_textbox_if_not_editable(control_panel, event),
-            add='+',
-        )
-
-
-def _child_widgets(widget: Misc) -> list[Misc]:
-    children = list(widget.winfo_children())
-    return children + [i for child in children for i in _child_widgets(child)]
-
-
-def _focus_textbox_if_not_editable(control_panel: ControlPanel, event: object) -> None:
-    widget = cast(Any, event).widget
-    if _is_editable_control(control_panel, widget):
-        return
-
-    layout = getattr(control_panel.winfo_toplevel(), 'layout', None)
-    if layout is None:
-        return
-    control_panel.after_idle(cast(Any, layout).textbox.focus_set)
-
-
-def _is_editable_control(control_panel: ControlPanel, widget: Misc) -> bool:
-    current: Misc | None = widget
-    while current is not control_panel and current is not None:
-        if isinstance(current, ctk.CTkEntry | ctk.CTkOptionMenu):
-            return True
-        current = current.master
-    return False
-
-
-def _rebuild_note_grid_if_mapping_changed(parent: Misc, data: BaseModel) -> None:
+def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
     if isinstance(data, Scale | Mapper):
-        parent.after(0, _rebuild_note_grid, parent)
+        _after(parent, 0, _rebuild_note_grid, parent)
 
 
-def _rebuild_note_grid(parent: Misc) -> None:
-    layout = cast(Any, _control_panel(parent).data).app.layout
+def _rebuild_note_grid(parent: Any) -> None:
+    layout = cast(Any, _control_panel(parent).data).app.ui
     layout.rebuild_note_grid()
 
 
-def _add_bool_control(
-    parent: CTkFrame, data: BaseModel, name: str, value: bool
-) -> None:
-    var = ctk.IntVar(parent, int(value))
+def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) -> None:
+    check = QCheckBox(name, parent)
+    check.setChecked(value)
 
-    def command() -> None:
-        _set_model_value(data, name, bool(var.get()), parent)
+    def command(checked: bool) -> None:
+        _set_model_value(data, name, checked, parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
         if type(data).__name__ == 'MIDI' and name == 'enable':
-            _set_midi_controls_state(parent, bool(var.get()))
+            _set_midi_controls_state(parent, checked)
 
-    ctk.CTkCheckBox(
-        parent,
-        width=0,
-        text=name,
-        variable=var,
-        command=command,
-        font=constants.FONT,
-        height=constants.TOGGLE_HEIGHT,
-        checkbox_width=constants.CHECKBOX_SIZE,
-        checkbox_height=constants.CHECKBOX_SIZE,
-    ).pack(anchor='w')
+    check.toggled.connect(command)
+    _parent_layout(parent).addWidget(check)
 
 
-def _set_midi_controls_state(parent: CTkFrame, enabled: bool) -> None:
-    row_frame = parent.master
+def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
+    row_frame = parent.parent()
     if row_frame is None:
         return
-    for cell in row_frame.winfo_children():
-        if CONTROL_FIELD_NAMES.get(id(cell)) != 'enable':
-            _set_widget_state(cell, 'normal' if enabled else 'disabled')
+    for cell in row_frame.findChildren(QFrame, options=cast(Any, 0)):
+        if cell.parent() is row_frame and CONTROL_FIELD_NAMES.get(id(cell)) != 'enable':
+            _set_widget_state(cell, enabled)
 
 
-def _set_widget_state(widget: Any, state: str) -> None:
-    try:
-        widget.configure(state=state)
-    except (TclError, ValueError):
-        pass
-    _set_widget_text_color(widget, state)
-    _set_control_fg_color(widget, state)
-    for child in widget.winfo_children():
-        _set_widget_state(child, state)
-
-
-def _set_widget_text_color(widget: Any, state: str) -> None:
-    try:
-        text_color = widget.cget('text_color')
-    except (AttributeError, TclError, ValueError):
-        return
-
-    if state == 'disabled':
-        WIDGET_TEXT_COLORS.setdefault(id(widget), text_color)
-        try:
-            widget.configure(text_color=constants.DISABLED_TEXT_COLOR)
-        except (TclError, ValueError):
-            pass
-        return
-
-    if id(widget) in WIDGET_TEXT_COLORS:
-        try:
-            widget.configure(text_color=WIDGET_TEXT_COLORS.pop(id(widget)))
-        except (TclError, ValueError):
-            pass
-
-
-def _set_control_fg_color(widget: Any, state: str) -> None:
-    if id(widget) not in CONTROL_FIELD_NAMES:
-        return
-
-    if state == 'disabled':
-        try:
-            CONTROL_FG_COLORS.setdefault(id(widget), widget.cget('fg_color'))
-            widget.configure(fg_color=constants.DISABLED_CONTROL_FG_COLOR)
-        except (AttributeError, TclError, ValueError):
-            pass
-        return
-
-    if id(widget) in CONTROL_FG_COLORS:
-        try:
-            widget.configure(fg_color=CONTROL_FG_COLORS.pop(id(widget)))
-        except (TclError, ValueError):
-            pass
+def _set_widget_state(widget: QWidget, enabled: bool) -> None:
+    widget.setEnabled(enabled)
+    for child in widget.findChildren(QWidget):
+        child.setEnabled(enabled)
 
 
 def _add_entry_control(
-    parent: CTkFrame, data: BaseModel, name: str, value: object
+    parent: QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
@@ -552,20 +478,20 @@ def _add_entry_control(
         text = json.dumps(value)
     else:
         text = str(value)
-    var = ctk.StringVar(parent, text)
-    width = _entry_width(name, annotation, type(data).__name__)
-    frame = ctk.CTkFrame(parent, fg_color='transparent')
-    frame.pack(fill='x')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
-    entry = (
-        ctk.CTkEntry(frame, width=width, textvariable=var)
-        if width
-        else ctk.CTkEntry(frame, textvariable=var)
-    )
-    text_color = entry.cget('text_color')
 
-    def update(*_: Any) -> None:
-        raw = var.get()
+    frame = QWidget(parent)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+    layout.addWidget(QLabel(name, frame))
+    entry = QLineEdit(text, frame)
+    width = _entry_width(name, annotation, type(data).__name__)
+    if width:
+        entry.setFixedWidth(width)
+    text_color = entry.palette().text().color().name()
+
+    def update() -> None:
+        raw = entry.text()
         try:
             _set_model_value(
                 data, name, _parse_entry_value(raw, annotation, value, name), parent
@@ -573,23 +499,22 @@ def _add_entry_control(
         except ValidationError:
             _set_invalid_scale_widget(entry, text_color)
             return
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, json.JSONDecodeError):
             _set_invalid_scale_widget(entry, text_color)
         else:
             if _set_mapping_entry_state(parent, data, name, entry, text_color):
                 return
-            entry.configure(text_color=text_color)
+            entry.setStyleSheet('')
 
-    entry.bind('<FocusOut>', update)
-    entry.bind('<Return>', update)
-    if width:
-        entry.pack(side='left')
-    else:
-        entry.pack(side='left', fill='x', expand=True)
+    entry.editingFinished.connect(update)
+    layout.addWidget(entry)
+    if not width:
+        layout.setStretchFactor(entry, 1)
+    _parent_layout(parent).addWidget(frame)
 
 
 def _add_enum_control(
-    parent: CTkFrame,
+    parent: QWidget,
     data: BaseModel,
     name: str,
     value: enum.Enum,
@@ -597,39 +522,24 @@ def _add_enum_control(
 ) -> None:
     members = tuple(enum_cls)
     index = members.index(value) if isinstance(value, enum_cls) else 0
-    var = ctk.IntVar(parent, index)
+    frame = QWidget(parent)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(2 if name in {'accidentals', 'limiter'} else 6)
+    layout.addWidget(QLabel(name, frame))
 
-    def command() -> None:
-        _set_model_value(data, name, members[var.get()], parent)
+    def command(member: enum.Enum) -> None:
+        _set_model_value(data, name, member, parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
 
-    frame = ctk.CTkFrame(parent, fg_color='transparent')
-    frame.pack(anchor='w')
-    ctk.CTkLabel(frame, text=name, font=constants.FONT).pack(side='left', padx=(0, 4))
-    radio_pad = (
-        1
-        if name in {'accidentals', 'limiter'}
-        else 3
-        if name in {'dtype', 'waveform', 'function'}
-        else 6
-    )
-    radio_width = (
-        70 if name in {'waveform', 'function'} else 50 if name == 'dtype' else 100
-    )
     for i, member in enumerate(members):
-        compact_radio = name in {'accidentals', 'limiter'}
-        ctk.CTkRadioButton(
-            frame,
-            width=_compact_radio_width(member.name) if compact_radio else radio_width,
-            text=member.name,
-            variable=var,
-            value=i,
-            command=command,
-            font=constants.FONT,
-            height=constants.TOGGLE_HEIGHT,
-            radiobutton_width=constants.RADIO_SIZE,
-            radiobutton_height=constants.RADIO_SIZE,
-        ).pack(side='left', padx=(0, radio_pad))
+        radio = QRadioButton(member.name, frame)
+        radio.setChecked(i == index)
+        radio.toggled.connect(
+            lambda checked, member=member: checked and command(member)
+        )
+        layout.addWidget(radio)
+    _parent_layout(parent).addWidget(frame)
 
 
 def _compact_radio_width(text: str) -> int:
@@ -637,7 +547,7 @@ def _compact_radio_width(text: str) -> int:
 
 
 def _set_model_value(
-    data: BaseModel, name: str, value: object, parent: Misc | None = None
+    data: BaseModel, name: str, value: object, parent: Any | None = None
 ) -> None:
     values = data.model_dump()
     values[name] = value
@@ -650,7 +560,7 @@ def _set_model_value(
         data.notify_change()
 
 
-def _record_undo(parent: Misc) -> None:
+def _record_undo(parent: Any) -> None:
     root = _control_panel(parent).data
     if type(root).__name__ == 'Tuney':
         cast(Any, root).app.record_undo()
@@ -664,7 +574,7 @@ def _clear_cached_values(data: BaseModel) -> None:
 
 
 def _set_mapping_entry_state(
-    parent: Misc, data: BaseModel, name: str, entry: Any, text_color: Any
+    parent: Any, data: BaseModel, name: str, entry: QLineEdit, text_color: str
 ) -> bool:
     if isinstance(data, Mapper):
         _rebuild_note_grid_if_mapping_changed(parent, data)
@@ -700,19 +610,14 @@ def _scale_has_note_buttons(scale: Scale) -> bool:
         return False
 
 
-def _set_invalid_scale_widget(widget: Any, text_color: Any) -> None:
+def _set_invalid_scale_widget(widget: QLineEdit, text_color: str) -> None:
     INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(id(widget), (widget, text_color))
-    widget.configure(text_color='red')
+    widget.setStyleSheet('color: red;')
 
 
 def _clear_invalid_scale_widgets() -> None:
-    for widget_id, (widget, text_color) in tuple(
-        INVALID_SCALE_WIDGET_TEXT_COLORS.items()
-    ):
-        try:
-            widget.configure(text_color=text_color)
-        except (TclError, ValueError):
-            pass
+    for widget_id, (widget, _) in tuple(INVALID_SCALE_WIDGET_TEXT_COLORS.items()):
+        widget.setStyleSheet('')
         INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget_id, None)
 
 
@@ -782,6 +687,37 @@ def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
     return args + tuple(i for a in args for i in _flatten_type_args(a))
 
 
+def _parent_layout(parent: QWidget) -> QVBoxLayout | QGridLayout:
+    layout = parent.layout()
+    if layout is None:
+        layout = QVBoxLayout(parent)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+    return cast(QVBoxLayout | QGridLayout, layout)
+
+
+def _clear_layout(layout: QVBoxLayout | QGridLayout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        if item is None:
+            continue
+        widget = item.widget()
+        if widget is not None:
+            widget.deleteLater()
+        child_layout = item.layout()
+        if child_layout is not None:
+            _clear_layout(cast(QVBoxLayout | QGridLayout, child_layout))
+
+
+def _after(
+    parent: Any, delay: int, callback: Callable[..., object], *args: object
+) -> None:
+    if hasattr(parent, 'after'):
+        parent.after(delay, callback, *args)
+    else:
+        QTimer.singleShot(delay, lambda: callback(*args))
+
+
 class _DemoWaveform(enum.Enum):
     sine = enum.auto()
     triangle = enum.auto()
@@ -795,32 +731,3 @@ class _DemoSettings(BaseModel):
     enabled: bool = True
     label: str = 'demo'
     device: str | None = None
-
-
-def _demo() -> None:
-    data = _DemoSettings()
-    root = ctk.CTk()
-    root.title('Control Panel Demo')
-
-    demo_frame = ctk.CTkFrame(root)
-    demo_frame.pack(fill='both', expand=True)
-
-    panel = ControlPanel(demo_frame, data)
-    panel.pack(fill='both', expand=True, padx=8, pady=8)
-
-    output = ctk.CTkTextbox(demo_frame, height=120, width=384)
-    output.pack(fill='both', expand=False, padx=8, pady=(0, 8))
-
-    def refresh() -> None:
-        output.configure(state='normal')
-        output.delete('1.0', 'end')
-        output.insert('end', data.model_dump_json(indent=2))
-        output.configure(state='disabled')
-        root.after(100, refresh)
-
-    refresh()
-    root.mainloop()
-
-
-if __name__ == '__main__':
-    _demo()
