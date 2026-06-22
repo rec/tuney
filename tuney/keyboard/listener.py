@@ -13,6 +13,7 @@ from ..runnable import Runnable
 from .modifiers import Modifiers
 
 WHITESPACE = {Key.space: ' ', Key.enter: '\n', Key.backspace: '\b'}
+IGNORED_KEYS = {Key.caps_lock}
 
 
 class KeyboardListener(Runnable):
@@ -34,6 +35,8 @@ class KeyboardListener(Runnable):
         return self.is_running and self._on(key, False)
 
     def _on(self, key: Key | KeyCode, is_press: bool) -> None:
+        if key in IGNORED_KEYS:
+            return
         if self.deduplicate_keys:
             if not is_press:
                 self.held_keys.discard(key)

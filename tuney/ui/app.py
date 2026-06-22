@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import sys
+import time
 from collections.abc import Callable
 from copy import deepcopy
 from functools import cached_property
@@ -10,8 +11,8 @@ from queue import Queue
 from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
-from PySide6.QtCore import QEvent, QObject, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QCloseEvent, QFocusEvent, QIcon
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QAction, QCloseEvent, QFocusEvent, QIcon, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -36,6 +37,17 @@ SAVE_ACCELERATOR = 'Meta+S' if sys.platform == 'darwin' else 'Ctrl+S'
 UNDO_ACCELERATOR = 'Meta+Z' if sys.platform == 'darwin' else 'Ctrl+Z'
 REDO_ACCELERATOR = 'Meta+Shift+Z' if sys.platform == 'darwin' else 'Ctrl+Y'
 APP_NAME = 'Tuney'
+COMMAND_MODIFIERS = (
+    Qt.KeyboardModifier.AltModifier
+    | Qt.KeyboardModifier.ControlModifier
+    | Qt.KeyboardModifier.MetaModifier
+)
+KEY_TEXT = {
+    Qt.Key.Key_Backspace: '\b',
+    Qt.Key.Key_Enter: '\n',
+    Qt.Key.Key_Return: '\n',
+    Qt.Key.Key_Space: ' ',
+}
 
 
 def set_app_name(app: QMainWindow) -> None:
@@ -72,6 +84,7 @@ class App(QMainWindow):
         self.tuney = tuney
         self.queue = Queue[CharPress]()
         self.key_queue = Queue[CharPress]()
+        self._key_chars: dict[int, str] = {}
         self._after_timers: dict[str, QTimer] = {}
         self._after_count = 0
         self._after_dispatcher = _AfterDispatcher(self)
@@ -97,6 +110,7 @@ class App(QMainWindow):
         self.setMenuBar(self.menu)
         self.ui = Layout(self)
         self.setCentralWidget(self.ui)
+        self.qt_app.installEventFilter(self)
 
     def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:
         after_id = f'after-{self._after_count}'
@@ -240,6 +254,41 @@ class App(QMainWindow):
         self._has_focus = self.isActiveWindow()
         super().focusOutEvent(event)
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if not self._on_key_event(event, True):
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
+        if not self._on_key_event(event, False):
+            super().keyReleaseEvent(event)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if isinstance(event, QKeyEvent) and not self.focus_in_control_panel:
+            if event.type() == QEvent.Type.KeyPress:
+                return self._on_key_event(event, True)
+            if event.type() == QEvent.Type.KeyRelease:
+                return self._on_key_event(event, False)
+        return False
+
+    def _on_key_event(self, event: QKeyEvent, is_press: bool) -> bool:
+        if event.isAutoRepeat():
+            event.ignore()
+            return False
+        key = event.key()
+        if is_press:
+            c = _event_char(event)
+            if c:
+                self._key_chars[key] = c
+        else:
+            c = self._key_chars.pop(key, '')
+        if c:
+            self.tuney.on_char(CharPress(c, is_press, time=time.time()))
+            event.accept()
+            return True
+        else:
+            event.ignore()
+            return False
+
     @cached_property
     def menu(self):
         menu = self.menuBar()
@@ -380,6 +429,16 @@ def _application() -> QApplication:
         app = QApplication(sys.argv[:1])
         app.setApplicationName(APP_NAME)
     return cast(QApplication, app)
+
+
+def _event_char(event: QKeyEvent) -> str:
+    if event.modifiers() & COMMAND_MODIFIERS:
+        return ''
+    key = Qt.Key(event.key())
+    if key in KEY_TEXT:
+        return KEY_TEXT[key]
+    text = event.text()
+    return text if len(text) == 1 else ''
 
 
 def _add_action(

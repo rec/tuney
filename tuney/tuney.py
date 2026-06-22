@@ -472,7 +472,8 @@ class Tuney(BaseModel):
 
     def start(self) -> None:
         self.app.start()
-        self.listener.start()
+        if self.run_in_background:
+            self.listener.start()
 
     def _run_cli(self) -> None:
         if not self.char_presses:

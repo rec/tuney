@@ -56,6 +56,10 @@ class FakeApp:
     def record_undo(self) -> None:
         self.undo_count += 1
 
+    @staticmethod
+    def start() -> None:
+        pass
+
     def after(self, delay: int, callback: object, *args: object) -> str:
         after_id = f'after-{len(self.after_calls)}'
         self.after_calls.append((after_id, delay, callback, args))
@@ -267,6 +271,30 @@ def test_gui_listener_queues_keys_through_app() -> None:
     object.__setattr__(tuney, 'app', app)
 
     assert tuney.listener.callback == app.on_key
+
+
+def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None:
+    started = []
+    tuney = Tuney(gui=True)
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+    monkeypatch.setattr(tuney.listener, 'start', lambda: started.append(True))
+
+    tuney.start()
+
+    assert started == []
+
+
+def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
+    started = []
+    tuney = Tuney(gui=True, run_in_background=True)
+    app = FakeApp()
+    object.__setattr__(tuney, 'app', app)
+    monkeypatch.setattr(tuney.listener, 'start', lambda: started.append(True))
+
+    tuney.start()
+
+    assert started == [True]
 
 
 def test_backspace_autorepeat_starts_after_configured_delay() -> None:
