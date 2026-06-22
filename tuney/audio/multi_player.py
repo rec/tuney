@@ -5,12 +5,11 @@ from functools import cached_property, partial
 from pathlib import Path
 
 from pydantic import BaseModel, Field
-from sounddevice import PortAudioError
 
 from ..scale.scale import Scale
 from ..types import NoteNumber
 from .device import Device
-from .engine import AudioEngine, Configure, StopAll
+from .engine import AudioEngine, Configure, StopAll, port_audio_error
 from .mixer import Mixer, NotePress
 from .oscillator import Oscillator
 from .output_file import AudioFileWriter, render_file
@@ -58,7 +57,7 @@ class MultiPlayer(BaseModel, frozen=True):
         self.pressed_notes.clear()
         try:
             self.engine.reconfigure()
-        except PortAudioError:
+        except port_audio_error():
             pass
 
     def sound(self, note_number: int, sample_rate: float | None = None) -> Voice:
@@ -135,7 +134,7 @@ class MultiPlayer(BaseModel, frozen=True):
             )
             self.engine.submit(NotePress(note_number))
             self.engine.start()
-        except PortAudioError:
+        except port_audio_error():
             self.pressed_notes.remove(note_number)
             self.engine.close()
             return False

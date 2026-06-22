@@ -4,11 +4,10 @@ from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
 from threading import Event
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
-from sounddevice import CallbackAbort, OutputStream, PortAudioError
 
 from ..types import NoteNumber
 from .device import Device
@@ -16,6 +15,30 @@ from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter
 from .voice import Voice
+
+if TYPE_CHECKING:
+    from sounddevice import PortAudioError
+
+
+class Stream(Protocol):
+    active: bool
+    samplerate: float
+    channels: int
+
+    def start(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+    def close(self) -> None: ...
+
+
+OutputStream: Callable[..., Stream] | None = None
+
+
+def port_audio_error() -> type['PortAudioError']:
+    from sounddevice import PortAudioError
+
+    return PortAudioError
 
 
 class Configure(BaseModel, frozen=True):
@@ -48,10 +71,16 @@ class AudioEngine(BaseModel):
         return Event()
 
     @cached_property
-    def stream(self) -> OutputStream:
+    def stream(self) -> Stream:
+        global OutputStream
+        if OutputStream is None:
+            from sounddevice import OutputStream as OutputStream_
+
+            OutputStream = OutputStream_
+
         try:
             return OutputStream(callback=self.callback, **self.device.model_dump())
-        except PortAudioError as error:
+        except port_audio_error() as error:
             self.diagnostics.record_stream_error(str(error))
             raise
 
@@ -64,7 +93,7 @@ class AudioEngine(BaseModel):
             return
         try:
             self.stream.start()
-        except PortAudioError as error:
+        except port_audio_error() as error:
             if stream := self.__dict__.pop('stream', None):
                 self.diagnostics.record_stream_error(str(error))
                 stream.close()
@@ -103,6 +132,8 @@ class AudioEngine(BaseModel):
             if self.recorder:
                 self.recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
+            from sounddevice import CallbackAbort
+
             self.diagnostics.record_callback_error(str(error))
             self.playback_complete.set()
             raise CallbackAbort from error

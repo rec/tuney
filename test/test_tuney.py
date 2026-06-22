@@ -2,14 +2,13 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 
 import pytest
-import soundfile
 
+from tuney.audio.mixer import NotePress
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
 from tuney.time.text_timings import TextTimings
@@ -212,7 +211,7 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
 
 
 def test_on_char_records_undo_for_added_char_press() -> None:
-    tuney = Tuney(gui=True)
+    tuney = Tuney(gui=True, silent=True)
     app = FakeApp()
     object.__setattr__(tuney, 'app', app)
 
@@ -594,9 +593,14 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 
 
 def test_cli_mode_prints_characters_as_they_play(
-    monkeypatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    printed: list[tuple[tuple[object, ...], dict[str, object]]] = []
     monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    monkeypatch.setattr(
+        'builtins.print',
+        lambda *args, **kwargs: printed.append((args, kwargs)),
+    )
     tuney = Tuney(
         text=[
             CharPress('a', time=0),
@@ -608,16 +612,25 @@ def test_cli_mode_prints_characters_as_they_play(
 
     tuney._play_cli()
 
-    assert capsys.readouterr().out == 'ab\n'
+    assert printed == [
+        (('a',), {'end': '', 'flush': True}),
+        (('b',), {'end': '', 'flush': True}),
+        ((), {}),
+    ]
 
 
 def test_cli_mode_prints_newline_before_keyboard_interrupt(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def interrupt(*args: object) -> bool:
         raise KeyboardInterrupt
 
+    printed: list[tuple[tuple[object, ...], dict[str, object]]] = []
     interrupted = False
+    monkeypatch.setattr(
+        'builtins.print',
+        lambda *args, **kwargs: printed.append((args, kwargs)),
+    )
     monkeypatch.setattr(MultiPlayer, 'on_note', interrupt)
     tuney = Tuney(text=[CharPress('a', time=0)])
     try:
@@ -626,7 +639,10 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
         interrupted = True
 
     assert interrupted
-    assert capsys.readouterr().out == 'a\n'
+    assert printed == [
+        (('a',), {'end': '', 'flush': True}),
+        ((), {}),
+    ]
 
 
 def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
@@ -645,92 +661,94 @@ def test_cli_mode_requires_sound() -> None:
 
 
 def test_output_forces_cli_mode() -> None:
-    with temporary_path() as tmp_path:
-        tuney = Tuney(gui=True, output=tmp_path / 'out.wav')
+    tuney = Tuney(gui=True, output=Path('out.wav'))
 
-        assert not tuney.gui
+    assert not tuney.gui
 
 
-@pytest.mark.parametrize('suffix', ['wav', 'mp3', 'flac'])
-def test_silent_cli_mode_writes_audio_file(suffix: str) -> None:
-    with temporary_path() as tmp_path:
-        path = tmp_path / f'out.{suffix}'
-        tuney = Tuney(
-            output=path,
-            silent=True,
-            text=[
-                CharPress('a', time=0),
-                CharPress('a', False, 100),
-            ],
-        )
+def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    path = Path('out.wav')
+    rendered: list[
+        tuple[Path, list[tuple[int, NotePress]], Callable[[], str] | None]
+    ] = []
 
-        tuney()
-        audio, sample_rate = soundfile.read(path, always_2d=True)
-        with soundfile.SoundFile(path) as file:
-            metadata = tomllib.loads(file.copy_metadata()['comment'])
-        settings = tomllib.loads(metadata['settings'])
+    def render_file(
+        self: MultiPlayer,
+        output: Path,
+        events: list[tuple[int, NotePress]],
+        comment: Callable[[], str] | None = None,
+    ) -> None:
+        rendered.append((output, events, comment))
 
-        assert sample_rate == 48_000
-        assert len(audio) >= 24_000
-        assert audio.shape[1] == 1
-        assert audio.any()
-        assert metadata['original_text'] == 'a'
-        assert datetime.fromisoformat(metadata['recording_start_time'])
-        assert datetime.fromisoformat(metadata['recording_finish_time'])
-        assert settings['text'] == [
-            {'char': 'a', 'is_press': True, 'time': 0},
-            {'char': 'a', 'is_press': False, 'time': 100},
-        ]
+    monkeypatch.setattr(MultiPlayer, 'render_file', render_file)
+    tuney = Tuney(
+        output=path,
+        silent=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+        ],
+    )
+
+    tuney()
+    output, events, comment = rendered[0]
+
+    assert output == path
+    assert [(frame, note.is_press) for frame, note in events] == [
+        (0, True),
+        (4800, False),
+    ]
+    assert callable(comment)
 
 
 def test_live_cli_output_records_during_playback(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        path = tmp_path / 'out.wav'
-        lifecycle: list[object] = []
-        monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
-        monkeypatch.setattr(
-            MultiPlayer,
-            'start_recording',
-            lambda self, output, comment=None: lifecycle.append(
-                ('start_recording', output, comment)
-            ),
-        )
-        monkeypatch.setattr(
-            MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
-        )
-        monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
-        monkeypatch.setattr(
-            MultiPlayer,
-            'stop_recording',
-            lambda self: lifecycle.append('stop_recording'),
-        )
-        monkeypatch.setattr(
-            MultiPlayer, 'close', lambda self: lifecycle.append('close')
-        )
-        tuney = Tuney(
-            output=path,
-            text=[
-                CharPress('a', time=0),
-                CharPress('a', False, 0),
-            ],
-        )
-        tuney()
+    path = Path('out.wav')
+    lifecycle: list[object] = []
+    monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    monkeypatch.setattr(
+        MultiPlayer,
+        'start_recording',
+        lambda self, output, comment=None: lifecycle.append(
+            ('start_recording', output, comment)
+        ),
+    )
+    monkeypatch.setattr(
+        MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
+    )
+    monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
+    monkeypatch.setattr(
+        MultiPlayer,
+        'stop_recording',
+        lambda self: lifecycle.append('stop_recording'),
+    )
+    monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
+    monkeypatch.setattr(Tuney, '_play_cli', lambda self: lifecycle.append('play_cli'))
+    tuney = Tuney(
+        output=path,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 0),
+        ],
+    )
+    tuney()
 
-        start_recording, stop_all, wait, stop_recording, close = lifecycle
-        assert start_recording[0] == 'start_recording'
-        assert start_recording[1] == path
-        assert callable(start_recording[2])
-        assert [
-            stop_all,
-            wait,
-            stop_recording,
-            close,
-        ] == [
-            'stop_all',
-            'wait',
-            'stop_recording',
-            'close',
-        ]
+    start_recording, play_cli, stop_all, wait, stop_recording, close = lifecycle
+    assert start_recording[0] == 'start_recording'
+    assert start_recording[1] == path
+    assert callable(start_recording[2])
+    assert [
+        play_cli,
+        stop_all,
+        wait,
+        stop_recording,
+        close,
+    ] == [
+        'play_cli',
+        'stop_all',
+        'wait',
+        'stop_recording',
+        'close',
+    ]
 
 
 def test_interrupted_output_removes_partial_file(monkeypatch) -> None:

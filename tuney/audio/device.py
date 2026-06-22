@@ -1,10 +1,20 @@
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import cache
+from typing import cast
 
-import sounddevice
 import tyro
 from pydantic import BaseModel, PrivateAttr
+
+
+class _SoundDevice:
+    def query_devices(self) -> list[dict[str, object]]:
+        import sounddevice
+
+        return cast(list[dict[str, object]], sounddevice.query_devices())
+
+
+sounddevice = _SoundDevice()
 
 
 class DType(StrEnum):
@@ -48,4 +58,10 @@ class Device(BaseModel, frozen=True):
 @cache
 def device_names() -> list[str]:
     devices = sounddevice.query_devices()
-    return [d['name'] for d in devices if int(d.get('max_output_channels', 0)) > 0]
+    names: list[str] = []
+    for device in devices:
+        name = device.get('name')
+        channels = device.get('max_output_channels', 0)
+        if isinstance(name, str) and isinstance(channels, int) and channels > 0:
+            names.append(name)
+    return names

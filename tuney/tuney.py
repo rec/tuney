@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import tempfile
+import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
@@ -371,8 +372,10 @@ class Tuney(BaseModel):
 
     def _start_audio_recording(self) -> None:
         if self._audio_recording_path is None:
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as file:
-                self._audio_recording_path = Path(file.name)
+            self._audio_recording_path = (
+                Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
+            )
+            self._audio_recording_path.touch()
             self._audio_recording_comment = self._output_comment()
         assert self._audio_recording_path is not None
         self.player.start_recording(
