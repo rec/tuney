@@ -4,7 +4,6 @@ import json
 import os
 import sys
 import tempfile
-import warnings
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
@@ -562,8 +561,8 @@ def _loop_window(
 
 
 def _exit_with_missing_text() -> NoReturn:
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', DeprecationWarning)
-        parser = tyro.extras.get_parser(Tuney, prog='tuney')  # ty: ignore[deprecated]
-    parser.error('the following arguments are required: TEXT')
-    raise AssertionError('unreachable')
+    sys.stderr.write(
+        'Required options were not provided: TEXT\n'
+        'For full helptext, run tuney --help\n'
+    )
+    sys.exit(2)
