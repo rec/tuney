@@ -87,6 +87,7 @@ def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """
         from tuney.tuney import Tuney
+        from tuney.char_press import CharPress
         from tuney.ui import app as app_module
         from tuney.ui.app import App
 
@@ -173,6 +174,9 @@ def test_app_activate_and_history() -> None:
             def on_redo(self):
                 App.on_redo(self)
 
+            def clear_settings(self):
+                App.clear_settings(self)
+
         app = HistoryApp()
         app.record_undo()
         object.__setattr__(app.tuney, 'max_gap', 2.0)
@@ -186,6 +190,26 @@ def test_app_activate_and_history() -> None:
 
         assert app.tuney.max_gap == 2.0
         assert app.loop_before == 0.5
+
+        object.__setattr__(app.tuney, 'max_gap', 3.0)
+        object.__setattr__(app.tuney, 'text', [CharPress('a', time=0.0)])
+        app.tuney.__dict__.pop('char_presses', None)
+        app._loop_replay = True
+        app.loop_before = 0.25
+        app.loop_after = 0.5
+        app.loop_tempo = 2.0
+        app.randomize_on_each_loop = True
+
+        app.clear_settings()
+
+        assert app.tuney.max_gap == Tuney().max_gap
+        assert app.tuney.char_presses == []
+        assert app.tuney.gui
+        assert not app.loop_replay
+        assert app.loop_before == 0.0
+        assert app.loop_after == 0.0
+        assert app.loop_tempo == 1.0
+        assert not app.randomize_on_each_loop
         """
     )
 

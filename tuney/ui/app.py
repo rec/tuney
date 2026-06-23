@@ -181,6 +181,36 @@ class App(QMainWindow):
     def on_clear(self, *_: object) -> None:
         self.tuney.clear()
 
+    def on_clear_settings(self, *_: object) -> None:
+        response = QMessageBox.question(
+            self,
+            'Clear settings',
+            'Clear all settings and text?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self.clear_settings()
+
+    def clear_settings(self) -> None:
+        self.record_undo()
+        data = type(self.tuney)().dump_data()
+        data['gui'] = True
+        self._restore_history_state(
+            HistoryState(
+                tuney=data,
+                recording_start_time=None,
+                recording_time_offset=0.0,
+                recording_insert_time=None,
+                replay_text='',
+                loop_replay=False,
+                loop_before=0.0,
+                loop_after=0.0,
+                loop_tempo=1.0,
+                randomize_on_each_loop=False,
+            )
+        )
+
     def on_save(self, *_: object) -> None:
         self._is_saving = True
         try:
@@ -299,6 +329,7 @@ class App(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
         _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
+        _add_action(file_menu, 'Clear settings...', None, self.on_clear_settings)
         _add_action(
             file_menu,
             'Refresh Devices',
