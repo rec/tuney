@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import tomlkit
 import tyro
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
@@ -301,7 +301,28 @@ class Tuney(BaseModel):
 
     def restore_autosave(self) -> None:
         if self._should_restore_autosave and self.autosave_path.exists():
-            self.restore_data(read_file(self.autosave_path))
+            try:
+                data = read_file(self.autosave_path)
+            except (OSError, ValueError) as error:
+                print(
+                    f'Could not restore {self.autosave_path}: {error}',
+                    file=sys.stderr,
+                )
+                return
+            self.restore_autosave_data(data)
+
+    def restore_autosave_data(self, data: dict[str, object]) -> None:
+        while True:
+            try:
+                self.restore_data(data)
+                return
+            except ValidationError as error:
+                print(
+                    f'Could not restore fields from {self.autosave_path}: {error}',
+                    file=sys.stderr,
+                )
+                if not any(_delete_data_path(data, e['loc']) for e in error.errors()):
+                    return
 
     @cached_property
     def autosave_path(self) -> Path:
@@ -555,6 +576,31 @@ class Tuney(BaseModel):
             print()
             raise
         print()
+
+
+def _delete_data_path(data: dict[str, object], loc: tuple[object, ...]) -> bool:
+    current: object = data
+    for part in loc[:-1]:
+        if isinstance(part, str) and isinstance(current, dict):
+            current = current.get(part)
+        elif isinstance(part, int) and isinstance(current, list):
+            if part < 0 or part >= len(current):
+                return False
+            current = current[part]
+        else:
+            return False
+    if not loc:
+        return False
+    last = loc[-1]
+    if isinstance(last, str) and isinstance(current, dict) and last in current:
+        del current[last]
+        return True
+    if isinstance(last, int) and isinstance(current, list):
+        if last < 0 or last >= len(current):
+            return False
+        del current[last]
+        return True
+    return False
 
 
 def _loop_window(

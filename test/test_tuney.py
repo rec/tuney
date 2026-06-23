@@ -404,6 +404,37 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
         assert tuney.autosave_file == path
 
 
+def test_restore_autosave_ignores_invalid_state_file(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        path.write_text('max_gap =')
+        tuney = Tuney(gui=True, autosave_file=path)
+
+        tuney.restore_autosave()
+
+        assert tuney.max_gap == Tuney().max_gap
+    assert f'Could not restore {path}' in capsys.readouterr().err
+
+
+def test_restore_autosave_defaults_invalid_fields(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
+        tuney = Tuney(gui=True, autosave_file=path)
+
+        tuney.restore_autosave()
+
+        assert tuney.max_gap == Tuney().max_gap
+        assert tuney.hover_time == 2.0
+    error = capsys.readouterr().err
+    assert f'Could not restore fields from {path}' in error
+    assert 'max_gap' in error
+
+
 def test_restore_autosave_does_not_override_explicit_text() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
