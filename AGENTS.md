@@ -44,3 +44,9 @@ Before commiting:
 1. Run test suite: `pytest`
 2. Code formatting: `ruff check --fix --select B,E,F,I $project test*`
 3. Type checking: `ty check tuney`
+4. pyupgrade:
+```
+version=$(cat .python-version)
+version=${version//./}
+find test $project -name \*.py | xargs pyupgrade --py${version}-plus
+```
