@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from functools import cached_property
 
 from PySide6.QtCore import Qt
@@ -28,6 +29,7 @@ REPLAY_FRAME_HEIGHT = 43
 LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
+COMMAND_KEY = 'Command' if sys.platform == 'darwin' else 'Ctrl'
 
 WIDTH, HEIGHT = 70, 80
 
@@ -89,7 +91,9 @@ class Layout(QWidget):
         self.loop.setChecked(loop_replay)
 
     def set_replay_state(self, is_replaying: bool) -> None:
-        self.replay.setText('Stop (Ctrl+R)' if is_replaying else 'Replay (Ctrl+R)')
+        self.replay.setText(
+            f'Stop ({COMMAND_KEY}+R)' if is_replaying else f'Replay ({COMMAND_KEY}+R)'
+        )
         self.replay.setStyleSheet(
             'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
         )
@@ -134,7 +138,7 @@ class Layout(QWidget):
         )
         layout.addWidget(self.transport, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addStretch()
-        self.replay = QPushButton('Replay (Ctrl+R)', frame)
+        self.replay = QPushButton(f'Replay ({COMMAND_KEY}+R)', frame)
         self.replay.setMinimumHeight(REPLAY_FRAME_HEIGHT)
         self.replay.setFont(QFont(FONT_FAMILY, 18))
         self.replay.clicked.connect(self.app.on_replay)

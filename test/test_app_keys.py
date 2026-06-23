@@ -161,6 +161,30 @@ def test_app_mainloop_exits_on_sigint() -> None:
     )
 
 
+def test_commands_use_command_key_on_macos() -> None:
+    _run_app_key_script(
+        """
+        import sys
+
+        sys.platform = 'darwin'
+
+        from tuney.ui.app import (
+            CLEAR_ACCELERATOR,
+            REFRESH_DEVICES_ACCELERATOR,
+            SAVE_ACCELERATOR,
+            UNDO_ACCELERATOR,
+        )
+        from tuney.ui.layout import COMMAND_KEY
+
+        assert CLEAR_ACCELERATOR == 'Ctrl+B'
+        assert REFRESH_DEVICES_ACCELERATOR == 'Ctrl+D'
+        assert SAVE_ACCELERATOR == 'Ctrl+S'
+        assert UNDO_ACCELERATOR == 'Ctrl+Z'
+        assert COMMAND_KEY == 'Command'
+        """
+    )
+
+
 def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """

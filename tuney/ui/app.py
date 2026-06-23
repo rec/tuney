@@ -34,11 +34,11 @@ if TYPE_CHECKING:
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
-CLEAR_ACCELERATOR = 'Meta+B' if sys.platform == 'darwin' else 'Ctrl+B'
-REFRESH_DEVICES_ACCELERATOR = 'Meta+D' if sys.platform == 'darwin' else 'Ctrl+D'
-SAVE_ACCELERATOR = 'Meta+S' if sys.platform == 'darwin' else 'Ctrl+S'
-UNDO_ACCELERATOR = 'Meta+Z' if sys.platform == 'darwin' else 'Ctrl+Z'
-REDO_ACCELERATOR = 'Meta+Shift+Z' if sys.platform == 'darwin' else 'Ctrl+Y'
+CLEAR_ACCELERATOR = 'Ctrl+B'
+REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
+SAVE_ACCELERATOR = 'Ctrl+S'
+UNDO_ACCELERATOR = 'Ctrl+Z'
+REDO_ACCELERATOR = 'Ctrl+Y'
 APP_NAME = 'Tuney'
 COMMAND_MODIFIERS = (
     Qt.KeyboardModifier.AltModifier
