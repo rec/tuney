@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import signal
 import sys
 import time
 from collections.abc import Callable
@@ -8,6 +9,7 @@ from copy import deepcopy
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
+from types import FrameType
 from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
     from ..tuney import Tuney
 
 QUEUE_POLL_IN_MS = 25
+SIGNAL_POLL_IN_MS = 100
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Meta+B' if sys.platform == 'darwin' else 'Ctrl+B'
 REFRESH_DEVICES_ACCELERATOR = 'Meta+D' if sys.platform == 'darwin' else 'Ctrl+D'
@@ -150,8 +153,22 @@ class App(QMainWindow):
         self._queue_timer.start(QUEUE_POLL_IN_MS)
 
     def mainloop(self) -> None:
-        self.activate()
-        self.qt_app.exec()
+        old_handler = signal.getsignal(signal.SIGINT)
+        signal_timer = QTimer(self)
+        signal_timer.timeout.connect(lambda: None)
+        signal_timer.start(SIGNAL_POLL_IN_MS)
+        signal.signal(signal.SIGINT, self._on_sigint)
+        try:
+            self.activate()
+            self.qt_app.exec()
+        finally:
+            signal_timer.stop()
+            signal_timer.deleteLater()
+            signal.signal(signal.SIGINT, old_handler)
+
+    def _on_sigint(self, _signum: int, _frame: FrameType | None) -> None:
+        self.close()
+        self.qt_app.quit()
 
     def activate(self) -> None:
         self.show()

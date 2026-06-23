@@ -83,6 +83,84 @@ def test_app_event_filter() -> None:
     )
 
 
+def test_app_mainloop_exits_on_sigint() -> None:
+    _run_app_key_script(
+        """
+        import signal
+
+        from tuney.ui import app as app_module
+        from tuney.ui.app import App, SIGNAL_POLL_IN_MS
+
+        calls = []
+        handlers = []
+
+        class Signal:
+            def __init__(self):
+                self.callback = None
+
+            def connect(self, callback):
+                self.callback = callback
+
+        class FakeTimer:
+            def __init__(self, parent):
+                calls.append(('timer', parent))
+                self.timeout = Signal()
+
+            def start(self, delay):
+                calls.append(('start', delay))
+
+            def stop(self):
+                calls.append('stop')
+
+            def deleteLater(self):
+                calls.append('delete')
+
+        class FakeQtApp:
+            def exec(self):
+                handlers[-1][1](signal.SIGINT, None)
+                calls.append('exec')
+
+            def quit(self):
+                calls.append('quit')
+
+        app_module.QTimer = FakeTimer
+        app_module.signal.getsignal = lambda signum: 'old'
+        app_module.signal.signal = lambda signum, handler: handlers.append(
+            (signum, handler)
+        )
+
+        app = type(
+            'LoopApp',
+            (),
+            {
+                'qt_app': FakeQtApp(),
+                'activate': lambda self: calls.append('activate'),
+                'close': lambda self: calls.append('close'),
+                '_on_sigint': lambda self, signum, frame: App._on_sigint(
+                    self, signum, frame
+                ),
+            },
+        )()
+
+        App.mainloop(app)
+
+        assert calls == [
+            ('timer', app),
+            ('start', SIGNAL_POLL_IN_MS),
+            'activate',
+            'close',
+            'quit',
+            'exec',
+            'stop',
+            'delete',
+        ]
+        assert handlers[0][0] == signal.SIGINT
+        assert callable(handlers[0][1])
+        assert handlers[-1] == (signal.SIGINT, 'old')
+        """
+    )
+
+
 def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """
