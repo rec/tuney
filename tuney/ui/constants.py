@@ -21,6 +21,7 @@ SMALL_FLOAT_FIELDS = {'max_gap', 'gain', 'scale'}
 class ControlConfig(BaseModel, frozen=True):
     hidden_fields: list[str] = Field(default_factory=list)
     general_fields: list[str] = Field(default_factory=list)
+    beginner_fields: list[str] = Field(default_factory=list)
     rows: list[list[str]] = Field(default_factory=list)
 
 
@@ -43,26 +44,60 @@ CONTROL_CONFIGS = {
             'silent',
             'run_in_background',
         ],
+        beginner_fields=['preset', 'max_gap', 'silent'],
     ),
-    'MultiPlayer': ControlConfig(general_fields=['gain', 'note_offset']),
-    'PitchToFrequency': ControlConfig(general_fields=['function']),
-    'Device': ControlConfig(rows=[['samplerate', 'device', 'dtype']]),
+    'MultiPlayer': ControlConfig(
+        general_fields=['gain', 'note_offset'],
+        beginner_fields=['gain', 'note_offset', 'minimum_note_time'],
+        rows=[['minimum_note_time', 'polyphonic_headroom', 'max_polyphony']],
+    ),
+    'PitchToFrequency': ControlConfig(
+        general_fields=['function'], beginner_fields=['function']
+    ),
+    'Device': ControlConfig(
+        beginner_fields=['samplerate', 'device'],
+        rows=[['samplerate', 'device', 'dtype']],
+    ),
     'Mapper': ControlConfig(
+        beginner_fields=[
+            'alphabet',
+            'length',
+            'offset',
+            'range_limit',
+            'limiter',
+        ],
         rows=[
             ['alphabet'],
             ['length', 'offset', 'range_limit', 'limiter', 'case_sensitive', 'invert'],
         ]
     ),
     'Oscillator': ControlConfig(
+        beginner_fields=['waveform', 'period', 'duty_cycle'],
         rows=[['waveform', 'period', 'duty_cycle', 'key_scale_note', 'key_scale']]
     ),
     'Scale': ControlConfig(
+        beginner_fields=[
+            'alphabet',
+            'root',
+            'begin',
+            'end',
+            'notes',
+            'intervals',
+            'accidentals',
+        ],
         rows=[
             ['alphabet', 'root', 'begin', 'end', 'offset'],
             ['notes', 'intervals', 'accidentals'],
         ]
     ),
     'TuningImpl': ControlConfig(
+        beginner_fields=[
+            'detune',
+            'notes_per_octave',
+            'octave_ratio',
+            'root_frequency',
+            'root_note',
+        ],
         rows=[
             [
                 'detune',
@@ -77,15 +112,23 @@ CONTROL_CONFIGS = {
         ]
     ),
     'MIDI': ControlConfig(
+        beginner_fields=['enable', 'output'],
         rows=[['enable', 'output', 'channel', 'velocity', 'note_offset']]
     ),
     'TextTimings': ControlConfig(
+        beginner_fields=['space', 'period', 'comma', 'overlap', 'scale'],
         rows=[
             ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
             ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
             ['other', 'timings'],
         ]
     ),
+}
+
+DIAL_FIELDS = {
+    'MultiPlayer.gain',
+    'Oscillator.period',
+    'Oscillator.duty_cycle',
 }
 
 ENTRY_WIDTHS = {

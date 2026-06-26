@@ -9,15 +9,19 @@ from typing import Any, TypeAlias, cast, get_args, get_origin
 from pydantic import BaseModel, ValidationError
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDial,
+    QDoubleSpinBox,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QRadioButton,
     QScrollArea,
+    QSizePolicy,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -33,6 +37,17 @@ Scalar: TypeAlias = bool | float | int | str | None
 
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
+GENERAL_COLUMNS = 4
+SECTION_STYLE = """
+QFrame#control_section {
+    background: #f7f7f7;
+    border: 1px solid #c8c8c8;
+    border-radius: 4px;
+}
+QLabel#control_section_title {
+    color: #303030;
+}
+"""
 
 
 class _OptionControl:
@@ -60,13 +75,14 @@ class ControlPanel(QScrollArea):
         super().__init__(parent)
         self.data = data
         self.option_controls: list[_OptionControl] = []
+        self.show_advanced = True
         self.setWidgetResizable(True)
         self.setFixedHeight(height)
         self.content = QWidget()
         self.content.setObjectName('control_panel_content')
         self.content_layout = QVBoxLayout(self.content)
-        self.content_layout.setContentsMargins(4, 4, 4, 4)
-        self.content_layout.setSpacing(6)
+        self.content_layout.setContentsMargins(6, 6, 6, 6)
+        self.content_layout.setSpacing(8)
         self.setWidget(self.content)
         self.rebuild()
 
@@ -74,8 +90,40 @@ class ControlPanel(QScrollArea):
         _clear_layout(self.content_layout)
         self.option_controls.clear()
         if type(self.data).__name__ == 'Tuney':
-            _add_general_controls(self.content, self.data, self.option_controls)
-        _add_model_controls(self.content, self.data, self.option_controls)
+            _add_mode_switch(self)
+            _add_general_controls(
+                self.content,
+                self.data,
+                self.option_controls,
+                self.show_advanced,
+            )
+        _add_model_controls(
+            self.content, self.data, self.option_controls, advanced=self.show_advanced
+        )
+
+
+def _add_mode_switch(control_panel: ControlPanel) -> None:
+    frame = QWidget(control_panel.content)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+    group = QButtonGroup(frame)
+    for label, advanced in [('Beginner', False), ('Advanced', True)]:
+        radio = QRadioButton(label, frame)
+        radio.setChecked(control_panel.show_advanced == advanced)
+        radio.toggled.connect(
+            lambda checked, advanced=advanced: checked
+            and _set_control_panel_mode(control_panel, advanced)
+        )
+        group.addButton(radio)
+        layout.addWidget(radio)
+    layout.addStretch()
+    control_panel.content_layout.addWidget(frame)
+
+
+def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None:
+    control_panel.show_advanced = advanced
+    control_panel.rebuild()
 
 
 def _add_model_controls(
@@ -83,12 +131,13 @@ def _add_model_controls(
     data: BaseModel,
     option_controls: list[_OptionControl],
     title: str | None = None,
+    advanced: bool = True,
 ) -> None:
     if title:
         _add_section_title(parent, title)
 
-    controls = _visible_control_names(data)
-    children = _visible_child_names(data)
+    controls = _visible_control_names(data, advanced)
+    children = _visible_child_names(data, advanced)
 
     if controls:
         _add_control_grid(parent, data, controls, option_controls)
@@ -96,48 +145,56 @@ def _add_model_controls(
     for name in children:
         child = getattr(data, name)
         assert isinstance(child, BaseModel)
-        if not _has_visible_fields(child):
+        if not _has_visible_fields(child, advanced):
             continue
-        if not _visible_control_names(child):
-            _add_model_controls(parent, child, option_controls)
+        if not _visible_control_names(child, advanced):
+            _add_model_controls(parent, child, option_controls, advanced=advanced)
             continue
-        section = QFrame(parent)
-        section.setFrameShape(QFrame.Shape.StyledPanel)
+        section = _section(parent)
         _parent_layout(parent).addWidget(section)
         layout = QVBoxLayout(section)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(2)
-        _add_model_controls(section, child, option_controls, name)
+        layout.setContentsMargins(6, 4, 6, 6)
+        layout.setSpacing(3)
+        _add_model_controls(section, child, option_controls, name, advanced)
 
 
 def _add_general_controls(
     parent: QWidget,
     data: BaseModel,
     option_controls: list[_OptionControl],
+    advanced: bool = True,
 ) -> None:
-    controls = _general_controls(data)
+    controls = _general_controls(data, advanced)
     if not controls:
         return
-    section = QFrame(parent)
-    section.setFrameShape(QFrame.Shape.StyledPanel)
+    section = _section(parent)
     _parent_layout(parent).addWidget(section)
     layout = QVBoxLayout(section)
-    layout.setContentsMargins(4, 4, 4, 4)
-    layout.setSpacing(2)
+    layout.setContentsMargins(6, 4, 6, 6)
+    layout.setSpacing(3)
     _add_section_title(section, 'general')
     _add_control_group_grid(section, controls, option_controls)
 
 
+def _section(parent: QWidget) -> QFrame:
+    section = QFrame(parent)
+    section.setObjectName('control_section')
+    section.setFrameShape(QFrame.Shape.StyledPanel)
+    section.setStyleSheet(SECTION_STYLE)
+    return section
+
+
 def _add_section_title(parent: QWidget, title: str) -> None:
     label = QLabel(title, parent)
+    label.setObjectName('control_section_title')
     font = label.font()
     font.setBold(True)
     label.setFont(font)
     _parent_layout(parent).addWidget(label)
 
 
-def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
-    return [
+def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel, str]]:
+    controls = [
         (data, 'preset'),
         (data, 'max_gap'),
         (data, 'hover_time'),
@@ -147,6 +204,13 @@ def _general_controls(data: Any) -> list[tuple[BaseModel, str]]:
         (data.player, 'note_offset'),
         (data.player.scale.tuning.pitch_to_frequency, 'function'),
     ]
+    if advanced:
+        return controls
+    return [
+        (model, name)
+        for model, name in controls
+        if _is_beginner_field(model, name) or name in {'preset', 'max_gap', 'silent'}
+    ]
 
 
 def _add_control_group_grid(
@@ -155,12 +219,25 @@ def _add_control_group_grid(
     option_controls: list[_OptionControl],
 ) -> None:
     frame = QWidget(parent)
-    layout = QGridLayout(frame)
+    layout = QVBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
-    layout.setHorizontalSpacing(4)
-    for column, (data, name) in enumerate(controls):
-        _add_control_cell(frame, data, name, option_controls, 0, column, 1)
+    layout.setSpacing(3)
+    for row_controls in _control_groups(controls, GENERAL_COLUMNS):
+        row_frame = QWidget(frame)
+        row_layout = QHBoxLayout(row_frame)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(6)
+        for data, name in row_controls:
+            _add_control_cell(row_frame, data, name, option_controls)
+        row_layout.addStretch()
+        layout.addWidget(row_frame)
     _parent_layout(parent).addWidget(frame)
+
+
+def _control_groups(
+    controls: list[tuple[BaseModel, str]], size: int
+) -> list[list[tuple[BaseModel, str]]]:
+    return [controls[i : i + size] for i in range(0, len(controls), size)]
 
 
 def _add_control_grid(
@@ -172,19 +249,16 @@ def _add_control_grid(
     frame = QWidget(parent)
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(2)
+    layout.setSpacing(3)
 
     for row_fields in _control_rows(data, fields):
         row_frame = QWidget(frame)
-        row_layout = QGridLayout(row_frame)
+        row_layout = QHBoxLayout(row_frame)
         row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setHorizontalSpacing(4)
-        columns = max(1, len(row_fields))
-        for column, name in enumerate(row_fields):
-            columnspan = columns + 1 if len(row_fields) == 1 else 1
-            _add_control_cell(
-                row_frame, data, name, option_controls, 0, column, columnspan
-            )
+        row_layout.setSpacing(6)
+        for name in row_fields:
+            _add_control_cell(row_frame, data, name, option_controls)
+        row_layout.addStretch()
         layout.addWidget(row_frame)
     _parent_layout(parent).addWidget(frame)
 
@@ -216,16 +290,17 @@ def _add_control_cell(
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
-    row: int,
-    column: int,
-    columnspan: int,
 ) -> None:
-    cell = QFrame(parent)
-    cell.setFrameShape(QFrame.Shape.StyledPanel)
+    cell = QWidget(parent)
     layout = QVBoxLayout(cell)
-    layout.setContentsMargins(3, 2, 3, 2)
+    layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)
-    cast(QGridLayout, parent.layout()).addWidget(cell, row, column, 1, columnspan)
+    if _is_wide_field(data, name):
+        cell.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        cast(QHBoxLayout, parent.layout()).addWidget(cell, stretch=1)
+    else:
+        cell.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        cast(QHBoxLayout, parent.layout()).addWidget(cell)
 
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
@@ -303,30 +378,53 @@ def _field_help(model: type[BaseModel], name: str) -> str | None:
     return None
 
 
-def _visible_control_names(data: BaseModel) -> list[str]:
+def _visible_control_names(data: BaseModel, advanced: bool = True) -> list[str]:
     return [
         name
         for name in _visible_field_names(data)
         if not isinstance(getattr(data, name), BaseModel)
+        and (advanced or _is_beginner_field(data, name))
     ]
 
 
-def _visible_child_names(data: BaseModel) -> list[str]:
+def _visible_child_names(data: BaseModel, advanced: bool = True) -> list[str]:
     return [
         name
         for name in _visible_field_names(data)
         if isinstance(getattr(data, name), BaseModel)
+        and _has_visible_fields(getattr(data, name), advanced)
     ]
 
 
-def _has_visible_fields(data: BaseModel) -> bool:
+def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
     return bool(
-        _visible_control_names(data)
+        _visible_control_names(data, advanced)
         or any(
-            _has_visible_fields(getattr(data, name))
-            for name in _visible_child_names(data)
+            _has_visible_fields(getattr(data, name), advanced)
+            for name in _visible_child_names(data, advanced)
         )
     )
+
+
+def _is_beginner_field(data: BaseModel, name: str) -> bool:
+    config = constants.CONTROL_CONFIGS.get(type(data).__name__)
+    return config is None or name in config.beginner_fields
+
+
+def _display_label(name: str) -> str:
+    return name.replace('_', ' ')
+
+
+def _is_wide_field(data: BaseModel, name: str) -> bool:
+    value = getattr(data, name)
+    annotation = type(data).model_fields[name].annotation
+    if constants.ENTRY_WIDTHS.get(f'{type(data).__name__}.{name}'):
+        return False
+    if isinstance(value, bool | int | float | enum.Enum):
+        return False
+    if constants.OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
+        return False
+    return str in set(_annotation_types(annotation)) or isinstance(value, list | dict)
 
 
 def _is_midi_enabled(data: Any) -> bool:
@@ -380,7 +478,7 @@ def _add_option_control(
     layout = QHBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(4)
-    layout.addWidget(QLabel(name, frame))
+    layout.addWidget(QLabel(_display_label(name), frame))
     menu = QComboBox(frame)
     width = _entry_width(
         name, type(data).model_fields[name].annotation, type(data).__name__
@@ -439,7 +537,7 @@ def _rebuild_note_grid(parent: Any) -> None:
 
 
 def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) -> None:
-    check = QCheckBox(name, parent)
+    check = QCheckBox(_display_label(name), parent)
     check.setChecked(value)
 
     def command(checked: bool) -> None:
@@ -456,7 +554,9 @@ def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
     row_frame = parent.parent()
     if row_frame is None:
         return
-    for cell in row_frame.findChildren(QFrame, options=cast(Any, 0)):
+    for cell in row_frame.findChildren(
+        QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly
+    ):
         if cell.parent() is row_frame and CONTROL_FIELD_NAMES.get(id(cell)) != 'enable':
             _set_widget_state(cell, enabled)
 
@@ -471,6 +571,9 @@ def _add_entry_control(
     parent: QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
+    if _can_use_spin_control(annotation, value):
+        _add_spin_control(parent, data, name, value)
+        return
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
         value = data.alphabet_
     if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
@@ -486,7 +589,7 @@ def _add_entry_control(
     layout = QHBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(4)
-    layout.addWidget(QLabel(name, frame))
+    layout.addWidget(QLabel(_display_label(name), frame))
     entry = QLineEdit(text, frame)
     width = _entry_width(name, annotation, type(data).__name__)
     if width:
@@ -516,6 +619,108 @@ def _add_entry_control(
     _parent_layout(parent).addWidget(frame)
 
 
+def _add_spin_control(
+    parent: QWidget, data: BaseModel, name: str, value: object
+) -> None:
+    annotation = type(data).model_fields[name].annotation
+    frame = QWidget(parent)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+    layout.addWidget(QLabel(_display_label(name), frame))
+
+    if _is_int_annotation(annotation):
+        assert isinstance(value, int)
+        spin = QSpinBox(frame)
+        spin.setRange(-9999, 9999)
+        spin.setValue(value)
+
+        def update() -> None:
+            _set_model_value(data, name, spin.value(), parent)
+            _rebuild_note_grid_if_mapping_changed(parent, data)
+
+        spin.editingFinished.connect(update)
+        layout.addWidget(spin)
+    else:
+        assert isinstance(value, float | int)
+        spin = QDoubleSpinBox(frame)
+        spin.setDecimals(3)
+        spin.setRange(-9999.0, 9999.0)
+        spin.setSingleStep(_float_step(name))
+        spin.setValue(float(value))
+
+        def update() -> None:
+            _set_model_value(data, name, spin.value(), parent)
+            _rebuild_note_grid_if_mapping_changed(parent, data)
+
+        spin.editingFinished.connect(update)
+        layout.addWidget(spin)
+
+        if _uses_dial(data, name):
+            dial = QDial(frame)
+            dial.setFixedSize(30, 30)
+            dial.setWrapping(False)
+            dial.setRange(0, 100)
+            dial.setValue(_dial_value(spin.value(), name))
+            dial.valueChanged.connect(
+                lambda value: spin.setValue(_spin_value(value, name))
+            )
+            dial.sliderReleased.connect(update)
+            layout.addWidget(dial)
+
+    width = _entry_width(name, annotation, type(data).__name__)
+    if width:
+        spin.setFixedWidth(max(width + 18, 56))
+    _parent_layout(parent).addWidget(frame)
+
+
+def _can_use_spin_control(annotation: Any, value: object) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    return isinstance(value, int | float) and (
+        _is_int_annotation(annotation) or _is_float_annotation(annotation)
+    )
+
+
+def _is_int_annotation(annotation: Any) -> bool:
+    types = set(_annotation_types(annotation))
+    return int in types and float not in types and bool not in types
+
+
+def _is_float_annotation(annotation: Any) -> bool:
+    return float in set(_annotation_types(annotation))
+
+
+def _float_step(name: str) -> float:
+    return 0.01 if name in constants.SMALL_FLOAT_FIELDS else 0.1
+
+
+def _uses_dial(data: BaseModel, name: str) -> bool:
+    return f'{type(data).__name__}.{name}' in constants.DIAL_FIELDS
+
+
+def _dial_value(value: float, name: str) -> int:
+    minimum, maximum = _dial_range(name)
+    return round((float(value) - minimum) * 100 / (maximum - minimum))
+
+
+def _spin_value(value: int, name: str) -> float:
+    minimum, maximum = _dial_range(name)
+    return minimum + value * (maximum - minimum) / 100
+
+
+def _dial_range(name: str) -> tuple[float, float]:
+    match name:
+        case 'duty_cycle':
+            return 0.0, 1.0
+        case 'gain':
+            return 0.0, 2.0
+        case 'minimum_note_time':
+            return 0.0, 2.0
+        case _:
+            return 0.0, 4.0
+
+
 def _add_enum_control(
     parent: QWidget,
     data: BaseModel,
@@ -529,7 +734,7 @@ def _add_enum_control(
     layout = QHBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(2 if name in {'accidentals', 'limiter'} else 6)
-    layout.addWidget(QLabel(name, frame))
+    layout.addWidget(QLabel(_display_label(name), frame))
 
     def command(member: enum.Enum) -> None:
         _set_model_value(data, name, member, parent)
@@ -690,16 +895,16 @@ def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
     return args + tuple(i for a in args for i in _flatten_type_args(a))
 
 
-def _parent_layout(parent: QWidget) -> QVBoxLayout | QGridLayout:
+def _parent_layout(parent: QWidget) -> QVBoxLayout | QHBoxLayout:
     layout = parent.layout()
     if layout is None:
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-    return cast(QVBoxLayout | QGridLayout, layout)
+    return cast(QVBoxLayout | QHBoxLayout, layout)
 
 
-def _clear_layout(layout: QVBoxLayout | QGridLayout) -> None:
+def _clear_layout(layout: QVBoxLayout | QHBoxLayout) -> None:
     while layout.count():
         item = layout.takeAt(0)
         if item is None:
@@ -709,7 +914,7 @@ def _clear_layout(layout: QVBoxLayout | QGridLayout) -> None:
             widget.deleteLater()
         child_layout = item.layout()
         if child_layout is not None:
-            _clear_layout(cast(QVBoxLayout | QGridLayout, child_layout))
+            _clear_layout(cast(QVBoxLayout | QHBoxLayout, child_layout))
 
 
 def _after(

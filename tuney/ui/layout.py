@@ -25,7 +25,7 @@ from .transport import Transport
 
 TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
-REPLAY_FRAME_HEIGHT = 43
+REPLAY_FRAME_HEIGHT = 40
 LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
@@ -91,9 +91,7 @@ class Layout(QWidget):
         self.loop.setChecked(loop_replay)
 
     def set_replay_state(self, is_replaying: bool) -> None:
-        self.replay.setText(
-            f'Stop ({COMMAND_KEY}+R)' if is_replaying else f'Replay ({COMMAND_KEY}+R)'
-        )
+        self.replay.setText('Stop' if is_replaying else 'Replay')
         self.replay.setStyleSheet(
             'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
         )
@@ -128,29 +126,35 @@ class Layout(QWidget):
     def replay_frame(self) -> QWidget:
         frame = QWidget(self)
         frame.setFixedHeight(REPLAY_FRAME_HEIGHT)
-        layout = QHBoxLayout(frame)
+        layout = QGridLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setHorizontalSpacing(6)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 1)
         self.transport = Transport(
             frame,
             self.app.on_transport_state,
             lambda: self.app.tuney.hover_time,
         )
-        layout.addWidget(self.transport, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout.addStretch()
-        self.replay = QPushButton(f'Replay ({COMMAND_KEY}+R)', frame)
-        self.replay.setMinimumHeight(REPLAY_FRAME_HEIGHT)
-        self.replay.setFont(QFont(FONT_FAMILY, 18))
+        layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.replay = QPushButton('Replay', frame)
+        self.replay.setFixedSize(156, 36)
+        self.replay.setFont(QFont(FONT_FAMILY, 16))
         self.replay.clicked.connect(self.app.on_replay)
-        layout.addWidget(self.replay, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addStretch()
+        layout.addWidget(self.replay, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
+        right = QWidget(frame)
+        right_layout = QHBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(6)
         self.randomize = QPushButton('Randomize', frame)
         self.randomize.setFixedWidth(96)
         self.randomize.clicked.connect(self.app.on_randomize_timing)
-        layout.addWidget(self.randomize)
+        right_layout.addWidget(self.randomize)
         self.loop = QCheckBox('Loop', frame)
         self.loop.toggled.connect(lambda _: self.app.on_loop_replay())
-        layout.addWidget(self.loop)
+        right_layout.addWidget(self.loop)
+        layout.addWidget(right, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)
         self.root.addWidget(frame)
         self.set_replay_state(False)
         return frame

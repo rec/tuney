@@ -15,6 +15,9 @@ from tuney.ui.control_panel import (
     _scale_has_note_buttons,
     _scale_note_errors,
     _set_model_value,
+    _uses_dial,
+    _visible_child_names,
+    _visible_control_names,
     _visible_field_names,
 )
 
@@ -175,6 +178,9 @@ def test_control_rows_use_compact_model_layouts():
     tuney = Tuney()
 
     assert _control_rows(tuney, _control_fields(tuney)) == []
+    assert _control_rows(tuney.player, _control_fields(tuney.player)) == [
+        ['minimum_note_time', 'polyphonic_headroom', 'max_polyphony']
+    ]
     assert _control_rows(tuney.player.device, _control_fields(tuney.player.device)) == [
         ['samplerate', 'device', 'dtype']
     ]
@@ -211,6 +217,31 @@ def test_control_rows_use_compact_model_layouts():
         ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
         ['other', 'timings'],
     ]
+
+
+def test_beginner_mode_filters_advanced_controls():
+    tuney = Tuney()
+
+    assert _visible_control_names(tuney.mapper, advanced=False) == [
+        'alphabet',
+        'length',
+        'offset',
+        'range_limit',
+        'limiter',
+    ]
+    assert 'text_timings' in _visible_child_names(tuney, advanced=False)
+    assert 'backspace_repeat_delay' not in _visible_control_names(
+        tuney, advanced=False
+    )
+
+
+def test_dials_are_limited_to_explicit_analog_controls():
+    tuney = Tuney()
+
+    assert _uses_dial(tuney.player, 'gain')
+    assert _uses_dial(tuney.player.oscillator, 'period')
+    assert not _uses_dial(tuney.player, 'minimum_note_time')
+    assert not _uses_dial(tuney.player, 'note_offset')
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture):
