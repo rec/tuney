@@ -21,6 +21,7 @@ from . import constants
 from .app import App
 from .control_panel import ControlPanel
 from .note_button import NoteButton
+from .splitter import SpacedSplitter
 from .transport import Transport
 
 TEXT_BOX_HEIGHT = 120
@@ -52,13 +53,22 @@ class Layout(QWidget):
             constants.PAD, constants.PAD, constants.PAD, constants.PAD
         )
         self.root.setSpacing(constants.QUARTER)
+        _ = self.splitter
         _ = self.control_panel
+        _ = self.text_area
         _ = self.stats_frame
         _ = self.textbox
         _ = self.replay_frame
         _ = self.loop_controls
         _ = self.note_grid_widget
         _ = self.note_buttons
+        self.splitter.setSizes(
+            [
+                CONTROL_PANEL_HEIGHT,
+                TEXT_BOX_HEIGHT + REPLAY_FRAME_HEIGHT + LOOP_CONTROLS_HEIGHT,
+                max(HEIGHT * app.rows, HEIGHT),
+            ]
+        )
         self.set_text(app.tuney.display_text)
 
     def set_text(self, s: str) -> None:
@@ -67,10 +77,31 @@ class Layout(QWidget):
         self.count_label.setText(f'Chars: {len(s)}')
 
     @cached_property
+    def splitter(self) -> SpacedSplitter:
+        splitter = SpacedSplitter(
+            Qt.Orientation.Vertical,
+            self,
+            handle_size=6,
+            space_above=10,
+            space_below=10,
+        )
+        self.root.addWidget(splitter, stretch=1)
+        return splitter
+
+    @cached_property
     def control_panel(self) -> ControlPanel:
         panel = ControlPanel(self, self.app.tuney, CONTROL_PANEL_HEIGHT)
-        self.root.addWidget(panel)
+        self.splitter.addWidget(panel)
         return panel
+
+    @cached_property
+    def text_area(self) -> QWidget:
+        frame = QWidget(self)
+        self.text_area_layout = QVBoxLayout(frame)
+        self.text_area_layout.setContentsMargins(0, 0, 0, 0)
+        self.text_area_layout.setSpacing(constants.QUARTER)
+        self.splitter.addWidget(frame)
+        return frame
 
     def refresh_devices(self) -> None:
         for option_control in self.control_panel.option_controls:
@@ -98,7 +129,7 @@ class Layout(QWidget):
 
     @cached_property
     def stats_frame(self) -> QWidget:
-        frame = QWidget(self)
+        frame = QWidget(self.text_area)
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         label = QLabel('Text:', frame)
@@ -110,21 +141,21 @@ class Layout(QWidget):
         self.count_label = QLabel('Chars: 0', frame)
         self.count_label.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         layout.addWidget(self.count_label)
-        self.root.addWidget(frame)
+        self.text_area_layout.addWidget(frame)
         return frame
 
     @cached_property
     def textbox(self) -> QTextEdit:
-        textbox = QTextEdit(self)
-        textbox.setFixedHeight(TEXT_BOX_HEIGHT)
+        textbox = QTextEdit(self.text_area)
+        textbox.setMinimumHeight(40)
         textbox.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         textbox.setReadOnly(True)
-        self.root.addWidget(textbox)
+        self.text_area_layout.addWidget(textbox, stretch=1)
         return textbox
 
     @cached_property
     def replay_frame(self) -> QWidget:
-        frame = QWidget(self)
+        frame = QWidget(self.text_area)
         frame.setFixedHeight(REPLAY_FRAME_HEIGHT)
         layout = QGridLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -155,13 +186,13 @@ class Layout(QWidget):
         self.loop.toggled.connect(lambda _: self.app.on_loop_replay())
         right_layout.addWidget(self.loop)
         layout.addWidget(right, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)
-        self.root.addWidget(frame)
+        self.text_area_layout.addWidget(frame)
         self.set_replay_state(False)
         return frame
 
     @cached_property
     def loop_controls(self) -> QWidget:
-        frame = QWidget(self)
+        frame = QWidget(self.text_area)
         frame.setFixedHeight(LOOP_CONTROLS_HEIGHT)
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -184,7 +215,7 @@ class Layout(QWidget):
         )
         layout.addWidget(self.randomize_on_each_loop)
         layout.addStretch()
-        self.root.addWidget(frame)
+        self.text_area_layout.addWidget(frame)
         return frame
 
     @cached_property
@@ -193,7 +224,7 @@ class Layout(QWidget):
         self.note_grid = QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
         self.note_grid.setSpacing(constants.QUARTER)
-        self.root.addWidget(widget, stretch=1)
+        self.splitter.addWidget(widget)
         return widget
 
     @cached_property

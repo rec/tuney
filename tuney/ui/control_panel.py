@@ -77,7 +77,8 @@ class ControlPanel(QScrollArea):
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
         self.setWidgetResizable(True)
-        self.setFixedHeight(height)
+        self.setMinimumHeight(min(height, 80))
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content = QWidget()
         self.content.setObjectName('control_panel_content')
         self.content_layout = QVBoxLayout(self.content)
