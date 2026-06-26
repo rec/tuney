@@ -8,6 +8,7 @@ from functools import cached_property
 from itertools import batched, chain
 from typing import Annotated
 
+import tyro
 from pydantic import BaseModel, BeforeValidator, Field
 
 from ..types import NoteNumber
@@ -52,35 +53,45 @@ class Scale(BaseModel, frozen=True):
     """
 
     #: The base alphabet
-    alphabet: str = string.ascii_uppercase
+    alphabet: Annotated[
+        str, tyro.conf.arg(name='scale-alphabet', aliases=['-A'], prefix_name=False)
+    ] = string.ascii_uppercase
 
     #: The root note to start scales with
-    root: str = 'C'
+    root: Annotated[str, tyro.conf.arg(aliases=['-q'], prefix_name=False)] = 'C'
 
     #: The first note from the alphabet:
     # TODO: validate begin <= base <= end
-    begin: str = 'A'
+    begin: Annotated[str, tyro.conf.arg(aliases=['-j'], prefix_name=False)] = 'A'
 
     #: The Last note from the alphabet
-    end: str = 'G'
+    end: Annotated[str, tyro.conf.arg(aliases=['-E'], prefix_name=False)] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
     # `notes` are actually used in the list.
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: str | None = None
+    notes: Annotated[
+        str | None, tyro.conf.arg(aliases=['-Q'], prefix_name=False)
+    ] = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
-    intervals: Annotated[list[int], validate_intervals] = Field(
+    intervals: Annotated[
+        list[int], validate_intervals, tyro.conf.arg(aliases=['-i'], prefix_name=False)
+    ] = Field(
         default_factory=lambda: list(INTERVALS)
     )
 
     # Which accidentals are allowed in note names
-    accidentals: Accidentals = Accidentals.whole
+    accidentals: Annotated[
+        Accidentals, tyro.conf.arg(aliases=['-X'], prefix_name=False)
+    ] = Accidentals.whole
 
     #: Offset all note numbers by this
-    offset: int = 0
+    offset: Annotated[
+        int, tyro.conf.arg(name='scale-offset', aliases=['-Y'], prefix_name=False)
+    ] = 0
 
     #: The Tuning for this Scale
     tuning: TuningImpl = TuningImpl()

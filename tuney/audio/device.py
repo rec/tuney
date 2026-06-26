@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import cache
-from typing import cast
+from typing import Annotated, cast
 
 import tyro
 from pydantic import BaseModel, PrivateAttr
@@ -27,13 +27,16 @@ class DType(StrEnum):
 
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: int | None = None
+    samplerate: Annotated[int | None, tyro.conf.arg(prefix_name=False)] = None
 
     # Audio output device name or index
-    device: int | str | None = None
+    device: Annotated[
+        int | str | None,
+        tyro.conf.arg(name='audio-device', aliases=['-d'], prefix_name=False),
+    ] = None
 
     # Sample data type sent to the audio output device
-    dtype: DType | None = None
+    dtype: Annotated[DType | None, tyro.conf.arg(prefix_name=False)] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None
     channels: tyro.conf.Suppress[int | None] = None

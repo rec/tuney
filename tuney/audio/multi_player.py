@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from functools import cached_property, partial
 from pathlib import Path
+from typing import Annotated
 
+import tyro
 from pydantic import BaseModel, Field
 
 from ..scale.scale import Scale
@@ -22,19 +24,26 @@ class MultiPlayer(BaseModel, frozen=True):
     scale: Scale = Scale()
 
     # Audio output gain
-    gain: float = 1.0
+    gain: Annotated[float, tyro.conf.arg(aliases=['-G'], prefix_name=False)] = 1.0
 
     # Offset added to generated note numbers before tuning
-    note_offset: NoteNumber = 44
+    note_offset: Annotated[
+        NoteNumber,
+        tyro.conf.arg(name='audio-note-offset', aliases=['-n'], prefix_name=False),
+    ] = 44
 
     # Divisor applied to mixed voices to provide polyphonic headroom
-    polyphonic_headroom: float = Field(4, gt=0)
+    polyphonic_headroom: Annotated[
+        float, tyro.conf.arg(prefix_name=False)
+    ] = Field(4, gt=0)
 
     # Maximum number of notes that can play simultaneously
-    max_polyphony: int = Field(32, gt=0)
+    max_polyphony: Annotated[int, tyro.conf.arg(prefix_name=False)] = Field(32, gt=0)
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: float = Field(0.5, ge=0)
+    minimum_note_time: Annotated[
+        float, tyro.conf.arg(aliases=['-N'], prefix_name=False)
+    ] = Field(0.5, ge=0)
 
     @cached_property
     def pressed_notes(self) -> list[NoteNumber]:

@@ -2,9 +2,10 @@ import json
 import subprocess
 import sys
 from functools import cached_property
-from typing import Any
+from typing import Annotated, Any
 
 import mido
+import tyro
 from pydantic import BaseModel
 
 ZERO_IS_NOTE_OFF = True
@@ -15,19 +16,30 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 
 class MIDI(BaseModel, frozen=True):
     # Enable MIDI output
-    enable: bool = False
+    enable: Annotated[
+        bool, tyro.conf.arg(name='midi-enable', prefix_name=False)
+    ] = False
 
     # MIDI output port name
-    output: str | None = None
+    output: Annotated[
+        str | None,
+        tyro.conf.arg(name='midi-output', prefix_name=False),
+    ] = None
 
     # MIDI channel, from 0 to 15
-    channel: int = 0
+    channel: Annotated[
+        int, tyro.conf.arg(name='midi-channel', prefix_name=False)
+    ] = 0
 
     # Velocity used for MIDI note-on messages
-    velocity: int = 0x40
+    velocity: Annotated[
+        int, tyro.conf.arg(name='midi-velocity', prefix_name=False)
+    ] = 0x40
 
     # Offset added to MIDI note numbers
-    note_offset: int = 0
+    note_offset: Annotated[
+        int, tyro.conf.arg(name='midi-note-offset', prefix_name=False)
+    ] = 0
 
     @cached_property
     def outport(self) -> Any:

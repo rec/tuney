@@ -8,13 +8,13 @@ usage: tuney [-h] [OPTIONS]
  ---------------------------------------------------------------------------------------------------------------------- 
   -h, --help                                                                                                            
         show this help message and exit                                                                                 
-  --preset {None}|STR                                                                                                   
+  -p {None}|STR, --preset {None}|STR                                                                                    
         Named performance preset to load (default: None)                                                                
-  --config-file {None}|PATH                                                                                             
+  -c {None}|PATH, --config-file {None}|PATH                                                                             
         Load configs from a JSON or toml file (default: None)                                                           
-  --text TEXT                                                                                                           
+  -t TEXT, --text TEXT                                                                                                  
         Text to start the program with (optional)                                                                       
-  --max-gap FLOAT                                                                                                       
+  -m FLOAT, --max-gap FLOAT                                                                                             
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)                                             
   --hover-time FLOAT                                                                                                    
         Time to hover over a widget before showing help, in seconds (default: 1.0)                                      
@@ -22,115 +22,115 @@ usage: tuney [-h] [OPTIONS]
         Time to hold backspace before it starts repeating, in seconds (default: 2.0)                                    
   --backspace-repeat-rate FLOAT                                                                                         
         Backspace repeats per second after backspace_repeat_delay (default: 4.0)                                        
-  --gui, --no-gui                                                                                                       
+  -g, --gui, --no-gui                                                                                                   
         Open the graphical interface (default: False)                                                                   
-  --silent, --no-silent                                                                                                 
+  -s, --silent, --no-silent                                                                                             
         Disable synthesized audio output (default: False)                                                               
-  --output {None}|PATH                                                                                                  
+  -o {None}|PATH, --output {None}|PATH                                                                                  
         Audio file to write while playing text (default: None)                                                          
-  --run-in-background, --no-run-in-background                                                                           
+  -b, --run-in-background, --no-run-in-background                                                                       
         If True, listen to the keyboard even when other applications are in front (default: False)                      
                                                                                                                         
  mapper options                                                                                                         
  ---------------------------------------------------------------------------------------------------------------------- 
   Map letters to notes                                                                                                  
   ----------------------------------------------------------------------------------------------------------------------
-  --mapper.alphabet {None}|STR                                                                                          
+  -a {None}|STR, --mapper-alphabet {None}|STR                                                                           
         Characters mapped to note numbers, or the default alphabet if empty (default: None)                             
-  --mapper.length INT                                                                                                   
+  -l INT, --length INT                                                                                                  
         Number of note numbers to cycle through; zero uses the full alphabet (default: 0)                               
-  --mapper.case-sensitive, --mapper.no-case-sensitive                                                                   
+  -C, --case-sensitive, --no-case-sensitive                                                                             
         Treat uppercase and lowercase characters as distinct (default: True)                                            
-  --mapper.invert, --mapper.no-invert                                                                                   
+  -I, --invert, --no-invert                                                                                             
         Reverse the order of mapped note numbers (default: False)                                                       
-  --mapper.offset INT                                                                                                   
+  -O INT, --mapper-offset INT                                                                                           
         Offset from the center of the mapped note range (default: 0)                                                    
-  --mapper.range-limit INT                                                                                              
+  -r INT, --range-limit INT                                                                                             
         Limit pitch range to this many notes (default: 60)                                                              
-  --mapper.limiter {wrap,reflect,reflect_repeat}                                                                        
+  -L {wrap,reflect,reflect_repeat}, --limiter {wrap,reflect,reflect_repeat}                                             
         What to do when mapped notes are outside the pitch range (default: wrap)                                        
                                                                                                                         
  player options                                                                                                         
  ---------------------------------------------------------------------------------------------------------------------- 
   How to play back audio                                                                                                
   ----------------------------------------------------------------------------------------------------------------------
-  --player.gain FLOAT                                                                                                   
+  -G FLOAT, --gain FLOAT                                                                                                
         Audio output gain (default: 1.0)                                                                                
-  --player.note-offset INT                                                                                              
+  -n INT, --audio-note-offset INT                                                                                       
         Offset added to generated note numbers before tuning (default: 44)                                              
-  --player.polyphonic-headroom FLOAT                                                                                    
+  --polyphonic-headroom FLOAT                                                                                           
         Divisor applied to mixed voices to provide polyphonic headroom (default: 4)                                     
-  --player.max-polyphony INT                                                                                            
+  --max-polyphony INT                                                                                                   
         Maximum number of notes that can play simultaneously (default: 32)                                              
-  --player.minimum-note-time FLOAT                                                                                      
+  -N FLOAT, --minimum-note-time FLOAT                                                                                   
         Minimum duration of each synthesized note, in seconds (default: 0.5)                                            
                                                                                                                         
  player.device options                                                                                                  
  ---------------------------------------------------------------------------------------------------------------------- 
-  --player.device.samplerate {None}|INT                                                                                 
+  --samplerate {None}|INT                                                                                               
         Audio output sample rate, in frames per second (default: None)                                                  
-  --player.device.device {None}|INT|STR                                                                                 
+  -d {None}|INT|STR, --audio-device {None}|INT|STR                                                                      
         Audio output device name or index (default: None)                                                               
-  --player.device.dtype {None,int8,uint8,int32,int16,float32}                                                           
+  --dtype {None,int8,uint8,int32,int16,float32}                                                                         
         Sample data type sent to the audio output device (default: None)                                                
                                                                                                                         
  player.oscillator options                                                                                              
  ---------------------------------------------------------------------------------------------------------------------- 
-  --player.oscillator.waveform {sine,triangle}                                                                          
+  -w {sine,triangle}, --waveform {sine,triangle}                                                                        
         Waveform used to synthesize notes (default: triangle)                                                           
-  --player.oscillator.period FLOAT                                                                                      
+  -e FLOAT, --oscillator-period FLOAT                                                                                   
         Number of waveform cycles per note period (default: 1.0)                                                        
-  --player.oscillator.duty-cycle FLOAT                                                                                  
+  -u FLOAT, --duty-cycle FLOAT                                                                                          
         Fraction of each waveform cycle before its falling edge (default: 0.5)                                          
-  --player.oscillator.key-scale-note INT                                                                                
+  -K INT, --key-scale-note INT                                                                                          
         Note number with no keyboard gain adjustment (default: 64)                                                      
-  --player.oscillator.key-scale FLOAT                                                                                   
+  -k FLOAT, --key-scale FLOAT                                                                                           
         Gain octaves added per keyboard octave above key_scale_note (default: 0.0)                                      
                                                                                                                         
  player.scale options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
-  --player.scale.alphabet STR                                                                                           
+  -A STR, --scale-alphabet STR                                                                                          
         The base alphabet (default: ABCDEFGHIJKLMNOPQRSTUVWXYZ)                                                         
-  --player.scale.root STR                                                                                               
+  -q STR, --root STR                                                                                                    
         The root note to start scales with (default: C)                                                                 
-  --player.scale.begin STR                                                                                              
+  -j STR, --begin STR                                                                                                   
         The first note from the alphabet: TODO: validate begin <= base <= end (default: A)                              
-  --player.scale.end STR                                                                                                
+  -E STR, --end STR                                                                                                     
         The Last note from the alphabet (default: G)                                                                    
-  --player.scale.notes {None}|STR                                                                                       
+  -Q {None}|STR, --notes {None}|STR                                                                                     
         If `notes` is set, once the scale is generated, only the notes in                                               
         `notes` are actually used in the list.                                                                          
                                                                                                                         
         For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)             
-  --player.scale.intervals [INT [INT ...]]                                                                              
+  -i [INT [INT ...]], --intervals [INT [INT ...]]                                                                       
         The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)                
-  --player.scale.accidentals {none,whole,half}                                                                          
+  -X {none,whole,half}, --accidentals {none,whole,half}                                                                 
         Which accidentals are allowed in note names (default: whole)                                                    
-  --player.scale.offset INT                                                                                             
+  -Y INT, --scale-offset INT                                                                                            
         Offset all note numbers by this (default: 0)                                                                    
                                                                                                                         
  player.scale.tuning options                                                                                            
  ---------------------------------------------------------------------------------------------------------------------- 
   The Tuning for this Scale                                                                                             
   ----------------------------------------------------------------------------------------------------------------------
-  --player.scale.tuning.detune FLOAT                                                                                    
+  -T FLOAT, --detune FLOAT                                                                                              
         Detune everything, in cents of an octave division (default: 0)                                                  
-  --player.scale.tuning.limit INT                                                                                       
+  -v INT, --limit INT                                                                                                   
         If limit is greater than zero, use rounded N-limit just intonation (default: 0)                                 
-  --player.scale.tuning.notes-per-octave INT                                                                            
+  -V INT, --notes-per-octave INT                                                                                        
         Number of divisions of an octave (default: 12)                                                                  
-  --player.scale.tuning.octave-ratio FLOAT                                                                              
+  -J FLOAT, --octave-ratio FLOAT                                                                                        
         Frequency change between octaves. For the default "power" pitch_to_frequency the change is a ratio, so if it's  
         2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave 
         would be                                                                                                        
         100Hz greater in frequency than the previous. (default: 2)                                                      
-  --player.scale.tuning.root-frequency FLOAT                                                                            
+  -U FLOAT, --root-frequency FLOAT                                                                                      
         The frequency of the reference `root_note` (default: 440)                                                       
-  --player.scale.tuning.root-note INT                                                                                   
-        MIDI note 69 is A440, for non-Yamaha units (default: 69)                                                        
-  --player.scale.tuning.table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}                                       
+  -W INT, --root-note INT                                                                                               
+        The note number of the reference note (default: 69)                                                             
+  --table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}                                                           
         A table, either a Sequence or a dict, mapping note number to frequency. (default: )                             
-  --player.scale.tuning.table-blend, --player.scale.tuning.no-table-blend                                               
+  --table-blend, --no-table-blend                                                                                       
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)                                                                                                 
                                                                                                                         
@@ -138,52 +138,52 @@ usage: tuney [-h] [OPTIONS]
  ---------------------------------------------------------------------------------------------------------------------- 
   The rule for converting a pitch to a frequency                                                                        
   ----------------------------------------------------------------------------------------------------------------------
-  --player.scale.tuning.pitch-to-frequency.function {power,linear}                                                      
+  -F {power,linear}, --pitch-function {power,linear}                                                                    
         The base rule for converting a pitch to a frequency (default: power)                                            
                                                                                                                         
  midi options                                                                                                           
  ---------------------------------------------------------------------------------------------------------------------- 
   How to send MIDI output                                                                                               
   ----------------------------------------------------------------------------------------------------------------------
-  --midi.enable, --midi.no-enable                                                                                       
+  --midi-enable, --no-midi-enable                                                                                       
         Enable MIDI output (default: False)                                                                             
-  --midi.output {None}|STR                                                                                              
+  --midi-output {None}|STR                                                                                              
         MIDI output port name (default: None)                                                                           
-  --midi.channel INT                                                                                                    
+  --midi-channel INT                                                                                                    
         MIDI channel, from 0 to 15 (default: 0)                                                                         
-  --midi.velocity INT                                                                                                   
+  --midi-velocity INT                                                                                                   
         Velocity used for MIDI note-on messages (default: 64)                                                           
-  --midi.note-offset INT                                                                                                
+  --midi-note-offset INT                                                                                                
         Offset added to MIDI note numbers (default: 0)                                                                  
                                                                                                                         
  text-timings options                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
   Timings for playing back texts                                                                                        
   ----------------------------------------------------------------------------------------------------------------------
-  --text-timings.space FLOAT                                                                                            
+  --space FLOAT                                                                                                         
         Base duration for a space, in milliseconds (default: 100)                                                       
-  --text-timings.period FLOAT                                                                                           
+  --text-period FLOAT                                                                                                   
         Base duration for a period, in milliseconds (default: 300)                                                      
-  --text-timings.comma FLOAT                                                                                            
+  --comma FLOAT                                                                                                         
         Base duration for a comma, in milliseconds (default: 200)                                                       
-  --text-timings.colon FLOAT                                                                                            
+  --colon FLOAT                                                                                                         
         Base duration for a colon, in milliseconds (default: 400)                                                       
-  --text-timings.semicolon FLOAT                                                                                        
+  --semicolon FLOAT                                                                                                     
         Base duration for a semicolon, in milliseconds (default: 400)                                                   
-  --text-timings.blank-line FLOAT                                                                                       
+  --blank-line FLOAT                                                                                                    
         Base duration for a blank line, in milliseconds (default: 1000)                                                 
-  --text-timings.overlap FLOAT                                                                                          
+  --overlap FLOAT                                                                                                       
         Time that consecutive characters overlap, in milliseconds (default: 20)                                         
-  --text-timings.seed {None}|INT                                                                                        
+  --seed {None}|INT                                                                                                     
         Seed for randomized character timings, or a random seed if empty (default: None)                                
-  --text-timings.alpha-only, --text-timings.no-alpha-only                                                               
+  --alpha-only, --no-alpha-only                                                                                         
         Ignore characters without an explicit timing unless they are alphabetic (default: True)                         
-  --text-timings.strip-accents, --text-timings.no-strip-accents                                                         
+  --strip-accents, --no-strip-accents                                                                                   
         Remove accents before generating character events (default: True)                                               
-  --text-timings.scale FLOAT                                                                                            
+  --text-scale FLOAT                                                                                                    
         Multiplier applied to all generated timing values (default: 3.0)                                                
-  --text-timings.other [STR FLOAT [STR FLOAT ...]]                                                                      
+  --other [STR FLOAT [STR FLOAT ...]]                                                                                   
         Additional per-character base durations, in milliseconds (default: )                                            
-  --text-timings.timings {None}|{[FLOAT [FLOAT ...]]}                                                                   
+  --timings {None}|{[FLOAT [FLOAT ...]]}                                                                                
         Possible durations for alphabetic characters, in milliseconds (default: None)                                   
                                                                                                                         

@@ -46,10 +46,10 @@ class NoteLabel(BaseModel, frozen=True):
 
 class Tuney(BaseModel):
     # Named performance preset to load
-    preset: str | None = None
+    preset: Annotated[str | None, tyro.conf.arg(aliases=['-p'])] = None
 
     # Load configs from a JSON or toml file
-    config_file: Path | None = None
+    config_file: Annotated[Path | None, tyro.conf.arg(aliases=['-c'])] = None
 
     # Map letters to notes
     mapper: Mapper = Mapper()
@@ -67,6 +67,7 @@ class Tuney(BaseModel):
     text: Annotated[
         str | list[CharPress] | None,
         tyro.conf.arg(
+            aliases=['-t'],
             constructor=str,
             help_behavior_hint='(optional)',
             metavar='TEXT',
@@ -81,7 +82,7 @@ class Tuney(BaseModel):
     ] = Field(default_factory=list, exclude=True)
 
     # Maximum silent gap to keep in recordings, in seconds
-    max_gap: float = 4.0
+    max_gap: Annotated[float, tyro.conf.arg(aliases=['-m'])] = 4.0
 
     # Time to hover over a widget before showing help, in seconds
     hover_time: float = 1.0
@@ -93,16 +94,16 @@ class Tuney(BaseModel):
     backspace_repeat_rate: float = 4.0
 
     # Open the graphical interface
-    gui: bool = False
+    gui: Annotated[bool, tyro.conf.arg(aliases=['-g'])] = False
 
     # Disable synthesized audio output
-    silent: bool = False
+    silent: Annotated[bool, tyro.conf.arg(aliases=['-s'])] = False
 
     # Audio file to write while playing text
-    output: Path | None = None
+    output: Annotated[Path | None, tyro.conf.arg(aliases=['-o'])] = None
 
     # If True, listen to the keyboard even when other applications are in front
-    run_in_background: bool = False
+    run_in_background: Annotated[bool, tyro.conf.arg(aliases=['-b'])] = False
 
     # Path to the automatically saved GUI state
     autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)
