@@ -26,6 +26,7 @@ from .transport import Transport
 
 TEXT_BOX_HEIGHT = 120
 CONTROL_PANEL_HEIGHT = 270
+NOTE_GRID_HEIGHT = 52
 REPLAY_FRAME_HEIGHT = 40
 LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
@@ -66,7 +67,7 @@ class Layout(QWidget):
             [
                 CONTROL_PANEL_HEIGHT,
                 TEXT_BOX_HEIGHT + REPLAY_FRAME_HEIGHT + LOOP_CONTROLS_HEIGHT,
-                max(HEIGHT * app.rows, HEIGHT),
+                max(NOTE_GRID_HEIGHT * app.rows, NOTE_GRID_HEIGHT),
             ]
         )
         self.set_text(app.tuney.display_text)
@@ -221,6 +222,7 @@ class Layout(QWidget):
     @cached_property
     def note_grid_widget(self) -> QWidget:
         widget = QWidget(self)
+        widget.setMinimumHeight(max(NOTE_GRID_HEIGHT * self.app.rows, NOTE_GRID_HEIGHT))
         self.note_grid = QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
         self.note_grid.setSpacing(constants.QUARTER)

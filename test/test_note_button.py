@@ -3,6 +3,7 @@ import pytest
 from tuney.ui.note_button import (
     FONT_SCALING_THRESHOLD,
     MAX_FONT_SIZE,
+    MIN_BUTTON_SIZE,
     MIN_FONT_SIZE,
     _note_font_size,
 )
@@ -22,3 +23,7 @@ def test_note_font_size_only_scales_below_threshold(
     width: int, height: int, expected: int
 ) -> None:
     assert _note_font_size(width, height) == expected
+
+
+def test_note_button_minimum_size_preserves_normal_button_size() -> None:
+    assert MIN_BUTTON_SIZE == 48

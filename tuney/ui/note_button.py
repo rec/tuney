@@ -10,6 +10,7 @@ from ..char_press import CharPress
 from . import constants
 
 FONT_FAMILY = 'Arial'
+MIN_BUTTON_SIZE = 48
 MAX_FONT_SIZE = 23
 MIN_FONT_SIZE = 10
 FONT_SCALING_THRESHOLD = 60
@@ -33,7 +34,7 @@ class NoteButton(QPushButton):
         self._font_size = MAX_FONT_SIZE
         self.note_name = text
         self.setFont(QFont(FONT_FAMILY, MAX_FONT_SIZE, QFont.Weight.Bold))
-        self.setMinimumSize(48, 48)
+        self.setMinimumSize(MIN_BUTTON_SIZE, MIN_BUTTON_SIZE)
         self.clicked.connect(self.toggle)
         layout.addWidget(self, row, column)
         layout.setContentsMargins(
