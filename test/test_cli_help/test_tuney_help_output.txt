@@ -1,5 +1,7 @@
 usage: tuney [-h] [OPTIONS]
 
+Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
+
  positional arguments                                                                                                   
  ---------------------------------------------------------------------------------------------------------------------- 
   TEXT  Positional text to start the program with (default: )                                                           

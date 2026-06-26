@@ -45,6 +45,12 @@ class NoteLabel(BaseModel, frozen=True):
 
 
 class Tuney(BaseModel):
+    """Turn text into music.
+
+    Use positional `TEXT` to play characters as notes, then tune the scale,
+    audio, MIDI, and timing from the same config model.
+    """
+
     # Named performance preset to load
     preset: Annotated[str | None, tyro.conf.arg(aliases=['-p'])] = None
 
