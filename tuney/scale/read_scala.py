@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+from fractions import Fraction
+from pathlib import Path
+
+from pydantic import BaseModel
+
+# See https://www.huygens-fokker.org/scala/scl_format.html
+
+EPSILON = 3e-6
+LIMIT = 13
+ADJUST = False
+
+
+class Scala(BaseModel, frozen=True):
+    description: str
+    pitches: list[float | Fraction]
+    names: list[str]
+
+    @staticmethod
+    def make(path: Path) -> Scala:
+        with path.open(encoding='latin-1') as fp:
+            desc, length, *names = (i.strip() for i in fp if not i.startswith('!'))
+        if int(length) != len(names):
+            print(f'{length=} != {len(names)=}')
+        pitches = [to_pitch(p) for p in names if p.strip()]
+        return Scala(description=desc, names=names, pitches=pitches)
+
+
+def to_pitch(s: str, adjust: bool = False) -> float | Fraction:
+    s = s.split()[0]  # Doesn't fully comply but seems to work
+    if '.' not in s:
+        return Fraction(s)
+
+    cents = float(s)
+    if adjust and (f := perhaps_round(cents)) is not None:
+        # Correct numbers are very close to small fractions like 257.14286
+        # but this code is wrong.
+        cents = f
+    return 2 ** (cents / 1200)
+
+
+def perhaps_round(f: float) -> float | None:
+    fr = float(Fraction(f).limit_denominator(LIMIT))
+    if abs(f - fr) < EPSILON:
+        return fr
+
+
+def read_all(path: Path) -> dict[str, Scala]:
+    return {p.stem: Scala.make(p) for p in path.glob('*.scl')}
+
+
+def rounders(path: Path = Path('/Users/tom/Downloads/scl')) -> dict[str, int]:
+    res = {}
+    r = read_all(path)
+    for s in r.values():
+        for name, p in zip(s.names, s.pitches, strict=True):
+            if isinstance(p, float) and perhaps_round(p) is not None:
+                key = f'"{name}": {round(p, 8)}'
+                res[key] = 1 + res.get(key, 0)
+
+    return res
+
+
+if __name__ == '__main__':
+    import pprint
+
+    pprint.pprint(rounders())
