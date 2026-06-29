@@ -47,6 +47,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 build_root="${TMPDIR:-/tmp}/tuney-release-build"
+repo_root="$(pwd)"
 uv run --with pyinstaller pyinstaller \
   --noconfirm \
   --distpath "$build_root/dist" \
@@ -54,7 +55,7 @@ uv run --with pyinstaller pyinstaller \
   --specpath "$build_root" \
   --windowed \
   --name Tuney \
-  --add-data tuney:tuney \
+  --add-data "$repo_root/tuney:tuney" \
   pyinstaller_entrypoint.py
 
 if [[ "$(uname)" == "Darwin" ]]; then
