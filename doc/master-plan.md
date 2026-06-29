@@ -1,6 +1,6 @@
 # My master plan
 
-I already have these, under /Users/tom/code/:
+I already have this code, under /Users/tom/code/:
 
 Working:
 * tuney: turn text into audio (beta)
@@ -12,7 +12,7 @@ Sketches
 * litoid: automatically record all DMX events (strong alpha)
 * vl8: process existing audio into new audio (lots of code of various quality)
 
-The idea is to build a universal recorder that records, processes, mixes and plays back all time data except video:
+The idea is to build a universal recorder that records, processes, mixes and plays back all sorts of data in time except video:
 
 * audio
 * MIDI
