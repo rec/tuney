@@ -21,6 +21,7 @@ from . import constants
 from .app import App
 from .control_panel import ControlPanel
 from .note_button import NoteButton
+from .platform import command_key
 from .splitter import SpacedSplitter
 from .transport import Transport
 
@@ -31,7 +32,7 @@ REPLAY_FRAME_HEIGHT = 40
 LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
-COMMAND_KEY = 'Command' if sys.platform == 'darwin' else 'Ctrl'
+COMMAND_KEY = command_key(sys.platform)
 
 WIDTH, HEIGHT = 70, 80
 
