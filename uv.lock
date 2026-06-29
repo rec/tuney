@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-06-22T14:54:27.535872Z"
+exclude-newer = "2026-06-22T16:14:36.090421Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -770,7 +770,7 @@ wheels = [
 
 [[package]]
 name = "tuney"
-version = "0.3.7"
+version = "0.3.8"
 source = { editable = "." }
 dependencies = [
     { name = "mido" },
