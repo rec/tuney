@@ -27,6 +27,8 @@ jobs:
     name: Build ${{ matrix.name }}
     needs: validate-tag
     runs-on: ${{ matrix.os }}
+    env:
+      UV_NO_SOURCES: '1'
     strategy:
       fail-fast: false
       matrix:
@@ -50,7 +52,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
 
       - name: Install project
-        run: uv sync --no-sources --dev
+        run: uv sync --dev
 
       - name: Test
         run: uv run pytest
