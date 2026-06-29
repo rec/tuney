@@ -64,7 +64,7 @@ jobs:
         run: uv run pytest
 
       - name: Build application
-        run: uv run --with pyinstaller pyinstaller --windowed --name Tuney tuney/__main__.py
+        run: uv run --with pyinstaller pyinstaller --windowed --name Tuney pyinstaller_entrypoint.py
 
       - name: Ad-hoc sign macOS app
         if: runner.os == 'macOS'
