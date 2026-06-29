@@ -19,6 +19,13 @@ if [[ "$branch" != "main" ]]; then
   exit 1
 fi
 
+head="$(git rev-parse HEAD)"
+origin_main="$(git rev-parse origin/main)"
+if [[ "$head" != "$origin_main" ]]; then
+  echo "release requires HEAD to equal origin/main" >&2
+  exit 1
+fi
+
 uv version --bump "$part" --no-sync
 version="$(uv version --short)"
 tag="v$version"
