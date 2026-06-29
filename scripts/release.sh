@@ -19,12 +19,54 @@ if [[ "$branch" != "main" ]]; then
   exit 1
 fi
 
+target_version="$(uv version --bump "$part" --dry-run --short)"
+tag="v$target_version"
+
+if git rev-parse --verify --quiet "$tag" >/dev/null; then
+  echo "tag already exists: $tag" >&2
+  exit 1
+fi
+
+if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+  echo "remote tag already exists: $tag" >&2
+  exit 1
+fi
+
+uv run pytest
+uv run ruff check --fix --select B,E,F,I tuney test/*.py pyinstaller_entrypoint.py
+uv run ty check tuney
+python_version="$(cat .python-version)"
+python_version="${python_version//./}"
+find test tuney -name '*.py' | xargs uv run pyupgrade --py"${python_version}"-plus
+uv run pyupgrade --py"${python_version}"-plus pyinstaller_entrypoint.py
+git diff --check
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "release verification changed the working tree" >&2
+  exit 1
+fi
+
+build_root="${TMPDIR:-/tmp}/tuney-release-build"
+uv run --with pyinstaller pyinstaller \
+  --noconfirm \
+  --distpath "$build_root/dist" \
+  --workpath "$build_root/build" \
+  --specpath "$build_root" \
+  --windowed \
+  --name Tuney \
+  --add-data tuney:tuney \
+  pyinstaller_entrypoint.py
+
+if [[ "$(uname)" == "Darwin" ]]; then
+  codesign --force --deep --sign - "$build_root/dist/Tuney.app"
+fi
+
 uv version --bump "$part" --no-sync
 version="$(uv version --short)"
 tag="v$version"
 
-if git rev-parse --verify --quiet "$tag" >/dev/null; then
-  echo "tag already exists: $tag" >&2
+if [[ "$version" != "$target_version" ]]; then
+  echo "version changed after dry run: expected $target_version, got $version" >&2
   exit 1
 fi
 
