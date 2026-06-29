@@ -230,9 +230,7 @@ def test_beginner_mode_filters_advanced_controls():
         'limiter',
     ]
     assert 'text_timings' in _visible_child_names(tuney, advanced=False)
-    assert 'backspace_repeat_delay' not in _visible_control_names(
-        tuney, advanced=False
-    )
+    assert 'backspace_repeat_delay' not in _visible_control_names(tuney, advanced=False)
 
 
 def test_dials_are_limited_to_explicit_analog_controls():

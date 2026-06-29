@@ -49,19 +49,17 @@ class TextTimings(BaseModel, frozen=True):
     strip_accents: Annotated[bool, tyro.conf.arg(prefix_name=False)] = True
 
     # Multiplier applied to all generated timing values
-    scale: Annotated[
-        float, tyro.conf.arg(name='text-scale', prefix_name=False)
-    ] = 1.0
+    scale: Annotated[float, tyro.conf.arg(name='text-scale', prefix_name=False)] = 1.0
 
     # Additional per-character base durations, in milliseconds
-    other: Annotated[
-        dict[str, Milliseconds], tyro.conf.arg(prefix_name=False)
-    ] = Field(default_factory=dict)
+    other: Annotated[dict[str, Milliseconds], tyro.conf.arg(prefix_name=False)] = Field(
+        default_factory=dict
+    )
 
     # Possible durations for alphabetic characters, in milliseconds
-    timings: Annotated[
-        list[Milliseconds] | None, tyro.conf.arg(prefix_name=False)
-    ] = None
+    timings: Annotated[list[Milliseconds] | None, tyro.conf.arg(prefix_name=False)] = (
+        None
+    )
 
     @cached_property
     def timings_(self) -> list[Milliseconds]:

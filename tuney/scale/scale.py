@@ -72,16 +72,14 @@ class Scale(BaseModel, frozen=True):
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: Annotated[
-        str | None, tyro.conf.arg(aliases=['-Q'], prefix_name=False)
-    ] = None
+    notes: Annotated[str | None, tyro.conf.arg(aliases=['-Q'], prefix_name=False)] = (
+        None
+    )
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[
         list[int], validate_intervals, tyro.conf.arg(aliases=['-i'], prefix_name=False)
-    ] = Field(
-        default_factory=lambda: list(INTERVALS)
-    )
+    ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[

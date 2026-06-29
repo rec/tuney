@@ -17,9 +17,9 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 
 class MIDI(BaseModel, frozen=True):
     # Enable MIDI output
-    enable: Annotated[
-        bool, tyro.conf.arg(name='midi-enable', prefix_name=False)
-    ] = False
+    enable: Annotated[bool, tyro.conf.arg(name='midi-enable', prefix_name=False)] = (
+        False
+    )
 
     # MIDI output port name
     output: Annotated[
@@ -28,14 +28,12 @@ class MIDI(BaseModel, frozen=True):
     ] = None
 
     # MIDI channel, from 0 to 15
-    channel: Annotated[
-        int, tyro.conf.arg(name='midi-channel', prefix_name=False)
-    ] = 0
+    channel: Annotated[int, tyro.conf.arg(name='midi-channel', prefix_name=False)] = 0
 
     # Velocity used for MIDI note-on messages
-    velocity: Annotated[
-        int, tyro.conf.arg(name='midi-velocity', prefix_name=False)
-    ] = 0x40
+    velocity: Annotated[int, tyro.conf.arg(name='midi-velocity', prefix_name=False)] = (
+        0x40
+    )
 
     # Offset added to MIDI note numbers
     note_offset: Annotated[

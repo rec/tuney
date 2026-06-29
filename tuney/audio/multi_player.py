@@ -33,9 +33,9 @@ class MultiPlayer(BaseModel, frozen=True):
     ] = 44
 
     # Divisor applied to mixed voices to provide polyphonic headroom
-    polyphonic_headroom: Annotated[
-        float, tyro.conf.arg(prefix_name=False)
-    ] = Field(4, gt=0)
+    polyphonic_headroom: Annotated[float, tyro.conf.arg(prefix_name=False)] = Field(
+        4, gt=0
+    )
 
     # Maximum number of notes that can play simultaneously
     max_polyphony: Annotated[int, tyro.conf.arg(prefix_name=False)] = Field(32, gt=0)

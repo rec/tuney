@@ -100,9 +100,9 @@ class Mapper(BaseModel, frozen=True):
     range_limit: Annotated[int, tyro.conf.arg(aliases=['-r'], prefix_name=False)] = 60
 
     # What to do when mapped notes are outside the pitch range
-    limiter: Annotated[
-        Limiter, tyro.conf.arg(aliases=['-L'], prefix_name=False)
-    ] = Limiter.wrap
+    limiter: Annotated[Limiter, tyro.conf.arg(aliases=['-L'], prefix_name=False)] = (
+        Limiter.wrap
+    )
 
     @cached_property
     def alphabet_(self) -> str:

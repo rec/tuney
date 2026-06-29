@@ -69,11 +69,11 @@ CONTROL_CONFIGS = {
         rows=[
             ['alphabet'],
             ['length', 'offset', 'range_limit', 'limiter', 'case_sensitive', 'invert'],
-        ]
+        ],
     ),
     'Oscillator': ControlConfig(
         beginner_fields=['waveform', 'period', 'duty_cycle'],
-        rows=[['waveform', 'period', 'duty_cycle', 'key_scale_note', 'key_scale']]
+        rows=[['waveform', 'period', 'duty_cycle', 'key_scale_note', 'key_scale']],
     ),
     'Scale': ControlConfig(
         beginner_fields=[
@@ -88,7 +88,7 @@ CONTROL_CONFIGS = {
         rows=[
             ['alphabet', 'root', 'begin', 'end', 'offset'],
             ['notes', 'intervals', 'accidentals'],
-        ]
+        ],
     ),
     'TuningImpl': ControlConfig(
         beginner_fields=[
@@ -109,11 +109,11 @@ CONTROL_CONFIGS = {
                 'table_blend',
             ],
             ['table'],
-        ]
+        ],
     ),
     'MIDI': ControlConfig(
         beginner_fields=['enable', 'output'],
-        rows=[['enable', 'output', 'channel', 'velocity', 'note_offset']]
+        rows=[['enable', 'output', 'channel', 'velocity', 'note_offset']],
     ),
     'TextTimings': ControlConfig(
         beginner_fields=['space', 'period', 'comma', 'overlap', 'scale'],
@@ -121,7 +121,7 @@ CONTROL_CONFIGS = {
             ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
             ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
             ['other', 'timings'],
-        ]
+        ],
     ),
 }
 

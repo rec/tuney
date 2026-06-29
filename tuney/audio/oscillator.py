@@ -27,9 +27,9 @@ class Waveform(NamedEnum):
 
 class Oscillator(BaseModel, frozen=True):
     # Waveform used to synthesize notes
-    waveform: Annotated[
-        Waveform, tyro.conf.arg(aliases=['-w'], prefix_name=False)
-    ] = Waveform.triangle
+    waveform: Annotated[Waveform, tyro.conf.arg(aliases=['-w'], prefix_name=False)] = (
+        Waveform.triangle
+    )
 
     # Number of waveform cycles per note period
     period: Annotated[
@@ -38,9 +38,7 @@ class Oscillator(BaseModel, frozen=True):
     ] = 1.0
 
     # Fraction of each waveform cycle before its falling edge
-    duty_cycle: Annotated[
-        float, tyro.conf.arg(aliases=['-u'], prefix_name=False)
-    ] = 0.5
+    duty_cycle: Annotated[float, tyro.conf.arg(aliases=['-u'], prefix_name=False)] = 0.5
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
@@ -48,9 +46,7 @@ class Oscillator(BaseModel, frozen=True):
     ] = 64
 
     # Gain octaves added per keyboard octave above key_scale_note
-    key_scale: Annotated[
-        float, tyro.conf.arg(aliases=['-k'], prefix_name=False)
-    ] = 0.0
+    key_scale: Annotated[float, tyro.conf.arg(aliases=['-k'], prefix_name=False)] = 0.0
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:
         # TODO: add intensity to compensate for different energies
