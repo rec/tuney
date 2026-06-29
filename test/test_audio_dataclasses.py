@@ -51,6 +51,36 @@ def test_midi_output_names_uses_subprocess(monkeypatch):
     assert midi_module.output_names() == ['synth', 'keyboard']
 
 
+def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
+    calls: list[list[str]] = []
+
+    def run(args: list[str], **__: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(args)
+        return subprocess.CompletedProcess(
+            args=args,
+            returncode=0,
+            stdout='["synth"]',
+            stderr='',
+        )
+
+    monkeypatch.setattr(midi_module.sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(midi_module.sys, 'executable', 'Tuney')
+    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+
+    assert midi_module.output_names() == ['synth']
+    assert calls == [['Tuney', midi_module.INTERNAL_LIST_MIDI_OUTPUTS]]
+
+
+def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
+    def get_output_names() -> list[str]:
+        raise RuntimeError('MIDI unavailable')
+
+    monkeypatch.setattr(midi_module.mido, 'get_output_names', get_output_names)
+
+    assert midi_module._output_names() == []
+    assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().out
+
+
 def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
     def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])

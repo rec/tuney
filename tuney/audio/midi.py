@@ -2,13 +2,14 @@ import json
 import subprocess
 import sys
 from functools import cached_property
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import mido
 import tyro
 from pydantic import BaseModel
 
 ZERO_IS_NOTE_OFF = True
+INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
@@ -58,9 +59,14 @@ class MIDI(BaseModel, frozen=True):
 
 
 def output_names() -> list[str]:
+    args = (
+        [sys.executable, INTERNAL_LIST_MIDI_OUTPUTS]
+        if getattr(sys, 'frozen', False)
+        else [sys.executable, '-c', MIDO_OUTPUT_NAMES_SCRIPT]
+    )
     try:
         result = subprocess.run(
-            [sys.executable, '-c', MIDO_OUTPUT_NAMES_SCRIPT],
+            args,
             capture_output=True,
             check=True,
             text=True,
@@ -74,3 +80,16 @@ def output_names() -> list[str]:
         print(f'Could not list MIDI outputs: expected list, got {type(names).__name__}')
         return []
     return [name for name in names if isinstance(name, str)]
+
+
+def _output_names() -> list[str]:
+    try:
+        names = cast(Any, mido).get_output_names()
+    except (OSError, RuntimeError) as error:
+        print(f'Could not list MIDI outputs: {error}')
+        return []
+    return [name for name in names if isinstance(name, str)]
+
+
+def output_names_json() -> str:
+    return json.dumps(_output_names())

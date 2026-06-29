@@ -1,4 +1,5 @@
-from pyinstaller_entrypoint import app_args
+from pyinstaller_entrypoint import app_args, main
+from tuney.audio import midi as midi_module
 
 
 def test_frozen_app_defaults_to_gui_when_launched_without_arguments() -> None:
@@ -13,3 +14,15 @@ def test_regular_script_preserves_cli_default() -> None:
     assert app_args(['pyinstaller_entrypoint.py'], frozen=False) == [
         'pyinstaller_entrypoint.py'
     ]
+
+
+def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        'sys.argv',
+        ['Tuney', midi_module.INTERNAL_LIST_MIDI_OUTPUTS],
+    )
+    monkeypatch.setattr(midi_module, '_output_names', lambda: ['synth'])
+
+    main()
+
+    assert capsys.readouterr().out == '["synth"]\n'
