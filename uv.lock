@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-06-15T10:47:20.76346Z"
+exclude-newer = "2026-06-22T11:28:27.704946Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -801,7 +801,7 @@ wheels = [
 
 [[package]]
 name = "tuney"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "impall" },
