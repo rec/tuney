@@ -90,7 +90,7 @@ CONTROL_CONFIGS = {
             ['notes', 'intervals', 'accidentals'],
         ],
     ),
-    'TuningImpl': ControlConfig(
+    'Tuning': ControlConfig(
         beginner_fields=[
             'detune',
             'notes_per_octave',

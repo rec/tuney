@@ -13,7 +13,7 @@ from ..types import Frequency, NoteNumber
 
 
 @runtime_checkable
-class Tuning(Protocol):
+class TuningP(Protocol):
     def __call__(self, note_number: NoteNumber) -> Frequency: ...
 
 
@@ -48,7 +48,7 @@ class PitchToFrequency(BaseModel, frozen=True):
         return self.function.value[0](root, change, octaves)
 
 
-class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
+class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
     A generalization of equal temperament, where the default values
     are the same as classic twelve-tone equal temperament (12-tet) but
@@ -113,4 +113,4 @@ class TuningImpl(BaseModel, frozen=True, arbitrary_types_allowed=True):
         return f
 
 
-assert isinstance(TuningImpl(), Tuning)
+assert isinstance(Tuning(), TuningP)

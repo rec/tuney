@@ -13,7 +13,7 @@ from pydantic import BaseModel, BeforeValidator, Field
 
 from ..types import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
-from .tuning import TuningImpl
+from .tuning import Tuning
 
 INTERVALS = [int(i) for i in '2212221']
 
@@ -92,7 +92,7 @@ class Scale(BaseModel, frozen=True):
     ] = 0
 
     #: The Tuning for this Scale
-    tuning: TuningImpl = TuningImpl()
+    tuning: Tuning = Tuning()
 
     # Implements Scale.to_name
     def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
