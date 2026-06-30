@@ -14,7 +14,14 @@ from typing import TYPE_CHECKING, cast
 
 from pydantic import BaseModel
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
-from PySide6.QtGui import QAction, QCloseEvent, QFocusEvent, QIcon, QKeyEvent
+from PySide6.QtGui import (
+    QAction,
+    QCloseEvent,
+    QFocusEvent,
+    QIcon,
+    QKeyEvent,
+    QKeySequence,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -26,6 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..char_press import CharPress
+from .help import show_help
 from .transport import Action, State
 
 if TYPE_CHECKING:
@@ -39,6 +47,7 @@ REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
 SAVE_ACCELERATOR = 'Ctrl+S'
 UNDO_ACCELERATOR = 'Ctrl+Z'
 REDO_ACCELERATOR = 'Ctrl+Y'
+HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
 COMMAND_MODIFIERS = (
     Qt.KeyboardModifier.AltModifier
@@ -270,6 +279,9 @@ class App(QMainWindow):
     def on_randomize_timing(self, *_: object) -> None:
         self.tuney.randomize_timing()
 
+    def on_help(self, *_: object) -> None:
+        show_help(self)
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -341,6 +353,7 @@ class App(QMainWindow):
         menu = self.menuBar()
         file_menu = menu.addMenu('File')
         edit_menu = menu.addMenu('Edit')
+        help_menu = menu.addMenu('Help')
         _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.on_undo)
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.on_redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
@@ -353,6 +366,7 @@ class App(QMainWindow):
             REFRESH_DEVICES_ACCELERATOR,
             self.on_refresh_devices,
         )
+        _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
         return menu
 
     @property
@@ -492,11 +506,13 @@ def _event_char(event: QKeyEvent) -> str:
 def _add_action(
     menu: QMenu,
     text: str,
-    shortcut: str | None,
+    shortcut: str | QKeySequence.StandardKey | None,
     callback: Callable[..., object],
 ) -> None:
     action = QAction(text, menu)
-    if shortcut:
+    if isinstance(shortcut, QKeySequence.StandardKey):
+        action.setShortcuts(shortcut)
+    elif shortcut:
         action.setShortcut(shortcut)
     action.triggered.connect(callback)
     menu.addAction(action)

@@ -56,6 +56,7 @@ uv run --with pyinstaller pyinstaller \
   --windowed \
   --name Tuney \
   --add-data "$repo_root/tuney:tuney" \
+  --add-data "$repo_root/README.md:README.md" \
   pyinstaller_entrypoint.py
 
 if [[ "$(uname)" == "Darwin" ]]; then
