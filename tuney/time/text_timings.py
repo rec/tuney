@@ -18,11 +18,8 @@ class TextTimings(BaseModel, frozen=True):
     # Base duration for a space, in milliseconds
     space: Annotated[Milliseconds, tyro_option()] = 100
 
-    # Base duration for a period, in milliseconds
-    period: Annotated[
-        Milliseconds,
-        tyro_option(name='text-period'),
-    ] = 300
+    # Base duration for a dot, in milliseconds
+    dot: Annotated[Milliseconds, tyro_option()] = 300
 
     # Base duration for a comma, in milliseconds
     comma: Annotated[Milliseconds, tyro_option()] = 200
@@ -49,7 +46,7 @@ class TextTimings(BaseModel, frozen=True):
     strip_accents: Annotated[bool, tyro_option()] = True
 
     # Multiplier applied to all generated timing values
-    scale: Annotated[float, tyro_option(name='text-scale')] = 1.0
+    scale: Annotated[float, tyro_option()] = 1.0
 
     # Additional per-character base durations, in milliseconds
     other: Annotated[dict[str, Milliseconds], tyro_option()] = Field(
@@ -127,7 +124,7 @@ def _strip_accents(s: str) -> Iterator[str]:
 
 _CHARS = {
     'space': ' ',
-    'period': '.',
+    'dot': '.',
     'comma': ',',
     'colon': ':',
     'semicolon': ';',

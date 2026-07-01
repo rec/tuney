@@ -116,9 +116,9 @@ CONTROL_CONFIGS = {
         rows=[['enable', 'output', 'channel', 'velocity', 'note_offset']],
     ),
     'TextTimings': ControlConfig(
-        beginner_fields=['space', 'period', 'comma', 'overlap', 'scale'],
+        beginner_fields=['space', 'dot', 'comma', 'overlap', 'scale'],
         rows=[
-            ['space', 'period', 'comma', 'colon', 'semicolon', 'blank_line'],
+            ['space', 'dot', 'comma', 'colon', 'semicolon', 'blank_line'],
             ['overlap', 'seed', 'alpha_only', 'strip_accents', 'scale'],
             ['other', 'timings'],
         ],
@@ -138,7 +138,7 @@ ENTRY_WIDTHS = {
     'Scale.begin': 1,
     'Scale.end': 1,
     'TextTimings.space': 5,
-    'TextTimings.period': 5,
+    'TextTimings.dot': 5,
     'TextTimings.comma': 5,
     'TextTimings.colon': 5,
     'TextTimings.semicolon': 5,

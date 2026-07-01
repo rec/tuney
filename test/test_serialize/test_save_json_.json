@@ -61,7 +61,7 @@
   },
   "text_timings": {
     "space": 100,
-    "period": 300,
+    "dot": 300,
     "comma": 200,
     "colon": 400,
     "semicolon": 400,

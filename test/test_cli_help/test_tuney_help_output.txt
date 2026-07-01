@@ -164,8 +164,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --space FLOAT
         Base duration for a space, in milliseconds (default: 100)
-  --text-period FLOAT
-        Base duration for a period, in milliseconds (default: 300)
+  --dot FLOAT
+        Base duration for a dot, in milliseconds (default: 300)
   --comma FLOAT
         Base duration for a comma, in milliseconds (default: 200)
   --colon FLOAT
@@ -182,10 +182,9 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Ignore characters without an explicit timing unless they are alphabetic (default: True)
   --strip-accents, --no-strip-accents
         Remove accents before generating character events (default: True)
-  --text-scale FLOAT
+  --scale FLOAT
         Multiplier applied to all generated timing values (default: 3.0)
   --other [STR FLOAT [STR FLOAT ...]]
         Additional per-character base durations, in milliseconds (default: )
   --timings {None}|{[FLOAT [FLOAT ...]]}
         Possible durations for alphabetic characters, in milliseconds (default: None)
-

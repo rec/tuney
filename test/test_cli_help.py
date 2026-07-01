@@ -28,16 +28,16 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--midi-velocity',
     '--midi-note-offset',
     '--space',
-    '--text-period',
     '--comma',
     '--colon',
     '--semicolon',
     '--blank-line',
+    '--dot',
     '--overlap',
     '--seed',
     '--alpha-only',
     '--strip-accents',
-    '--text-scale',
+    '--scale',
     '--other',
     '--timings',
 }
@@ -89,7 +89,7 @@ def test_tuney_help_output(
 
 
 def _strip_line_end_padding(text: str) -> str:
-    return ''.join(f'{line.rstrip()}\n' for line in text.splitlines())
+    return '\n'.join(line.rstrip() for line in text.splitlines())
 
 
 def test_cli_help_uses_flat_unique_names(
@@ -143,12 +143,12 @@ def test_cli_help_gives_expected_public_options_a_short_alias(
     lines_with_short_alias = [
         line
         for line in public_option_lines
-        if not any(option in line for option in OPTIONS_WITHOUT_SHORT_ALIAS)
+        if not _has_option(line, OPTIONS_WITHOUT_SHORT_ALIAS)
     ]
     lines_without_short_alias = [
         line
         for line in public_option_lines
-        if any(option in line for option in OPTIONS_WITHOUT_SHORT_ALIAS)
+        if _has_option(line, OPTIONS_WITHOUT_SHORT_ALIAS)
     ]
     short_options = [
         SHORT_OPTION_RE.search(line).group(0)
@@ -163,6 +163,13 @@ def test_cli_help_gives_expected_public_options_a_short_alias(
     assert not any(alias in help_text for alias in REMOVED_SHORT_ALIASES)
 
 
+def _has_option(line: str, options: set[str]) -> bool:
+    return any(
+        re.search(rf'(?<![\w-]){re.escape(option)}(?![\w-])', line)
+        for option in options
+    )
+
+
 def test_cli_accepts_flat_long_options() -> None:
     tuney = tyro.cli(
         Tuney,
@@ -175,8 +182,8 @@ def test_cli_accepts_flat_long_options() -> None:
             '--midi-channel=3',
             '--midi-velocity=80',
             '--midi-note-offset=12',
-            '--text-period=301',
-            '--text-scale=4',
+            '--dot=301',
+            '--scale=4',
             '--polyphonic-headroom=3',
             '--max-polyphony=8',
             '--samplerate=44100',
@@ -211,7 +218,7 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.midi.channel == 3
     assert tuney.midi.velocity == 80
     assert tuney.midi.note_offset == 12
-    assert tuney.text_timings.period == 301
+    assert tuney.text_timings.dot == 301
     assert tuney.text_timings.scale == 4
     assert tuney.player.polyphonic_headroom == 3
     assert tuney.player.max_polyphony == 8

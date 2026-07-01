@@ -6,4 +6,4 @@ oscillator = [["waveform", "period", "duty_cycle", "key_scale_note", "key_scale"
 scale = [["root", "begin", "end", "offset"], ["notes", "intervals", "accidentals"], ["note_names"]]
 tuning = [["detune", "limit", "notes_per_octave", "octave_ratio", "root_frequency", "root_note", "table_blend"], ["table"]]
 midi = [["enable", "output", "channel", "velocity", "note_offset"]]
-text_timings = [["space", "period", "comma", "colon", "semicolon", "blank_line"], ["overlap", "seed", "alpha_only", "strip_accents", "scale"], ["other", "timings"]]
+text_timings = [["space", "dot", "comma", "colon", "semicolon", "blank_line"], ["overlap", "seed", "alpha_only", "strip_accents", "scale"], ["other", "timings"]]
