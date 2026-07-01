@@ -277,9 +277,7 @@ def test_beginner_mode_filters_advanced_controls(
             'mapper_controls': control_panel._visible_control_names(
                 tuney.mapper, advanced=False
             ),
-            'tuney_children': control_panel._visible_child_names(
-                tuney, advanced=False
-            ),
+            'tuney_children': control_panel._visible_child_names(tuney, advanced=False),
             'tuney_controls': control_panel._visible_control_names(
                 tuney, advanced=False
             ),
@@ -302,9 +300,7 @@ def test_dials_are_limited_to_explicit_analog_controls(
             'player_minimum_note_time': control_panel._uses_dial(
                 tuney.player, 'minimum_note_time'
             ),
-            'player_note_offset': control_panel._uses_dial(
-                tuney.player, 'note_offset'
-            ),
+            'player_note_offset': control_panel._uses_dial(tuney.player, 'note_offset'),
         },
     )
 

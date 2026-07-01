@@ -3,11 +3,11 @@ from __future__ import annotations
 from fractions import Fraction
 from typing import Annotated, Protocol, runtime_checkable
 
-import tyro
 from pydantic import BaseModel, Field
 
 from ..named_enum import NamedEnum
 from ..types import Frequency, NoteNumber
+from ..tyro_option import tyro_option
 
 # TODO: make sure we can serialize and deserialize Fraction (as str)
 
@@ -41,7 +41,7 @@ class PitchToFrequency(BaseModel, frozen=True):
     #: The base rule for converting a pitch to a frequency
     function: Annotated[
         PitchToFrequencyFunction,
-        tyro.conf.arg(name='pitch-function', aliases=['-F'], prefix_name=False),
+        tyro_option(name='pitch-function', aliases=['-F']),
     ] = PitchToFrequencyFunction.power
 
     def __call__(self, root: Frequency, change: float, octaves: float) -> float:
@@ -56,44 +56,40 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
 
     #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro.conf.arg(aliases=['-T'], prefix_name=False)] = 0
+    detune: Annotated[float, tyro_option(aliases=['-T'])] = 0
 
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro.conf.arg(aliases=['-v'], prefix_name=False)] = 0
+    limit: Annotated[int, tyro_option(aliases=['-v'])] = 0
 
     #: Number of divisions of an octave
-    notes_per_octave: Annotated[
-        int, tyro.conf.arg(aliases=['-V'], prefix_name=False)
-    ] = 12
+    notes_per_octave: Annotated[int, tyro_option(aliases=['-V'])] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
     #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
-    octave_ratio: Annotated[float, tyro.conf.arg(aliases=['-J'], prefix_name=False)] = 2
+    octave_ratio: Annotated[float, tyro_option(aliases=['-J'])] = 2
 
     #: The rule for converting a pitch to a frequency
     pitch_to_frequency: PitchToFrequency = PitchToFrequency()
 
     #: The frequency of the reference `root_note`
-    root_frequency: Annotated[
-        Frequency, tyro.conf.arg(aliases=['-U'], prefix_name=False)
-    ] = 440
+    root_frequency: Annotated[Frequency, tyro_option(aliases=['-U'])] = 440
 
     #: The note number of the reference note
-    root_note: Annotated[
-        NoteNumber, tyro.conf.arg(aliases=['-W'], prefix_name=False)
-    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
+    root_note: Annotated[NoteNumber, tyro_option(aliases=['-W'])] = (
+        69  # MIDI note 69 is A440, for non-Yamaha units
+    )
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[
         list[Frequency] | dict[NoteNumber, Frequency],
-        tyro.conf.arg(prefix_name=False),
+        tyro_option(),
     ] = Field(default_factory=list)
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.
-    table_blend: Annotated[bool, tyro.conf.arg(prefix_name=False)] = True
+    table_blend: Annotated[bool, tyro_option()] = True
 
     def __call__(self, note_number: NoteNumber) -> float:
         """Return the frequency in this tuning for a NoteNumber"""

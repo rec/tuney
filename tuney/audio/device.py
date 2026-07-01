@@ -6,6 +6,8 @@ from typing import Annotated, cast
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
+from ..tyro_option import tyro_option
+
 
 class _SoundDevice:
     def query_devices(self) -> list[dict[str, object]]:
@@ -27,16 +29,16 @@ class DType(StrEnum):
 
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: Annotated[int | None, tyro.conf.arg(prefix_name=False)] = None
+    samplerate: Annotated[int | None, tyro_option()] = None
 
     # Audio output device name or index
     device: Annotated[
         int | str | None,
-        tyro.conf.arg(name='audio-device', aliases=['-d'], prefix_name=False),
+        tyro_option(name='audio-device', aliases=['-d']),
     ] = None
 
     # Sample data type sent to the audio output device
-    dtype: Annotated[DType | None, tyro.conf.arg(prefix_name=False)] = None
+    dtype: Annotated[DType | None, tyro_option()] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None
     channels: tyro.conf.Suppress[int | None] = None

@@ -10,6 +10,7 @@ import tyro
 from pydantic import BaseModel
 
 from ..named_enum import NamedEnum
+from ..tyro_option import tyro_option
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44
@@ -77,32 +78,26 @@ class Mapper(BaseModel, frozen=True):
     # Characters mapped to note numbers, or the default alphabet if empty
     alphabet: Annotated[
         str | None,
-        tyro.conf.arg(name='mapper-alphabet', aliases=['-a'], prefix_name=False),
+        tyro_option(name='mapper-alphabet', aliases=['-a']),
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet
-    length: Annotated[int, tyro.conf.arg(aliases=['-l'], prefix_name=False)] = 0
+    length: Annotated[int, tyro_option(aliases=['-l'])] = 0
 
     # Treat uppercase and lowercase characters as distinct
-    case_sensitive: Annotated[
-        bool, tyro.conf.arg(aliases=['-C'], prefix_name=False)
-    ] = True
+    case_sensitive: Annotated[bool, tyro_option(aliases=['-C'])] = True
 
     # Reverse the order of mapped note numbers
-    invert: Annotated[bool, tyro.conf.arg(aliases=['-I'], prefix_name=False)] = False
+    invert: Annotated[bool, tyro_option(aliases=['-I'])] = False
 
     # Offset from the center of the mapped note range
-    offset: Annotated[
-        int, tyro.conf.arg(name='mapper-offset', aliases=['-O'], prefix_name=False)
-    ] = 0
+    offset: Annotated[int, tyro_option(name='mapper-offset', aliases=['-O'])] = 0
 
     # Limit pitch range to this many notes
-    range_limit: Annotated[int, tyro.conf.arg(aliases=['-r'], prefix_name=False)] = 60
+    range_limit: Annotated[int, tyro_option(aliases=['-r'])] = 60
 
     # What to do when mapped notes are outside the pitch range
-    limiter: Annotated[Limiter, tyro.conf.arg(aliases=['-L'], prefix_name=False)] = (
-        Limiter.wrap
-    )
+    limiter: Annotated[Limiter, tyro_option(aliases=['-L'])] = Limiter.wrap
 
     @cached_property
     def alphabet_(self) -> str:
