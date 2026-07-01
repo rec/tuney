@@ -12,8 +12,8 @@ from tuney.audio.mixer import NotePress
 from tuney.audio.multi_player import MultiPlayer
 from tuney.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.transport_state import Action, State
 from tuney.tuney import Tuney
+from tuney.ui.transport import Action, State
 
 
 @contextmanager

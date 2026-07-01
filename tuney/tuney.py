@@ -25,8 +25,8 @@ from .presets import merged_data, read_file, read_preset
 from .serialize import serialize
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
-from .transport_state import Action, State
 from .types import Milliseconds, Seconds, to_ms
+from .ui.transport import Action, State
 
 if TYPE_CHECKING:
     from .ui.app import App
