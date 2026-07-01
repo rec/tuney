@@ -37,7 +37,7 @@ def test_accidentals_half_adds_half_sharps_and_flats() -> None:
 
 def test_accidentals_half_orders_larger_accidentals_before_smaller() -> None:
     scale = Scale(
-        alphabet='CD',
+        note_names='CD',
         root='C',
         begin='C',
         end='D',
@@ -59,7 +59,7 @@ def test_accidentals_half_orders_larger_accidentals_before_smaller() -> None:
 
 def test_accidentals_half_names_third_tones() -> None:
     scale = Scale(
-        alphabet='CD',
+        note_names='CD',
         root='C',
         begin='C',
         end='D',

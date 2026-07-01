@@ -85,7 +85,11 @@ def test_tuney_help_output(
         main()
 
     assert exc_info.value.code == 0
-    file_regression.check(capsys.readouterr().out)
+    file_regression.check(_strip_line_end_padding(capsys.readouterr().out))
+
+
+def _strip_line_end_padding(text: str) -> str:
+    return ''.join(f'{line.rstrip()}\n' for line in text.splitlines())
 
 
 def test_cli_help_uses_flat_unique_names(
@@ -163,10 +167,10 @@ def test_cli_accepts_flat_long_options() -> None:
     tuney = tyro.cli(
         Tuney,
         args=[
-            '--mapper-alphabet=abc',
+            '--alphabet=abc',
             '--audio-device=Built-in',
             '--oscillator-period=2',
-            '--scale-alphabet=ABCDEFG',
+            '--note-names=ABCDEFG',
             '--midi-output=Port',
             '--midi-channel=3',
             '--midi-velocity=80',
@@ -202,7 +206,7 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.mapper.alphabet == 'abc'
     assert tuney.player.device.device == 'Built-in'
     assert tuney.player.oscillator.period == 2
-    assert tuney.player.scale.alphabet == 'ABCDEFG'
+    assert tuney.player.scale.note_names == 'ABCDEFG'
     assert tuney.midi.output == 'Port'
     assert tuney.midi.channel == 3
     assert tuney.midi.velocity == 80
@@ -341,7 +345,7 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.player.oscillator.duty_cycle == 0.25
     assert tuney.player.oscillator.key_scale_note == 60
     assert tuney.player.oscillator.key_scale == 0.1
-    assert tuney.player.scale.alphabet == 'ABCDEFG'
+    assert tuney.player.scale.note_names == 'ABCDEFG'
     assert tuney.player.scale.root == 'D'
     assert tuney.player.scale.begin == 'A'
     assert tuney.player.scale.end == 'G'

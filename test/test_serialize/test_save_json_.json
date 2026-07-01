@@ -18,7 +18,7 @@
       "key_scale": 0.0
     },
     "scale": {
-      "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      "note_names": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       "root": "C",
       "begin": "A",
       "end": "G",

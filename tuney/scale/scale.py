@@ -52,15 +52,13 @@ class Scale(BaseModel, frozen=True):
     custom tunings, different note names and intervals.
     """
 
-    #: The base alphabet
-    alphabet: Annotated[str, tyro_option(name='scale-alphabet', aliases=['-A'])] = (
-        string.ascii_uppercase
-    )
+    #: The base note names
+    note_names: Annotated[str, tyro_option(aliases=['-A'])] = string.ascii_uppercase
 
     #: The root note to start scales with
     root: Annotated[str, tyro_option(aliases=['-q'])] = 'C'
 
-    #: The first note from the alphabet:
+    #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[str, tyro_option(aliases=['-j'])] = 'A'
 
@@ -110,7 +108,7 @@ class Scale(BaseModel, frozen=True):
 
     @cached_property
     def names(self) -> str:
-        a = self.alphabet
+        a = self.note_names
         begin, root, end = a.index(self.begin), a.index(self.root), a.index(self.end)
         assert begin <= root <= end
         return ''.join(a[i] for i in chain(range(root, end + 1), range(begin, root)))

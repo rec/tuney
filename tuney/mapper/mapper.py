@@ -78,7 +78,7 @@ class Mapper(BaseModel, frozen=True):
     # Characters mapped to note numbers, or the default alphabet if empty
     alphabet: Annotated[
         str | None,
-        tyro_option(name='mapper-alphabet', aliases=['-a']),
+        tyro_option(aliases=['-a']),
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet

@@ -35,7 +35,7 @@ def test_field_help_uses_tyro_help_text() -> None:
     assert _field_help(Tuney, 'max_gap') == (
         'Maximum silent gap to keep in recordings, in seconds'
     )
-    assert _field_help(Scale, 'alphabet') == 'The base alphabet'
+    assert _field_help(Scale, 'note_names') == 'The base note names'
 
 
 def test_field_name_is_used_when_help_is_missing() -> None:

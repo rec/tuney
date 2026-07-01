@@ -32,7 +32,7 @@ key_scale_note = 64
 key_scale = 0.0
 
 [player.scale]
-alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+note_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 root = "C"
 begin = "A"
 end = "G"
