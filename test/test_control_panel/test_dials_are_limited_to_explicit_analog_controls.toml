@@ -1,0 +1,4 @@
+player_gain = true
+oscillator_period = true
+player_minimum_note_time = false
+player_note_offset = false

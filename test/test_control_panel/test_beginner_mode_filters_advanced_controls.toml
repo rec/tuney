@@ -1,0 +1,3 @@
+mapper_controls = ["alphabet", "length", "offset", "range_limit", "limiter"]
+tuney_children = ["mapper", "player", "midi", "text_timings"]
+tuney_controls = []

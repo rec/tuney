@@ -1,0 +1,11 @@
+max_gap = 40
+gain = 40
+scale = 40
+period = 60
+root_frequency = 60
+root_note = 40
+device = "None"
+samplerate = 60
+space = 50
+root = 10
+output = 120
