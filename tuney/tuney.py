@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -11,16 +10,17 @@ from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import tomlkit
 import tyro
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
+from .autosave import Autosave
 from .control import control
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
-from .presets import merged_data, read_file, read_preset
+from .presets import merged_data, read_preset
 from .recorders import AudioRecorder, KeyRecorder
 from .serialize import serialize
 from .time import to_ms
@@ -29,9 +29,6 @@ from .time.text_timings import TextTimings
 
 if TYPE_CHECKING:
     from .ui.app import App
-
-XDG_STATE_HOME = 'XDG_STATE_HOME'
-AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
 
 class NoteLabel(BaseModel, frozen=True):
@@ -269,54 +266,9 @@ class Tuney(BaseModel):
                 raise ValueError(f'Do not understand file {path}')
         path.write_text(text)
 
-    def autosave(self) -> None:
-        path = self.autosave_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.save(path)
-
-    def restore_autosave(self) -> None:
-        if self._should_restore_autosave and self.autosave_path.exists():
-            try:
-                data = read_file(self.autosave_path)
-            except (OSError, ValueError) as error:
-                print(
-                    f'Could not restore {self.autosave_path}: {error}',
-                    file=sys.stderr,
-                )
-                return
-            self.restore_autosave_data(data)
-
-    def restore_autosave_data(self, data: dict[str, object]) -> None:
-        while True:
-            try:
-                self.restore_data(data)
-                return
-            except ValidationError as error:
-                print(
-                    f'Could not restore fields from {self.autosave_path}: {error}',
-                    file=sys.stderr,
-                )
-                if not any(_delete_data_path(data, e['loc']) for e in error.errors()):
-                    return
-
     @cached_property
-    def autosave_path(self) -> Path:
-        if self.autosave_file is not None:
-            return self.autosave_file
-        state_home = os.environ.get(XDG_STATE_HOME)
-        if state_home and Path(state_home).is_absolute():
-            return Path(state_home) / AUTOSAVE_FILE
-        return Path.home() / '.local' / 'state' / AUTOSAVE_FILE
-
-    @property
-    def _should_restore_autosave(self) -> bool:
-        return (
-            self.gui
-            and self.config_file is None
-            and self.preset is None
-            and self.text is None
-            and not self.text_args
-        )
+    def _autosave(self) -> Autosave:
+        return Autosave(file=self.autosave_file)
 
     def apply_preset(self, name: str) -> None:
         char_presses = self.__dict__.get('char_presses')
@@ -393,7 +345,7 @@ class Tuney(BaseModel):
 
     def __call__(self) -> None:
         if self.gui:
-            self.restore_autosave()
+            self._autosave.restore_if(self)
             self.start()
             self.app.mainloop()
         else:
@@ -477,31 +429,6 @@ class Tuney(BaseModel):
             print()
             raise
         print()
-
-
-def _delete_data_path(data: dict[str, object], loc: tuple[object, ...]) -> bool:
-    current: object = data
-    for part in loc[:-1]:
-        if isinstance(part, str) and isinstance(current, dict):
-            current = current.get(part)
-        elif isinstance(part, int) and isinstance(current, list):
-            if part < 0 or part >= len(current):
-                return False
-            current = current[part]
-        else:
-            return False
-    if not loc:
-        return False
-    last = loc[-1]
-    if isinstance(last, str) and isinstance(current, dict) and last in current:
-        del current[last]
-        return True
-    if isinstance(last, int) and isinstance(current, list):
-        if last < 0 or last >= len(current):
-            return False
-        del current[last]
-        return True
-    return False
 
 
 def _loop_window(

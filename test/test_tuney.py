@@ -371,7 +371,7 @@ def test_autosave_path_uses_xdg_state_home(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        assert Tuney().autosave_path == tmp_path / 'tuney' / 'state.toml'
+        assert Tuney()._autosave.path == tmp_path / 'tuney' / 'state.toml'
 
 
 def test_autosave_writes_current_model_without_app_state() -> None:
@@ -387,7 +387,7 @@ def test_autosave_writes_current_model_without_app_state() -> None:
             ],
         )
 
-        tuney.autosave()
+        tuney._autosave.save(tuney.save)
 
         data = tomllib.loads(path.read_text())
     assert data['gui']
@@ -404,7 +404,7 @@ def test_autosave_writes_current_model_without_app_state() -> None:
 def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
-        Tuney(
+        saved = Tuney(
             gui=True,
             max_gap=2.0,
             autosave_file=path,
@@ -412,10 +412,20 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
                 CharPress('a', time=0),
                 CharPress('a', False, 100),
             ],
-        ).autosave()
+        )
+        saved._autosave.save(saved.save)
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.restore_autosave()
+        tuney._autosave.restore(
+            tuney._autosave.should_restore(
+                gui=tuney.gui,
+                config_file=tuney.config_file,
+                preset=tuney.preset,
+                text=tuney.text,
+                text_args=tuney.text_args,
+            ),
+            tuney.restore_data,
+        )
 
         assert tuney.max_gap == 2.0
         assert tuney.char_presses == [
@@ -433,7 +443,16 @@ def test_restore_autosave_ignores_invalid_state_file(
         path.write_text('max_gap =')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.restore_autosave()
+        tuney._autosave.restore(
+            tuney._autosave.should_restore(
+                gui=tuney.gui,
+                config_file=tuney.config_file,
+                preset=tuney.preset,
+                text=tuney.text,
+                text_args=tuney.text_args,
+            ),
+            tuney.restore_data,
+        )
 
         assert tuney.max_gap == Tuney().max_gap
     assert f'Could not restore {path}' in capsys.readouterr().err
@@ -447,7 +466,16 @@ def test_restore_autosave_defaults_invalid_fields(
         path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.restore_autosave()
+        tuney._autosave.restore(
+            tuney._autosave.should_restore(
+                gui=tuney.gui,
+                config_file=tuney.config_file,
+                preset=tuney.preset,
+                text=tuney.text,
+                text_args=tuney.text_args,
+            ),
+            tuney.restore_data,
+        )
 
         assert tuney.max_gap == Tuney().max_gap
         assert tuney.hover_time == 2.0
@@ -459,10 +487,20 @@ def test_restore_autosave_defaults_invalid_fields(
 def test_restore_autosave_does_not_override_explicit_text() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
-        Tuney(gui=True, autosave_file=path, text=[CharPress('a', time=0)]).autosave()
+        saved = Tuney(gui=True, autosave_file=path, text=[CharPress('a', time=0)])
+        saved._autosave.save(saved.save)
         tuney = Tuney(gui=True, autosave_file=path, text='b')
 
-        tuney.restore_autosave()
+        tuney._autosave.restore(
+            tuney._autosave.should_restore(
+                gui=tuney.gui,
+                config_file=tuney.config_file,
+                preset=tuney.preset,
+                text=tuney.text,
+                text_args=tuney.text_args,
+            ),
+            tuney.restore_data,
+        )
 
         assert tuney.display_text == 'b'
 
