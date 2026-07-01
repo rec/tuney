@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
-import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
@@ -13,7 +11,7 @@ from typing import TYPE_CHECKING, Annotated, NoReturn
 
 import tomlkit
 import tyro
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
@@ -23,11 +21,11 @@ from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .presets import merged_data, read_file, read_preset
+from .recorders import AudioRecorder, KeyRecorder
 from .serialize import serialize
-from .time import Milliseconds, Seconds, to_ms
+from .time import to_ms
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
-from .ui.transport import Action, State
 
 if TYPE_CHECKING:
     from .ui.app import App
@@ -129,18 +127,6 @@ class Tuney(BaseModel):
     # Path to the automatically saved GUI state
     autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)
 
-    model_config = ConfigDict(exclude=['_sequencer'])  # ty:ignore[invalid-key]
-
-    _sequencer: Sequencer | None = None
-    _recording_start_time: Seconds | None = None
-    _recording_time_offset: Milliseconds = 0.0
-    _recording_insert_time: Milliseconds | None = None
-    _replay_text: str = ''
-    _audio_recording_path: Path | None = None
-    _audio_recording_started: bool = False
-    _audio_recording_comment: Callable[[], str] | None = None
-    _backspace_repeat_after_id: str | None = None
-
     @field_validator('text')
     @classmethod
     def _validate_text(
@@ -176,6 +162,14 @@ class Tuney(BaseModel):
         return {c: note_label(c, n) for c, n in self.mapper.char_to_number.items()}
 
     @cached_property
+    def key_recorder(self) -> KeyRecorder:
+        return KeyRecorder()
+
+    @cached_property
+    def audio_recorder(self) -> AudioRecorder:
+        return AudioRecorder()
+
+    @cached_property
     def char_presses(self) -> list[CharPress]:
         if self.text is None:
             return []
@@ -194,12 +188,14 @@ class Tuney(BaseModel):
         if self._is_listening:
             if c.char != '\b' or (c.is_press and self.char_presses):
                 self.app.record_undo()
-            recorded = self.recorded_char_press(c)
+            recorded = self.key_recorder.recorded_char_press(
+                c, self.char_presses, self.max_gap
+            )
             if c.is_press:
                 if c.char != '\b':
                     self.append_char_press(recorded)
                 elif self.char_presses:
-                    self._delete_last_char()
+                    self.key_recorder.delete_last_char(self.char_presses)
                     self._start_backspace_repeat()
                 self.app.ui.set_text(self.display_text)
             else:
@@ -216,78 +212,38 @@ class Tuney(BaseModel):
             print(f'Out-of-order char_press: {c} follows {d}', file=sys.stderr)
             self.char_presses.sort()
 
-    def _delete_last_char(self) -> None:
-        deleted_time = None
-        while self.char_presses:
-            deleted = self.char_presses.pop()
-            if deleted.is_press:
-                deleted_time = deleted.time
-                break
-        if deleted_time is not None:
-            self._recording_insert_time = deleted_time
-
     def _start_backspace_repeat(self) -> None:
         self._stop_backspace_repeat()
         if self.backspace_repeat_delay >= 0 and self.backspace_repeat_rate > 0:
-            self._backspace_repeat_after_id = self.app.after(
+            self.key_recorder.backspace_repeat_after_id = self.app.after(
                 round(to_ms(self.backspace_repeat_delay)),
                 self._repeat_backspace,
             )
 
     def _repeat_backspace(self) -> None:
-        self._backspace_repeat_after_id = None
+        self.key_recorder.backspace_repeat_after_id = None
         if not self._is_listening or not self.char_presses:
             return
         self.app.record_undo()
-        self._delete_last_char()
+        self.key_recorder.delete_last_char(self.char_presses)
         self.app.ui.set_text(self.display_text)
         self._on_char(CharPress('\b', time=0))
         if self.char_presses:
-            self._backspace_repeat_after_id = self.app.after(
+            self.key_recorder.backspace_repeat_after_id = self.app.after(
                 round(1000 / self.backspace_repeat_rate),
                 self._repeat_backspace,
             )
 
     def _stop_backspace_repeat(self) -> None:
-        if self._backspace_repeat_after_id is not None:
-            self.app.after_cancel(self._backspace_repeat_after_id)
-            self._backspace_repeat_after_id = None
-
-    def recorded_char_press(self, c: CharPress) -> CharPress:
-        if self._recording_start_time is None and c.is_press:
-            self._recording_start_time = c.time
-        start = self._recording_start_time or c.time
-        raw_time = to_ms(c.time - start)
-        if self._recording_insert_time is not None and c.is_press and c.char != '\b':
-            self._recording_time_offset = self._recording_insert_time - raw_time
-            self._recording_insert_time = None
-        recorded_time = raw_time + self._recording_time_offset
-        max_gap = to_ms(self.max_gap)
-        if max_gap > 0 and c.is_press and not self._recorded_notes_on():
-            time = self.char_presses[-1].time if self.char_presses else 0
-            gap = recorded_time - time
-            if gap > max_gap:
-                self._recording_time_offset -= gap - max_gap
-                recorded_time = raw_time + self._recording_time_offset
-        return CharPress(c.char, c.is_press, recorded_time)
-
-    def _recorded_notes_on(self) -> set[str]:
-        result = set()
-        for c in self.char_presses:
-            if c.is_press:
-                result.add(c.char)
-            else:
-                result.discard(c.char)
-        return result
+        if self.key_recorder.backspace_repeat_after_id is not None:
+            self.app.after_cancel(self.key_recorder.backspace_repeat_after_id)
+            self.key_recorder.backspace_repeat_after_id = None
 
     def clear(self) -> None:
         if self.gui and self.char_presses:
             self.app.record_undo()
         self.char_presses.clear()
-        self._recording_start_time = None
-        self._recording_time_offset = 0.0
-        self._recording_insert_time = None
-        self._replay_text = ''
+        self.key_recorder.clear()
         if self.gui:
             self.app.ui.set_text('')
 
@@ -298,10 +254,7 @@ class Tuney(BaseModel):
         if self.gui:
             self.app.record_undo()
         self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
-        self._recording_start_time = None
-        self._recording_time_offset = 0.0
-        self._recording_insert_time = None
-        self._replay_text = ''
+        self.key_recorder.clear()
         if self.gui:
             self.app.ui.set_text(text)
 
@@ -399,67 +352,11 @@ class Tuney(BaseModel):
             self.app.on_char(c)
 
     def _clear_cached_values(self) -> None:
-        fields = type(self).model_fields
-        keep = {'app', 'listener'}
+        fields = Tuney.model_fields
+        keep = {'app', 'listener', 'key_recorder', 'audio_recorder'}
         for key in tuple(self.__dict__):
             if key not in fields and key not in keep:
                 self.__dict__.pop(key, None)
-
-    def on_transport_state(
-        self,
-        old_state: State,
-        state: State,
-        action: Action,
-        path: Path | None = None,
-    ) -> bool:
-        if action == Action.save:
-            if path is None:
-                return False
-            if old_state == State.recording:
-                self._stop_audio_recording()
-            self._save_audio_recording(path)
-        elif action == Action.clear:
-            if old_state == State.recording:
-                self._stop_audio_recording()
-            self._clear_audio_recording()
-        elif state == State.paused:
-            self._stop_audio_recording()
-        else:
-            self._start_audio_recording()
-        return True
-
-    def _start_audio_recording(self) -> None:
-        if self._audio_recording_path is None:
-            self._audio_recording_path = (
-                Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
-            )
-            self._audio_recording_path.touch()
-            self._audio_recording_comment = self._output_comment()
-        assert self._audio_recording_path is not None
-        self.player.start_recording(
-            self._audio_recording_path,
-            self._audio_recording_comment,
-            append=self._audio_recording_started,
-        )
-        self._audio_recording_started = True
-
-    def _stop_audio_recording(self) -> None:
-        self.player.stop_recording()
-
-    def _save_audio_recording(self, path: Path) -> None:
-        if self._audio_recording_path is None:
-            return
-        self._audio_recording_path.replace(path)
-        self._audio_recording_path = None
-        self._audio_recording_started = False
-        self._audio_recording_comment = None
-
-    def _clear_audio_recording(self) -> None:
-        if self._audio_recording_path is not None:
-            self._audio_recording_path.unlink(missing_ok=True)
-        self._audio_recording_path = None
-        self._audio_recording_started = False
-        self._audio_recording_comment = None
 
     @property
     def _is_listening(self) -> bool:
@@ -471,22 +368,7 @@ class Tuney(BaseModel):
         )
 
     def on_replay(self) -> None:
-        self.player.stop_all()
-
-        sequencer, self._sequencer = self._sequencer, None
-        if sequencer:
-            sequencer.stop()
-
-        if self.app.is_replaying:
-            self._replay_text = ''
-            self.app.ui.set_text(self._replay_text)
-            self._sequencer = Sequencer(
-                char_presses=self._replay_char_presses(), callback=self._on_replay
-            )
-            self._sequencer.start()
-        else:
-            self._replay_text = ''
-            self.app.ui.set_text(self.display_text)
+        self.key_recorder.on_replay(self)
 
     def _replay_char_presses(self) -> list[CharPress]:
         char_presses = _loop_window(
@@ -506,20 +388,7 @@ class Tuney(BaseModel):
             return list(self.text_timings.char_presses(self.display_text))
         return self.char_presses
 
-    def _on_replay(self, c: CharPress | None) -> None:
-        if c:
-            if c.is_press:
-                self._replay_text += c.char
-                self.app.after(0, self.app.ui.set_text, self._replay_text)
-            self._on_char(c)
-        elif self.app.is_replaying and self._sequencer is not None:
-            self.app.after(0, self._finish_replay)
-
-    def _finish_replay(self) -> None:
-        if self.app.loop_replay and self._replay_char_presses():
-            self.on_replay()
-            return
-        self.player.stop_all()
+    def _stop_replaying(self) -> None:
         self.app.is_replaying = False
 
     def __call__(self) -> None:
@@ -542,14 +411,24 @@ class Tuney(BaseModel):
             sys.exit('CLI mode requires sound')
 
         completed = False
+        start_time = datetime.now(timezone.utc)
+
+        def comment() -> str:
+            return tomlkit.dumps(
+                {
+                    'original_text': self.display_text,
+                    'recording_start_time': start_time.isoformat(),
+                    'recording_finish_time': datetime.now(timezone.utc).isoformat(),
+                    'settings': tomlkit.dumps(serialize(self.dump_data())),
+                }
+            )
+
         try:
             if self.output and self.silent:
-                self.player.render_file(
-                    self.output, self._note_events(), self._output_comment()
-                )
+                self.player.render_file(self.output, self._note_events(), comment)
             else:
                 if self.output:
-                    self.player.start_recording(self.output, self._output_comment())
+                    self.player.start_recording(self.output, comment)
                 self._play_cli()
             completed = True
         finally:

@@ -30,9 +30,9 @@ class DType(StrEnum):
 
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: Annotated[
-        int | None, tyro_option(), control(beginner=True, row=0)
-    ] = None
+    samplerate: Annotated[int | None, tyro_option(), control(beginner=True, row=0)] = (
+        None
+    )
 
     # Audio output device name or index
     device: Annotated[

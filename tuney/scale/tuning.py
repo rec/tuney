@@ -91,9 +91,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: The note number of the reference note
     root_note: Annotated[
         NoteNumber, tyro_option(aliases=['-W']), control(beginner=True, row=0, order=5)
-    ] = (
-        69  # MIDI note 69 is A440, for non-Yamaha units
-    )
+    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[

@@ -94,9 +94,9 @@ class Mapper(BaseModel, frozen=True):
     ] = True
 
     # Reverse the order of mapped note numbers
-    invert: Annotated[
-        bool, tyro_option(aliases=['-I']), control(row=1, order=5)
-    ] = False
+    invert: Annotated[bool, tyro_option(aliases=['-I']), control(row=1, order=5)] = (
+        False
+    )
 
     # Offset from the center of the mapped note range
     offset: Annotated[

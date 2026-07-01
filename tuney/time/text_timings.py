@@ -39,9 +39,7 @@ class TextTimings(BaseModel, frozen=True):
     blank_line: Annotated[Milliseconds, tyro_option(), control(row=0, order=5)] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[
-        Milliseconds, tyro_option(), control(beginner=True, row=1)
-    ] = 20
+    overlap: Annotated[Milliseconds, tyro_option(), control(beginner=True, row=1)] = 20
 
     # Seed for randomized character timings, or a random seed if empty
     seed: Annotated[int | None, tyro_option(), control(row=1, order=1)] = None
@@ -53,9 +51,7 @@ class TextTimings(BaseModel, frozen=True):
     strip_accents: Annotated[bool, tyro_option(), control(row=1, order=3)] = True
 
     # Multiplier applied to all generated timing values
-    scale: Annotated[
-        float, tyro_option(), control(beginner=True, row=1, order=4)
-    ] = 1.0
+    scale: Annotated[float, tyro_option(), control(beginner=True, row=1, order=4)] = 1.0
 
     # Additional per-character base durations, in milliseconds
     other: Annotated[dict[str, Milliseconds], tyro_option(), control(row=2)] = Field(

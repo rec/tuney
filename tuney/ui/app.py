@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..keyboard.char_press import CharPress
+from ..recorders import KeyRecorder
 from .help import show_help
 from .transport import Action, State
 
@@ -68,10 +69,7 @@ def set_app_name(app: QMainWindow) -> None:
 
 class HistoryState(BaseModel, frozen=True):
     tuney: dict[str, object]
-    recording_start_time: float | None
-    recording_time_offset: float
-    recording_insert_time: float | None
-    replay_text: str
+    key_recorder: KeyRecorder
     loop_replay: bool
     loop_before: float
     loop_after: float
@@ -225,10 +223,7 @@ class App(QMainWindow):
         self._restore_history_state(
             HistoryState(
                 tuney=data,
-                recording_start_time=None,
-                recording_time_offset=0.0,
-                recording_insert_time=None,
-                replay_text='',
+                key_recorder=KeyRecorder(),
                 loop_replay=False,
                 loop_before=0.0,
                 loop_after=0.0,
@@ -271,7 +266,14 @@ class App(QMainWindow):
                 self._is_saving = False
                 self._has_focus = False
         path = Path(filename) if filename else None
-        return self.tuney.on_transport_state(old_state, state, action, path)
+        return self.tuney.audio_recorder.on_transport_state(
+            old_state,
+            state,
+            action,
+            self.tuney.player,
+            self.tuney._output_comment,
+            path,
+        )
 
     def on_refresh_devices(self, *_: object) -> None:
         self.ui.refresh_devices()
@@ -441,10 +443,7 @@ class App(QMainWindow):
     def _history_state(self) -> HistoryState:
         return HistoryState(
             tuney=deepcopy(self.tuney.dump_data()),
-            recording_start_time=self.tuney._recording_start_time,
-            recording_time_offset=self.tuney._recording_time_offset,
-            recording_insert_time=self.tuney._recording_insert_time,
-            replay_text=self.tuney._replay_text,
+            key_recorder=self.tuney.key_recorder.model_copy(deep=True),
             loop_replay=self.loop_replay,
             loop_before=self.loop_before,
             loop_after=self.loop_after,
@@ -454,10 +453,16 @@ class App(QMainWindow):
 
     def _restore_history_state(self, state: HistoryState) -> None:
         self.tuney.restore_data(state.tuney)
-        self.tuney._recording_start_time = state.recording_start_time
-        self.tuney._recording_time_offset = state.recording_time_offset
-        self.tuney._recording_insert_time = state.recording_insert_time
-        self.tuney._replay_text = state.replay_text
+        self.tuney.key_recorder.recording_start_time = (
+            state.key_recorder.recording_start_time
+        )
+        self.tuney.key_recorder.recording_time_offset = (
+            state.key_recorder.recording_time_offset
+        )
+        self.tuney.key_recorder.recording_insert_time = (
+            state.key_recorder.recording_insert_time
+        )
+        self.tuney.key_recorder.replay_text = state.key_recorder.replay_text
         self._loop_replay = state.loop_replay
         self.loop_before = state.loop_before
         self.loop_after = state.loop_after
