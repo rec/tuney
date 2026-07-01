@@ -29,3 +29,8 @@ and change if you like.
 
 The later portions of the code were written with the aid of AI coding models, carefully
 reviewed by a human.
+
+## Testing release builds
+
+See [tester instructions](doc/tester-instructions.md) for downloading and running the
+Windows, macOS and Linux release builds.

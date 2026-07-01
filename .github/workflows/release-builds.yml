@@ -28,6 +28,7 @@ jobs:
     needs: validate-tag
     runs-on: ${{ matrix.os }}
     env:
+      ARTIFACT_NAME: Tuney-${{ github.ref_name }}-${{ matrix.package }}.${{ matrix.extension }}
       UV_NO_SOURCES: '1'
     strategy:
       fail-fast: false
@@ -35,15 +36,18 @@ jobs:
         include:
           - name: macOS
             os: macos-latest
-            artifact: Tuney-macOS.zip
+            package: macOS
+            extension: zip
             dist-path: dist/Tuney.app
           - name: Windows
             os: windows-latest
-            artifact: Tuney-Windows.zip
+            package: Windows
+            extension: zip
             dist-path: dist/Tuney
           - name: Linux
             os: ubuntu-22.04
-            artifact: Tuney-Linux.tar.gz
+            package: Linux
+            extension: tar.gz
             dist-path: dist/Tuney
 
     steps:
@@ -63,8 +67,56 @@ jobs:
       - name: Test
         run: uv run pytest
 
+      - name: Write Windows version metadata
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $parts = $version.Split(".")
+          while ($parts.Length -lt 4) {
+            $parts += "0"
+          }
+          $tuple = ($parts[0..3] -join ", ")
+          @"
+          # UTF-8
+          VSVersionInfo(
+            ffi=FixedFileInfo(
+              filevers=($tuple),
+              prodvers=($tuple),
+              mask=0x3f,
+              flags=0x0,
+              OS=0x40004,
+              fileType=0x1,
+              subtype=0x0,
+              date=(0, 0),
+            ),
+            kids=[
+              StringFileInfo([
+                StringTable(
+                  '040904B0',
+                  [
+                    StringStruct('CompanyName', 'Tuney'),
+                    StringStruct('FileDescription', 'Tuney text-to-music instrument'),
+                    StringStruct('FileVersion', '$version'),
+                    StringStruct('InternalName', 'Tuney'),
+                    StringStruct('OriginalFilename', 'Tuney.exe'),
+                    StringStruct('ProductName', 'Tuney'),
+                    StringStruct('ProductVersion', '$version'),
+                  ],
+                )
+              ]),
+              VarFileInfo([VarStruct('Translation', [1033, 1200])]),
+            ],
+          )
+          "@ | Set-Content windows-version-info.txt
+
       - name: Build application
+        if: runner.os != 'Windows'
         run: uv run --with pyinstaller pyinstaller --windowed --name Tuney --add-data tuney:tuney --add-data README.md:README.md pyinstaller_entrypoint.py
+
+      - name: Build Windows application
+        if: runner.os == 'Windows'
+        run: uv run --with pyinstaller pyinstaller --windowed --name Tuney --icon icon.png --version-file windows-version-info.txt --add-data tuney:tuney --add-data README.md:README.md pyinstaller_entrypoint.py
 
       - name: Ad-hoc sign macOS app
         if: runner.os == 'macOS'
@@ -72,21 +124,36 @@ jobs:
 
       - name: Package macOS artifact
         if: runner.os == 'macOS'
-        run: ditto -c -k --keepParent "${{ matrix.dist-path }}" "${{ matrix.artifact }}"
+        run: ditto -c -k --keepParent "${{ matrix.dist-path }}" "$ARTIFACT_NAME"
 
       - name: Package Windows artifact
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path "${{ matrix.dist-path }}" -DestinationPath "${{ matrix.artifact }}"
+        run: |
+          (Get-Content -Raw packaging/README-WINDOWS.txt).Replace("<version>", "${{ github.ref_name }}") | Set-Content "${{ matrix.dist-path }}/README-WINDOWS.txt"
+          Compress-Archive -Path "${{ matrix.dist-path }}" -DestinationPath "$env:ARTIFACT_NAME"
 
       - name: Package Linux artifact
         if: runner.os == 'Linux'
-        run: tar -czf "${{ matrix.artifact }}" -C dist Tuney
+        run: tar -czf "$ARTIFACT_NAME" -C dist Tuney
+
+      - name: Write SHA256 checksum
+        if: runner.os != 'Windows'
+        run: shasum -a 256 "$ARTIFACT_NAME" > "$ARTIFACT_NAME.sha256"
+
+      - name: Write Windows SHA256 checksum
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 "$env:ARTIFACT_NAME").Hash.ToLower()
+          "$hash  $env:ARTIFACT_NAME" | Set-Content "$env:ARTIFACT_NAME.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.ARTIFACT_NAME }}
+            ${{ env.ARTIFACT_NAME }}.sha256
 
   release:
     name: Publish release
@@ -104,4 +171,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+        run: |
+          cat > RELEASE-NOTES.md <<EOF
+          ## Downloads
+
+          - Windows: download \`Tuney-$TAG-Windows.zip\`.
+          - macOS: download \`Tuney-$TAG-macOS.zip\`.
+          - Linux: download \`Tuney-$TAG-Linux.tar.gz\`.
+
+          Do not download the "Source code" files unless you want to install Tuney from Python.
+
+          ## Windows testers
+
+          Extract the zip first, open the extracted \`Tuney\` folder, then run \`Tuney.exe\`.
+          Do not move \`Tuney.exe\` out of the folder. It needs the files next to it.
+
+          This Windows build is unsigned, so antivirus software may warn before running it.
+
+          ## Checksums
+
+          SHA256 checksum files are attached next to each build.
+          EOF
+          notes="$(cat RELEASE-NOTES.md)"
+          gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "$notes" --generate-notes

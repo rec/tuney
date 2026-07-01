@@ -55,8 +55,10 @@ uv run --with pyinstaller pyinstaller \
   --specpath "$build_root" \
   --windowed \
   --name Tuney \
+  --icon "$repo_root/icon.png" \
   --add-data "$repo_root/tuney:tuney" \
   --add-data "$repo_root/README.md:README.md" \
+  --add-data "$repo_root/packaging/README-WINDOWS.txt:README-WINDOWS.txt" \
   pyinstaller_entrypoint.py
 
 if [[ "$(uname)" == "Darwin" ]]; then
