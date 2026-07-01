@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..types import NoteNumber
+from ..scale import NoteNumber
 from .device import Device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress

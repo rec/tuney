@@ -8,10 +8,9 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
-from tuney.tyro_option import tyro_option
-
 from ..char_press import CharPress
-from ..types import Milliseconds
+from ..tyro_option import tyro_option
+from . import Milliseconds
 from .sequencer import Sequencer
 
 

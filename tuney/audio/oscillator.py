@@ -6,7 +6,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from ..named_enum import NamedEnum
-from ..types import NoteNumber
+from ..scale import NoteNumber
 from ..tyro_option import tyro_option
 from .scipy import sawtooth
 

@@ -7,8 +7,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from ..scale import NoteNumber
 from ..scale.scale import Scale
-from ..types import NoteNumber
 from ..tyro_option import tyro_option
 from .device import Device
 from .engine import AudioEngine, Configure, StopAll, port_audio_error

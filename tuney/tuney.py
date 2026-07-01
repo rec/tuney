@@ -23,9 +23,9 @@ from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .presets import merged_data, read_file, read_preset
 from .serialize import serialize
+from .time import Milliseconds, Seconds, to_ms
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
-from .types import Milliseconds, Seconds, to_ms
 from .ui.transport import Action, State
 
 if TYPE_CHECKING:

@@ -1,10 +1,15 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 import tyro
 from pydantic import ValidationError
 
 from .presets import merged_data, read_file, read_preset
+
+
+def unprefixed_arg(**kwargs: Any) -> Any:
+    return tyro.conf.arg(prefix_name=False, **kwargs)
 
 
 def cli(cls, prog: str):

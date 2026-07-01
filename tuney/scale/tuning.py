@@ -6,8 +6,10 @@ from typing import Annotated, Protocol, runtime_checkable
 from pydantic import BaseModel, Field
 
 from ..named_enum import NamedEnum
-from ..types import Frequency, NoteNumber
 from ..tyro_option import tyro_option
+from . import NoteNumber
+
+type Frequency = float  # Must be non-negative
 
 # TODO: make sure we can serialize and deserialize Fraction (as str)
 

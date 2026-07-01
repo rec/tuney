@@ -5,7 +5,7 @@ from functools import cached_property
 import numpy as np
 from pydantic import BaseModel
 
-from ..types import Seconds
+from ..time import Seconds
 from .oscillator import Oscillator
 
 DEFAULT_FADE: Seconds = 0x1000 / 48_000
