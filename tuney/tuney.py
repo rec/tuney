@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, NoReturn
+from typing import TYPE_CHECKING, Annotated, NoReturn, final
 
 import tomlkit
 import tyro
@@ -40,6 +40,7 @@ class NoteLabel(BaseModel, frozen=True):
         return '\n'.join(self.labels)
 
 
+@final
 class Tuney(BaseModel):
     """Turn text into music.
 
@@ -273,8 +274,8 @@ class Tuney(BaseModel):
     def apply_preset(self, name: str) -> None:
         char_presses = self.__dict__.get('char_presses')
         data = merged_data(self.model_dump(), read_preset(name), {'preset': name})
-        validated = type(self).model_validate(data)
-        for field in type(self).model_fields:
+        validated = Tuney.model_validate(data)
+        for field in Tuney.model_fields:
             object.__setattr__(self, field, getattr(validated, field))
         self._clear_cached_values()
         if char_presses is not None:
@@ -282,8 +283,8 @@ class Tuney(BaseModel):
 
     def restore_data(self, data: dict[str, object]) -> None:
         autosave_file = self.autosave_file
-        validated = type(self).model_validate(data)
-        for field in type(self).model_fields:
+        validated = Tuney.model_validate(data)
+        for field in Tuney.model_fields:
             object.__setattr__(self, field, getattr(validated, field))
         if 'autosave_file' not in data:
             object.__setattr__(self, 'autosave_file', autosave_file)
