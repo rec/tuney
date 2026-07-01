@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..control import Control
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
@@ -195,22 +196,12 @@ def _add_section_title(parent: QWidget, title: str) -> None:
 
 
 def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel, str]]:
-    controls = [
-        (data, 'preset'),
-        (data, 'max_gap'),
-        (data, 'hover_time'),
-        (data, 'silent'),
-        (data, 'run_in_background'),
-        (data.player, 'gain'),
-        (data.player, 'note_offset'),
-        (data.player.scale.tuning.pitch_to_frequency, 'function'),
-    ]
-    if advanced:
-        return controls
     return [
         (model, name)
-        for model, name in controls
-        if _is_beginner_field(model, name) or name in {'preset', 'max_gap', 'silent'}
+        for model in _model_tree(data)
+        for name in type(model).model_fields
+        if _control_metadata(type(model), name).general
+        and (advanced or _is_beginner_field(model, name))
     ]
 
 
@@ -265,18 +256,33 @@ def _add_control_grid(
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
-    config = constants.CONTROL_CONFIGS.get(type(data).__name__)
-    if config is None or not config.rows:
+    if not any(_control_metadata(type(data), name).row is not None for name in fields):
         return _grid_rows(fields)
 
-    used: set[str] = set()
     rows: list[list[str]] = []
-    for configured_row in config.rows:
-        if row := [name for name in configured_row if name in fields]:
-            rows.append(row)
-            used.update(row)
+    row_numbers = sorted(
+        {
+            row
+            for name in fields
+            if (row := _control_metadata(type(data), name).row) is not None
+        }
+    )
+    for row_number in row_numbers:
+        row = [
+            name
+            for name in fields
+            if _control_metadata(type(data), name).row == row_number
+        ]
+        rows.append(
+            sorted(
+                row,
+                key=lambda name: _control_metadata(type(data), name).order,
+            )
+        )
 
-    extra_fields = [name for name in fields if name not in used]
+    extra_fields = [
+        name for name in fields if _control_metadata(type(data), name).row is None
+    ]
     rows.extend(_grid_rows(extra_fields))
     return rows
 
@@ -316,12 +322,12 @@ def _add_control_cell(
 
 def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     cls = type(data)
-    config = constants.CONTROL_CONFIGS.get(cls.__name__)
-    hidden = config.hidden_fields + config.general_fields if config else []
     return tuple(
         name
         for name in cls.model_fields
-        if name not in hidden and not _is_suppressed_field(cls, name)
+        if not _is_suppressed_field(cls, name)
+        and not _control_metadata(cls, name).hidden
+        and not _control_metadata(cls, name).general
     )
 
 
@@ -408,8 +414,27 @@ def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
 
 
 def _is_beginner_field(data: BaseModel, name: str) -> bool:
-    config = constants.CONTROL_CONFIGS.get(type(data).__name__)
-    return config is None or name in config.beginner_fields
+    return _control_metadata(type(data), name).beginner
+
+
+def _model_tree(data: BaseModel) -> list[BaseModel]:
+    models = [data]
+    for name in type(data).model_fields:
+        if _is_suppressed_field(type(data), name):
+            continue
+        if _control_metadata(type(data), name).hidden:
+            continue
+        child = getattr(data, name)
+        if isinstance(child, BaseModel):
+            models.extend(_model_tree(child))
+    return models
+
+
+def _control_metadata(cls: type[BaseModel], name: str) -> Control:
+    for metadata in cls.model_fields[name].metadata:
+        if isinstance(metadata, Control):
+            return metadata
+    return Control()
 
 
 def _display_label(name: str) -> str:

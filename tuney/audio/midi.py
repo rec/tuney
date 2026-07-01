@@ -7,6 +7,7 @@ from typing import Annotated, Any, cast
 import mido
 from pydantic import BaseModel
 
+from ..control import control
 from ..tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
@@ -18,22 +19,31 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 
 class MIDI(BaseModel, frozen=True):
     # Enable MIDI output
-    enable: Annotated[bool, tyro_option(name='midi-enable')] = False
+    enable: Annotated[
+        bool, tyro_option(name='midi-enable'), control(beginner=True, row=0)
+    ] = False
 
     # MIDI output port name
     output: Annotated[
         str | None,
         tyro_option(name='midi-output'),
+        control(beginner=True, row=0, order=1),
     ] = None
 
     # MIDI channel, from 0 to 15
-    channel: Annotated[int, tyro_option(name='midi-channel')] = 0
+    channel: Annotated[
+        int, tyro_option(name='midi-channel'), control(row=0, order=2)
+    ] = 0
 
     # Velocity used for MIDI note-on messages
-    velocity: Annotated[int, tyro_option(name='midi-velocity')] = 0x40
+    velocity: Annotated[
+        int, tyro_option(name='midi-velocity'), control(row=0, order=3)
+    ] = 0x40
 
     # Offset added to MIDI note numbers
-    note_offset: Annotated[int, tyro_option(name='midi-note-offset')] = 0
+    note_offset: Annotated[
+        int, tyro_option(name='midi-note-offset'), control(row=0, order=4)
+    ] = 0
 
     @cached_property
     def outport(self) -> Any:

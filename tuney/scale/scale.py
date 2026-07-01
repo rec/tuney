@@ -10,6 +10,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, Field
 
+from ..control import control
 from ..tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
@@ -53,35 +54,52 @@ class Scale(BaseModel, frozen=True):
     """
 
     #: The base note names
-    note_names: Annotated[str, tyro_option(aliases=['-A'])] = string.ascii_uppercase
+    note_names: Annotated[str, tyro_option(aliases=['-A']), control(row=2)] = (
+        string.ascii_uppercase
+    )
 
     #: The root note to start scales with
-    root: Annotated[str, tyro_option(aliases=['-q'])] = 'C'
+    root: Annotated[str, tyro_option(aliases=['-q']), control(beginner=True, row=0)] = (
+        'C'
+    )
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
-    begin: Annotated[str, tyro_option(aliases=['-j'])] = 'A'
+    begin: Annotated[
+        str, tyro_option(aliases=['-j']), control(beginner=True, row=0, order=1)
+    ] = 'A'
 
     #: The Last note from the alphabet
-    end: Annotated[str, tyro_option(aliases=['-E'])] = 'G'
+    end: Annotated[
+        str, tyro_option(aliases=['-E']), control(beginner=True, row=0, order=2)
+    ] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
     # `notes` are actually used in the list.
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: Annotated[str | None, tyro_option(aliases=['-Q'])] = None
+    notes: Annotated[
+        str | None, tyro_option(aliases=['-Q']), control(beginner=True, row=1)
+    ] = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
-    intervals: Annotated[list[int], validate_intervals, tyro_option(aliases=['-i'])] = (
-        Field(default_factory=lambda: list(INTERVALS))
-    )
+    intervals: Annotated[
+        list[int],
+        validate_intervals,
+        tyro_option(aliases=['-i']),
+        control(beginner=True, row=1, order=1),
+    ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
-    accidentals: Annotated[Accidentals, tyro_option(aliases=['-X'])] = Accidentals.whole
+    accidentals: Annotated[
+        Accidentals, tyro_option(aliases=['-X']), control(beginner=True, row=1, order=2)
+    ] = Accidentals.whole
 
     #: Offset all note numbers by this
-    offset: Annotated[int, tyro_option(name='scale-offset', aliases=['-Y'])] = 0
+    offset: Annotated[
+        int, tyro_option(name='scale-offset', aliases=['-Y']), control(row=0, order=3)
+    ] = 0
 
     #: The Tuning for this Scale
     tuning: Tuning = Tuning()
