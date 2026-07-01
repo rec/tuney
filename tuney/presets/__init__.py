@@ -5,7 +5,7 @@ from typing import Any
 
 from typing_extensions import TypeIs
 
-BUILTIN_PRESETS = Path(__file__).resolve().parent / 'presets'
+BUILTIN_PRESETS = Path(__file__).resolve().parent
 USER_PRESETS = Path.home() / '.config' / 'tuney' / 'presets'
 PRESET_SUFFIXES = ['.toml', '.json']
 FORBIDDEN_PRESET_FIELDS = ['text', 'text_args']
