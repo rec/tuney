@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tuney.char_press import CharPress
+from tuney.keyboard.char_press import CharPress
 from tuney.presets import preset_names, read_preset
 from tuney.tuney import Tuney
 

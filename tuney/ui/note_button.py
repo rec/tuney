@@ -6,7 +6,7 @@ from collections.abc import Callable
 from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import QGridLayout, QPushButton
 
-from ..char_press import CharPress
+from ..keyboard.char_press import CharPress
 from . import constants
 
 FONT_FAMILY = 'Arial'

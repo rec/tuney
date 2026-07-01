@@ -5,8 +5,8 @@ from collections.abc import Callable
 from functools import cached_property, wraps
 from typing import Any, Literal
 
-from ..char_press import CharPress
 from ..runnable import Runnable
+from .char_press import CharPress
 from .modifiers import Modifiers
 
 WHITESPACE = {'space': ' ', 'enter': '\n', 'backspace': '\b'}

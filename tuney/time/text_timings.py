@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
-from ..char_press import CharPress
+from ..keyboard.char_press import CharPress
 from ..tyro_option import tyro_option
 from . import Milliseconds
 from .sequencer import Sequencer

@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
-from .char_press import CharPress
+from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .presets import merged_data, read_file, read_preset

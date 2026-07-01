@@ -3,7 +3,7 @@ import tomllib
 import pytest
 import tomlkit
 
-from tuney.char_press import CharPress
+from tuney.keyboard.char_press import CharPress
 from tuney.serialize import serialize
 from tuney.tuney import Tuney
 

@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..char_press import CharPress
+from ..keyboard.char_press import CharPress
 from .help import show_help
 from .transport import Action, State
 

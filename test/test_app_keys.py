@@ -9,7 +9,7 @@ def test_qt_key_events() -> None:
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QKeyEvent
 
-        from tuney.char_press import CharPress
+        from tuney.keyboard.char_press import CharPress
         from tuney.ui import app as app_module
         from tuney.ui.app import App, _event_char
 
@@ -50,7 +50,7 @@ def test_app_event_filter() -> None:
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QKeyEvent
 
-        from tuney.char_press import CharPress
+        from tuney.keyboard.char_press import CharPress
         from tuney.ui import app as app_module
         from tuney.ui.app import App
 
@@ -165,7 +165,7 @@ def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """
         from tuney.tuney import Tuney
-        from tuney.char_press import CharPress
+        from tuney.keyboard.char_press import CharPress
         from tuney.ui import app as app_module
         from tuney.ui.app import App
 
