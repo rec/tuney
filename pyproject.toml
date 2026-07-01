@@ -50,7 +50,7 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 quote-style = "single"
 
 [tool.ty.environment]
-extra-paths = ["typings"]
+extra-paths = ["type_stubs"]
 
 [project.scripts]
 tuney = "tuney.__main__:main"
