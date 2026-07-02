@@ -50,6 +50,7 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 quote-style = "single"
 
 [tool.ty.environment]
+root = ["."]
 extra-paths = ["type_stubs"]
 
 [project.scripts]
