@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from enum import StrEnum, auto
-from functools import cache
-from typing import Any
+
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
+
+from . import Action, State, StateChange
+from .tooltip import Tooltip
 
 IMAGE_SIZE = 24
 BUTTON_SIZE = 34
@@ -20,139 +24,107 @@ TOOLTIPS = {
 }
 
 
-class State(StrEnum):
-    ready = auto()
-    recording = auto()
-    paused = auto()
+class Transport(QWidget):
+    def __init__(
+        self,
+        parent: QWidget,
+        callback: Callable[[StateChange], bool],
+        hover_time: Callable[[], float],
+    ) -> None:
+        super().__init__(parent)
+        self.callback = callback
+        self.hover_time = hover_time
+        self._state = State.ready
+        self._flash_on = False
+        self._flash_timer = QTimer(self)
+        self._flash_timer.timeout.connect(self._flash_record)
+        self.record_icon = _circle(RED)
+        self.disabled_stop_icon = _square(GREY)
+        self.stop_icon = _square(BLACK)
+        self.pause_icon = _pause(RED)
+        self.save_icon = _save(BLACK)
+        self.disabled_save_icon = _save(GREY)
+        self.clear_icon = _cross(BLACK)
+        self.disabled_clear_icon = _cross(GREY)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.record = _button(self.record_icon, self._on_record)
+        self.stop = _button(self.disabled_stop_icon, self._on_stop)
+        self.save = _button(self.disabled_save_icon, self._on_save)
+        self.clear = _button(self.disabled_clear_icon, self._on_clear)
+        for button in [self.record, self.stop, self.save, self.clear]:
+            layout.addWidget(button)
+        self._add_tooltips()
+        self._configure_buttons()
+
+    @property
+    def state(self) -> State:
+        return self._state
+
+    def _on_record(self) -> None:
+        self._set_state(_record_state(self.state), Action.record)
+
+    def _on_stop(self) -> None:
+        self._set_state(_ready_state(self.state), Action.save)
+
+    def _on_save(self) -> None:
+        self._set_state(_ready_state(self.state), Action.save)
+
+    def _on_clear(self) -> None:
+        self._set_state(_ready_state(self.state), Action.clear)
+
+    def _set_state(self, state: State, action: Action) -> None:
+        if state == self.state:
+            return
+        change = StateChange(old_state=self.state, state=state, action=action)
+        if not self.callback(change):
+            return
+        self._state = state
+        self._configure_buttons()
+
+    def _configure_buttons(self) -> None:
+        if self.state == State.recording:
+            self._start_flashing()
+        else:
+            self._stop_flashing()
+            self.record.setIcon(self.record_icon)
+
+        ready = self.state == State.ready
+        self.stop.setIcon(self.disabled_stop_icon if ready else self.stop_icon)
+        self.stop.setEnabled(not ready)
+        self.save.setIcon(self.disabled_save_icon if ready else self.save_icon)
+        self.save.setEnabled(not ready)
+        self.clear.setIcon(self.disabled_clear_icon if ready else self.clear_icon)
+        self.clear.setEnabled(not ready)
+
+    def _start_flashing(self) -> None:
+        if self._flash_timer.isActive():
+            return
+        self._flash_on = True
+        self.record.setIcon(self.pause_icon)
+        self._flash_timer.start(FLASH_INTERVAL_MS)
+
+    def _stop_flashing(self) -> None:
+        self._flash_timer.stop()
+        self._flash_on = False
+
+    def _flash_record(self) -> None:
+        if self.state != State.recording:
+            self._stop_flashing()
+            return
+        self._flash_on = not self._flash_on
+        self.record.setIcon(self.pause_icon if self._flash_on else self.record_icon)
+
+    def _add_tooltips(self) -> None:
+        Tooltip(self.record, TOOLTIPS['record'], self.hover_time)
+        Tooltip(self.stop, TOOLTIPS['stop'], self.hover_time)
+        Tooltip(self.save, TOOLTIPS['save'], self.hover_time)
+        Tooltip(self.clear, TOOLTIPS['clear'], self.hover_time)
 
 
-class Action(StrEnum):
-    record = auto()
-    save = auto()
-    clear = auto()
-
-
-def __getattr__(name: str) -> Any:
-    if name == 'Transport':
-        transport = _transport_class()
-        globals()[name] = transport
-        return transport
-    raise AttributeError(name)
-
-
-@cache
-def _transport_class() -> type[Any]:
-    from PySide6.QtCore import QTimer
-    from PySide6.QtWidgets import QHBoxLayout, QWidget
-
-    from .tooltip import Tooltip
-
-    class Transport(QWidget):
-        def __init__(
-            self,
-            parent: QWidget,
-            callback: Callable[[State, State, Action], bool],
-            hover_time: Callable[[], float],
-        ) -> None:
-            super().__init__(parent)
-            self.callback = callback
-            self.hover_time = hover_time
-            self._state = State.ready
-            self._flash_on = False
-            self._flash_timer = QTimer(self)
-            self._flash_timer.timeout.connect(self._flash_record)
-            self.record_icon = _circle(RED)
-            self.disabled_stop_icon = _square(GREY)
-            self.stop_icon = _square(BLACK)
-            self.pause_icon = _pause(RED)
-            self.save_icon = _save(BLACK)
-            self.disabled_save_icon = _save(GREY)
-            self.clear_icon = _cross(BLACK)
-            self.disabled_clear_icon = _cross(GREY)
-
-            layout = QHBoxLayout(self)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
-            self.record = _button(self.record_icon, self._on_record)
-            self.stop = _button(self.disabled_stop_icon, self._on_stop)
-            self.save = _button(self.disabled_save_icon, self._on_save)
-            self.clear = _button(self.disabled_clear_icon, self._on_clear)
-            for button in [self.record, self.stop, self.save, self.clear]:
-                layout.addWidget(button)
-            self._add_tooltips()
-            self._configure_buttons()
-
-        @property
-        def state(self) -> State:
-            return self._state
-
-        def _on_record(self) -> None:
-            self._set_state(_record_state(self.state), Action.record)
-
-        def _on_stop(self) -> None:
-            self._set_state(_ready_state(self.state), Action.save)
-
-        def _on_save(self) -> None:
-            self._set_state(_ready_state(self.state), Action.save)
-
-        def _on_clear(self) -> None:
-            self._set_state(_ready_state(self.state), Action.clear)
-
-        def _set_state(self, state: State, action: Action) -> None:
-            if state == self.state:
-                return
-            old_state = self.state
-            if not self.callback(old_state, state, action):
-                return
-            self._state = state
-            self._configure_buttons()
-
-        def _configure_buttons(self) -> None:
-            if self.state == State.recording:
-                self._start_flashing()
-            else:
-                self._stop_flashing()
-                self.record.setIcon(self.record_icon)
-
-            ready = self.state == State.ready
-            self.stop.setIcon(self.disabled_stop_icon if ready else self.stop_icon)
-            self.stop.setEnabled(not ready)
-            self.save.setIcon(self.disabled_save_icon if ready else self.save_icon)
-            self.save.setEnabled(not ready)
-            self.clear.setIcon(self.disabled_clear_icon if ready else self.clear_icon)
-            self.clear.setEnabled(not ready)
-
-        def _start_flashing(self) -> None:
-            if self._flash_timer.isActive():
-                return
-            self._flash_on = True
-            self.record.setIcon(self.pause_icon)
-            self._flash_timer.start(FLASH_INTERVAL_MS)
-
-        def _stop_flashing(self) -> None:
-            self._flash_timer.stop()
-            self._flash_on = False
-
-        def _flash_record(self) -> None:
-            if self.state != State.recording:
-                self._stop_flashing()
-                return
-            self._flash_on = not self._flash_on
-            self.record.setIcon(self.pause_icon if self._flash_on else self.record_icon)
-
-        def _add_tooltips(self) -> None:
-            Tooltip(self.record, TOOLTIPS['record'], self.hover_time)
-            Tooltip(self.stop, TOOLTIPS['stop'], self.hover_time)
-            Tooltip(self.save, TOOLTIPS['save'], self.hover_time)
-            Tooltip(self.clear, TOOLTIPS['clear'], self.hover_time)
-
-    return Transport
-
-
-def _button(icon: Any, callback: Callable[[], None]) -> Any:
-    from PySide6.QtCore import QSize
-    from PySide6.QtWidgets import QPushButton
-
+def _button(icon: QIcon, callback: Callable[[], None]) -> QPushButton:
     button = QPushButton()
     button.setIcon(icon)
     button.setIconSize(QSize(IMAGE_SIZE, IMAGE_SIZE))
@@ -170,10 +142,7 @@ def _ready_state(state: State) -> State:
     return State.ready if state != State.ready else state
 
 
-def _circle(color: str) -> Any:
-    from PySide6.QtCore import Qt
-    from PySide6.QtGui import QColor, QIcon, QPainter
-
+def _circle(color: str) -> QIcon:
     pixmap = _blank_pixmap()
     painter = QPainter(pixmap)
     painter.setBrush(QColor(color))
@@ -183,9 +152,7 @@ def _circle(color: str) -> Any:
     return QIcon(pixmap)
 
 
-def _square(color: str) -> Any:
-    from PySide6.QtGui import QColor, QIcon, QPainter
-
+def _square(color: str) -> QIcon:
     pixmap = _blank_pixmap()
     painter = QPainter(pixmap)
     painter.fillRect(4, 4, 16, 16, QColor(color))
@@ -193,9 +160,7 @@ def _square(color: str) -> Any:
     return QIcon(pixmap)
 
 
-def _pause(color: str) -> Any:
-    from PySide6.QtGui import QColor, QIcon, QPainter
-
+def _pause(color: str) -> QIcon:
     pixmap = _blank_pixmap()
     painter = QPainter(pixmap)
     painter.fillRect(5, 3, 5, 18, QColor(color))
@@ -204,9 +169,7 @@ def _pause(color: str) -> Any:
     return QIcon(pixmap)
 
 
-def _save(color: str) -> Any:
-    from PySide6.QtGui import QColor, QIcon, QPainter, QPen
-
+def _save(color: str) -> QIcon:
     pixmap = _blank_pixmap()
     painter = QPainter(pixmap)
     pen = QPen(QColor(color), 2)
@@ -220,9 +183,7 @@ def _save(color: str) -> Any:
     return QIcon(pixmap)
 
 
-def _cross(color: str) -> Any:
-    from PySide6.QtGui import QColor, QIcon, QPainter, QPen
-
+def _cross(color: str) -> QIcon:
     pixmap = _blank_pixmap()
     painter = QPainter(pixmap)
     painter.setPen(QPen(QColor(color), 4))
@@ -232,10 +193,7 @@ def _cross(color: str) -> Any:
     return QIcon(pixmap)
 
 
-def _blank_pixmap() -> Any:
-    from PySide6.QtCore import Qt
-    from PySide6.QtGui import QPixmap
-
+def _blank_pixmap() -> QPixmap:
     pixmap = QPixmap(IMAGE_SIZE, IMAGE_SIZE)
     pixmap.fill(Qt.GlobalColor.transparent)
     return pixmap

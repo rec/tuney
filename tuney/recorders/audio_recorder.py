@@ -8,7 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from ..audio.multi_player import MultiPlayer
-from ..ui.transport import Action, State
+from ..ui import Action, State, StateChange
 
 
 class AudioRecorder(BaseModel):
@@ -18,24 +18,22 @@ class AudioRecorder(BaseModel):
 
     def on_transport_state(
         self,
-        old_state: State,
-        state: State,
-        action: Action,
+        change: StateChange,
         player: MultiPlayer,
         comment_factory: Callable[[], Callable[[], str]],
         path: Path | None = None,
     ) -> bool:
-        if action == Action.save:
+        if change.action == Action.save:
             if path is None:
                 return False
-            if old_state == State.recording:
+            if change.old_state == State.recording:
                 self.stop(player)
             self.save(path)
-        elif action == Action.clear:
-            if old_state == State.recording:
+        elif change.action == Action.clear:
+            if change.old_state == State.recording:
                 self.stop(player)
             self.clear()
-        elif state == State.paused:
+        elif change.state == State.paused:
             self.stop(player)
         else:
             self.start(player, comment_factory)

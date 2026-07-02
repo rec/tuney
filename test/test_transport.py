@@ -1,6 +1,7 @@
 import pytest
 
-from tuney.ui.transport import State, _ready_state, _record_state
+from tuney.ui import State
+from tuney.ui.transport import _ready_state, _record_state
 
 
 @pytest.mark.parametrize(

@@ -34,8 +34,8 @@ from PySide6.QtWidgets import (
 
 from ..keyboard.char_press import CharPress
 from ..recorders.key_recorder import KeyRecorder
+from . import Action, StateChange
 from .help import show_help
-from .transport import Action, State
 
 if TYPE_CHECKING:
     from ..tuney import Tuney
@@ -248,11 +248,9 @@ class App(QMainWindow):
             self._is_saving = False
             self._has_focus = False
 
-    def on_transport_state(
-        self, old_state: State, state: State, action: Action
-    ) -> bool:
+    def on_transport_state(self, change: StateChange) -> bool:
         filename = ''
-        if action == Action.save:
+        if change.action == Action.save:
             self._is_saving = True
             try:
                 result = QFileDialog.getSaveFileName(
@@ -267,9 +265,7 @@ class App(QMainWindow):
                 self._has_focus = False
         path = Path(filename) if filename else None
         return self.tuney.audio_recorder.on_transport_state(
-            old_state,
-            state,
-            action,
+            change,
             self.tuney.player,
             self.tuney._output_comment,
             path,

@@ -13,7 +13,7 @@ from tuney.audio.multi_player import MultiPlayer
 from tuney.keyboard.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
-from tuney.ui.transport import Action, State
+from tuney.ui import Action, State, StateChange
 
 
 @contextmanager
@@ -30,9 +30,7 @@ def on_transport_state(
     path: Path | None = None,
 ) -> bool:
     return tuney.audio_recorder.on_transport_state(
-        old_state,
-        state,
-        action,
+        StateChange(old_state=old_state, state=state, action=action),
         tuney.player,
         tuney._output_comment,
         path,
