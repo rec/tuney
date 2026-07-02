@@ -416,16 +416,7 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
         saved._autosave.save(saved.save)
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney._autosave.restore(
-            tuney._autosave.should_restore(
-                gui=tuney.gui,
-                config_file=tuney.config_file,
-                preset=tuney.preset,
-                text=tuney.text,
-                text_args=tuney.text_args,
-            ),
-            tuney.restore_data,
-        )
+        tuney._autosave.restore(tuney)
 
         assert tuney.max_gap == 2.0
         assert tuney.char_presses == [
@@ -443,16 +434,7 @@ def test_restore_autosave_ignores_invalid_state_file(
         path.write_text('max_gap =')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney._autosave.restore(
-            tuney._autosave.should_restore(
-                gui=tuney.gui,
-                config_file=tuney.config_file,
-                preset=tuney.preset,
-                text=tuney.text,
-                text_args=tuney.text_args,
-            ),
-            tuney.restore_data,
-        )
+        tuney._autosave.restore(tuney)
 
         assert tuney.max_gap == Tuney().max_gap
     assert f'Could not restore {path}' in capsys.readouterr().err
@@ -466,16 +448,7 @@ def test_restore_autosave_defaults_invalid_fields(
         path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney._autosave.restore(
-            tuney._autosave.should_restore(
-                gui=tuney.gui,
-                config_file=tuney.config_file,
-                preset=tuney.preset,
-                text=tuney.text,
-                text_args=tuney.text_args,
-            ),
-            tuney.restore_data,
-        )
+        tuney._autosave.restore(tuney)
 
         assert tuney.max_gap == Tuney().max_gap
         assert tuney.hover_time == 2.0
@@ -491,16 +464,7 @@ def test_restore_autosave_does_not_override_explicit_text() -> None:
         saved._autosave.save(saved.save)
         tuney = Tuney(gui=True, autosave_file=path, text='b')
 
-        tuney._autosave.restore(
-            tuney._autosave.should_restore(
-                gui=tuney.gui,
-                config_file=tuney.config_file,
-                preset=tuney.preset,
-                text=tuney.text,
-                text_args=tuney.text_args,
-            ),
-            tuney.restore_data,
-        )
+        tuney._autosave.restore(tuney)
 
         assert tuney.display_text == 'b'
 

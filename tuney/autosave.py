@@ -34,57 +34,21 @@ class Autosave(BaseModel, frozen=True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         save(self.path)
 
-    def restore_if(self, tuney: Tuney) -> None:
-        self.restore(
-            self.should_restore(
-                gui=tuney.gui,
-                config_file=tuney.config_file,
-                preset=tuney.preset,
-                text=tuney.text,
-                text_args=tuney.text_args,
-            ),
-            tuney.restore_data,
-        )
-
-    def should_restore(
-        self,
-        *,
-        gui: bool,
-        config_file: Path | None,
-        preset: str | None,
-        text: object,
-        text_args: list[str],
-    ) -> bool:
-        return (
-            gui
-            and config_file is None
-            and preset is None
-            and text is None
-            and not text_args
-        )
-
-    def restore(
-        self,
-        should_restore: bool,
-        restore_data: Callable[[dict[str, object]], None],
-    ) -> None:
-        if not should_restore or not self.path.exists():
+    def restore(self, t: Tuney) -> None:
+        if not (
+            t.gui
+            and self.path.exists()
+            and not (t.config_file or t.preset or t.text or t.text_args)
+        ):
             return
         try:
             data = read_file(self.path)
         except (OSError, ValueError) as error:
             print(f'Could not restore {self.path}: {error}', file=sys.stderr)
             return
-        self.restore_data(data, restore_data)
-
-    def restore_data(
-        self,
-        data: dict[str, object],
-        restore_data: Callable[[dict[str, object]], None],
-    ) -> None:
         while True:
             try:
-                restore_data(data)
+                t.restore_data(data)
                 return
             except ValidationError as error:
                 print(
@@ -96,6 +60,8 @@ class Autosave(BaseModel, frozen=True):
 
 
 def _delete_data_path(data: dict[str, object], loc: tuple[object, ...]) -> bool:
+    # Remove a value that failed validation from loaded autosave data.
+    # Return True if a value was deleted, otherwise False.
     current: object = data
     for part in loc[:-1]:
         if isinstance(part, str) and isinstance(current, dict):

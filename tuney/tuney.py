@@ -346,7 +346,7 @@ class Tuney(BaseModel):
 
     def __call__(self) -> None:
         if self.gui:
-            self._autosave.restore_if(self)
+            self._autosave.restore(self)
             self.start()
             self.app.mainloop()
         else:
