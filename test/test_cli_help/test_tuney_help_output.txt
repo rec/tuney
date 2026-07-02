@@ -126,6 +126,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave
         would be
         100Hz greater in frequency than the previous. (default: 2)
+  -F {power,linear}, --pitch-to-frequency {power,linear}
+        The rule for converting a pitch to a frequency (default: power)
   -U FLOAT, --root-frequency FLOAT
         The frequency of the reference `root_note` (default: 440)
   -W INT, --root-note INT
@@ -135,13 +137,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --table-blend, --no-table-blend
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)
-
- player.scale.tuning.pitch-to-frequency options
- ----------------------------------------------------------------------------------------------------------------------
-  The rule for converting a pitch to a frequency
-  ----------------------------------------------------------------------------------------------------------------------
-  -F {power,linear}, --pitch-function {power,linear}
-        The base rule for converting a pitch to a frequency (default: power)
 
  midi options
  ----------------------------------------------------------------------------------------------------------------------

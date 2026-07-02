@@ -45,13 +45,11 @@ detune = 0
 limit = 0
 notes_per_octave = 12
 octave_ratio = 2
+pitch_to_frequency = "power"
 root_frequency = 440
 root_note = 69
 table = []
 table_blend = true
-
-[player.scale.tuning.pitch_to_frequency]
-function = "power"
 
 [midi]
 enable = false

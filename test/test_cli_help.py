@@ -364,7 +364,7 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.player.scale.tuning.limit == 7
     assert tuney.player.scale.tuning.notes_per_octave == 19
     assert tuney.player.scale.tuning.octave_ratio == 3
-    assert tuney.player.scale.tuning.pitch_to_frequency.function.name == 'linear'
+    assert tuney.player.scale.tuning.pitch_to_frequency.name == 'linear'
     assert tuney.player.scale.tuning.root_frequency == 442
     assert tuney.player.scale.tuning.root_note == 70
 

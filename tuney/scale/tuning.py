@@ -35,21 +35,12 @@ def linear(root: Frequency, change: float, octaves: float) -> float:
     return root + change * octaves
 
 
-class PitchToFrequencyFunction(NamedEnum):
+class PitchToFrequency(NamedEnum):
     power = (power,)
     linear = (linear,)
 
-
-class PitchToFrequency(BaseModel, frozen=True):
-    #: The base rule for converting a pitch to a frequency
-    function: Annotated[
-        PitchToFrequencyFunction,
-        tyro_option(name='pitch-function', aliases=['-F']),
-        Control(general=True, beginner=True),
-    ] = PitchToFrequencyFunction.power
-
     def __call__(self, root: Frequency, change: float, octaves: float) -> float:
-        return self.function.value[0](root, change, octaves)
+        return self.value[0](root, change, octaves)
 
 
 class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
@@ -81,7 +72,9 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     ] = 2
 
     #: The rule for converting a pitch to a frequency
-    pitch_to_frequency: PitchToFrequency = PitchToFrequency()
+    pitch_to_frequency: Annotated[
+        PitchToFrequency, tyro_option(aliases=['-F']), Control(general=False)
+    ] = PitchToFrequency.power
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
