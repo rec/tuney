@@ -10,7 +10,7 @@ from typing import NoReturn
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 APP_STATE_DIR = Path('tuney')
-LOG_FILE = 'tuney.log'
+LOG_FILE = 'tuney.txt'
 
 
 def app_state_dir() -> Path:

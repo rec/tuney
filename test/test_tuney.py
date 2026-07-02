@@ -399,7 +399,7 @@ def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
 
         report_error('problem')
 
-        log = tmp_path / 'tuney' / 'tuney.log'
+        log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'problem' in log.read_text()
 
 
@@ -412,7 +412,7 @@ def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:
             exit_with_message('fatal')
 
         assert error.value.code == 1
-        log = tmp_path / 'tuney' / 'tuney.log'
+        log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'fatal' in log.read_text()
 
 

@@ -101,7 +101,7 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
         main()
 
     assert error.value.code == 1
-    log = tmp_path / 'tuney' / 'tuney.log'
+    log = tmp_path / 'tuney' / 'tuney.txt'
     text = log.read_text()
     assert 'RuntimeError' in text
     assert "argv=['Tuney'] frozen=True" in text

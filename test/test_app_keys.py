@@ -341,7 +341,7 @@ def test_app_activate_and_history() -> None:
                 (
                     app,
                     'Tuney log',
-                    f'Log file:\\n\\n{Path(tmp) / "tuney" / "tuney.log"}',
+                    f'Log file:\\n\\n{Path(tmp) / "tuney" / "tuney.txt"}',
                 )
             ]
         """
