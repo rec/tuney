@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import sys
 from fractions import Fraction
 from functools import cached_property
 from pathlib import Path
 
 from pydantic import BaseModel
+
+from ..app_state import report_error
 
 # See https://www.huygens-fokker.org/scala/scl_format.html
 
@@ -32,7 +33,7 @@ class Scala(BaseModel, frozen=True):
         with path.open(encoding='latin-1') as fp:
             desc, length, *names = (i.strip() for i in fp if not i.startswith('!'))
         if int(length) != len(names):
-            print(f'{length=} != {len(names)=}', file=sys.stderr)
+            report_error(f'{length=} != {len(names)=}')
 
         pitches = [to_pitch(p) for p in names if p.strip()]
         return Scala(description=desc, pitches=pitches)

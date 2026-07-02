@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
 from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
@@ -9,12 +7,12 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
+from ..app_state import app_state_dir, report_error
 from . import read_file
 
 if TYPE_CHECKING:
     from ..tuney import Tuney
 
-XDG_STATE_HOME = 'XDG_STATE_HOME'
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
 
@@ -25,10 +23,7 @@ class Autosave(BaseModel, frozen=True):
     def path(self) -> Path:
         if self.file is not None:
             return self.file
-        state_home = os.environ.get(XDG_STATE_HOME)
-        if state_home and Path(state_home).is_absolute():
-            return Path(state_home) / AUTOSAVE_FILE
-        return Path.home() / '.local' / 'state' / AUTOSAVE_FILE
+        return app_state_dir() / AUTOSAVE_FILE.name
 
     def save(self, save: Callable[[Path], None]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -44,17 +39,14 @@ class Autosave(BaseModel, frozen=True):
         try:
             data = read_file(self.path)
         except (OSError, ValueError) as error:
-            print(f'Could not restore {self.path}: {error}', file=sys.stderr)
+            report_error(f'Could not restore {self.path}: {error}')
             return
         while True:
             try:
                 t.restore_data(data)
                 return
             except ValidationError as error:
-                print(
-                    f'Could not restore fields from {self.path}: {error}',
-                    file=sys.stderr,
-                )
+                report_error(f'Could not restore fields from {self.path}: {error}')
                 if not any(_delete_data_path(data, e['loc']) for e in error.errors()):
                     return
 

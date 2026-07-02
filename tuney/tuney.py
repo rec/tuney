@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import json
-import sys
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, NoReturn, final
+from typing import TYPE_CHECKING, Annotated, final
 
 import tomlkit
 import tyro
 from pydantic import BaseModel, Field, field_validator
 
+from .app_state import exit_with_message, report_error
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
@@ -208,7 +208,7 @@ class Tuney(BaseModel):
     def append_char_press(self, c: CharPress) -> None:
         self.char_presses.append(c)
         if len(self.char_presses) > 1 and c < (d := self.char_presses[-2]):
-            print(f'Out-of-order char_press: {c} follows {d}', file=sys.stderr)
+            report_error(f'Out-of-order char_press: {c} follows {d}')
             self.char_presses.sort()
 
     def _start_backspace_repeat(self) -> None:
@@ -360,9 +360,14 @@ class Tuney(BaseModel):
 
     def _run_cli(self) -> None:
         if not self.char_presses:
-            _exit_with_missing_text()
+            exit_with_message(
+                'Required options were not provided: TEXT\n'
+                'For full helptext, run tuney --help',
+                2,
+            )
+
         if self.silent and not self.output:
-            sys.exit('CLI mode requires sound')
+            exit_with_message('CLI mode requires sound')
 
         completed = False
         start_time = datetime.now(timezone.utc)
@@ -452,11 +457,3 @@ def _loop_window(
     if result and suffix:
         result.append(CharPress(time=result[-1].time + suffix))
     return result
-
-
-def _exit_with_missing_text() -> NoReturn:
-    sys.stderr.write(
-        'Required options were not provided: TEXT\n'
-        'For full helptext, run tuney --help\n'
-    )
-    sys.exit(2)

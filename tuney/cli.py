@@ -5,6 +5,7 @@ from typing import Any
 import tyro
 from pydantic import ValidationError
 
+from .app_state import exit_with_message
 from .presets import merged_data, read_file, read_preset
 
 
@@ -32,4 +33,6 @@ def cli(cls, prog: str):
         if getattr(locals().get('f'), 'verbose', False):
             raise
         result = e
-    sys.exit(result if result is None else str(result))
+    if result is None:
+        sys.exit()
+    exit_with_message(str(result))
