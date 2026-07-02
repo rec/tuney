@@ -64,7 +64,7 @@ case "$(uname)" in
     )
     ;;
 esac
-uv run --with pyinstaller pyinstaller \
+uv run --with pyinstaller --with pillow pyinstaller \
   --noconfirm \
   --distpath "$build_root/dist" \
   --workpath "$build_root/build" \

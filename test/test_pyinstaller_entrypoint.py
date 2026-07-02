@@ -7,6 +7,7 @@ from tuney import app_state
 from tuney.audio import midi as midi_module
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
+    'uv run --with pyinstaller --with pillow pyinstaller',
     '--disable-windowed-traceback',
     '--hidden-import mido.backends.rtmidi',
     '--hidden-import _sounddevice',
