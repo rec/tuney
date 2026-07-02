@@ -12,7 +12,7 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
@@ -63,18 +63,18 @@ KEY_TEXT = {
 }
 
 
-def set_app_name(app: QMainWindow) -> None:
-    app.setWindowTitle(APP_NAME)
+class LoopState(BaseModel, frozen=True):
+    replay: bool = False
+    before: float = 0.0
+    after: float = 0.0
+    tempo: float = 1.0
+    randomize_on_each_loop: bool = False
 
 
 class HistoryState(BaseModel, frozen=True):
     tuney: dict[str, object]
-    key_recorder: KeyRecorder
-    loop_replay: bool
-    loop_before: float
-    loop_after: float
-    loop_tempo: float
-    randomize_on_each_loop: bool
+    key_recorder: KeyRecorder = Field(default_factory=KeyRecorder)
+    loop: LoopState = Field(default_factory=LoopState)
 
 
 class _AfterDispatcher(QObject):
@@ -88,7 +88,7 @@ class App(QMainWindow):
         from .layout import Layout
 
         super().__init__()
-        set_app_name(self)
+        self.setWindowTitle(APP_NAME)
         if ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(ICON_PATH)))
         self.tuney = tuney
@@ -106,11 +106,7 @@ class App(QMainWindow):
         r += n > (r * c)
         self.rows, self.columns = r, c
         self._is_replaying = False
-        self._loop_replay = False
-        self.loop_before = 0.0
-        self.loop_after = 0.0
-        self.loop_tempo = 1.0
-        self.randomize_on_each_loop = False
+        self.loop_state = LoopState()
         self._undo_stack: list[HistoryState] = []
         self._redo_stack: list[HistoryState] = []
         self._is_saving = False
@@ -220,26 +216,13 @@ class App(QMainWindow):
         self.record_undo()
         data = type(self.tuney)().dump_data()
         data['gui'] = True
-        self._restore_history_state(
-            HistoryState(
-                tuney=data,
-                key_recorder=KeyRecorder(),
-                loop_replay=False,
-                loop_before=0.0,
-                loop_after=0.0,
-                loop_tempo=1.0,
-                randomize_on_each_loop=False,
-            )
-        )
+        self._restore_history_state(HistoryState(tuney=data))
 
     def on_save(self, *_: object) -> None:
         self._is_saving = True
         try:
             result = QFileDialog.getSaveFileName(
-                self,
-                'Save',
-                '',
-                'TOML (*.toml);;JSON (*.json)',
+                self, 'Save', '', 'TOML (*.toml);;JSON (*.json)'
             )
             filename = result[0]
             if filename:
@@ -383,13 +366,49 @@ class App(QMainWindow):
 
     @property
     def loop_replay(self) -> bool:
-        return self._loop_replay
+        return self.loop_state.replay
 
     @loop_replay.setter
     def loop_replay(self, loop_replay: bool) -> None:
-        if self._loop_replay != loop_replay:
-            self._loop_replay = loop_replay
+        if self.loop_state.replay != loop_replay:
+            self.loop_state = self.loop_state.model_copy(
+                update={'replay': loop_replay}
+            )
             self.ui.set_loop_state(loop_replay)
+
+    @property
+    def loop_before(self) -> float:
+        return self.loop_state.before
+
+    @loop_before.setter
+    def loop_before(self, loop_before: float) -> None:
+        self.loop_state = self.loop_state.model_copy(update={'before': loop_before})
+
+    @property
+    def loop_after(self) -> float:
+        return self.loop_state.after
+
+    @loop_after.setter
+    def loop_after(self, loop_after: float) -> None:
+        self.loop_state = self.loop_state.model_copy(update={'after': loop_after})
+
+    @property
+    def loop_tempo(self) -> float:
+        return self.loop_state.tempo
+
+    @loop_tempo.setter
+    def loop_tempo(self, loop_tempo: float) -> None:
+        self.loop_state = self.loop_state.model_copy(update={'tempo': loop_tempo})
+
+    @property
+    def randomize_on_each_loop(self) -> bool:
+        return self.loop_state.randomize_on_each_loop
+
+    @randomize_on_each_loop.setter
+    def randomize_on_each_loop(self, randomize_on_each_loop: bool) -> None:
+        self.loop_state = self.loop_state.model_copy(
+            update={'randomize_on_each_loop': randomize_on_each_loop}
+        )
 
     def on_loop_replay(self, *_: object) -> None:
         self.record_undo()
@@ -440,30 +459,16 @@ class App(QMainWindow):
         return HistoryState(
             tuney=deepcopy(self.tuney.dump_data()),
             key_recorder=self.tuney.key_recorder.model_copy(deep=True),
-            loop_replay=self.loop_replay,
-            loop_before=self.loop_before,
-            loop_after=self.loop_after,
-            loop_tempo=self.loop_tempo,
-            randomize_on_each_loop=self.randomize_on_each_loop,
+            loop=self.loop_state,
         )
 
     def _restore_history_state(self, state: HistoryState) -> None:
         self.tuney.restore_data(state.tuney)
-        self.tuney.key_recorder.start_time = (
-            state.key_recorder.start_time
-        )
-        self.tuney.key_recorder.time_offset = (
-            state.key_recorder.time_offset
-        )
-        self.tuney.key_recorder.insert_time = (
-            state.key_recorder.insert_time
-        )
+        self.tuney.key_recorder.start_time = state.key_recorder.start_time
+        self.tuney.key_recorder.time_offset = state.key_recorder.time_offset
+        self.tuney.key_recorder.insert_time = state.key_recorder.insert_time
         self.tuney.key_recorder.replay_text = state.key_recorder.replay_text
-        self._loop_replay = state.loop_replay
-        self.loop_before = state.loop_before
-        self.loop_after = state.loop_after
-        self.loop_tempo = state.loop_tempo
-        self.randomize_on_each_loop = state.randomize_on_each_loop
+        self.loop_state = state.loop
         self.ui.set_text(self.tuney.display_text)
         self.ui.rebuild_control_panel()
         self.ui.rebuild_note_grid()

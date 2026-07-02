@@ -167,7 +167,7 @@ def test_app_activate_and_history() -> None:
         from tuney.tuney import Tuney
         from tuney.keyboard.char_press import CharPress
         from tuney.ui import app as app_module
-        from tuney.ui.app import App
+        from tuney.ui.app import App, LoopState
 
         calls = []
         app = type(
@@ -225,17 +225,49 @@ def test_app_activate_and_history() -> None:
             def __init__(self):
                 self.tuney = Tuney(max_gap=1.0)
                 self.ui = FakeLayout()
-                self._loop_replay = False
-                self.loop_before = 0.0
-                self.loop_after = 0.0
-                self.loop_tempo = 1.0
-                self.randomize_on_each_loop = False
+                self.loop_state = LoopState()
                 self._undo_stack = []
                 self._redo_stack = []
 
             @property
             def loop_replay(self):
                 return App.loop_replay.fget(self)
+
+            @loop_replay.setter
+            def loop_replay(self, loop_replay):
+                App.loop_replay.fset(self, loop_replay)
+
+            @property
+            def loop_before(self):
+                return App.loop_before.fget(self)
+
+            @loop_before.setter
+            def loop_before(self, loop_before):
+                App.loop_before.fset(self, loop_before)
+
+            @property
+            def loop_after(self):
+                return App.loop_after.fget(self)
+
+            @loop_after.setter
+            def loop_after(self, loop_after):
+                App.loop_after.fset(self, loop_after)
+
+            @property
+            def loop_tempo(self):
+                return App.loop_tempo.fget(self)
+
+            @loop_tempo.setter
+            def loop_tempo(self, loop_tempo):
+                App.loop_tempo.fset(self, loop_tempo)
+
+            @property
+            def randomize_on_each_loop(self):
+                return App.randomize_on_each_loop.fget(self)
+
+            @randomize_on_each_loop.setter
+            def randomize_on_each_loop(self, randomize_on_each_loop):
+                App.randomize_on_each_loop.fset(self, randomize_on_each_loop)
 
             def _history_state(self):
                 return App._history_state(self)
@@ -272,7 +304,7 @@ def test_app_activate_and_history() -> None:
         object.__setattr__(app.tuney, 'max_gap', 3.0)
         object.__setattr__(app.tuney, 'text', [CharPress('a', time=0.0)])
         app.tuney.__dict__.pop('char_presses', None)
-        app._loop_replay = True
+        app.loop_replay = True
         app.loop_before = 0.25
         app.loop_after = 0.5
         app.loop_tempo = 2.0
