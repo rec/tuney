@@ -499,6 +499,34 @@ def test_restore_autosave_defaults_invalid_fields(
     assert 'max_gap' in error
 
 
+def test_restore_autosave_defaults_invalid_nested_scale(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        path.write_text(
+            '\n'.join(
+                [
+                    'hover_time = 2.0',
+                    '[player.scale]',
+                    'note_names = "AB"',
+                    'root = "C"',
+                    'begin = "A"',
+                    'end = "B"',
+                ]
+            )
+        )
+        tuney = Tuney(gui=True, autosave_file=path)
+
+        tuney._autosave.restore(tuney)
+
+        assert tuney.hover_time == 2.0
+        assert tuney.player.scale == Tuney().player.scale
+    error = capsys.readouterr().err
+    assert f'Could not restore fields from {path}' in error
+    assert 'root must be present in note_names' in error
+
+
 def test_restore_autosave_does_not_override_explicit_text() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'

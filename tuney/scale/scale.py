@@ -6,9 +6,9 @@ from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from functools import cached_property
 from itertools import batched, chain
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
 from ..tyro_option import tyro_option
 from ..ui.control import Control
@@ -104,6 +104,24 @@ class Scale(BaseModel, frozen=True):
     #: The Tuning for this Scale
     tuning: Tuning = Tuning()
 
+    @model_validator(mode='after')
+    def _validate_note_name_range(self) -> Self:
+        missing = [
+            field
+            for field in ['begin', 'root', 'end']
+            if getattr(self, field) not in self.note_names
+        ]
+        if missing:
+            raise ValueError(', '.join(missing) + ' must be present in note_names')
+        begin, root, end = (
+            self.note_names.index(self.begin),
+            self.note_names.index(self.root),
+            self.note_names.index(self.end),
+        )
+        if not begin <= root <= end:
+            raise ValueError('begin, root, and end must be ordered in note_names')
+        return self
+
     # Implements Scale.to_name
     def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
         octave, offset = divmod(note_number - self.offset, self.note_count)
@@ -128,7 +146,6 @@ class Scale(BaseModel, frozen=True):
     def names(self) -> str:
         a = self.note_names
         begin, root, end = a.index(self.begin), a.index(self.root), a.index(self.end)
-        assert begin <= root <= end
         return ''.join(a[i] for i in chain(range(root, end + 1), range(begin, root)))
 
     @cached_property

@@ -87,6 +87,16 @@ def test_interval_string_ignores_whitespace() -> None:
     assert Scale(intervals='221 2221').intervals == [2, 2, 1, 2, 2, 2, 1]
 
 
+def test_note_range_must_match_note_names() -> None:
+    with pytest.raises(ValueError, match='root must be present in note_names'):
+        Scale(note_names='AB', root='C', begin='A', end='B')
+
+    with pytest.raises(
+        ValueError, match='begin, root, and end must be ordered in note_names'
+    ):
+        Scale(note_names='CDEFGAB')
+
+
 def test_white_notes_are_enumerated_without_accidentals():
     scale = Scale(notes='ABCDEFG')
 
