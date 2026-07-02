@@ -16,7 +16,6 @@ from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
 from .autosave import Autosave
-from .control import Control
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
@@ -26,6 +25,7 @@ from .serialize import serialize
 from .time import to_ms
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
+from .ui.control import Control
 
 if TYPE_CHECKING:
     from .ui.app import App

@@ -5,9 +5,9 @@ from typing import Annotated, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from ..control import Control
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
+from ..ui.control import Control
 from . import NoteNumber
 
 type Frequency = float  # Must be non-negative

@@ -28,10 +28,10 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
-from ..control import Control
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
+from .control import Control
 from .tooltip import Tooltip
 
 Scalar: TypeAlias = bool | float | int | str | None
