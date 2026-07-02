@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
+from ..app_state import log_path
 from ..keyboard.char_press import CharPress
 from ..recorders.key_recorder import KeyRecorder
 from . import Action, StateChange
@@ -263,6 +264,13 @@ class App(QMainWindow):
     def on_help(self, *_: object) -> None:
         show_help(self)
 
+    def on_show_log(self, *_: object) -> None:
+        QMessageBox.information(
+            self,
+            'Tuney log',
+            f'Log file:\n\n{log_path()}',
+        )
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -348,6 +356,7 @@ class App(QMainWindow):
             self.on_refresh_devices,
         )
         _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
+        _add_action(help_menu, 'Show Log Location', None, self.on_show_log)
         return menu
 
     @property

@@ -54,6 +54,7 @@ uv run --with pyinstaller pyinstaller \
   --workpath "$build_root/build" \
   --specpath "$build_root" \
   --windowed \
+  --disable-windowed-traceback \
   --name Tuney \
   --icon "$repo_root/icon.png" \
   --hidden-import mido.backends.rtmidi \

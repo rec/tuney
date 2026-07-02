@@ -164,6 +164,9 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """
+        import os
+        import tempfile
+
         from tuney.tuney import Tuney
         from tuney.keyboard.char_press import CharPress
         from tuney.ui import app as app_module
@@ -320,6 +323,22 @@ def test_app_activate_and_history() -> None:
         assert app.loop_after == 0.0
         assert app.loop_tempo == 1.0
         assert not app.randomize_on_each_loop
+
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ['XDG_STATE_HOME'] = tmp
+            messages = []
+
+            class FakeMessageBox:
+                @staticmethod
+                def information(parent, title, text):
+                    messages.append((parent, title, text))
+
+            app_module.QMessageBox = FakeMessageBox
+            App.on_show_log(app)
+
+            assert messages == [
+                (app, 'Tuney log', f'Log file:\\n\\n{tmp}/tuney/tuney.log')
+            ]
         """
     )
 

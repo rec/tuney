@@ -1,9 +1,12 @@
 from pathlib import Path
 
+import pytest
+
 from pyinstaller_entrypoint import app_args, main
 from tuney.audio import midi as midi_module
 
 PYINSTALLER_DEPENDENCY_FLAGS = [
+    '--disable-windowed-traceback',
     '--hidden-import mido.backends.rtmidi',
     '--hidden-import pynput.keyboard._win32',
     '--hidden-import pynput._util.win32',
@@ -48,3 +51,23 @@ def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:
     for flag in PYINSTALLER_DEPENDENCY_FLAGS:
         assert flag in release_script
         assert flag in release_workflow
+
+
+def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr('sys.frozen', True, raising=False)
+    monkeypatch.setattr('sys.argv', ['Tuney'])
+    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+
+    def fail(argv: list[str], *, frozen: bool) -> list[str]:
+        raise RuntimeError(f'{argv=} {frozen=}')
+
+    monkeypatch.setattr('pyinstaller_entrypoint.app_args', fail)
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    assert error.value.code == 1
+    log = tmp_path / 'tuney' / 'tuney.log'
+    text = log.read_text()
+    assert 'RuntimeError' in text
+    assert "argv=['Tuney'] frozen=True" in text
