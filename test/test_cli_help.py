@@ -115,8 +115,8 @@ def test_cli_help_uses_flat_unique_names(
     assert len(positive_long_options) == len(set(positive_long_options))
     assert '--audio-device' in positive_long_options
     assert '--midi-output' in positive_long_options
-    assert '--oscillator-period' in positive_long_options
-    assert '--player.oscillator.period' not in help_text
+    assert '--period' in positive_long_options
+    assert '--player.period' not in help_text
 
 
 def test_cli_help_gives_expected_public_options_a_short_alias(
@@ -176,7 +176,7 @@ def test_cli_accepts_flat_long_options() -> None:
         args=[
             '--alphabet=abc',
             '--audio-device=Built-in',
-            '--oscillator-period=2',
+            '--period=2',
             '--note-names=ABCDEFG',
             '--midi-output=Port',
             '--midi-channel=3',

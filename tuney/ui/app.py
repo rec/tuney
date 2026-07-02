@@ -371,9 +371,7 @@ class App(QMainWindow):
     @loop_replay.setter
     def loop_replay(self, loop_replay: bool) -> None:
         if self.loop_state.replay != loop_replay:
-            self.loop_state = self.loop_state.model_copy(
-                update={'replay': loop_replay}
-            )
+            self.loop_state = self.loop_state.model_copy(update={'replay': loop_replay})
             self.ui.set_loop_state(loop_replay)
 
     @property

@@ -34,9 +34,7 @@ class Oscillator(BaseModel, frozen=True):
 
     # Number of waveform cycles per note period
     period: Annotated[
-        float,
-        tyro_option(name='oscillator-period', aliases=['-e']),
-        Control(beginner=True, row=0, order=1),
+        float, tyro_option(aliases=['-e']), Control(beginner=True, row=0, order=1)
     ] = 1.0
 
     # Fraction of each waveform cycle before its falling edge
