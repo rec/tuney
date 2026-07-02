@@ -41,11 +41,17 @@ Then add that folder as an allowed or excluded folder in your antivirus software
 3. Right-click `Tuney.app` and choose **Open**.
 4. If macOS asks for confirmation, choose **Open** again.
 
+If Tuney reports an error, use **Help > Show Log Location** to find the log file.
+
 ## Linux
 
 1. Download `Tuney-<version>-Linux.tar.gz`.
 2. Extract the archive.
-3. Run the `Tuney` executable from the extracted folder.
+3. Open the extracted `Tuney` folder.
+4. Run the `Tuney` executable from that folder.
+
+Tuney needs working audio and MIDI support on your Linux desktop. If Tuney reports
+an error, use **Help > Show Log Location** to find the log file.
 
 ## Checksums
 

@@ -5,16 +5,26 @@ import pytest
 from pyinstaller_entrypoint import app_args, main
 from tuney.audio import midi as midi_module
 
-PYINSTALLER_DEPENDENCY_FLAGS = [
+PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
     '--disable-windowed-traceback',
     '--hidden-import mido.backends.rtmidi',
-    '--hidden-import pynput.keyboard._win32',
-    '--hidden-import pynput._util.win32',
-    '--hidden-import pynput._util.win32_vks',
     '--hidden-import _sounddevice',
     '--hidden-import _soundfile',
     '--collect-binaries _sounddevice_data',
     '--collect-binaries _soundfile_data',
+]
+PYINSTALLER_LOCAL_PLATFORM_FLAGS = [
+    '--hidden-import pynput.keyboard._darwin',
+    '--hidden-import pynput._util.darwin',
+    '--hidden-import pynput.keyboard._xorg',
+    '--hidden-import pynput._util.xorg',
+    '--hidden-import pynput._util.uinput',
+]
+PYINSTALLER_WORKFLOW_PLATFORM_FLAGS = [
+    '--hidden-import pynput.keyboard._win32',
+    '--hidden-import pynput._util.win32',
+    '--hidden-import pynput._util.win32_vks',
+    *PYINSTALLER_LOCAL_PLATFORM_FLAGS,
 ]
 
 
@@ -48,8 +58,14 @@ def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:
     release_script = Path('scripts/release.sh').read_text()
     release_workflow = Path('.github/workflows/release-builds.yml').read_text()
 
-    for flag in PYINSTALLER_DEPENDENCY_FLAGS:
+    for flag in PYINSTALLER_COMMON_DEPENDENCY_FLAGS:
         assert flag in release_script
+        assert flag in release_workflow
+
+    for flag in PYINSTALLER_LOCAL_PLATFORM_FLAGS:
+        assert flag in release_script
+
+    for flag in PYINSTALLER_WORKFLOW_PLATFORM_FLAGS:
         assert flag in release_workflow
 
 

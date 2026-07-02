@@ -48,6 +48,22 @@ fi
 
 build_root="${TMPDIR:-/tmp}/tuney-release-build"
 repo_root="$(pwd)"
+platform_hidden_imports=()
+case "$(uname)" in
+  Darwin)
+    platform_hidden_imports+=(
+      --hidden-import pynput.keyboard._darwin
+      --hidden-import pynput._util.darwin
+    )
+    ;;
+  Linux)
+    platform_hidden_imports+=(
+      --hidden-import pynput.keyboard._xorg
+      --hidden-import pynput._util.xorg
+      --hidden-import pynput._util.uinput
+    )
+    ;;
+esac
 uv run --with pyinstaller pyinstaller \
   --noconfirm \
   --distpath "$build_root/dist" \
@@ -58,9 +74,7 @@ uv run --with pyinstaller pyinstaller \
   --name Tuney \
   --icon "$repo_root/icon.png" \
   --hidden-import mido.backends.rtmidi \
-  --hidden-import pynput.keyboard._win32 \
-  --hidden-import pynput._util.win32 \
-  --hidden-import pynput._util.win32_vks \
+  "${platform_hidden_imports[@]}" \
   --hidden-import _sounddevice \
   --hidden-import _soundfile \
   --collect-binaries _sounddevice_data \
@@ -68,6 +82,8 @@ uv run --with pyinstaller pyinstaller \
   --add-data "$repo_root/tuney:tuney" \
   --add-data "$repo_root/README.md:README.md" \
   --add-data "$repo_root/packaging/README-WINDOWS.txt:README-WINDOWS.txt" \
+  --add-data "$repo_root/packaging/README-MACOS.txt:README-MACOS.txt" \
+  --add-data "$repo_root/packaging/README-LINUX.txt:README-LINUX.txt" \
   pyinstaller_entrypoint.py
 
 if [[ "$(uname)" == "Darwin" ]]; then
