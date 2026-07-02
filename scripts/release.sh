@@ -56,6 +56,14 @@ uv run --with pyinstaller pyinstaller \
   --windowed \
   --name Tuney \
   --icon "$repo_root/icon.png" \
+  --hidden-import mido.backends.rtmidi \
+  --hidden-import pynput.keyboard._win32 \
+  --hidden-import pynput._util.win32 \
+  --hidden-import pynput._util.win32_vks \
+  --hidden-import _sounddevice \
+  --hidden-import _soundfile \
+  --collect-binaries _sounddevice_data \
+  --collect-binaries _soundfile_data \
   --add-data "$repo_root/tuney:tuney" \
   --add-data "$repo_root/README.md:README.md" \
   --add-data "$repo_root/packaging/README-WINDOWS.txt:README-WINDOWS.txt" \
