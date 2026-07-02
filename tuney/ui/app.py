@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..keyboard.char_press import CharPress
-from ..recorders import KeyRecorder
+from ..recorders.key_recorder import KeyRecorder
 from .help import show_help
 from .transport import Action, State
 
@@ -453,14 +453,14 @@ class App(QMainWindow):
 
     def _restore_history_state(self, state: HistoryState) -> None:
         self.tuney.restore_data(state.tuney)
-        self.tuney.key_recorder.recording_start_time = (
-            state.key_recorder.recording_start_time
+        self.tuney.key_recorder.start_time = (
+            state.key_recorder.start_time
         )
-        self.tuney.key_recorder.recording_time_offset = (
-            state.key_recorder.recording_time_offset
+        self.tuney.key_recorder.time_offset = (
+            state.key_recorder.time_offset
         )
-        self.tuney.key_recorder.recording_insert_time = (
-            state.key_recorder.recording_insert_time
+        self.tuney.key_recorder.insert_time = (
+            state.key_recorder.insert_time
         )
         self.tuney.key_recorder.replay_text = state.key_recorder.replay_text
         self._loop_replay = state.loop_replay

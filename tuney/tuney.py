@@ -20,7 +20,8 @@ from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .presets import merged_data, read_preset
 from .presets.autosave import Autosave
-from .recorders import AudioRecorder, KeyRecorder
+from .recorders.audio_recorder import AudioRecorder
+from .recorders.key_recorder import KeyRecorder
 from .serialize import serialize
 from .time import to_ms
 from .time.sequencer import Sequencer

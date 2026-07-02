@@ -126,7 +126,7 @@ def test_recorded_char_press_reuses_deleted_time_for_next_insert():
     assert recorded_char_press(tuney, CharPress('a', time=100.0)) == CharPress(
         'a', time=0.0
     )
-    tuney.key_recorder.recording_insert_time = 0.0
+    tuney.key_recorder.insert_time = 0.0
 
     actual = [
         recorded_char_press(tuney, CharPress('b', time=110.0)),
@@ -203,17 +203,17 @@ def test_clear_resets_recording_state():
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     app = FakeApp()
     object.__setattr__(tuney, 'app', app)
-    tuney.key_recorder.recording_start_time = 100.0
-    tuney.key_recorder.recording_time_offset = 20.0
-    tuney.key_recorder.recording_insert_time = 10.0
+    tuney.key_recorder.start_time = 100.0
+    tuney.key_recorder.time_offset = 20.0
+    tuney.key_recorder.insert_time = 10.0
     tuney.key_recorder.replay_text = 'a'
 
     tuney.clear()
 
     assert tuney.char_presses == []
-    assert tuney.key_recorder.recording_start_time is None
-    assert tuney.key_recorder.recording_time_offset == 0.0
-    assert tuney.key_recorder.recording_insert_time is None
+    assert tuney.key_recorder.start_time is None
+    assert tuney.key_recorder.time_offset == 0.0
+    assert tuney.key_recorder.insert_time is None
     assert tuney.key_recorder.replay_text == ''
     assert app.undo_count == 1
 
@@ -231,9 +231,9 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
     app = FakeApp()
     object.__setattr__(tuney, 'app', app)
     original_char_presses = list(tuney.char_presses)
-    tuney.key_recorder.recording_start_time = 100.0
-    tuney.key_recorder.recording_time_offset = 20.0
-    tuney.key_recorder.recording_insert_time = 10.0
+    tuney.key_recorder.start_time = 100.0
+    tuney.key_recorder.time_offset = 20.0
+    tuney.key_recorder.insert_time = 10.0
     tuney.key_recorder.replay_text = 'a'
 
     tuney.randomize_timing()
@@ -241,9 +241,9 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
     assert tuney.display_text == 'ab'
     assert tuney.char_presses != original_char_presses
     assert [c.char for c in tuney.char_presses if c.is_press] == ['a', 'b']
-    assert tuney.key_recorder.recording_start_time is None
-    assert tuney.key_recorder.recording_time_offset == 0.0
-    assert tuney.key_recorder.recording_insert_time is None
+    assert tuney.key_recorder.start_time is None
+    assert tuney.key_recorder.time_offset == 0.0
+    assert tuney.key_recorder.insert_time is None
     assert tuney.key_recorder.replay_text == ''
     assert app.undo_count == 1
 
