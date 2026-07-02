@@ -161,6 +161,19 @@ def test_app_mainloop_exits_on_sigint() -> None:
     )
 
 
+def test_application_uses_cross_platform_style() -> None:
+    _run_app_key_script(
+        """
+        from tuney.ui.app import _application
+
+        app = _application()
+
+        assert app.applicationName() == 'Tuney'
+        assert app.style().objectName().lower() == 'fusion'
+        """
+    )
+
+
 def test_app_activate_and_history() -> None:
     _run_app_key_script(
         """

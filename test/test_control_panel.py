@@ -49,6 +49,15 @@ def _control_fields(data: BaseModel) -> list[str]:
     ]
 
 
+def _qt_app() -> object:
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    return app
+
+
 def test_set_model_value_validates_and_clears_cached_values(
     file_regression: FileRegressionFixture,
 ) -> None:
@@ -320,3 +329,55 @@ def test_visible_field_names(file_regression: FileRegressionFixture) -> None:
             ]
         },
     )
+
+
+def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
+    from PySide6.QtWidgets import (
+        QComboBox,
+        QDoubleSpinBox,
+        QLabel,
+        QLineEdit,
+        QSpinBox,
+        QWidget,
+    )
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+
+    labels = [
+        label
+        for label in panel.findChildren(QLabel)
+        if label.objectName() == 'control_label'
+    ]
+    editors = [
+        *[
+            editor
+            for editor in panel.findChildren(QLineEdit)
+            if editor.objectName() == 'control_editor'
+        ],
+        *[
+            editor
+            for editor in panel.findChildren(QSpinBox)
+            if editor.objectName() == 'control_editor'
+        ],
+        *[
+            editor
+            for editor in panel.findChildren(QDoubleSpinBox)
+            if editor.objectName() == 'control_editor'
+        ],
+        *[
+            editor
+            for editor in panel.findChildren(QComboBox)
+            if editor.objectName() == 'control_editor'
+        ],
+    ]
+
+    assert labels
+    assert editors
+    for label in labels:
+        assert label.minimumWidth() >= label.fontMetrics().horizontalAdvance(
+            label.text()
+        )
+    for editor in editors:
+        assert editor.minimumWidth() >= control_panel.MIN_EDITOR_WIDTH

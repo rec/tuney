@@ -39,6 +39,9 @@ Scalar: TypeAlias = bool | float | int | str | None
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
 GENERAL_COLUMNS = 4
+LABEL_PADDING = 8
+MIN_EDITOR_WIDTH = 72
+MIN_TEXT_EDITOR_WIDTH = 160
 SECTION_STYLE = """
 QFrame#control_section {
     background: #f7f7f7;
@@ -441,6 +444,38 @@ def _display_label(name: str) -> str:
     return name.replace('_', ' ')
 
 
+def _add_labeled_control_frame(
+    parent: QWidget,
+    name: str,
+    spacing: int = 4,
+) -> tuple[QWidget, QHBoxLayout, QLabel]:
+    frame = QWidget(parent)
+    layout = QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(spacing)
+    label = QLabel(_display_label(name), frame)
+    _configure_label(label)
+    layout.addWidget(label)
+    return frame, layout, label
+
+
+def _configure_label(label: QLabel) -> None:
+    label.setObjectName('control_label')
+    width = label.fontMetrics().horizontalAdvance(label.text()) + LABEL_PADDING
+    label.setMinimumWidth(width)
+    label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+
+def _configure_editor(widget: QWidget, width: int | None = None) -> None:
+    widget.setObjectName('control_editor')
+    minimum = max(width or MIN_TEXT_EDITOR_WIDTH, MIN_EDITOR_WIDTH)
+    widget.setMinimumWidth(minimum)
+    if width:
+        widget.setFixedWidth(minimum)
+    else:
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+
 def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
@@ -500,17 +535,12 @@ def _add_option_control(
     values: Callable[[], list[str]],
     option_controls: list[_OptionControl],
 ) -> None:
-    frame = QWidget(parent)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    layout.addWidget(QLabel(_display_label(name), frame))
+    frame, layout, _ = _add_labeled_control_frame(parent, name)
     menu = QComboBox(frame)
     width = _entry_width(
         name, type(data).model_fields[name].annotation, type(data).__name__
     )
-    if width:
-        menu.setFixedWidth(width)
+    _configure_editor(menu, width)
     menu.addItems(_option_values(values))
     menu.setCurrentText(_option_text(value))
 
@@ -564,6 +594,8 @@ def _rebuild_note_grid(parent: Any) -> None:
 
 def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) -> None:
     check = QCheckBox(_display_label(name), parent)
+    check.setMinimumWidth(check.sizeHint().width())
+    check.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
     check.setChecked(value)
 
     def command(checked: bool) -> None:
@@ -611,15 +643,10 @@ def _add_entry_control(
     else:
         text = str(value)
 
-    frame = QWidget(parent)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    layout.addWidget(QLabel(_display_label(name), frame))
+    frame, layout, _ = _add_labeled_control_frame(parent, name)
     entry = QLineEdit(text, frame)
     width = _entry_width(name, annotation, type(data).__name__)
-    if width:
-        entry.setFixedWidth(width)
+    _configure_editor(entry, width)
     text_color = entry.palette().text().color().name()
 
     def update() -> None:
@@ -640,8 +667,7 @@ def _add_entry_control(
 
     entry.editingFinished.connect(update)
     layout.addWidget(entry)
-    if not width:
-        layout.setStretchFactor(entry, 1)
+    layout.setStretchFactor(entry, 1)
     _parent_layout(parent).addWidget(frame)
 
 
@@ -649,11 +675,7 @@ def _add_spin_control(
     parent: QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
-    frame = QWidget(parent)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    layout.addWidget(QLabel(_display_label(name), frame))
+    frame, layout, _ = _add_labeled_control_frame(parent, name)
 
     if _is_int_annotation(annotation):
         assert isinstance(value, int)
@@ -695,8 +717,7 @@ def _add_spin_control(
             layout.addWidget(dial)
 
     width = _entry_width(name, annotation, type(data).__name__)
-    if width:
-        spin.setFixedWidth(max(width + 18, 56))
+    _configure_editor(spin, max(width + 18, 56) if width else MIN_EDITOR_WIDTH)
     _parent_layout(parent).addWidget(frame)
 
 
@@ -756,11 +777,9 @@ def _add_enum_control(
 ) -> None:
     members = tuple(enum_cls)
     index = members.index(value) if isinstance(value, enum_cls) else 0
-    frame = QWidget(parent)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(2 if name in {'accidentals', 'limiter'} else 6)
-    layout.addWidget(QLabel(_display_label(name), frame))
+    frame, layout, _ = _add_labeled_control_frame(
+        parent, name, 2 if name in {'accidentals', 'limiter'} else 6
+    )
 
     def command(member: enum.Enum) -> None:
         _set_model_value(data, name, member, parent)
@@ -768,6 +787,8 @@ def _add_enum_control(
 
     for i, member in enumerate(members):
         radio = QRadioButton(member.name, frame)
+        radio.setMinimumWidth(radio.sizeHint().width())
+        radio.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         radio.setChecked(i == index)
         radio.toggled.connect(
             lambda checked, member=member: checked and command(member)

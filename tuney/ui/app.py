@@ -499,11 +499,14 @@ class App(QMainWindow):
 
 
 def _application() -> QApplication:
-    app = QApplication.instance()
-    if app is None:
+    instance = QApplication.instance()
+    if instance is None:
         app = QApplication(sys.argv[:1])
-        app.setApplicationName(APP_NAME)
-    return cast(QApplication, app)
+    else:
+        app = cast(QApplication, instance)
+    app.setApplicationName(APP_NAME)
+    app.setStyle('Fusion')
+    return app
 
 
 def _event_char(event: QKeyEvent) -> str:
