@@ -30,6 +30,8 @@ class KeyRecorder(BaseModel):
     ) -> CharPress:
         if self.start_time is None and c.is_press:
             self.start_time = c.time
+            if char_presses and self.insert_time is None:
+                self.time_offset = char_presses[-1].time
         start = self.start_time or c.time
         raw_time = to_ms(c.time - start)
         if self.insert_time is not None and c.is_press and c.char != '\b':
