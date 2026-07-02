@@ -202,6 +202,26 @@ def test_engine_records_rendered_callback_block(tmp_path) -> None:
     assert audio.any()
 
 
+def test_audio_file_writer_appends_to_existing_file(tmp_path) -> None:
+    path = tmp_path / 'out.wav'
+    first = np.ones((SAMPLE_COUNT, 1), dtype=np.float32) * 0.25
+    second = np.ones((SAMPLE_COUNT, 1), dtype=np.float32) * 0.5
+    writer = AudioFileWriter(path, SAMPLE_RATE, 1)
+    writer.write(first)
+    writer.close()
+
+    writer = AudioFileWriter(path, SAMPLE_RATE, 1, append=True)
+    writer.write(second)
+    writer.close()
+
+    audio, sample_rate = soundfile.read(path, always_2d=True)
+
+    assert sample_rate == SAMPLE_RATE
+    assert len(audio) == SAMPLE_COUNT * 2
+    np.testing.assert_allclose(audio[:SAMPLE_COUNT], first, atol=1e-4)
+    np.testing.assert_allclose(audio[SAMPLE_COUNT:], second, atol=1e-4)
+
+
 class _UnsupportedCommentFile:
     @property
     def comment(self) -> str:

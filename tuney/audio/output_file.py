@@ -23,15 +23,16 @@ class AudioFileWriter:
     ) -> None:
         import soundfile
 
-        mode = 'r+' if append else 'w'
-        self.file = soundfile.SoundFile(
-            path,
-            mode=mode,
-            samplerate=sample_rate,
-            channels=channels,
-        )
         if append:
+            self.file = soundfile.SoundFile(path, mode='r+')
             self.file.seek(0, soundfile.SEEK_END)
+        else:
+            self.file = soundfile.SoundFile(
+                path,
+                mode='w',
+                samplerate=sample_rate,
+                channels=channels,
+            )
         self.comment = comment
         if self.comment is not None:
             self._set_comment(self.comment())
