@@ -129,8 +129,10 @@ jobs:
       - name: Package macOS artifact
         if: runner.os == 'macOS'
         run: |
-          python -c "from pathlib import Path; Path('README-MACOS.txt').write_text(Path('packaging/README-MACOS.txt').read_text().replace('<version>', '${{ github.ref_name }}'))"
-          ditto -c -k --keepParent "${{ matrix.dist-path }}" README-MACOS.txt "$ARTIFACT_NAME"
+          mkdir macos-package
+          ditto "${{ matrix.dist-path }}" macos-package/Tuney.app
+          python -c "from pathlib import Path; Path('macos-package/README-MACOS.txt').write_text(Path('packaging/README-MACOS.txt').read_text().replace('<version>', '${{ github.ref_name }}'))"
+          ditto -c -k macos-package "$ARTIFACT_NAME"
 
       - name: Package Windows artifact
         if: runner.os == 'Windows'

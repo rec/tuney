@@ -69,6 +69,17 @@ def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:
         assert flag in release_workflow
 
 
+def test_macos_release_artifact_archives_one_source() -> None:
+    release_workflow = Path('.github/workflows/release-builds.yml').read_text()
+
+    broken_command = (
+        'ditto -c -k --keepParent "${{ matrix.dist-path }}" README-MACOS.txt'
+    )
+
+    assert broken_command not in release_workflow
+    assert 'ditto -c -k macos-package "$ARTIFACT_NAME"' in release_workflow
+
+
 def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr('sys.frozen', True, raising=False)
     monkeypatch.setattr('sys.argv', ['Tuney'])
