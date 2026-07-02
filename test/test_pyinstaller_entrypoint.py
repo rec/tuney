@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from pyinstaller_entrypoint import app_args, main
+from tuney import app_state
 from tuney.audio import midi as midi_module
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
@@ -84,11 +85,16 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr('sys.frozen', True, raising=False)
     monkeypatch.setattr('sys.argv', ['Tuney'])
     monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+    messages = []
 
     def fail(argv: list[str], *, frozen: bool) -> list[str]:
         raise RuntimeError(f'{argv=} {frozen=}')
 
+    def show_frozen_exception(error: BaseException, path: Path) -> None:
+        messages.append((error, path))
+
     monkeypatch.setattr('pyinstaller_entrypoint.app_args', fail)
+    monkeypatch.setattr(app_state, 'show_frozen_exception', show_frozen_exception)
 
     with pytest.raises(SystemExit) as error:
         main()
@@ -98,3 +104,7 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     text = log.read_text()
     assert 'RuntimeError' in text
     assert "argv=['Tuney'] frozen=True" in text
+    assert len(messages) == 1
+    message_error, message_path = messages[0]
+    assert isinstance(message_error, RuntimeError)
+    assert message_path == log

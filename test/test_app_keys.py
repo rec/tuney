@@ -166,6 +166,7 @@ def test_app_activate_and_history() -> None:
         """
         import os
         import tempfile
+        from pathlib import Path
 
         from tuney.tuney import Tuney
         from tuney.keyboard.char_press import CharPress
@@ -337,7 +338,11 @@ def test_app_activate_and_history() -> None:
             App.on_show_log(app)
 
             assert messages == [
-                (app, 'Tuney log', f'Log file:\\n\\n{tmp}/tuney/tuney.log')
+                (
+                    app,
+                    'Tuney log',
+                    f'Log file:\\n\\n{Path(tmp) / "tuney" / "tuney.log"}',
+                )
             ]
         """
     )
