@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
-from .presets import read_file
+from . import read_file
 
 if TYPE_CHECKING:
-    from .tuney import Tuney
+    from ..tuney import Tuney
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'

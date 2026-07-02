@@ -15,11 +15,11 @@ from pydantic import BaseModel, Field, field_validator
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
-from .autosave import Autosave
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
 from .presets import merged_data, read_preset
+from .presets.autosave import Autosave
 from .recorders import AudioRecorder, KeyRecorder
 from .serialize import serialize
 from .time import to_ms
