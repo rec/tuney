@@ -276,7 +276,7 @@ def test_control_rows_use_compact_model_layouts(
                 tuney.player.scale, _control_fields(tuney.player.scale)
             ),
             'tuning': control_panel._control_rows(
-                tuney.player.scale.tuning, _control_fields(tuney.player.scale.tuning)
+                tuney.tuning, _control_fields(tuney.tuning)
             ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)

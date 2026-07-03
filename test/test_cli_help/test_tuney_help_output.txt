@@ -107,9 +107,31 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -Y INT, --scale-offset INT
         Offset all note numbers by this (default: 0)
 
- player.scale.tuning options
+ player.polyphony options
  ----------------------------------------------------------------------------------------------------------------------
-  The Tuning for this Scale
+  --headroom FLOAT
+        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
+  --max-voices INT
+        Maximum number of notes that can play simultaneously (default: 32)
+
+ midi options
+ ----------------------------------------------------------------------------------------------------------------------
+  How to send MIDI output
+  ----------------------------------------------------------------------------------------------------------------------
+  --midi-enable, --no-midi-enable
+        Enable MIDI output (default: False)
+  --midi-output {None}|STR
+        MIDI output port name (default: None)
+  --midi-channel INT
+        MIDI channel, from 0 to 15 (default: 0)
+  --midi-velocity INT
+        Velocity used for MIDI note-on messages (default: 64)
+  --midi-note-offset INT
+        Offset added to MIDI note numbers (default: 0)
+
+ tuning options
+ ----------------------------------------------------------------------------------------------------------------------
+  The tuning used to convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
@@ -133,28 +155,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --table-blend, --no-table-blend
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)
-
- player.polyphony options
- ----------------------------------------------------------------------------------------------------------------------
-  --headroom FLOAT
-        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
-  --max-voices INT
-        Maximum number of notes that can play simultaneously (default: 32)
-
- midi options
- ----------------------------------------------------------------------------------------------------------------------
-  How to send MIDI output
-  ----------------------------------------------------------------------------------------------------------------------
-  --midi-enable, --no-midi-enable
-        Enable MIDI output (default: False)
-  --midi-output {None}|STR
-        MIDI output port name (default: None)
-  --midi-channel INT
-        MIDI channel, from 0 to 15 (default: 0)
-  --midi-velocity INT
-        Velocity used for MIDI note-on messages (default: 64)
-  --midi-note-offset INT
-        Offset added to MIDI note numbers (default: 0)
 
  text-timings options
  ----------------------------------------------------------------------------------------------------------------------

@@ -204,7 +204,7 @@ class TuneyState:
     def _on_char(self, c: CharPress) -> None:
         if (note := self.tuney.mapper(c.char)) is not None:
             if not self.tuney.silent:
-                self.tuney.player.on_note(note, c.is_press)
+                self.tuney.player.on_note(note, c.is_press, self.tuney.tuning)
             self.tuney.midi(note, c.is_press)
         if self.tuney.gui:
             self.main_window.on_char(c)
@@ -295,7 +295,10 @@ class TuneyState:
         try:
             if self.tuney.output and self.tuney.silent:
                 self.tuney.player.render_file(
-                    self.tuney.output, self._note_events(), comment
+                    self.tuney.output,
+                    self._note_events(),
+                    comment,
+                    self.tuney.tuning,
                 )
             else:
                 if self.tuney.output:

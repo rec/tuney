@@ -11,6 +11,7 @@ from .audio.player import Player
 from .display import Display
 from .mapper.mapper import Mapper
 from .presets import preset_names
+from .scale.tuning import Tuning
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
@@ -43,6 +44,9 @@ class Tuney(BaseModel):
 
     # How to send MIDI output
     midi: MIDI = MIDI()
+
+    # The tuning used to convert note numbers into frequencies
+    tuning: Tuning = Tuning()
 
     # Timings for playing back texts
     text_timings: TextTimings = TextTimings(scale=3.0)

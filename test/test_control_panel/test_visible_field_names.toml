@@ -1,4 +1,4 @@
-tuney = ["mapper", "player", "midi", "text_timings"]
+tuney = ["mapper", "player", "midi", "tuning", "text_timings"]
 mapper = ["alphabet", "length", "case_sensitive", "invert", "offset", "range_limit", "limiter"]
 player = ["device", "oscillator", "scale", "polyphony", "minimum_note_time"]
 polyphony = ["headroom", "max_voices"]

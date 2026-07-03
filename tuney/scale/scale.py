@@ -14,7 +14,7 @@ from ..display import Display
 from ..tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
-from .tuning import Tuning
+from .tuning import TuningP
 
 INTERVALS = [int(i) for i in '2212221']
 
@@ -52,9 +52,6 @@ class Scale(BaseModel, frozen=True):
     Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
     custom tunings, different note names and intervals.
     """
-
-    #: The Tuning for this Scale
-    tuning: Tuning = Tuning()
 
     #: The base note names
     note_names: Annotated[str, tyro_option('-A'), Display(row=2)] = (
@@ -110,18 +107,12 @@ class Scale(BaseModel, frozen=True):
 
     @model_validator(mode='after')
     def _validate_note_name_range(self) -> Self:
-        missing = [
-            field
-            for field in ['begin', 'root', 'end']
-            if getattr(self, field) not in self.note_names
-        ]
-        if missing:
+        fields = 'begin', 'root', 'end'
+        if missing := [f for f in fields if getattr(self, f) not in self.note_names]:
             raise ValueError(', '.join(missing) + ' must be present in note_names')
-        begin, root, end = (
-            self.note_names.index(self.begin),
-            self.note_names.index(self.root),
-            self.note_names.index(self.end),
-        )
+        begin = self.note_names.index(self.begin)
+        root = self.note_names.index(self.root)
+        end = self.note_names.index(self.end)
         if not begin <= root <= end:
             raise ValueError('begin, root, and end must be ordered in note_names')
         return self
@@ -143,8 +134,8 @@ class Scale(BaseModel, frozen=True):
 
         raise ValueError(f'Bad number {s=}')
 
-    def frequency(self, note_number: NoteNumber) -> float:
-        return self.tuning(self.tuning_number(note_number))
+    def frequency(self, tuning: TuningP, note_number: NoteNumber) -> float:
+        return tuning(self.tuning_number(note_number))
 
     @cached_property
     def names(self) -> str:

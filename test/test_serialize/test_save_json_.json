@@ -18,17 +18,6 @@
       "key_scale": 0.0
     },
     "scale": {
-      "tuning": {
-        "detune": 0,
-        "limit": 0,
-        "notes_per_octave": 12,
-        "octave_ratio": 2,
-        "pitch_to_frequency": "power",
-        "root_frequency": 440,
-        "root_note": 69,
-        "table": [],
-        "table_blend": true
-      },
       "note_names": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       "root": "C",
       "begin": "A",
@@ -58,6 +47,17 @@
     "channel": 0,
     "velocity": 64,
     "note_offset": 0
+  },
+  "tuning": {
+    "detune": 0,
+    "limit": 0,
+    "notes_per_octave": 12,
+    "octave_ratio": 2,
+    "pitch_to_frequency": "power",
+    "root_frequency": 440,
+    "root_note": 69,
+    "table": [],
+    "table_blend": true
   },
   "text_timings": {
     "space": 100,

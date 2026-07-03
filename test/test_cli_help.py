@@ -225,8 +225,8 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.player.polyphony.max_voices == 8
     assert tuney.player.device.sample_rate == 44100
     assert tuney.player.device.dtype.value == 'int16'
-    assert tuney.player.scale.tuning.table == [440, 880]
-    assert not tuney.player.scale.tuning.table_blend
+    assert tuney.tuning.table == [440, 880]
+    assert not tuney.tuning.table_blend
     assert tuney.text_timings.space == 101
     assert tuney.text_timings.comma == 201
     assert tuney.text_timings.colon == 401
@@ -360,13 +360,13 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.player.scale.intervals == [2, 2, 1]
     assert tuney.player.scale.accidentals.value == 'half'
     assert tuney.player.scale.offset == 2
-    assert tuney.player.scale.tuning.detune == 5
-    assert tuney.player.scale.tuning.limit == 7
-    assert tuney.player.scale.tuning.notes_per_octave == 19
-    assert tuney.player.scale.tuning.octave_ratio == 3
-    assert tuney.player.scale.tuning.pitch_to_frequency.name == 'linear'
-    assert tuney.player.scale.tuning.root_frequency == 442
-    assert tuney.player.scale.tuning.root_note == 70
+    assert tuney.tuning.detune == 5
+    assert tuney.tuning.limit == 7
+    assert tuney.tuning.notes_per_octave == 19
+    assert tuney.tuning.octave_ratio == 3
+    assert tuney.tuning.pitch_to_frequency.name == 'linear'
+    assert tuney.tuning.root_frequency == 442
+    assert tuney.tuning.root_note == 70
 
 
 def test_removed_single_character_aliases_are_not_options() -> None:
