@@ -25,8 +25,7 @@ def temporary_path() -> Iterator[Path]:
 
 
 def state_for(tuney: Tuney) -> TuneyState:
-    state = tuney.__dict__.get('_test_state')
-    if state is None:
+    if (state := tuney.__dict__.get('_test_state')) is None:
         state = TuneyState(tuney)
         tuney.__dict__['_test_state'] = state
     return state

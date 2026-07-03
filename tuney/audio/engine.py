@@ -104,8 +104,7 @@ class AudioEngine(BaseModel):
             self.start()
 
     def wait(self) -> None:
-        stream = self.__dict__.get('stream')
-        if stream is not None:
+        if (stream := self.__dict__.get('stream')) is not None:
             self.playback_complete.wait()
             stream.stop()
 

@@ -83,8 +83,7 @@ class TextTimings(BaseModel, frozen=True):
 
     @cached_property
     def random(self) -> Random:
-        seed = self.seed
-        if seed is None:
+        if (seed := self.seed) is None:
             seed = random.randint(0, 2**32 - 1)
             object.__setattr__(self, 'seed', seed)
         return random.Random(seed)

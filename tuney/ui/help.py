@@ -29,8 +29,7 @@ def show_help(parent: QWidget) -> None:
 
 
 def read_help_markdown() -> str:
-    path = _readme_path()
-    if path is None:
+    if (path := _readme_path()) is None:
         return '# Tuney\n\nREADME.md was not found.'
     return path.read_text()
 

@@ -103,9 +103,7 @@ class History:
     def state(self) -> HistoryState:
         return HistoryState(
             tuney=deepcopy(self.main_window.state.dump_data()),
-            key_recorder=self.main_window.state.key_recorder.model_copy(
-                deep=True
-            ),
+            key_recorder=self.main_window.state.key_recorder.model_copy(deep=True),
             loop=self.loop_state,
         )
 

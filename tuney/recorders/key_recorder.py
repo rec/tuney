@@ -38,11 +38,13 @@ class KeyRecorder(BaseModel):
             self.time_offset = self.insert_time - raw_time
             self.insert_time = None
         recorded_time = raw_time + self.time_offset
-        max_gap = to_ms(max_gap_seconds)
-        if max_gap > 0 and c.is_press and not self.recorded_notes_on(char_presses):
+        if (
+            (max_gap := to_ms(max_gap_seconds)) > 0
+            and c.is_press
+            and not self.recorded_notes_on(char_presses)
+        ):
             time = char_presses[-1].time if char_presses else 0
-            gap = recorded_time - time
-            if gap > max_gap:
+            if (gap := recorded_time - time) > max_gap:
                 self.time_offset -= gap - max_gap
                 recorded_time = raw_time + self.time_offset
         return CharPress(c.char, c.is_press, recorded_time)
@@ -59,8 +61,7 @@ class KeyRecorder(BaseModel):
     def delete_last_char(self, char_presses: list[CharPress]) -> None:
         deleted_time = None
         while char_presses:
-            deleted = char_presses.pop()
-            if deleted.is_press:
+            if (deleted := char_presses.pop()).is_press:
                 deleted_time = deleted.time
                 break
         if deleted_time is not None:

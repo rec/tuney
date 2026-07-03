@@ -35,8 +35,7 @@ class KeyboardListener(Runnable):
         return self.is_running and self._on(key, False)
 
     def _on(self, key: object, is_press: bool) -> None:
-        key_name = str(getattr(key, 'name', ''))
-        if key_name in IGNORED_KEYS:
+        if (key_name := str(getattr(key, 'name', ''))) in IGNORED_KEYS:
             return
         if self.deduplicate_keys:
             if not is_press:
@@ -48,8 +47,9 @@ class KeyboardListener(Runnable):
         if key_name:
             self.modifiers = self.modifiers.apply(key, is_press)
 
-        c = WHITESPACE.get(key_name, getattr(key, 'char', ''))
-        if c and (not is_press or not self.modifiers.is_command):
+        if (c := WHITESPACE.get(key_name, getattr(key, 'char', ''))) and (
+            not is_press or not self.modifiers.is_command
+        ):
             self.callback(CharPress(c, is_press, time=time.time()))
 
     def _run(self) -> None:

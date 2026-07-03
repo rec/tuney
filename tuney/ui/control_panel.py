@@ -184,8 +184,7 @@ def _add_general_controls(
     option_controls: list[_OptionControl],
     advanced: bool = True,
 ) -> None:
-    controls = _general_controls(data, advanced)
-    if not controls:
+    if not (controls := _general_controls(data, advanced)):
         return
     section = _section(parent)
     _parent_layout(parent).addWidget(section)
@@ -555,8 +554,7 @@ def _configure_editor(widget: QWidget, width: int | None = None) -> None:
 def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    display = _control_metadata(type(data), name)
-    if display.width:
+    if (display := _control_metadata(type(data), name)).width:
         return False
     if isinstance(value, bool | int | float | enum.Enum):
         return False
@@ -692,8 +690,7 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
 
 
 def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
-    row_frame = parent.parent()
-    if row_frame is None:
+    if (row_frame := parent.parent()) is None:
         return
     for cell in row_frame.findChildren(
         QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly
@@ -976,8 +973,8 @@ def _entry_width(
     name: str, annotation: Any, display: Display | None = None
 ) -> int | None:
     display = display or Display()
-    if display.width:
-        return display.width * constants.ENTRY_CHAR_WIDTH
+    if width := display.width:
+        return width * constants.ENTRY_CHAR_WIDTH
 
     types = set(_annotation_types(annotation))
     if str in types:
@@ -1015,8 +1012,7 @@ def _enum_class(annotation: Any, value: object) -> type[enum.Enum] | None:
 
 
 def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
-    origin = get_origin(annotation)
-    if origin is None:
+    if get_origin(annotation) is None:
         return ()
 
     args = get_args(annotation)
@@ -1024,8 +1020,7 @@ def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
 
 
 def _parent_layout(parent: QWidget) -> QVBoxLayout | QHBoxLayout:
-    layout = parent.layout()
-    if layout is None:
+    if (layout := parent.layout()) is None:
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
@@ -1034,14 +1029,11 @@ def _parent_layout(parent: QWidget) -> QVBoxLayout | QHBoxLayout:
 
 def _clear_layout(layout: QVBoxLayout | QHBoxLayout) -> None:
     while layout.count():
-        item = layout.takeAt(0)
-        if item is None:
+        if (item := layout.takeAt(0)) is None:
             continue
-        widget = item.widget()
-        if widget is not None:
+        if (widget := item.widget()) is not None:
             widget.deleteLater()
-        child_layout = item.layout()
-        if child_layout is not None:
+        if (child_layout := item.layout()) is not None:
             _clear_layout(cast(QVBoxLayout | QHBoxLayout, child_layout))
 
 

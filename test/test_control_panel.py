@@ -52,8 +52,7 @@ def _control_fields(data: BaseModel) -> list[str]:
 def _qt_app() -> object:
     from PySide6.QtWidgets import QApplication
 
-    app = QApplication.instance()
-    if app is None:
+    if (app := QApplication.instance()) is None:
         app = QApplication([])
     return app
 

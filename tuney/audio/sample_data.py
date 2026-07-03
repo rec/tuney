@@ -29,8 +29,7 @@ class SampleData(BaseModel):
 
     def cut_to(self, time: float) -> SampleData:
         count = round(time * self.sample_rate)
-        to_cut = len(self.data) - count
-        if to_cut <= 0:
+        if (to_cut := len(self.data) - count) <= 0:
             return self
         half = to_cut // 2
         return SampleData(

@@ -14,8 +14,9 @@ LOG_FILE = 'tuney.txt'
 
 
 def app_state_dir() -> Path:
-    state_home = os.environ.get(XDG_STATE_HOME)
-    if state_home and Path(state_home).is_absolute():
+    if (state_home := os.environ.get(XDG_STATE_HOME)) and Path(
+        state_home
+    ).is_absolute():
         return Path(state_home) / APP_STATE_DIR
     return Path.home() / '.local' / 'state' / APP_STATE_DIR
 

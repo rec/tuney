@@ -143,8 +143,7 @@ class TuneyState:
             self.main_window.ui.set_text('')
 
     def randomize_timing(self) -> None:
-        text = self.display_text
-        if not text:
+        if not (text := self.display_text):
             return
         if self.tuney.gui:
             self.main_window.history.checkpoint_undo()

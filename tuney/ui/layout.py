@@ -285,9 +285,7 @@ def _set_entry_text(entry: QLineEdit, text: str) -> None:
 
 def _clear_grid(layout: QGridLayout) -> None:
     while layout.count():
-        item = layout.takeAt(0)
-        if item is None:
+        if (item := layout.takeAt(0)) is None:
             continue
-        widget = item.widget()
-        if widget is not None:
+        if (widget := item.widget()) is not None:
             widget.deleteLater()

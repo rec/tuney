@@ -60,14 +60,14 @@ class NoteButton(QPushButton):
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
-        font_size = _note_font_size(self.width(), self.height())
-        if font_size != self._font_size:
+        if (
+            font_size := _note_font_size(self.width(), self.height())
+        ) != self._font_size:
             self._font_size = font_size
             self.setFont(QFont(FONT_FAMILY, font_size, QFont.Weight.Bold))
 
 
 def _note_font_size(width: int, height: int) -> int:
-    size = min(width, height)
-    if size >= FONT_SCALING_THRESHOLD:
+    if (size := min(width, height)) >= FONT_SCALING_THRESHOLD:
         return MAX_FONT_SIZE
     return max(MIN_FONT_SIZE, MAX_FONT_SIZE * size // FONT_SCALING_THRESHOLD)

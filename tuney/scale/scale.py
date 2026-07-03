@@ -184,8 +184,7 @@ class Scale(BaseModel, frozen=True):
     def _to_notes(self, s: str) -> tuple[list[str], list[str]]:
         split = self._note_re.split(self.accidental_names.canonical(s)) + ['']
         errors, values = zip(*batched(split, 2), strict=True)
-        notes = [v for v in values[:-1] if v]
-        if not notes:
+        if not (notes := [v for v in values[:-1] if v]):
             notes = list(self.names)
         return notes, [v for e in errors[:-1] if (v := e.strip())]
 

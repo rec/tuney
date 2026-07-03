@@ -69,8 +69,7 @@ class _AfterDispatcher(QObject):
 
 class MainWindow(QMainWindow):
     def __init__(self, state: TuneyState) -> None:
-        instance = QApplication.instance()
-        if instance is None:
+        if (instance := QApplication.instance()) is None:
             self.qt_app = QApplication(sys.argv[:1])
         else:
             self.qt_app = cast(QApplication, instance)
@@ -196,8 +195,7 @@ class MainWindow(QMainWindow):
             result = QFileDialog.getOpenFileName(
                 self, 'Open Text File', '', 'Text (*.txt);;All files (*)'
             )
-            filename = result[0]
-            if filename:
+            if filename := result[0]:
                 self.state.load_text_file(Path(filename))
         finally:
             self._is_saving = False
@@ -220,8 +218,7 @@ class MainWindow(QMainWindow):
             result = QFileDialog.getSaveFileName(
                 self, 'Save', '', 'TOML (*.toml);;JSON (*.json)'
             )
-            filename = result[0]
-            if filename:
+            if filename := result[0]:
                 self.state.save(Path(filename))
         finally:
             self._is_saving = False
@@ -324,8 +321,7 @@ class MainWindow(QMainWindow):
             elif (key_value := Qt.Key(key)) in KEY_TEXT:
                 c = KEY_TEXT[key_value]
             else:
-                text = event.text()
-                c = text if len(text) == 1 else ''
+                c = text if len(text := event.text()) == 1 else ''
             if c:
                 self._key_chars[key] = c
         else:
@@ -411,8 +407,7 @@ class MainWindow(QMainWindow):
             self.state.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
-        engine = self.state.tuney.player.__dict__.get('engine')
-        if engine:
+        if engine := self.state.tuney.player.__dict__.get('engine'):
             for error in engine.diagnostics.take_errors():
                 QMessageBox.critical(self, 'Audio error', error)
 

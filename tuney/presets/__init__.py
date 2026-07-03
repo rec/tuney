@@ -42,8 +42,7 @@ def preset_names() -> list[str]:
 
 def read_preset(name: str) -> dict[str, Any]:
     data = read_file(_preset_path(name))
-    forbidden = [field for field in FORBIDDEN_PRESET_FIELDS if field in data]
-    if forbidden:
+    if forbidden := [field for field in FORBIDDEN_PRESET_FIELDS if field in data]:
         raise ValueError(f'Preset {name} must not contain {", ".join(forbidden)}')
     return data
 
@@ -60,8 +59,7 @@ def _preset_path(name: str) -> Path:
         raise ValueError(f'Preset names must not contain path separators: {name}')
     for directory in [USER_PRESETS, BUILTIN_PRESETS]:
         for suffix in PRESET_SUFFIXES:
-            path = directory / f'{name}{suffix}'
-            if path.exists():
+            if (path := directory / f'{name}{suffix}').exists():
                 return path
     raise ValueError(f'Unknown preset {name}')
 
