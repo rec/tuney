@@ -25,8 +25,8 @@ class Voice(BaseModel, frozen=True):
         return 1 / self.frequency
 
     @cached_property
-    def sample_period(self) -> float:
-        return self.sample_rate * self.period
+    def period_samples(self) -> float:
+        return self.period * self.sample_rate
 
     @cached_property
     def fade_in_samples(self) -> float:
@@ -65,12 +65,12 @@ class VoiceState(BaseModel):
         if self.complete:
             return np.zeros(frame_size)
 
-        sample_period = self.voice.sample_period
-        wave = self.voice.oscillator(self.phase, frame_size, sample_period)
+        period_samples = self.voice.period_samples
+        wave = self.voice.oscillator(self.phase, frame_size, period_samples)
         frames = self.frame_count + np.arange(frame_size)
         wave *= self._envelope(frames) * self.voice.gain
 
-        self.phase = (self.phase + frame_size) % sample_period
+        self.phase = (self.phase + frame_size) % period_samples
         self.frame_count += frame_size
         if self.release_frame is not None:
             last_sample = self.release_frame + self.voice.fade_out_samples
@@ -88,8 +88,6 @@ class VoiceState(BaseModel):
         if self.voice.fade_out_samples <= 0:
             return fade_in * (frames < self.release_frame)
 
-        elapsed = frames - self.release_frame
-        fade_out = self.release_gain * np.clip(
-            1 - elapsed / self.voice.fade_out_samples, 0, 1
-        )
+        elapsed = 1 - (frames - self.release_frame) / self.voice.fade_out_samples
+        fade_out = self.release_gain * np.clip(elapsed, 0, 1)
         return np.minimum(fade_in, fade_out)
