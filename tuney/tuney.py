@@ -16,6 +16,7 @@ from .presets import preset_names
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .tuney_state import TuneyState
+from .tyro_option import tyro_option
 
 
 @final
@@ -29,14 +30,12 @@ class Tuney(BaseModel):
     # Named performance preset to load
     preset: Annotated[
         str | None,
-        tyro.conf.arg(aliases=['-p']),
+        tyro_option('-p'),
         Display(general=True, beginner=True, options=preset_names),
     ] = None
 
     # Load configs from a JSON or toml file
-    config_file: Annotated[
-        Path | None, tyro.conf.arg(aliases=['-c']), Display(hidden=True)
-    ] = None
+    config_file: Annotated[Path | None, tyro_option('-c'), Display(hidden=True)] = None
 
     # Map letters to notes
     mapper: Mapper = Mapper()
@@ -53,8 +52,8 @@ class Tuney(BaseModel):
     # Text to start the program with
     text: Annotated[
         str | list[CharPress] | None,
-        tyro.conf.arg(
-            aliases=['-t'],
+        tyro_option(
+            '-t',
             constructor=str,
             help_behavior_hint='(optional)',
             metavar='TEXT',
@@ -66,14 +65,14 @@ class Tuney(BaseModel):
     text_args: Annotated[
         list[str],
         tyro.conf.Positional,
-        tyro.conf.arg(name='text', metavar='TEXT'),
+        tyro_option(name='text', metavar='TEXT'),
         Display(hidden=True),
     ] = Field(default_factory=list, exclude=True)
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
         float,
-        tyro.conf.arg(aliases=['-m']),
+        tyro_option('-m'),
         Display(general=True, beginner=True, step=0.01),
     ] = 4.0
 
@@ -87,22 +86,18 @@ class Tuney(BaseModel):
     backspace_repeat_rate: Annotated[float, Display(hidden=True)] = 4.0
 
     # Open the graphical interface
-    gui: Annotated[bool, tyro.conf.arg(aliases=['-g']), Display(hidden=True)] = False
+    gui: Annotated[bool, tyro_option('-g'), Display(hidden=True)] = False
 
     # Disable synthesized audio output
-    silent: Annotated[
-        bool, tyro.conf.arg(aliases=['-s']), Display(general=True, beginner=True)
-    ] = False
+    silent: Annotated[bool, tyro_option('-s'), Display(general=True, beginner=True)] = (
+        False
+    )
 
     # Audio file to write while playing text
-    output: Annotated[
-        Path | None, tyro.conf.arg(aliases=['-o']), Display(hidden=True)
-    ] = None
+    output: Annotated[Path | None, tyro_option('-o'), Display(hidden=True)] = None
 
     # If True, listen to the keyboard even when other applications are in front
-    run_in_background: Annotated[
-        bool, tyro.conf.arg(aliases=['-b']), Display(general=True)
-    ] = False
+    run_in_background: Annotated[bool, tyro_option('-b'), Display(general=True)] = False
 
     # Path to the automatically saved GUI state
     autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)

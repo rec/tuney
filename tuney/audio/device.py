@@ -53,7 +53,7 @@ class Device(BaseModel, frozen=True):
     # Audio output device name or index
     device: Annotated[
         int | str | None,
-        tyro_option(name='audio-device', aliases=['-d']),
+        tyro_option('-d', name='audio-device'),
         Display(beginner=True, row=0, order=1, options=device_names),
     ] = None
 

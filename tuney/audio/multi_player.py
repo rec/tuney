@@ -27,14 +27,14 @@ class MultiPlayer(BaseModel, frozen=True):
     # Audio output gain
     gain: Annotated[
         float,
-        tyro_option(aliases=['-G']),
+        tyro_option('-G'),
         Display(general=True, beginner=True, step=0.01, dial=True),
     ] = 1.0
 
     # Offset added to generated note numbers before tuning
     note_offset: Annotated[
         NoteNumber,
-        tyro_option(name='audio-note-offset', aliases=['-n']),
+        tyro_option('-n', name='audio-note-offset'),
         Display(general=True, beginner=True),
     ] = 44
 
@@ -50,7 +50,7 @@ class MultiPlayer(BaseModel, frozen=True):
 
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[
-        float, tyro_option(aliases=['-N']), Display(beginner=True, row=0)
+        float, tyro_option('-N'), Display(beginner=True, row=0)
     ] = Field(0.5, ge=0)
 
     @cached_property

@@ -51,16 +51,14 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
 
     #: Detune everything, in cents of an octave division
-    detune: Annotated[
-        float, tyro_option(aliases=['-T']), Display(beginner=True, row=0)
-    ] = 0
+    detune: Annotated[float, tyro_option('-T'), Display(beginner=True, row=0)] = 0
 
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro_option(aliases=['-v']), Display(row=0, order=1)] = 0
+    limit: Annotated[int, tyro_option('-v'), Display(row=0, order=1)] = 0
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option(aliases=['-V']), Display(beginner=True, row=0, order=2)
+        int, tyro_option('-V'), Display(beginner=True, row=0, order=2)
     ] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -68,22 +66,22 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option(aliases=['-J']), Display(beginner=True, row=0, order=3)
+        float, tyro_option('-J'), Display(beginner=True, row=0, order=3)
     ] = 2
 
     #: The rule for converting a pitch to a frequency
     pitch_to_frequency: Annotated[
-        PitchToFrequency, tyro_option(aliases=['-F']), Display(general=False)
+        PitchToFrequency, tyro_option('-F'), Display(general=False)
     ] = PitchToFrequency.power
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
-        Frequency, tyro_option(aliases=['-U']), Display(beginner=True, row=0, order=4)
+        Frequency, tyro_option('-U'), Display(beginner=True, row=0, order=4)
     ] = 440
 
     #: The note number of the reference note
     root_note: Annotated[
-        NoteNumber, tyro_option(aliases=['-W']), Display(beginner=True, row=0, order=5)
+        NoteNumber, tyro_option('-W'), Display(beginner=True, row=0, order=5)
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.

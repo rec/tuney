@@ -57,27 +57,27 @@ class Scale(BaseModel, frozen=True):
     tuning: Tuning = Tuning()
 
     #: The base note names
-    note_names: Annotated[str, tyro_option(aliases=['-A']), Display(row=2)] = (
+    note_names: Annotated[str, tyro_option('-A'), Display(row=2)] = (
         string.ascii_uppercase
     )
 
     #: The root note to start scales with
-    root: Annotated[
-        str, tyro_option(aliases=['-q']), Display(beginner=True, row=0, width=1)
-    ] = 'C'
+    root: Annotated[str, tyro_option('-q'), Display(beginner=True, row=0, width=1)] = (
+        'C'
+    )
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[
         str,
-        tyro_option(aliases=['-j']),
+        tyro_option('-j'),
         Display(beginner=True, row=0, order=1, width=1),
     ] = 'A'
 
     #: The Last note from the alphabet
     end: Annotated[
         str,
-        tyro_option(aliases=['-E']),
+        tyro_option('-E'),
         Display(beginner=True, row=0, order=2, width=1),
     ] = 'G'
 
@@ -86,26 +86,26 @@ class Scale(BaseModel, frozen=True):
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: Annotated[
-        str | None, tyro_option(aliases=['-Q']), Display(beginner=True, row=1)
-    ] = None
+    notes: Annotated[str | None, tyro_option('-Q'), Display(beginner=True, row=1)] = (
+        None
+    )
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[
         list[int],
         validate_intervals,
-        tyro_option(aliases=['-i']),
+        tyro_option('-i'),
         Display(beginner=True, row=1, order=1),
     ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[
-        Accidentals, tyro_option(aliases=['-X']), Display(beginner=True, row=1, order=2)
+        Accidentals, tyro_option('-X'), Display(beginner=True, row=1, order=2)
     ] = Accidentals.whole
 
     #: Offset all note numbers by this
     offset: Annotated[
-        int, tyro_option(name='scale-offset', aliases=['-Y']), Display(row=0, order=3)
+        int, tyro_option('-Y', name='scale-offset'), Display(row=0, order=3)
     ] = 0
 
     @model_validator(mode='after')
