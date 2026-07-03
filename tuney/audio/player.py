@@ -20,13 +20,14 @@ from .output_file import AudioFileWriter, render_file
 from .polyphony import Polyphony
 from .voice import Voice
 
-DEFAULT_TUNING = Tuning()
-
 
 class Player(BaseModel, frozen=True):
     device: Device = Field(default_factory=Device)
     oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()
+    tuning: Annotated[Tuning, Display(hidden=True)] = Field(
+        default_factory=Tuning, exclude=True
+    )
 
     # Audio output gain
     gain: Annotated[
@@ -77,10 +78,9 @@ class Player(BaseModel, frozen=True):
         self,
         note_number: int,
         sample_rate: int | None = None,
-        tuning: Tuning = DEFAULT_TUNING,
     ) -> Voice:
         scaled_note_number = note_number + self.note_offset
-        frequency = self.scale.frequency(tuning, scaled_note_number)
+        frequency = self.scale.frequency(self.tuning, scaled_note_number)
         return Voice(
             frequency=frequency,
             gain=self.gain * self.oscillator.gain(scaled_note_number),
@@ -102,12 +102,9 @@ class Player(BaseModel, frozen=True):
         path: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None = None,
-        tuning: Tuning = DEFAULT_TUNING,
     ) -> None:
         mixer = Mixer(
-            voice_maker=partial(
-                self.voice_maker, sample_rate=self.sample_rate, tuning=tuning
-            ),
+            voice_maker=partial(self.voice_maker, sample_rate=self.sample_rate),
             channels=self.channels,
             polyphony=self.polyphony,
         )
@@ -129,12 +126,10 @@ class Player(BaseModel, frozen=True):
         if recorder:
             recorder.close()
 
-    def on_note(
-        self, note_number: NoteNumber, is_press: bool, tuning: Tuning = DEFAULT_TUNING
-    ) -> bool:
-        return self.start(note_number, tuning) if is_press else self.stop(note_number)
+    def on_note(self, note_number: NoteNumber, is_press: bool) -> bool:
+        return self.start(note_number) if is_press else self.stop(note_number)
 
-    def start(self, note_number: NoteNumber, tuning: Tuning = DEFAULT_TUNING) -> bool:
+    def start(self, note_number: NoteNumber) -> bool:
         if (
             note_number in self.pressed_notes
             or len(self.pressed_notes) >= self.polyphony.max_voices
@@ -145,7 +140,6 @@ class Player(BaseModel, frozen=True):
             voice_maker = partial(
                 self.voice_maker,
                 sample_rate=int(self.engine.stream.samplerate),
-                tuning=tuning,
             )
             self.engine.submit(
                 Configure(

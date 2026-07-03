@@ -46,7 +46,7 @@ class TuneyState:
 
     @cached_property
     def player(self) -> Player:
-        return Player()
+        return Player(tuning=self.tuney.tuning)
 
     @cached_property
     def note_labels(self) -> dict[str, str]:
@@ -191,7 +191,9 @@ class TuneyState:
         if isinstance(player_data, dict):
             player_data = {str(key): value for key, value in player_data.items()}
             self.__dict__['player'] = Player.model_validate(
-                merged_data(self.player.model_dump(), player_data)
+                merged_data(
+                    self.player.model_dump(), player_data, {'tuning': self.tuney.tuning}
+                )
             )
         self._clear_cached_values()
         if char_presses is not None:
@@ -208,7 +210,9 @@ class TuneyState:
         if isinstance(player_data, dict):
             player_data = {str(key): value for key, value in player_data.items()}
             self.__dict__['player'] = Player.model_validate(
-                merged_data(self.player.model_dump(), player_data)
+                merged_data(
+                    self.player.model_dump(), player_data, {'tuning': self.tuney.tuning}
+                )
             )
         self._clear_cached_values()
 
@@ -223,7 +227,7 @@ class TuneyState:
     def _on_char(self, c: CharPress) -> None:
         if (note := self.tuney.mapper(c.char)) is not None:
             if not self.tuney.silent:
-                self.player.on_note(note, c.is_press, self.tuney.tuning)
+                self.player.on_note(note, c.is_press)
             self.tuney.midi(note, c.is_press)
         if self.tuney.gui:
             self.main_window.on_char(c)
@@ -324,7 +328,6 @@ class TuneyState:
                     self.tuney.output,
                     self._note_events(),
                     comment,
-                    self.tuney.tuning,
                 )
             else:
                 if self.tuney.output:

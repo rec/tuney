@@ -26,7 +26,10 @@ def cli(cls, prog: str):
             f = tyro.cli(cls, prog=prog, default=default)
         state = TuneyState(f)
         if isinstance(player_data := data.get('player'), dict):
-            state.__dict__['player'] = Player.model_validate(player_data)
+            player_data = {str(key): value for key, value in player_data.items()}
+            state.__dict__['player'] = Player.model_validate(
+                {**player_data, 'tuning': f.tuning}
+            )
         result = state()
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):

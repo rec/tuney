@@ -11,7 +11,6 @@ import pytest
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.platform_info import exit_with_message, report_error
-from tuney.scale.tuning import Tuning
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
@@ -767,7 +766,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     monkeypatch.setattr(
         Player,
         'on_note',
-        lambda self, note, is_press, tuning: events.append((note, is_press)) or True,
+        lambda self, note, is_press: events.append((note, is_press)) or True,
     )
     monkeypatch.setattr(Player, 'stop_all', lambda self: lifecycle.append('stop_all'))
     monkeypatch.setattr(Player, 'wait', lambda self: lifecycle.append('wait'))
@@ -864,7 +863,7 @@ def test_output_forces_cli_mode() -> None:
 def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> None:
     path = Path('out.wav')
     rendered: list[
-        tuple[Path, list[tuple[int, NotePress]], Callable[[], str] | None, Tuning]
+        tuple[Path, list[tuple[int, NotePress]], Callable[[], str] | None]
     ] = []
 
     def render_file(
@@ -872,9 +871,8 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
         output: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None,
-        tuning: Tuning,
     ) -> None:
-        rendered.append((output, events, comment, tuning))
+        rendered.append((output, events, comment))
 
     monkeypatch.setattr(Player, 'render_file', render_file)
     tuney = Tuney(
@@ -887,10 +885,11 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
     )
 
     state_for(tuney)()
-    output, events, comment, tuning = rendered[0]
+    state = state_for(tuney)
+    output, events, comment = rendered[0]
 
     assert output == path
-    assert tuning == tuney.tuning
+    assert state.player.tuning == tuney.tuning
     assert [(frame, note.is_press) for frame, note in events] == [
         (0, True),
         (4800, False),
@@ -957,7 +956,6 @@ def test_interrupted_output_removes_partial_file(monkeypatch) -> None:
             output: Path,
             events: list[tuple[int, NotePress]],
             comment: Callable[[], str] | None,
-            tuning: Tuning,
         ) -> None:
             output.write_bytes(b'partial')
             raise KeyboardInterrupt
