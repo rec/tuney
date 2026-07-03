@@ -275,6 +275,38 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
     assert app.undo_count == 1
 
 
+def test_text_file_loads_char_presses(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.write_text('ab')
+    tuney = Tuney(
+        text_file=path,
+        text_timings=TextTimings(seed=1, overlap=0, timings=[10]),
+    )
+
+    assert tuney.state.display_text == 'ab'
+    assert [c.char for c in tuney.state.char_presses if c.is_press] == ['a', 'b']
+
+
+def test_load_text_file_replaces_char_presses(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.write_text('ab')
+    tuney = Tuney(
+        gui=True,
+        text='old',
+        text_timings=TextTimings(seed=1, overlap=0, timings=[10]),
+    )
+    app = FakeApp()
+    tuney.state.__dict__['app'] = app
+    tuney.state.key_recorder.start_time = 100.0
+
+    tuney.state.load_text_file(path)
+
+    assert tuney.state.display_text == 'ab'
+    assert [c.char for c in tuney.state.char_presses if c.is_press] == ['a', 'b']
+    assert tuney.state.key_recorder.start_time is None
+    assert app.undo_count == 1
+
+
 def test_on_char_records_undo_for_added_char_press() -> None:
     tuney = Tuney(gui=True, silent=True)
     app = FakeApp()

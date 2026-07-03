@@ -5,6 +5,7 @@ import tomlkit
 
 from tuney.keyboard.char_press import CharPress
 from tuney.serialize import serialize
+from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 
 
@@ -15,6 +16,20 @@ def test_tuney_dump_data_uses_recorded_char_presses():
 
     actual = tomllib.loads(tomlkit.dumps(serialize(tuney.state.dump_data())))
 
+    assert actual['text'] == [
+        {'char': 'a', 'is_press': True, 'time': 0.0},
+        {'char': 'a', 'is_press': False, 'time': 250.0},
+    ]
+
+
+def test_tuney_dump_data_excludes_text_file(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.write_text('a')
+    tuney = Tuney(text_file=path, text_timings=TextTimings(overlap=0, timings=[250]))
+
+    actual = tomllib.loads(tomlkit.dumps(serialize(tuney.state.dump_data())))
+
+    assert 'text_file' not in actual
     assert actual['text'] == [
         {'char': 'a', 'is_press': True, 'time': 0.0},
         {'char': 'a', 'is_press': False, 'time': 250.0},

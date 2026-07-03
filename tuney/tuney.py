@@ -61,6 +61,12 @@ class Tuney(BaseModel):
         Display(hidden=True),
     ] = None
 
+    # Text file to start the program with
+    text_file: Annotated[
+        tyro.conf.Suppress[Path | None],
+        Display(hidden=True),
+    ] = Field(default=None, exclude=True)
+
     # Positional text to start the program with
     text_args: Annotated[
         list[str],

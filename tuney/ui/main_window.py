@@ -190,6 +190,19 @@ class MainWindow(QMainWindow):
     def on_clear(self, *_: object) -> None:
         self.tuney.state.clear()
 
+    def on_open_text_file(self, *_: object) -> None:
+        self._is_saving = True
+        try:
+            result = QFileDialog.getOpenFileName(
+                self, 'Open Text File', '', 'Text (*.txt);;All files (*)'
+            )
+            filename = result[0]
+            if filename:
+                self.tuney.state.load_text_file(Path(filename))
+        finally:
+            self._is_saving = False
+            self._has_focus = False
+
     def on_clear_settings(self, *_: object) -> None:
         response = QMessageBox.question(
             self,
@@ -334,6 +347,7 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
+        _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
         _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(file_menu, 'Clear settings...', None, self.on_clear_settings)

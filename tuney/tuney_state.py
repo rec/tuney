@@ -58,6 +58,10 @@ class TuneyState:
 
     @cached_property
     def char_presses(self) -> list[CharPress]:
+        if self.tuney.text_file is not None:
+            return list(
+                self.tuney.text_timings.char_presses(self.tuney.text_file.read_text())
+            )
         if self.tuney.text is None:
             return []
         if isinstance(self.tuney.text, list):
@@ -146,6 +150,15 @@ class TuneyState:
         self.key_recorder.clear()
         if self.tuney.gui:
             self.app.ui.set_text(text)
+
+    def load_text_file(self, path: Path) -> None:
+        text = path.read_text()
+        if self.tuney.gui:
+            self.app.history.checkpoint_undo()
+        self.__dict__['char_presses'] = list(self.tuney.text_timings.char_presses(text))
+        self.key_recorder.clear()
+        if self.tuney.gui:
+            self.app.ui.set_text(self.display_text)
 
     def save(self, path: Path) -> None:
         data = serialize(self.dump_data())
