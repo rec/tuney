@@ -12,14 +12,33 @@ from ..tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
 INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'
-MIDO_GET_OUTPUT_NAMES = 'get_output_names'
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
 
 
-def midi_output_names() -> list[str]:
-    return output_names()
+def output_names() -> list[str]:
+    args = (
+        [sys.executable, INTERNAL_LIST_MIDI_OUTPUTS]
+        if getattr(sys, 'frozen', False)
+        else [sys.executable, '-c', MIDO_OUTPUT_NAMES_SCRIPT]
+    )
+    try:
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=5,
+        )
+        names = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
+        print(f'Could not list MIDI outputs: {error}')
+        return []
+    if not isinstance(names, list):
+        print(f'Could not list MIDI outputs: expected list, got {type(names).__name__}')
+        return []
+    return [name for name in names if isinstance(name, str)]
 
 
 class MIDI(BaseModel, frozen=True):
@@ -32,7 +51,7 @@ class MIDI(BaseModel, frozen=True):
     output: Annotated[
         str | None,
         tyro_option(name='midi-output'),
-        Display(beginner=True, row=0, order=1, width=12, options=midi_output_names),
+        Display(beginner=True, row=0, order=1, width=12, options=output_names),
     ] = None
 
     # MIDI channel, from 0 to 15
@@ -66,36 +85,9 @@ class MIDI(BaseModel, frozen=True):
             )
 
 
-def output_names() -> list[str]:
-    args = (
-        [sys.executable, INTERNAL_LIST_MIDI_OUTPUTS]
-        if getattr(sys, 'frozen', False)
-        else [sys.executable, '-c', MIDO_OUTPUT_NAMES_SCRIPT]
-    )
-    try:
-        result = subprocess.run(
-            args,
-            capture_output=True,
-            check=True,
-            text=True,
-            timeout=5,
-        )
-        names = json.loads(result.stdout)
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        print(f'Could not list MIDI outputs: {error}')
-        return []
-    if not isinstance(names, list):
-        print(f'Could not list MIDI outputs: expected list, got {type(names).__name__}')
-        return []
-    return [name for name in names if isinstance(name, str)]
-
-
 def _output_names() -> list[str]:
     try:
-        get_output_names = getattr(mido, MIDO_GET_OUTPUT_NAMES)
-        if not callable(get_output_names):
-            return []
-        names = get_output_names()
+        names = mido.get_output_names()
     except (OSError, RuntimeError) as error:
         print(f'Could not list MIDI outputs: {error}')
         return []
