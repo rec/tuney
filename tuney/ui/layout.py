@@ -38,18 +38,18 @@ WIDTH, HEIGHT = 70, 80
 
 
 class Layout(QWidget):
-    def __init__(self, app: MainWindow) -> None:
-        super().__init__(app)
-        width = WIDTH * app.columns
+    def __init__(self, main_window: MainWindow) -> None:
+        super().__init__(main_window)
+        width = WIDTH * main_window.columns
         height = (
-            HEIGHT * app.rows
+            HEIGHT * main_window.rows
             + TEXT_BOX_HEIGHT
             + CONTROL_PANEL_HEIGHT
             + LOOP_CONTROLS_HEIGHT
         )
-        app.resize(width, height)
+        main_window.resize(width, height)
 
-        self.app = app
+        self.main_window = main_window
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(
             constants.PAD, constants.PAD, constants.PAD, constants.PAD
@@ -68,10 +68,10 @@ class Layout(QWidget):
             [
                 CONTROL_PANEL_HEIGHT,
                 TEXT_BOX_HEIGHT + REPLAY_FRAME_HEIGHT + LOOP_CONTROLS_HEIGHT,
-                max(NOTE_GRID_HEIGHT * app.rows, NOTE_GRID_HEIGHT),
+                max(NOTE_GRID_HEIGHT * main_window.rows, NOTE_GRID_HEIGHT),
             ]
         )
-        self.set_text(app.tuney.state.display_text)
+        self.set_text(main_window.tuney.state.display_text)
 
     def set_text(self, s: str) -> None:
         self.textbox.setPlainText(s)
@@ -92,7 +92,7 @@ class Layout(QWidget):
 
     @cached_property
     def control_panel(self) -> ControlPanel:
-        panel = ControlPanel(self, self.app.tuney, CONTROL_PANEL_HEIGHT)
+        panel = ControlPanel(self, self.main_window.tuney, CONTROL_PANEL_HEIGHT)
         self.splitter.addWidget(panel)
         return panel
 
@@ -113,9 +113,9 @@ class Layout(QWidget):
         self.control_panel.rebuild()
 
     def refresh_loop_controls(self) -> None:
-        _set_entry_text(self.loop_before, str(self.app.history.loop_before))
-        _set_entry_text(self.loop_after, str(self.app.history.loop_after))
-        _set_entry_text(self.loop_tempo, str(self.app.history.loop_tempo))
+        _set_entry_text(self.loop_before, str(self.main_window.history.loop_before))
+        _set_entry_text(self.loop_after, str(self.main_window.history.loop_after))
+        _set_entry_text(self.loop_tempo, str(self.main_window.history.loop_tempo))
 
     def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
         self.randomize_on_each_loop.setChecked(randomize_on_each_loop)
@@ -167,14 +167,14 @@ class Layout(QWidget):
         layout.setColumnStretch(2, 1)
         self.transport = Transport(
             frame,
-            self.app.on_transport_state,
-            lambda: self.app.tuney.hover_time,
+            self.main_window.on_transport_state,
+            lambda: self.main_window.tuney.hover_time,
         )
         layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.replay = QPushButton('Replay', frame)
         self.replay.setFixedSize(156, 36)
         self.replay.setFont(QFont(FONT_FAMILY, 16))
-        self.replay.clicked.connect(self.app.on_replay)
+        self.replay.clicked.connect(self.main_window.on_replay)
         layout.addWidget(self.replay, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
         right = QWidget(frame)
         right_layout = QHBoxLayout(right)
@@ -182,16 +182,16 @@ class Layout(QWidget):
         right_layout.setSpacing(6)
         self.randomize = QPushButton('Randomize', frame)
         self.randomize.setFixedWidth(96)
-        self.randomize.clicked.connect(self.app.on_randomize_timing)
+        self.randomize.clicked.connect(self.main_window.on_randomize_timing)
         right_layout.addWidget(self.randomize)
         self.loop = QCheckBox('Loop', frame)
-        self.loop.toggled.connect(lambda _: self.app.on_loop_replay())
+        self.loop.toggled.connect(lambda _: self.main_window.on_loop_replay())
         right_layout.addWidget(self.loop)
         self.help = QPushButton('?', frame)
         self.help.setFixedSize(34, 34)
         self.help.setFont(QFont(FONT_FAMILY, 18))
         self.help.setToolTip('Help')
-        self.help.clicked.connect(self.app.on_help)
+        self.help.clicked.connect(self.main_window.on_help)
         right_layout.addWidget(self.help)
         layout.addWidget(right, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)
         self.text_area_layout.addWidget(frame)
@@ -205,27 +205,29 @@ class Layout(QWidget):
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        self.loop_before = _labeled_entry(
-            frame, layout, 'Before', self.app.history.loop_before
-        )
+
+        def labeled_entry(label: str, value: float) -> QLineEdit:
+            layout.addWidget(QLabel(label, frame))
+            entry = QLineEdit(str(value), frame)
+            entry.setFixedWidth(48)
+            layout.addWidget(entry)
+            return entry
+
+        self.loop_before = labeled_entry('Before', self.main_window.history.loop_before)
         self.loop_before.editingFinished.connect(
-            lambda: self.app.on_loop_before(self.loop_before.text())
+            lambda: self.main_window.on_loop_before(self.loop_before.text())
         )
-        self.loop_after = _labeled_entry(
-            frame, layout, 'After', self.app.history.loop_after
-        )
+        self.loop_after = labeled_entry('After', self.main_window.history.loop_after)
         self.loop_after.editingFinished.connect(
-            lambda: self.app.on_loop_after(self.loop_after.text())
+            lambda: self.main_window.on_loop_after(self.loop_after.text())
         )
-        self.loop_tempo = _labeled_entry(
-            frame, layout, 'Tempo', self.app.history.loop_tempo
-        )
+        self.loop_tempo = labeled_entry('Tempo', self.main_window.history.loop_tempo)
         self.loop_tempo.editingFinished.connect(
-            lambda: self.app.on_loop_tempo(self.loop_tempo.text())
+            lambda: self.main_window.on_loop_tempo(self.loop_tempo.text())
         )
         self.randomize_on_each_loop = QCheckBox('Randomize each loop', frame)
         self.randomize_on_each_loop.toggled.connect(
-            lambda _: self.app.on_randomize_on_each_loop()
+            lambda _: self.main_window.on_randomize_on_each_loop()
         )
         layout.addWidget(self.randomize_on_each_loop)
         layout.addStretch()
@@ -235,7 +237,9 @@ class Layout(QWidget):
     @cached_property
     def note_grid_widget(self) -> QWidget:
         widget = QWidget(self)
-        widget.setMinimumHeight(max(NOTE_GRID_HEIGHT * self.app.rows, NOTE_GRID_HEIGHT))
+        widget.setMinimumHeight(
+            max(NOTE_GRID_HEIGHT * self.main_window.rows, NOTE_GRID_HEIGHT)
+        )
         self.note_grid = QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
         self.note_grid.setSpacing(constants.QUARTER)
@@ -244,40 +248,30 @@ class Layout(QWidget):
 
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
-        it = self.app.tuney.state.note_labels.items()
+        it = self.main_window.tuney.state.note_labels.items()
         return {k: self._note_frame(i, k, text) for i, (k, text) in enumerate(it)}
 
     def rebuild_note_grid(self) -> None:
-        self.app.tuney.state.__dict__.pop('note_labels', None)
+        self.main_window.tuney.state.__dict__.pop('note_labels', None)
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
         try:
-            has_note_buttons = self.app.tuney.player.scale.note_count > 0
+            has_note_buttons = self.main_window.tuney.player.scale.note_count > 0
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
         if has_note_buttons:
             _ = self.note_buttons
 
     def _note_frame(self, i: int, char: str, text: str) -> NoteButton:
-        row, column = divmod(i, self.app.columns)
+        row, column = divmod(i, self.main_window.columns)
         return NoteButton(
             self.note_grid,
             row,
             column,
             char,
             text,
-            self.app.tuney.state.on_char,
+            self.main_window.tuney.state.on_char,
         )
-
-
-def _labeled_entry(
-    parent: QWidget, layout: QHBoxLayout, label: str, value: float
-) -> QLineEdit:
-    layout.addWidget(QLabel(label, parent))
-    entry = QLineEdit(str(value), parent)
-    entry.setFixedWidth(48)
-    layout.addWidget(entry)
-    return entry
 
 
 def _set_entry_text(entry: QLineEdit, text: str) -> None:
