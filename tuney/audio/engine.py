@@ -38,7 +38,7 @@ class Configure(BaseModel, frozen=True):
     max_polyphony: int
 
 
-class StopAll(BaseModel, frozen=True):
+class StopAll:
     pass
 
 
