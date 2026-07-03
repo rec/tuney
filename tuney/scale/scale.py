@@ -68,14 +68,14 @@ class Scale(BaseModel, frozen=True):
     begin: Annotated[
         str,
         tyro_option('-j'),
-        Display(beginner=True, row=0, order=1, width=1),
+        Display(beginner=True, column=1, row=0, width=1),
     ] = 'A'
 
     #: The Last note from the alphabet
     end: Annotated[
         str,
         tyro_option('-E'),
-        Display(beginner=True, row=0, order=2, width=1),
+        Display(beginner=True, column=2, row=0, width=1),
     ] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
@@ -92,17 +92,17 @@ class Scale(BaseModel, frozen=True):
         list[int],
         validate_intervals,
         tyro_option('-i'),
-        Display(beginner=True, row=1, order=1),
+        Display(beginner=True, column=1, row=1),
     ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[
-        Accidentals, tyro_option('-X'), Display(beginner=True, row=1, order=2)
+        Accidentals, tyro_option('-X'), Display(beginner=True, column=2, row=1)
     ] = Accidentals.whole
 
     #: Offset all note numbers by this
     offset: Annotated[
-        int, tyro_option('-Y', name='scale-offset'), Display(row=0, order=3)
+        int, tyro_option('-Y', name='scale-offset'), Display(column=3, row=0)
     ] = 0
 
     @model_validator(mode='after')

@@ -51,22 +51,22 @@ class MIDI(BaseModel, frozen=True):
     output: Annotated[
         str | None,
         tyro_option(name='midi-output'),
-        Display(beginner=True, row=0, order=1, width=12, options=output_names),
+        Display(beginner=True, column=1, row=0, width=12, options=output_names),
     ] = None
 
     # MIDI channel, from 0 to 15
     channel: Annotated[
-        int, tyro_option(name='midi-channel'), Display(row=0, order=2)
+        int, tyro_option(name='midi-channel'), Display(column=2, row=0)
     ] = 0
 
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
-        int, tyro_option(name='midi-velocity'), Display(row=0, order=3)
+        int, tyro_option(name='midi-velocity'), Display(column=3, row=0)
     ] = 0x40
 
     # Offset added to MIDI note numbers
     note_offset: Annotated[
-        int, tyro_option(name='midi-note-offset'), Display(row=0, order=4)
+        int, tyro_option(name='midi-note-offset'), Display(column=4, row=0)
     ] = 0
 
     @cached_property

@@ -54,12 +54,12 @@ class Device(BaseModel, frozen=True):
     device: Annotated[
         int | str | None,
         tyro_option('-d', name='audio-device'),
-        Display(beginner=True, row=0, order=1, options=device_names),
+        Display(beginner=True, column=1, row=0, options=device_names),
     ] = None
 
     # Sample data type sent to the audio output device
     dtype: Annotated[
-        DType | None, tyro_option(), Display(row=0, order=2, options=dtype_names)
+        DType | None, tyro_option(), Display(column=2, row=0, options=dtype_names)
     ] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None

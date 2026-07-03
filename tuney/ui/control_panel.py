@@ -315,7 +315,7 @@ def _control_ref_rows(
                 row,
                 key=lambda control: _control_metadata(
                     type(control[0]), control[1]
-                ).order,
+                ).column,
             )
         )
 
@@ -355,7 +355,7 @@ def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
         rows.append(
             sorted(
                 row,
-                key=lambda name: _control_metadata(type(data), name).order,
+                key=lambda name: _control_metadata(type(data), name).column,
             )
         )
 

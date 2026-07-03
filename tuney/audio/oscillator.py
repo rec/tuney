@@ -36,23 +36,23 @@ class Oscillator(BaseModel, frozen=True):
     period: Annotated[
         float,
         tyro_option('-e'),
-        Display(beginner=True, row=0, order=1, dial=True),
+        Display(beginner=True, column=1, row=0, dial=True),
     ] = 1.0
 
     # Fraction of each waveform cycle before its falling edge
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Display(beginner=True, row=0, order=2, dial=True),
+        Display(beginner=True, column=2, row=0, dial=True),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
-        NoteNumber, tyro_option('-K'), Display(row=0, order=3)
+        NoteNumber, tyro_option('-K'), Display(column=3, row=0)
     ] = 64
 
     # Gain octaves added per keyboard octave above key_scale_note
-    key_scale: Annotated[float, tyro_option('-k'), Display(row=0, order=4)] = 0.0
+    key_scale: Annotated[float, tyro_option('-k'), Display(column=4, row=0)] = 0.0
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:
         # TODO: add intensity to compensate for different energies

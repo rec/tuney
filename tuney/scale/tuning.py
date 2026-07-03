@@ -54,11 +54,11 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     detune: Annotated[float, tyro_option('-T'), Display(beginner=True, row=0)] = 0
 
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro_option('-v'), Display(row=0, order=1)] = 0
+    limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0)] = 0
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option('-V'), Display(beginner=True, row=0, order=2)
+        int, tyro_option('-V'), Display(beginner=True, column=2, row=0)
     ] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -66,7 +66,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option('-J'), Display(beginner=True, row=0, order=3)
+        float, tyro_option('-J'), Display(beginner=True, column=3, row=0)
     ] = 2
 
     #: The rule for converting a pitch to a frequency
@@ -76,12 +76,12 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
-        Frequency, tyro_option('-U'), Display(beginner=True, row=0, order=4)
+        Frequency, tyro_option('-U'), Display(beginner=True, column=4, row=0)
     ] = 440
 
     #: The note number of the reference note
     root_note: Annotated[
-        NoteNumber, tyro_option('-W'), Display(beginner=True, row=0, order=5)
+        NoteNumber, tyro_option('-W'), Display(beginner=True, column=5, row=0)
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
@@ -93,7 +93,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.
-    table_blend: Annotated[bool, tyro_option(), Display(row=0, order=6)] = True
+    table_blend: Annotated[bool, tyro_option(), Display(column=6, row=0)] = True
 
     def __call__(self, note_number: NoteNumber) -> float:
         """Return the frequency in this tuning for a NoteNumber"""
