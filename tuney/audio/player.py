@@ -12,7 +12,7 @@ from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..tyro_option import tyro_option
 from .device import Device
-from .engine import AudioEngine, Configure, StopAll, port_audio_error
+from .engine import AudioEngine, Configure, StopAll
 from .mixer import Mixer, NotePress
 from .oscillator import Oscillator
 from .output_file import AudioFileWriter, render_file
@@ -74,8 +74,9 @@ class Player(BaseModel, frozen=True):
         self.pressed_notes.clear()
         try:
             self.engine.reconfigure()
-        except port_audio_error():
-            pass
+        except Exception as e:
+            if e.__class__.__name__ != 'PortAudioError':
+                raise
 
     def sound(self, note_number: int, sample_rate: int | None = None) -> Voice:
         scaled_note_number = note_number + self.note_offset
@@ -147,11 +148,13 @@ class Player(BaseModel, frozen=True):
             )
             self.engine.submit(NotePress(note_number))
             self.engine.start()
-        except port_audio_error():
+            return True
+        except Exception as e:
+            if e.__class__.__name__ != 'PortAudioError':
+                raise
             self.pressed_notes.remove(note_number)
             self.engine.close()
             return False
-        return True
 
     def stop(self, note_number: NoteNumber) -> bool:
         if note_number not in self.pressed_notes:

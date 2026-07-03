@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
 from threading import Event
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol, cast, runtime_checkable
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,10 +16,8 @@ from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter
 from .voice import Voice
 
-if TYPE_CHECKING:
-    from sounddevice import PortAudioError
 
-
+@runtime_checkable
 class Stream(Protocol):
     active: bool
     samplerate: int
@@ -30,15 +28,6 @@ class Stream(Protocol):
     def stop(self) -> None: ...
 
     def close(self) -> None: ...
-
-
-OutputStream: Callable[..., Stream] | None = None
-
-
-def port_audio_error() -> type[PortAudioError]:
-    from sounddevice import PortAudioError
-
-    return PortAudioError
 
 
 class Configure(BaseModel, frozen=True):
@@ -72,17 +61,14 @@ class AudioEngine(BaseModel):
 
     @cached_property
     def stream(self) -> Stream:
-        global OutputStream
-        if OutputStream is None:
-            from sounddevice import OutputStream as OutputStream_
+        import sounddevice as sd
 
-            OutputStream = OutputStream_
-
+        kwargs = self.device.model_dump()
+        kwargs['samplerate'] = kwargs.pop('sample_rate')
         try:
-            return OutputStream(
-                callback=self.callback, **self.device.output_stream_kwargs()
-            )
-        except port_audio_error() as error:
+            return cast(Stream, sd.OutputStream(callback=self.callback, **kwargs))
+            # assert isinstance(s, Stream)
+        except sd.PortAudioError as error:
             self.diagnostics.record_stream_error(str(error))
             raise
 
@@ -95,10 +81,11 @@ class AudioEngine(BaseModel):
             return
         try:
             self.stream.start()
-        except port_audio_error() as error:
-            if stream := self.__dict__.pop('stream', None):
-                self.diagnostics.record_stream_error(str(error))
-                stream.close()
+        except Exception as error:
+            if error.__class__.__name__ == 'PortAudioError':
+                if stream := self.__dict__.pop('stream', None):
+                    self.diagnostics.record_stream_error(str(error))
+                    stream.close()
             raise
 
     def close(self) -> None:

@@ -5,12 +5,12 @@ from typing import Any
 
 import numpy as np
 import pytest
+import sounddevice
 import soundfile
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackAbort, PortAudioError
 
-from tuney.audio import engine as engine_module
-from tuney.audio.engine import AudioEngine, StopAll
+from tuney.audio.engine import AudioEngine, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
@@ -107,7 +107,7 @@ def test_callback_records_status_without_printing(
     assert capsys.readouterr().out == ''
 
 
-class _EngineStream:
+class _EngineStream(Stream):
     instances: list['_EngineStream'] = []
 
     def __init__(self, callback: Callable[..., None], **_: Any) -> None:
@@ -145,7 +145,7 @@ class _FailingMixer(Mixer):
 
 def test_stream_failure_is_recorded(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _FailingEngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _FailingEngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
 
     with pytest.raises(PortAudioError, match='device unavailable'):
@@ -157,7 +157,7 @@ def test_stream_failure_is_recorded(monkeypatch) -> None:
 
 
 def test_stream_open_failure_leaves_engine_stopped(monkeypatch) -> None:
-    monkeypatch.setattr(engine_module, 'OutputStream', _FailingOpenStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _FailingOpenStream)
     engine = AudioEngine(mixer=_renderer().mixer)
 
     with pytest.raises(PortAudioError, match='cannot open device'):
@@ -168,7 +168,7 @@ def test_stream_open_failure_leaves_engine_stopped(monkeypatch) -> None:
 
 
 def test_player_rolls_back_failed_stream_open(monkeypatch) -> None:
-    monkeypatch.setattr(engine_module, 'OutputStream', _FailingOpenStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _FailingOpenStream)
     player = Player()
 
     assert not player.start(0)
@@ -261,7 +261,7 @@ def test_audio_file_writer_raises_unexpected_comment_errors() -> None:
 
 def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     player = Player()
 
     assert player.start(0)
@@ -297,7 +297,7 @@ def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     player = Player()
     player.start(0)
     first = _EngineStream.instances[0]
@@ -419,7 +419,7 @@ def test_engine_applies_stop_all_on_next_block() -> None:
 
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
     engine.submit(NotePress(0))
     engine.submit(StopAll())
@@ -446,7 +446,7 @@ def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
 
 def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
 
     engine.close()
@@ -456,7 +456,7 @@ def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
 
 def test_engine_close_closes_existing_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     engine = AudioEngine(mixer=_renderer().mixer)
 
     engine.start()

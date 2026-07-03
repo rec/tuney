@@ -80,9 +80,3 @@ class Device(BaseModel, frozen=True):
     def notify_change(self) -> None:
         if self._change_callback:
             self._change_callback()
-
-    def output_stream_kwargs(self) -> dict[str, object]:
-        values = self.model_dump()
-        sample_rate = values.pop('sample_rate')
-        values['samplerate'] = sample_rate
-        return values
