@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import tomlkit
 
 from .audio.mixer import NotePress
+from .audio.player import Player
 from .keyboard.listener import KeyboardListener
 from .platform_info import exit_with_message, report_error
 from .presets import merged_data, read_preset
@@ -44,9 +45,13 @@ class TuneyState:
         )
 
     @cached_property
+    def player(self) -> Player:
+        return Player()
+
+    @cached_property
     def note_labels(self) -> dict[str, str]:
         return {
-            c: '\n'.join([self.tuney.player.scale.to_name(n), ' ' + c])
+            c: '\n'.join([self.player.scale.to_name(n), ' ' + c])
             for c, n in self.tuney.mapper.char_to_number.items()
         }
 
@@ -179,24 +184,38 @@ class TuneyState:
     def apply_preset(self, name: str) -> None:
         char_presses = self.__dict__.get('char_presses')
         data = merged_data(self.tuney.model_dump(), read_preset(name), {'preset': name})
+        player_data = data.pop('player', None)
         validated = type(self.tuney).model_validate(data)
         for field in type(self.tuney).model_fields:
             object.__setattr__(self.tuney, field, getattr(validated, field))
+        if isinstance(player_data, dict):
+            player_data = {str(key): value for key, value in player_data.items()}
+            self.__dict__['player'] = Player.model_validate(
+                merged_data(self.player.model_dump(), player_data)
+            )
         self._clear_cached_values()
         if char_presses is not None:
             self.__dict__['char_presses'] = char_presses
 
     def restore_data(self, data: dict[str, object]) -> None:
         autosave_file = self.tuney.autosave_file
+        player_data = data.pop('player', None)
         validated = type(self.tuney).model_validate(data)
         for field in type(self.tuney).model_fields:
             object.__setattr__(self.tuney, field, getattr(validated, field))
         if 'autosave_file' not in data:
             object.__setattr__(self.tuney, 'autosave_file', autosave_file)
+        if isinstance(player_data, dict):
+            player_data = {str(key): value for key, value in player_data.items()}
+            self.__dict__['player'] = Player.model_validate(
+                merged_data(self.player.model_dump(), player_data)
+            )
         self._clear_cached_values()
 
     def dump_data(self) -> dict[str, object]:
         data = self.tuney.model_dump()
+        mapper = data.pop('mapper')
+        data = {'mapper': mapper, 'player': self.player.model_dump(), **data}
         if self.char_presses:
             data['text'] = [c.model_dump() for c in self.char_presses]
         return data
@@ -204,13 +223,20 @@ class TuneyState:
     def _on_char(self, c: CharPress) -> None:
         if (note := self.tuney.mapper(c.char)) is not None:
             if not self.tuney.silent:
-                self.tuney.player.on_note(note, c.is_press, self.tuney.tuning)
+                self.player.on_note(note, c.is_press, self.tuney.tuning)
             self.tuney.midi(note, c.is_press)
         if self.tuney.gui:
             self.main_window.on_char(c)
 
     def _clear_cached_values(self) -> None:
-        keep = {'tuney', 'main_window', 'listener', 'key_recorder', 'audio_recorder'}
+        keep = {
+            'tuney',
+            'main_window',
+            'listener',
+            'player',
+            'key_recorder',
+            'audio_recorder',
+        }
         for key in tuple(self.__dict__):
             if key not in keep:
                 self.__dict__.pop(key, None)
@@ -294,7 +320,7 @@ class TuneyState:
 
         try:
             if self.tuney.output and self.tuney.silent:
-                self.tuney.player.render_file(
+                self.player.render_file(
                     self.tuney.output,
                     self._note_events(),
                     comment,
@@ -302,16 +328,16 @@ class TuneyState:
                 )
             else:
                 if self.tuney.output:
-                    self.tuney.player.start_recording(self.tuney.output, comment)
+                    self.player.start_recording(self.tuney.output, comment)
                 self._play_cli()
             completed = True
         finally:
             if not self.tuney.silent:
-                self.tuney.player.stop_all()
-                self.tuney.player.wait()
+                self.player.stop_all()
+                self.player.wait()
                 if self.tuney.output:
-                    self.tuney.player.stop_recording()
-                self.tuney.player.close()
+                    self.player.stop_recording()
+                self.player.close()
             if self.tuney.output and not completed:
                 self.tuney.output.unlink(missing_ok=True)
 
@@ -319,7 +345,7 @@ class TuneyState:
         events: list[tuple[int, NotePress]] = []
         for press in self.char_presses:
             if (note := self.tuney.mapper(press.char)) is not None:
-                frame = round(press.time * self.tuney.player.sample_rate / 1000)
+                frame = round(press.time * self.player.sample_rate / 1000)
                 events.append((frame, NotePress(note, press.is_press)))
         return events
 

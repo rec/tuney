@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.state._autosave.save(self.state.save)
-        self.state.tuney.player.close()
+        self.state.player.close()
         super().closeEvent(event)
 
     def destroy(
@@ -243,7 +243,7 @@ class MainWindow(QMainWindow):
         path = Path(filename) if filename else None
         return self.state.audio_recorder.on_transport_state(
             change,
-            self.state.tuney.player,
+            self.state.player,
             self.state._output_comment,
             path,
         )
@@ -408,7 +408,7 @@ class MainWindow(QMainWindow):
             self.state.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
-        if engine := self.state.tuney.player.__dict__.get('engine'):
+        if engine := self.state.player.__dict__.get('engine'):
             for error in engine.diagnostics.take_errors():
                 QMessageBox.critical(self, 'Audio error', error)
 

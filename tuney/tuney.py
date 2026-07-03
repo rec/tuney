@@ -7,7 +7,6 @@ import tyro
 from pydantic import BaseModel, Field, field_validator
 
 from .audio.midi import MIDI
-from .audio.player import Player
 from .display import Display
 from .mapper.mapper import Mapper
 from .presets import preset_names
@@ -38,9 +37,6 @@ class Tuney(BaseModel):
 
     # Map letters to notes
     mapper: Mapper = Mapper()
-
-    # How to play back audio
-    player: Player = Player()
 
     # How to send MIDI output
     midi: MIDI = MIDI()

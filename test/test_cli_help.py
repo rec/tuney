@@ -17,10 +17,6 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
     '--backspace-repeat-delay',
     '--backspace-repeat-rate',
-    '--headroom',
-    '--max-voices',
-    '--sample-rate',
-    '--dtype',
     '--table',
     '--table-blend',
     '--midi-enable',
@@ -114,9 +110,7 @@ def test_cli_help_uses_flat_unique_names(
 
     assert all('.' not in option for option in long_options)
     assert len(positive_long_options) == len(set(positive_long_options))
-    assert '--audio-device' in positive_long_options
     assert '--midi-output' in positive_long_options
-    assert '--period' in positive_long_options
     assert '--player.period' not in help_text
 
 
@@ -176,19 +170,12 @@ def test_cli_accepts_flat_long_options() -> None:
         Tuney,
         args=[
             '--alphabet=abc',
-            '--audio-device=Built-in',
-            '--period=2',
-            '--note-names=ABCDEFG',
             '--midi-output=Port',
             '--midi-channel=3',
             '--midi-velocity=80',
             '--midi-note-offset=12',
             '--dot=301',
             '--scale=4',
-            '--headroom=3',
-            '--max-voices=8',
-            '--sample-rate=44100',
-            '--dtype=int16',
             '--table',
             '440',
             '880',
@@ -212,19 +199,12 @@ def test_cli_accepts_flat_long_options() -> None:
     )
 
     assert tuney.mapper.alphabet == 'abc'
-    assert tuney.player.device.device == 'Built-in'
-    assert tuney.player.oscillator.period == 2
-    assert tuney.player.scale.note_names == 'ABCDEFG'
     assert tuney.midi.output == 'Port'
     assert tuney.midi.channel == 3
     assert tuney.midi.velocity == 80
     assert tuney.midi.note_offset == 12
     assert tuney.text_timings.dot == 301
     assert tuney.text_timings.scale == 4
-    assert tuney.player.polyphony.headroom == 3
-    assert tuney.player.polyphony.max_voices == 8
-    assert tuney.player.device.sample_rate == 44100
-    assert tuney.player.device.dtype.value == 'int16'
     assert tuney.tuning.table == [440, 880]
     assert not tuney.tuning.table_blend
     assert tuney.text_timings.space == 101
@@ -274,42 +254,6 @@ def test_cli_accepts_single_character_aliases() -> None:
             '12',
             '-L',
             'reflect',
-            '-G',
-            '0.5',
-            '-n',
-            '47',
-            '-N',
-            '0.25',
-            '-d',
-            'Built-in',
-            '-w',
-            'sine',
-            '-e',
-            '2',
-            '-u',
-            '0.25',
-            '-K',
-            '60',
-            '-k',
-            '0.1',
-            '-A',
-            'ABCDEFG',
-            '-q',
-            'D',
-            '-j',
-            'A',
-            '-E',
-            'G',
-            '-Q',
-            'CDE',
-            '-i',
-            '2',
-            '2',
-            '1',
-            '-X',
-            'half',
-            '-Y',
-            '2',
             '-T',
             '5',
             '-v',
@@ -342,24 +286,6 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.offset == 1
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
-    assert tuney.player.gain == 0.5
-    assert tuney.player.note_offset == 47
-    assert tuney.player.polyphony == Tuney().player.polyphony
-    assert tuney.player.minimum_note_time == 0.25
-    assert tuney.player.device.device == 'Built-in'
-    assert tuney.player.oscillator.waveform.name == 'sine'
-    assert tuney.player.oscillator.period == 2
-    assert tuney.player.oscillator.duty_cycle == 0.25
-    assert tuney.player.oscillator.key_scale_note == 60
-    assert tuney.player.oscillator.key_scale == 0.1
-    assert tuney.player.scale.note_names == 'ABCDEFG'
-    assert tuney.player.scale.root == 'D'
-    assert tuney.player.scale.begin == 'A'
-    assert tuney.player.scale.end == 'G'
-    assert tuney.player.scale.notes == 'CDE'
-    assert tuney.player.scale.intervals == [2, 2, 1]
-    assert tuney.player.scale.accidentals.value == 'half'
-    assert tuney.player.scale.offset == 2
     assert tuney.tuning.detune == 5
     assert tuney.tuning.limit == 7
     assert tuney.tuning.notes_per_octave == 19
@@ -425,10 +351,10 @@ def test_gui_option_opens_gui_mode() -> None:
 
 
 def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: list[Tuney] = []
+    captured: list[TuneyState] = []
 
     def call(state: TuneyState) -> None:
-        captured.append(state.tuney)
+        captured.append(state)
 
     monkeypatch.setattr(TuneyState, '__call__', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
@@ -437,6 +363,6 @@ def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
         cli(Tuney, prog='tuney')
 
     assert exc_info.value.code is None
-    assert captured[0].preset == 'white-notes'
+    assert captured[0].tuney.preset == 'white-notes'
     assert captured[0].player.scale.notes == 'ABCDEFG'
-    assert captured[0].text == 'abc'
+    assert captured[0].tuney.text == 'abc'

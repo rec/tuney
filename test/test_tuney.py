@@ -39,10 +39,11 @@ def on_transport_state(
     action: Action,
     path: Path | None = None,
 ) -> bool:
-    return state_for(tuney).audio_recorder.on_transport_state(
+    tuney_state = state_for(tuney)
+    return tuney_state.audio_recorder.on_transport_state(
         StateChange(old_state=old_state, state=state, action=action),
-        tuney.player,
-        state_for(tuney)._output_comment,
+        tuney_state.player,
+        tuney_state._output_comment,
         path,
     )
 
@@ -576,7 +577,7 @@ def test_restore_autosave_defaults_invalid_nested_scale(
         state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.hover_time == 2.0
-        assert tuney.player.scale == Tuney().player.scale
+        assert state_for(tuney).player.scale == Player().scale
     error = capsys.readouterr().err
     assert f'Could not restore fields from {path}' in error
     assert 'root must be present in note_names' in error

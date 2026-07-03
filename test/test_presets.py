@@ -33,7 +33,7 @@ def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     state.apply_preset('white-notes')
 
     assert tuney.preset == 'white-notes'
-    assert tuney.player.scale.notes == 'ABCDEFG'
+    assert state.player.scale.notes == 'ABCDEFG'
     assert state.char_presses == [CharPress('a', time=0)]
 
 

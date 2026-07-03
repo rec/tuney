@@ -68,7 +68,7 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: TuneyState) -> None:
-        state.tuney.player.stop_all()
+        state.player.stop_all()
 
         sequencer, self.sequencer = self.sequencer, None
         if sequencer:
@@ -101,7 +101,7 @@ class KeyRecorder(BaseModel):
         if state.main_window.history.loop_replay and state._replay_char_presses():
             state.on_replay()
             return
-        state.tuney.player.stop_all()
+        state.player.stop_all()
         state._stop_replaying()
 
     def clear(self) -> None:
