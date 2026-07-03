@@ -9,7 +9,7 @@ from ..time import Milliseconds, Seconds, to_ms
 from ..time.sequencer import Sequencer
 
 if TYPE_CHECKING:
-    from ..tuney import Tuney
+    from ..tuney_state import TuneyState
 
 
 class KeyRecorder(BaseModel):
@@ -66,40 +66,40 @@ class KeyRecorder(BaseModel):
         if deleted_time is not None:
             self.insert_time = deleted_time
 
-    def on_replay(self, tuney: Tuney) -> None:
-        tuney.player.stop_all()
+    def on_replay(self, state: TuneyState) -> None:
+        state.tuney.player.stop_all()
 
         sequencer, self.sequencer = self.sequencer, None
         if sequencer:
             sequencer.stop()
 
         self.replay_text = ''
-        if tuney.app.is_replaying:
-            tuney.app.ui.set_text(self.replay_text)
+        if state.app.is_replaying:
+            state.app.ui.set_text(self.replay_text)
 
             def callback(char_press: CharPress | None) -> None:
                 if char_press:
                     if char_press.is_press:
                         self.replay_text += char_press.char
-                        tuney.app.after(0, tuney.app.ui.set_text, self.replay_text)
-                    tuney._on_char(char_press)
-                elif tuney.app.is_replaying and self.sequencer is not None:
-                    tuney.app.after(0, self.finish_replay, tuney)
+                        state.app.after(0, state.app.ui.set_text, self.replay_text)
+                    state._on_char(char_press)
+                elif state.app.is_replaying and self.sequencer is not None:
+                    state.app.after(0, self.finish_replay, state)
 
             self.sequencer = Sequencer(
-                char_presses=tuney._replay_char_presses(),
+                char_presses=state._replay_char_presses(),
                 callback=callback,
             )
             self.sequencer.start()
         else:
-            tuney.app.ui.set_text(tuney.display_text)
+            state.app.ui.set_text(state.display_text)
 
-    def finish_replay(self, tuney: Tuney) -> None:
-        if tuney.app.loop_replay and tuney._replay_char_presses():
-            tuney.on_replay()
+    def finish_replay(self, state: TuneyState) -> None:
+        if state.app.loop_replay and state._replay_char_presses():
+            state.on_replay()
             return
-        tuney.player.stop_all()
-        tuney._stop_replaying()
+        state.tuney.player.stop_all()
+        state._stop_replaying()
 
     def clear(self) -> None:
         self.start_time = None

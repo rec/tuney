@@ -9,6 +9,7 @@ from tuney.__main__ import main
 from tuney.cli import cli
 from tuney.keyboard.char_press import CharPress
 from tuney.tuney import Tuney
+from tuney.tuney_state import TuneyState
 
 LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
 SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
@@ -408,7 +409,7 @@ def test_cli_positional_text_replaces_default_char_presses() -> None:
     tuney = tyro.cli(Tuney, args=['new', 'text'], default=default)
 
     assert tuney.text == 'new text'
-    assert tuney.char_presses != default.char_presses
+    assert tuney.state.char_presses != default.state.char_presses
 
 
 def test_output_option_forces_cli_mode() -> None:
@@ -427,10 +428,10 @@ def test_gui_option_opens_gui_mode() -> None:
 def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[Tuney] = []
 
-    def call(tuney: Tuney) -> None:
-        captured.append(tuney)
+    def call(state: TuneyState) -> None:
+        captured.append(state.tuney)
 
-    monkeypatch.setattr(Tuney, '__call__', call)
+    monkeypatch.setattr(TuneyState, '__call__', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
 
     with pytest.raises(SystemExit) as exc_info:

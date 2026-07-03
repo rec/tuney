@@ -27,8 +27,7 @@ def cli(cls, prog: str):
                 data = merged_data(data, read_file(f.config_file))
             default = cls(**data)
             f = tyro.cli(cls, prog=prog, default=default)
-        assert callable(f), f
-        result = f()
+        result = f.state()
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):
             raise

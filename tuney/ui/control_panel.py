@@ -551,7 +551,7 @@ def _add_option_control(
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
             _record_undo(parent)
-            cast(Any, data).apply_preset(raw)
+            cast(Any, data).state.apply_preset(raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
         else:
@@ -592,7 +592,7 @@ def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
 
 
 def _rebuild_note_grid(parent: Any) -> None:
-    layout = cast(Any, _control_panel(parent).data).app.ui
+    layout = cast(Any, _control_panel(parent).data).state.app.ui
     layout.rebuild_note_grid()
 
 
@@ -822,10 +822,13 @@ def _set_model_value(
 def _record_undo(parent: Any) -> None:
     root = _control_panel(parent).data
     if type(root).__name__ == 'Tuney':
-        cast(Any, root).app.record_undo()
+        cast(Any, root).state.app.record_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:
+    if type(data).__name__ == 'Tuney':
+        cast(Any, data).state._clear_cached_values()
+        return
     fields = type(data).model_fields
     for key in tuple(data.__dict__):
         if key not in fields:

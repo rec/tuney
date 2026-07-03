@@ -26,23 +26,23 @@ def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
 
 def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     tuney = Tuney()
-    tuney.char_presses.append(CharPress('a', time=0))
+    tuney.state.char_presses.append(CharPress('a', time=0))
 
-    tuney.apply_preset('white-notes')
+    tuney.state.apply_preset('white-notes')
 
     assert tuney.preset == 'white-notes'
     assert tuney.player.scale.notes == 'ABCDEFG'
-    assert tuney.char_presses == [CharPress('a', time=0)]
+    assert tuney.state.char_presses == [CharPress('a', time=0)]
 
 
 def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     tuney = Tuney(gui=True)
     app = object()
     listener = object()
-    object.__setattr__(tuney, 'app', app)
-    object.__setattr__(tuney, 'listener', listener)
+    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['listener'] = listener
 
-    tuney.apply_preset('white-notes')
+    tuney.state.apply_preset('white-notes')
 
-    assert tuney.app is app
-    assert tuney.listener is listener
+    assert tuney.state.app is app
+    assert tuney.state.listener is listener

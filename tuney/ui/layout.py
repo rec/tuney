@@ -71,7 +71,7 @@ class Layout(QWidget):
                 max(NOTE_GRID_HEIGHT * app.rows, NOTE_GRID_HEIGHT),
             ]
         )
-        self.set_text(app.tuney.display_text)
+        self.set_text(app.tuney.state.display_text)
 
     def set_text(self, s: str) -> None:
         self.textbox.setPlainText(s)
@@ -238,11 +238,11 @@ class Layout(QWidget):
 
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
-        it = self.app.tuney.note_labels.items()
-        return {k: self._note_frame(i, k, n.text) for i, (k, n) in enumerate(it)}
+        it = self.app.tuney.state.note_labels.items()
+        return {k: self._note_frame(i, k, text) for i, (k, text) in enumerate(it)}
 
     def rebuild_note_grid(self) -> None:
-        self.app.tuney.__dict__.pop('note_labels', None)
+        self.app.tuney.state.__dict__.pop('note_labels', None)
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
         try:
@@ -260,7 +260,7 @@ class Layout(QWidget):
             column,
             char,
             text,
-            self.app.tuney.on_char,
+            self.app.tuney.state.on_char,
         )
 
 

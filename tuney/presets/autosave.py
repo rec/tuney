@@ -43,7 +43,7 @@ class Autosave(BaseModel, frozen=True):
             return
         while True:
             try:
-                t.restore_data(data)
+                t.state.restore_data(data)
                 return
             except ValidationError as error:
                 report_error(f'Could not restore fields from {self.path}: {error}')

@@ -101,7 +101,7 @@ class App(QMainWindow):
         self._after_dispatcher = _AfterDispatcher(self)
         self._after_dispatcher.schedule.connect(self._schedule_after)
         self._after_dispatcher.cancel.connect(self._cancel_after)
-        n = len(tuney.note_labels)
+        n = len(tuney.state.note_labels)
         c = int(math.ceil(n**0.5))
         r = n // c
         r += n > (r * c)
@@ -182,7 +182,7 @@ class App(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        self.tuney._autosave.save(self.tuney.save)
+        self.tuney.state._autosave.save(self.tuney.state.save)
         self.tuney.player.close()
         super().closeEvent(event)
 
@@ -200,7 +200,7 @@ class App(QMainWindow):
             self.key_queue.put(c)
 
     def on_clear(self, *_: object) -> None:
-        self.tuney.clear()
+        self.tuney.state.clear()
 
     def on_clear_settings(self, *_: object) -> None:
         response = QMessageBox.question(
@@ -215,7 +215,7 @@ class App(QMainWindow):
 
     def clear_settings(self) -> None:
         self.record_undo()
-        data = type(self.tuney)().dump_data()
+        data = type(self.tuney)().state.dump_data()
         data['gui'] = True
         self._restore_history_state(HistoryState(tuney=data))
 
@@ -227,7 +227,7 @@ class App(QMainWindow):
             )
             filename = result[0]
             if filename:
-                self.tuney.save(Path(filename))
+                self.tuney.state.save(Path(filename))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -248,10 +248,10 @@ class App(QMainWindow):
                 self._is_saving = False
                 self._has_focus = False
         path = Path(filename) if filename else None
-        return self.tuney.audio_recorder.on_transport_state(
+        return self.tuney.state.audio_recorder.on_transport_state(
             change,
             self.tuney.player,
-            self.tuney._output_comment,
+            self.tuney.state._output_comment,
             path,
         )
 
@@ -259,7 +259,7 @@ class App(QMainWindow):
         self.ui.refresh_devices()
 
     def on_randomize_timing(self, *_: object) -> None:
-        self.tuney.randomize_timing()
+        self.tuney.state.randomize_timing()
 
     def on_help(self, *_: object) -> None:
         show_help(self)
@@ -330,7 +330,7 @@ class App(QMainWindow):
         else:
             c = self._key_chars.pop(key, '')
         if c:
-            self.tuney.on_char(CharPress(c, is_press, time=time.time()))
+            self.tuney.state.on_char(CharPress(c, is_press, time=time.time()))
             event.accept()
             return True
         else:
@@ -368,7 +368,7 @@ class App(QMainWindow):
         if self._is_replaying != is_replaying:
             self._is_replaying = is_replaying
             self.ui.set_replay_state(is_replaying)
-            self.tuney.on_replay()
+            self.tuney.state.on_replay()
 
     def on_replay(self, *_: object) -> None:
         self.is_replaying = not self.is_replaying
@@ -464,19 +464,19 @@ class App(QMainWindow):
 
     def _history_state(self) -> HistoryState:
         return HistoryState(
-            tuney=deepcopy(self.tuney.dump_data()),
-            key_recorder=self.tuney.key_recorder.model_copy(deep=True),
+            tuney=deepcopy(self.tuney.state.dump_data()),
+            key_recorder=self.tuney.state.key_recorder.model_copy(deep=True),
             loop=self.loop_state,
         )
 
     def _restore_history_state(self, state: HistoryState) -> None:
-        self.tuney.restore_data(state.tuney)
-        self.tuney.key_recorder.start_time = state.key_recorder.start_time
-        self.tuney.key_recorder.time_offset = state.key_recorder.time_offset
-        self.tuney.key_recorder.insert_time = state.key_recorder.insert_time
-        self.tuney.key_recorder.replay_text = state.key_recorder.replay_text
+        self.tuney.state.restore_data(state.tuney)
+        self.tuney.state.key_recorder.start_time = state.key_recorder.start_time
+        self.tuney.state.key_recorder.time_offset = state.key_recorder.time_offset
+        self.tuney.state.key_recorder.insert_time = state.key_recorder.insert_time
+        self.tuney.state.key_recorder.replay_text = state.key_recorder.replay_text
         self.loop_state = state.loop
-        self.ui.set_text(self.tuney.display_text)
+        self.ui.set_text(self.tuney.state.display_text)
         self.ui.rebuild_control_panel()
         self.ui.rebuild_note_grid()
         self.ui.refresh_loop_controls()
@@ -485,7 +485,7 @@ class App(QMainWindow):
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():
-            self.tuney.on_char(self.key_queue.get())
+            self.tuney.state.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
         engine = self.tuney.player.__dict__.get('engine')

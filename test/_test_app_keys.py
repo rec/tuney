@@ -33,7 +33,8 @@ def test_qt_key_events() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.tuney = type('Tuney', (), {'on_char': chars.append})()
+    app.tuney = type('Tuney', (), {})()
+    app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
     app_module.time.time = iter([100.0, 100.25]).__next__
 
     App._on_key_event(app, key_event(Qt.Key.Key_A, 'A'), True)
@@ -60,7 +61,8 @@ def test_app_event_filter() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.focus_in_control_panel = False
-    app.tuney = type('Tuney', (), {'on_char': chars.append})()
+    app.tuney = type('Tuney', (), {})()
+    app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
     app._on_key_event = lambda event, is_press: App._on_key_event(app, event, is_press)
     app_module.time.time = lambda: 100.0
 
@@ -183,7 +185,7 @@ def test_app_activate_and_history() -> None:
 
     object.__setattr__(app.tuney, 'max_gap', 3.0)
     object.__setattr__(app.tuney, 'text', [CharPress('a', time=0.0)])
-    app.tuney.__dict__.pop('char_presses', None)
+    app.tuney.state.__dict__.pop('char_presses', None)
     app.loop_replay = True
     app.loop_before = 0.25
     app.loop_after = 0.5
@@ -193,7 +195,7 @@ def test_app_activate_and_history() -> None:
     app.clear_settings()
 
     assert app.tuney.max_gap == Tuney().max_gap
-    assert app.tuney.char_presses == []
+    assert app.tuney.state.char_presses == []
     assert app.tuney.gui
     assert not app.loop_replay
     assert app.loop_before == 0.0
