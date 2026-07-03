@@ -56,13 +56,8 @@ class Player(BaseModel, frozen=True):
 
     @cached_property
     def engine(self) -> AudioEngine:
-        engine = AudioEngine(
-            mixer=Mixer(
-                voice_maker=self.voice_maker,
-                polyphony=self.polyphony,
-            ),
-            device=self.device,
-        )
+        mixer = Mixer(voice_maker=self.voice_maker, polyphony=self.polyphony)
+        engine = AudioEngine(mixer=mixer, device=self.device)
         self.device.set_change_callback(self.reconfigure_device)
         return engine
 
