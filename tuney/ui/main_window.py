@@ -85,7 +85,13 @@ class _AfterDispatcher(QObject):
 
 class MainWindow(QMainWindow):
     def __init__(self, tuney: Tuney) -> None:
-        self.qt_app = _application()
+        instance = QApplication.instance()
+        if instance is None:
+            self.qt_app = QApplication(sys.argv[:1])
+        else:
+            self.qt_app = cast(QApplication, instance)
+        self.qt_app.setApplicationName(APP_NAME)
+        self.qt_app.setStyle('Fusion')
         from .layout import Layout
 
         super().__init__()
@@ -324,7 +330,13 @@ class MainWindow(QMainWindow):
             return False
         key = event.key()
         if is_press:
-            c = _event_char(event)
+            if event.modifiers() & COMMAND_MODIFIERS:
+                c = ''
+            elif (key_value := Qt.Key(key)) in KEY_TEXT:
+                c = KEY_TEXT[key_value]
+            else:
+                text = event.text()
+                c = text if len(text) == 1 else ''
             if c:
                 self._key_chars[key] = c
         else:
@@ -496,27 +508,6 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def _application() -> QApplication:
-    instance = QApplication.instance()
-    if instance is None:
-        app = QApplication(sys.argv[:1])
-    else:
-        app = cast(QApplication, instance)
-    app.setApplicationName(APP_NAME)
-    app.setStyle('Fusion')
-    return app
-
-
-def _event_char(event: QKeyEvent) -> str:
-    if event.modifiers() & COMMAND_MODIFIERS:
-        return ''
-    key = Qt.Key(event.key())
-    if key in KEY_TEXT:
-        return KEY_TEXT[key]
-    text = event.text()
-    return text if len(text) == 1 else ''
 
 
 def _add_action(

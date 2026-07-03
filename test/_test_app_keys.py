@@ -9,13 +9,7 @@ from PySide6.QtGui import QKeyEvent
 from tuney.keyboard.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.ui import main_window as main_window_module
-from tuney.ui.main_window import (
-    SIGNAL_POLL_IN_MS,
-    LoopState,
-    MainWindow,
-    _application,
-    _event_char,
-)
+from tuney.ui.main_window import SIGNAL_POLL_IN_MS, LoopState, MainWindow
 
 
 def test_qt_key_events() -> None:
@@ -27,30 +21,30 @@ def test_qt_key_events() -> None:
     ) -> QKeyEvent:
         return QKeyEvent(event_type, key, modifiers, text)
 
-    assert _event_char(key_event(Qt.Key.Key_CapsLock)) == ''
-    assert _event_char(key_event(Qt.Key.Key_A, 'a')) == 'a'
-    assert (
-        _event_char(key_event(Qt.Key.Key_A, 'a', Qt.KeyboardModifier.MetaModifier))
-        == ''
-    )
-    assert _event_char(key_event(Qt.Key.Key_Backspace)) == '\b'
-    assert _event_char(key_event(Qt.Key.Key_Return)) == '\n'
-
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.tuney = type('Tuney', (), {})()
     app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
-    main_window_module.time.time = iter([100.0, 100.25]).__next__
+    main_window_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
+
+    assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
+    assert not MainWindow._on_key_event(
+        app, key_event(Qt.Key.Key_A, 'a', Qt.KeyboardModifier.MetaModifier), True
+    )
 
     MainWindow._on_key_event(app, key_event(Qt.Key.Key_A, 'A'), True)
     MainWindow._on_key_event(
         app, key_event(Qt.Key.Key_A, event_type=QKeyEvent.Type.KeyRelease), False
     )
+    MainWindow._on_key_event(app, key_event(Qt.Key.Key_Backspace), True)
+    MainWindow._on_key_event(app, key_event(Qt.Key.Key_Return), True)
 
     assert chars == [
         CharPress('A', time=100.0),
         CharPress('A', False, time=100.25),
+        CharPress('\b', time=100.5),
+        CharPress('\n', time=100.75),
     ]
 
 
@@ -153,10 +147,14 @@ def test_app_mainloop_exits_on_sigint() -> None:
 
 
 def test_application_uses_cross_platform_style() -> None:
-    app = _application()
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'state.toml'
+        window = MainWindow(Tuney(gui=True, silent=True, autosave_file=path))
+        app = window.qt_app
 
-    assert app.applicationName() == 'Tuney'
-    assert app.style().objectName().lower() == 'fusion'
+        assert app.applicationName() == 'Tuney'
+        assert app.style().objectName().lower() == 'fusion'
+        window.close()
 
 
 def test_app_activate_and_history() -> None:
