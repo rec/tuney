@@ -23,7 +23,7 @@ from .time.sequencer import Sequencer
 
 if TYPE_CHECKING:
     from .tuney import Tuney
-    from .ui.app import App
+    from .ui.main_window import MainWindow
 
 
 class TuneyState:
@@ -31,11 +31,11 @@ class TuneyState:
         self.tuney = tuney
 
     @cached_property
-    def app(self) -> App:
+    def app(self) -> MainWindow:
         assert self.tuney.gui
-        from .ui.app import App
+        from .ui.main_window import MainWindow
 
-        return App(self.tuney)
+        return MainWindow(self.tuney)
 
     @cached_property
     def listener(self) -> KeyboardListener:

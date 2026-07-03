@@ -8,8 +8,14 @@ from PySide6.QtGui import QKeyEvent
 
 from tuney.keyboard.char_press import CharPress
 from tuney.tuney import Tuney
-from tuney.ui import app as app_module
-from tuney.ui.app import SIGNAL_POLL_IN_MS, App, LoopState, _application, _event_char
+from tuney.ui import main_window as main_window_module
+from tuney.ui.main_window import (
+    SIGNAL_POLL_IN_MS,
+    LoopState,
+    MainWindow,
+    _application,
+    _event_char,
+)
 
 
 def test_qt_key_events() -> None:
@@ -35,10 +41,10 @@ def test_qt_key_events() -> None:
     app._key_chars = {}
     app.tuney = type('Tuney', (), {})()
     app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
-    app_module.time.time = iter([100.0, 100.25]).__next__
+    main_window_module.time.time = iter([100.0, 100.25]).__next__
 
-    App._on_key_event(app, key_event(Qt.Key.Key_A, 'A'), True)
-    App._on_key_event(
+    MainWindow._on_key_event(app, key_event(Qt.Key.Key_A, 'A'), True)
+    MainWindow._on_key_event(
         app, key_event(Qt.Key.Key_A, event_type=QKeyEvent.Type.KeyRelease), False
     )
 
@@ -63,15 +69,17 @@ def test_app_event_filter() -> None:
     app.focus_in_control_panel = False
     app.tuney = type('Tuney', (), {})()
     app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
-    app._on_key_event = lambda event, is_press: App._on_key_event(app, event, is_press)
-    app_module.time.time = lambda: 100.0
+    app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
+        app, event, is_press
+    )
+    main_window_module.time.time = lambda: 100.0
 
-    assert App.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
+    assert MainWindow.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
     assert chars == [CharPress('a', time=100.0)]
 
     chars.clear()
     app.focus_in_control_panel = True
-    assert not App.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
+    assert not MainWindow.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
     assert chars == []
 
 
@@ -108,9 +116,9 @@ def test_app_mainloop_exits_on_sigint() -> None:
         def quit(self) -> None:
             calls.append('quit')
 
-    app_module.QTimer = FakeTimer
-    app_module.signal.getsignal = lambda signum: 'old'
-    app_module.signal.signal = lambda signum, handler: handlers.append(
+    main_window_module.QTimer = FakeTimer
+    main_window_module.signal.getsignal = lambda signum: 'old'
+    main_window_module.signal.signal = lambda signum, handler: handlers.append(
         (signum, handler)
     )
 
@@ -121,13 +129,13 @@ def test_app_mainloop_exits_on_sigint() -> None:
             'qt_app': FakeQtApp(),
             'activate': lambda self: calls.append('activate'),
             'close': lambda self: calls.append('close'),
-            '_on_sigint': lambda self, signum, frame: App._on_sigint(
+            '_on_sigint': lambda self, signum, frame: MainWindow._on_sigint(
                 self, signum, frame
             ),
         },
     )()
 
-    App.mainloop(app)
+    MainWindow.mainloop(app)
 
     assert calls == [
         ('timer', app),
@@ -165,7 +173,7 @@ def test_app_activate_and_history() -> None:
         },
     )()
 
-    App.activate(app)
+    MainWindow.activate(app)
     assert calls == ['show', 'raise', 'activate', 'focus']
     assert app._has_focus
 
@@ -212,8 +220,8 @@ def test_app_activate_and_history() -> None:
             def information(parent: object, title: str, text: str) -> None:
                 messages.append((parent, title, text))
 
-        app_module.QMessageBox = FakeMessageBox
-        App.on_show_log(app)
+        main_window_module.QMessageBox = FakeMessageBox
+        MainWindow.on_show_log(app)
 
         assert messages == [
             (
@@ -271,58 +279,58 @@ class HistoryApp:
 
     @property
     def loop_replay(self) -> bool:
-        return App.loop_replay.fget(self)
+        return MainWindow.loop_replay.fget(self)
 
     @loop_replay.setter
     def loop_replay(self, loop_replay: bool) -> None:
-        App.loop_replay.fset(self, loop_replay)
+        MainWindow.loop_replay.fset(self, loop_replay)
 
     @property
     def loop_before(self) -> float:
-        return App.loop_before.fget(self)
+        return MainWindow.loop_before.fget(self)
 
     @loop_before.setter
     def loop_before(self, loop_before: float) -> None:
-        App.loop_before.fset(self, loop_before)
+        MainWindow.loop_before.fset(self, loop_before)
 
     @property
     def loop_after(self) -> float:
-        return App.loop_after.fget(self)
+        return MainWindow.loop_after.fget(self)
 
     @loop_after.setter
     def loop_after(self, loop_after: float) -> None:
-        App.loop_after.fset(self, loop_after)
+        MainWindow.loop_after.fset(self, loop_after)
 
     @property
     def loop_tempo(self) -> float:
-        return App.loop_tempo.fget(self)
+        return MainWindow.loop_tempo.fget(self)
 
     @loop_tempo.setter
     def loop_tempo(self, loop_tempo: float) -> None:
-        App.loop_tempo.fset(self, loop_tempo)
+        MainWindow.loop_tempo.fset(self, loop_tempo)
 
     @property
     def randomize_on_each_loop(self) -> bool:
-        return App.randomize_on_each_loop.fget(self)
+        return MainWindow.randomize_on_each_loop.fget(self)
 
     @randomize_on_each_loop.setter
     def randomize_on_each_loop(self, randomize_on_each_loop: bool) -> None:
-        App.randomize_on_each_loop.fset(self, randomize_on_each_loop)
+        MainWindow.randomize_on_each_loop.fset(self, randomize_on_each_loop)
 
     def _history_state(self) -> object:
-        return App._history_state(self)
+        return MainWindow._history_state(self)
 
     def _restore_history_state(self, state: object) -> None:
-        App._restore_history_state(self, state)
+        MainWindow._restore_history_state(self, state)
 
     def record_undo(self) -> None:
-        App.record_undo(self)
+        MainWindow.record_undo(self)
 
     def on_undo(self) -> None:
-        App.on_undo(self)
+        MainWindow.on_undo(self)
 
     def on_redo(self) -> None:
-        App.on_redo(self)
+        MainWindow.on_redo(self)
 
     def clear_settings(self) -> None:
-        App.clear_settings(self)
+        MainWindow.clear_settings(self)

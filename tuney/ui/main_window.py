@@ -83,7 +83,7 @@ class _AfterDispatcher(QObject):
     cancel = Signal(str)
 
 
-class App(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self, tuney: Tuney) -> None:
         self.qt_app = _application()
         from .layout import Layout

@@ -18,8 +18,8 @@ from PySide6.QtWidgets import (
 )
 
 from . import constants
-from .app import App
 from .control_panel import ControlPanel
+from .main_window import MainWindow
 from .note_button import NoteButton
 from .platform import command_key
 from .splitter import SpacedSplitter
@@ -38,7 +38,7 @@ WIDTH, HEIGHT = 70, 80
 
 
 class Layout(QWidget):
-    def __init__(self, app: App) -> None:
+    def __init__(self, app: MainWindow) -> None:
         super().__init__(app)
         width = WIDTH * app.columns
         height = (
