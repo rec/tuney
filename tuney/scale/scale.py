@@ -53,6 +53,9 @@ class Scale(BaseModel, frozen=True):
     custom tunings, different note names and intervals.
     """
 
+    #: The Tuning for this Scale
+    tuning: Tuning = Tuning()
+
     #: The base note names
     note_names: Annotated[str, tyro_option(aliases=['-A']), Control(row=2)] = (
         string.ascii_uppercase
@@ -100,9 +103,6 @@ class Scale(BaseModel, frozen=True):
     offset: Annotated[
         int, tyro_option(name='scale-offset', aliases=['-Y']), Control(row=0, order=3)
     ] = 0
-
-    #: The Tuning for this Scale
-    tuning: Tuning = Tuning()
 
     @model_validator(mode='after')
     def _validate_note_name_range(self) -> Self:
