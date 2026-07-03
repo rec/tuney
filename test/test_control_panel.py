@@ -393,3 +393,18 @@ def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
         )
     for editor in editors:
         assert editor.minimumWidth() >= control_panel.MIN_EDITOR_WIDTH
+
+
+def test_large_seed_uses_text_entry_instead_of_spinbox() -> None:
+    from PySide6.QtWidgets import QLineEdit, QSpinBox, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, TextTimings(seed=2_615_033_043))
+
+    assert not panel.findChildren(QSpinBox)
+    assert any(
+        entry.text() == '2615033043'
+        for entry in panel.findChildren(QLineEdit)
+        if entry.objectName() == 'control_editor'
+    )

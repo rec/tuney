@@ -47,6 +47,8 @@ GENERAL_COLUMNS = 4
 LABEL_PADDING = 8
 MIN_EDITOR_WIDTH = 72
 MIN_TEXT_EDITOR_WIDTH = 160
+SPIN_MINIMUM = -9999
+SPIN_MAXIMUM = 9999
 SECTION_STYLE = """
 QFrame#control_section {
     background: #f7f7f7;
@@ -765,7 +767,7 @@ def _add_spin_control(
     if _is_int_annotation(annotation):
         assert isinstance(value, int)
         spin = QSpinBox(frame)
-        spin.setRange(-9999, 9999)
+        spin.setRange(SPIN_MINIMUM, SPIN_MAXIMUM)
         spin.setValue(value)
 
         def update() -> None:
@@ -778,7 +780,7 @@ def _add_spin_control(
         assert isinstance(value, float | int)
         spin = QDoubleSpinBox(frame)
         spin.setDecimals(3)
-        spin.setRange(-9999.0, 9999.0)
+        spin.setRange(float(SPIN_MINIMUM), float(SPIN_MAXIMUM))
         spin.setSingleStep(_float_step(data, name))
         spin.setValue(float(value))
 
@@ -809,8 +811,10 @@ def _add_spin_control(
 def _can_use_spin_control(annotation: Any, value: object) -> bool:
     if value is None or isinstance(value, bool):
         return False
-    return isinstance(value, int | float) and (
-        _is_int_annotation(annotation) or _is_float_annotation(annotation)
+    return (
+        isinstance(value, int | float)
+        and SPIN_MINIMUM <= value <= SPIN_MAXIMUM
+        and (_is_int_annotation(annotation) or _is_float_annotation(annotation))
     )
 
 
