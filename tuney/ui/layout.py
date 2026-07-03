@@ -113,9 +113,9 @@ class Layout(QWidget):
         self.control_panel.rebuild()
 
     def refresh_loop_controls(self) -> None:
-        _set_entry_text(self.loop_before, str(self.app.loop_before))
-        _set_entry_text(self.loop_after, str(self.app.loop_after))
-        _set_entry_text(self.loop_tempo, str(self.app.loop_tempo))
+        _set_entry_text(self.loop_before, str(self.app.history.loop_before))
+        _set_entry_text(self.loop_after, str(self.app.history.loop_after))
+        _set_entry_text(self.loop_tempo, str(self.app.history.loop_tempo))
 
     def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
         self.randomize_on_each_loop.setChecked(randomize_on_each_loop)
@@ -205,15 +205,21 @@ class Layout(QWidget):
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        self.loop_before = _labeled_entry(frame, layout, 'Before', self.app.loop_before)
+        self.loop_before = _labeled_entry(
+            frame, layout, 'Before', self.app.history.loop_before
+        )
         self.loop_before.editingFinished.connect(
             lambda: self.app.on_loop_before(self.loop_before.text())
         )
-        self.loop_after = _labeled_entry(frame, layout, 'After', self.app.loop_after)
+        self.loop_after = _labeled_entry(
+            frame, layout, 'After', self.app.history.loop_after
+        )
         self.loop_after.editingFinished.connect(
             lambda: self.app.on_loop_after(self.loop_after.text())
         )
-        self.loop_tempo = _labeled_entry(frame, layout, 'Tempo', self.app.loop_tempo)
+        self.loop_tempo = _labeled_entry(
+            frame, layout, 'Tempo', self.app.history.loop_tempo
+        )
         self.loop_tempo.editingFinished.connect(
             lambda: self.app.on_loop_tempo(self.loop_tempo.text())
         )

@@ -9,7 +9,8 @@ from PySide6.QtGui import QKeyEvent
 from tuney.keyboard.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.ui import main_window as main_window_module
-from tuney.ui.main_window import SIGNAL_POLL_IN_MS, LoopState, MainWindow
+from tuney.ui.history import History
+from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
 
 def test_qt_key_events() -> None:
@@ -176,38 +177,38 @@ def test_app_activate_and_history() -> None:
     assert app._has_focus
 
     app = HistoryApp()
-    app.record_undo()
+    app.history.checkpoint_undo()
     object.__setattr__(app.tuney, 'max_gap', 2.0)
-    app.loop_before = 0.5
-    app.on_undo()
+    app.history.loop_before = 0.5
+    app.history.undo()
 
     assert app.tuney.max_gap == 1.0
-    assert app.loop_before == 0.0
+    assert app.history.loop_before == 0.0
 
-    app.on_redo()
+    app.history.redo()
 
     assert app.tuney.max_gap == 2.0
-    assert app.loop_before == 0.5
+    assert app.history.loop_before == 0.5
 
     object.__setattr__(app.tuney, 'max_gap', 3.0)
     object.__setattr__(app.tuney, 'text', [CharPress('a', time=0.0)])
     app.tuney.state.__dict__.pop('char_presses', None)
-    app.loop_replay = True
-    app.loop_before = 0.25
-    app.loop_after = 0.5
-    app.loop_tempo = 2.0
-    app.randomize_on_each_loop = True
+    app.history.loop_replay = True
+    app.history.loop_before = 0.25
+    app.history.loop_after = 0.5
+    app.history.loop_tempo = 2.0
+    app.history.randomize_on_each_loop = True
 
-    app.clear_settings()
+    app.history.clear_settings()
 
     assert app.tuney.max_gap == Tuney().max_gap
     assert app.tuney.state.char_presses == []
     assert app.tuney.gui
-    assert not app.loop_replay
-    assert app.loop_before == 0.0
-    assert app.loop_after == 0.0
-    assert app.loop_tempo == 1.0
-    assert not app.randomize_on_each_loop
+    assert not app.history.loop_replay
+    assert app.history.loop_before == 0.0
+    assert app.history.loop_after == 0.0
+    assert app.history.loop_tempo == 1.0
+    assert not app.history.randomize_on_each_loop
 
     with tempfile.TemporaryDirectory() as tmp:
         os.environ['XDG_STATE_HOME'] = tmp
@@ -271,64 +272,4 @@ class HistoryApp:
     def __init__(self) -> None:
         self.tuney = Tuney(max_gap=1.0)
         self.ui = FakeLayout()
-        self.loop_state = LoopState()
-        self._undo_stack = []
-        self._redo_stack = []
-
-    @property
-    def loop_replay(self) -> bool:
-        return MainWindow.loop_replay.fget(self)
-
-    @loop_replay.setter
-    def loop_replay(self, loop_replay: bool) -> None:
-        MainWindow.loop_replay.fset(self, loop_replay)
-
-    @property
-    def loop_before(self) -> float:
-        return MainWindow.loop_before.fget(self)
-
-    @loop_before.setter
-    def loop_before(self, loop_before: float) -> None:
-        MainWindow.loop_before.fset(self, loop_before)
-
-    @property
-    def loop_after(self) -> float:
-        return MainWindow.loop_after.fget(self)
-
-    @loop_after.setter
-    def loop_after(self, loop_after: float) -> None:
-        MainWindow.loop_after.fset(self, loop_after)
-
-    @property
-    def loop_tempo(self) -> float:
-        return MainWindow.loop_tempo.fget(self)
-
-    @loop_tempo.setter
-    def loop_tempo(self, loop_tempo: float) -> None:
-        MainWindow.loop_tempo.fset(self, loop_tempo)
-
-    @property
-    def randomize_on_each_loop(self) -> bool:
-        return MainWindow.randomize_on_each_loop.fget(self)
-
-    @randomize_on_each_loop.setter
-    def randomize_on_each_loop(self, randomize_on_each_loop: bool) -> None:
-        MainWindow.randomize_on_each_loop.fset(self, randomize_on_each_loop)
-
-    def _history_state(self) -> object:
-        return MainWindow._history_state(self)
-
-    def _restore_history_state(self, state: object) -> None:
-        MainWindow._restore_history_state(self, state)
-
-    def record_undo(self) -> None:
-        MainWindow.record_undo(self)
-
-    def on_undo(self) -> None:
-        MainWindow.on_undo(self)
-
-    def on_redo(self) -> None:
-        MainWindow.on_redo(self)
-
-    def clear_settings(self) -> None:
-        MainWindow.clear_settings(self)
+        self.history = History(self)

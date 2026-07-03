@@ -75,6 +75,7 @@ class FakeApp:
         self.after_calls: list[tuple[str, int, object, tuple[object, ...]]] = []
         self.cancelled_after_ids: list[str] = []
         self.undo_count = 0
+        self.history = self
 
     class layout:
         @staticmethod
@@ -83,7 +84,7 @@ class FakeApp:
 
     ui = layout
 
-    def record_undo(self) -> None:
+    def checkpoint_undo(self) -> None:
         self.undo_count += 1
 
     @staticmethod

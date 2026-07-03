@@ -5,14 +5,12 @@ import signal
 import sys
 import time
 from collections.abc import Callable
-from copy import deepcopy
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING, cast
 
-from pydantic import BaseModel, Field
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
@@ -34,9 +32,9 @@ from PySide6.QtWidgets import (
 
 from ..app_state import log_path
 from ..keyboard.char_press import CharPress
-from ..recorders.key_recorder import KeyRecorder
 from . import Action, StateChange
 from .help import show_help
+from .history import History
 
 if TYPE_CHECKING:
     from ..tuney import Tuney
@@ -62,20 +60,6 @@ KEY_TEXT = {
     Qt.Key.Key_Return: '\n',
     Qt.Key.Key_Space: ' ',
 }
-
-
-class LoopState(BaseModel, frozen=True):
-    replay: bool = False
-    before: float = 0.0
-    after: float = 0.0
-    tempo: float = 1.0
-    randomize_on_each_loop: bool = False
-
-
-class HistoryState(BaseModel, frozen=True):
-    tuney: dict[str, object]
-    key_recorder: KeyRecorder = Field(default_factory=KeyRecorder)
-    loop: LoopState = Field(default_factory=LoopState)
 
 
 class _AfterDispatcher(QObject):
@@ -113,9 +97,7 @@ class MainWindow(QMainWindow):
         r += n > (r * c)
         self.rows, self.columns = r, c
         self._is_replaying = False
-        self.loop_state = LoopState()
-        self._undo_stack: list[HistoryState] = []
-        self._redo_stack: list[HistoryState] = []
+        self.history = History(self)
         self._is_saving = False
         self._has_focus = True
         self._queue_timer = QTimer(self)
@@ -217,13 +199,7 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.No,
         )
         if response == QMessageBox.StandardButton.Yes:
-            self.clear_settings()
-
-    def clear_settings(self) -> None:
-        self.record_undo()
-        data = type(self.tuney)().state.dump_data()
-        data['gui'] = True
-        self._restore_history_state(HistoryState(tuney=data))
+            self.history.clear_settings()
 
     def on_save(self, *_: object) -> None:
         self._is_saving = True
@@ -355,8 +331,8 @@ class MainWindow(QMainWindow):
         file_menu = menu.addMenu('File')
         edit_menu = menu.addMenu('Edit')
         help_menu = menu.addMenu('Help')
-        _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.on_undo)
-        _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.on_redo)
+        _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
+        _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
         _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
@@ -385,115 +361,36 @@ class MainWindow(QMainWindow):
     def on_replay(self, *_: object) -> None:
         self.is_replaying = not self.is_replaying
 
-    @property
-    def loop_replay(self) -> bool:
-        return self.loop_state.replay
-
-    @loop_replay.setter
-    def loop_replay(self, loop_replay: bool) -> None:
-        if self.loop_state.replay != loop_replay:
-            self.loop_state = self.loop_state.model_copy(update={'replay': loop_replay})
-            self.ui.set_loop_state(loop_replay)
-
-    @property
-    def loop_before(self) -> float:
-        return self.loop_state.before
-
-    @loop_before.setter
-    def loop_before(self, loop_before: float) -> None:
-        self.loop_state = self.loop_state.model_copy(update={'before': loop_before})
-
-    @property
-    def loop_after(self) -> float:
-        return self.loop_state.after
-
-    @loop_after.setter
-    def loop_after(self, loop_after: float) -> None:
-        self.loop_state = self.loop_state.model_copy(update={'after': loop_after})
-
-    @property
-    def loop_tempo(self) -> float:
-        return self.loop_state.tempo
-
-    @loop_tempo.setter
-    def loop_tempo(self, loop_tempo: float) -> None:
-        self.loop_state = self.loop_state.model_copy(update={'tempo': loop_tempo})
-
-    @property
-    def randomize_on_each_loop(self) -> bool:
-        return self.loop_state.randomize_on_each_loop
-
-    @randomize_on_each_loop.setter
-    def randomize_on_each_loop(self, randomize_on_each_loop: bool) -> None:
-        self.loop_state = self.loop_state.model_copy(
-            update={'randomize_on_each_loop': randomize_on_each_loop}
-        )
-
     def on_loop_replay(self, *_: object) -> None:
-        self.record_undo()
-        self.loop_replay = not self.loop_replay
+        self.history.checkpoint_undo()
+        self.history.loop_replay = not self.history.loop_replay
 
     def on_loop_tempo(self, tempo: str) -> None:
         try:
             value = float(tempo)
         except ValueError:
             return
-        if value > 0 and value != self.loop_tempo:
-            self.record_undo()
-            self.loop_tempo = value
+        if value > 0 and value != self.history.loop_tempo:
+            self.history.checkpoint_undo()
+            self.history.loop_tempo = value
 
     def on_loop_before(self, before: str) -> None:
-        if (value := _float_or_none(before)) is not None and value != self.loop_before:
-            self.record_undo()
-            self.loop_before = value
+        if (
+            value := _float_or_none(before)
+        ) is not None and value != self.history.loop_before:
+            self.history.checkpoint_undo()
+            self.history.loop_before = value
 
     def on_loop_after(self, after: str) -> None:
-        if (value := _float_or_none(after)) is not None and value != self.loop_after:
-            self.record_undo()
-            self.loop_after = value
+        if (
+            value := _float_or_none(after)
+        ) is not None and value != self.history.loop_after:
+            self.history.checkpoint_undo()
+            self.history.loop_after = value
 
     def on_randomize_on_each_loop(self, *_: object) -> None:
-        self.record_undo()
-        self.randomize_on_each_loop = not self.randomize_on_each_loop
-
-    def record_undo(self) -> None:
-        state = self._history_state()
-        if not self._undo_stack or self._undo_stack[-1] != state:
-            self._undo_stack.append(state)
-        self._redo_stack.clear()
-
-    def on_undo(self, *_: object) -> None:
-        if not self._undo_stack:
-            return
-        self._redo_stack.append(self._history_state())
-        self._restore_history_state(self._undo_stack.pop())
-
-    def on_redo(self, *_: object) -> None:
-        if not self._redo_stack:
-            return
-        self._undo_stack.append(self._history_state())
-        self._restore_history_state(self._redo_stack.pop())
-
-    def _history_state(self) -> HistoryState:
-        return HistoryState(
-            tuney=deepcopy(self.tuney.state.dump_data()),
-            key_recorder=self.tuney.state.key_recorder.model_copy(deep=True),
-            loop=self.loop_state,
-        )
-
-    def _restore_history_state(self, state: HistoryState) -> None:
-        self.tuney.state.restore_data(state.tuney)
-        self.tuney.state.key_recorder.start_time = state.key_recorder.start_time
-        self.tuney.state.key_recorder.time_offset = state.key_recorder.time_offset
-        self.tuney.state.key_recorder.insert_time = state.key_recorder.insert_time
-        self.tuney.state.key_recorder.replay_text = state.key_recorder.replay_text
-        self.loop_state = state.loop
-        self.ui.set_text(self.tuney.state.display_text)
-        self.ui.rebuild_control_panel()
-        self.ui.rebuild_note_grid()
-        self.ui.refresh_loop_controls()
-        self.ui.set_loop_state(self.loop_replay)
-        self.ui.set_randomize_on_each_loop_state(self.randomize_on_each_loop)
+        self.history.checkpoint_undo()
+        self.history.randomize_on_each_loop = not self.history.randomize_on_each_loop
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():

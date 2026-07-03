@@ -73,7 +73,7 @@ class TuneyState:
             self._stop_backspace_repeat()
         if self._is_listening:
             if c.char != '\b' or (c.is_press and self.char_presses):
-                self.app.record_undo()
+                self.app.history.checkpoint_undo()
             recorded = self.key_recorder.recorded_char_press(
                 c, self.char_presses, self.tuney.max_gap
             )
@@ -113,7 +113,7 @@ class TuneyState:
         self.key_recorder.backspace_repeat_after_id = None
         if not self._is_listening or not self.char_presses:
             return
-        self.app.record_undo()
+        self.app.history.checkpoint_undo()
         self.key_recorder.delete_last_char(self.char_presses)
         self.app.ui.set_text(self.display_text)
         self._on_char(CharPress('\b', time=0))
@@ -130,7 +130,7 @@ class TuneyState:
 
     def clear(self) -> None:
         if self.tuney.gui and self.char_presses:
-            self.app.record_undo()
+            self.app.history.checkpoint_undo()
         self.char_presses.clear()
         self.key_recorder.clear()
         if self.tuney.gui:
@@ -141,7 +141,7 @@ class TuneyState:
         if not text:
             return
         if self.tuney.gui:
-            self.app.record_undo()
+            self.app.history.checkpoint_undo()
         self.__dict__['char_presses'] = list(self.tuney.text_timings.char_presses(text))
         self.key_recorder.clear()
         if self.tuney.gui:
@@ -216,18 +216,18 @@ class TuneyState:
     def _replay_char_presses(self) -> list[CharPress]:
         char_presses = _loop_window(
             self._replay_source_char_presses(),
-            self.app.loop_before * 1000,
-            self.app.loop_after * 1000,
+            self.app.history.loop_before * 1000,
+            self.app.history.loop_after * 1000,
         )
-        if self.app.loop_tempo == 1:
+        if self.app.history.loop_tempo == 1:
             return char_presses
         return [
-            CharPress(c.char, c.is_press, time=c.time / self.app.loop_tempo)
+            CharPress(c.char, c.is_press, time=c.time / self.app.history.loop_tempo)
             for c in char_presses
         ]
 
     def _replay_source_char_presses(self) -> list[CharPress]:
-        if self.app.loop_replay and self.app.randomize_on_each_loop:
+        if self.app.history.loop_replay and self.app.history.randomize_on_each_loop:
             return list(self.tuney.text_timings.char_presses(self.display_text))
         return self.char_presses
 

@@ -550,7 +550,7 @@ def _add_option_control(
 
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
-            _record_undo(parent)
+            _checkpoint_undo(parent)
             cast(Any, data).state.apply_preset(raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
@@ -812,17 +812,17 @@ def _set_model_value(
     values[name] = value
     validated = type(data).model_validate(values)
     if parent is not None and getattr(data, name) != getattr(validated, name):
-        _record_undo(parent)
+        _checkpoint_undo(parent)
     object.__setattr__(data, name, getattr(validated, name))
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
 
 
-def _record_undo(parent: Any) -> None:
+def _checkpoint_undo(parent: Any) -> None:
     root = _control_panel(parent).data
     if type(root).__name__ == 'Tuney':
-        cast(Any, root).state.app.record_undo()
+        cast(Any, root).state.app.history.checkpoint_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:

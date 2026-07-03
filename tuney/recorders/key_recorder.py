@@ -95,7 +95,7 @@ class KeyRecorder(BaseModel):
             state.app.ui.set_text(state.display_text)
 
     def finish_replay(self, state: TuneyState) -> None:
-        if state.app.loop_replay and state._replay_char_presses():
+        if state.app.history.loop_replay and state._replay_char_presses():
             state.on_replay()
             return
         state.tuney.player.stop_all()
