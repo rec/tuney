@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import cache
-from typing import Annotated, cast
+from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, PrivateAttr
@@ -14,7 +14,7 @@ class _SoundDevice:
     def query_devices(self) -> list[dict[str, object]]:
         import sounddevice
 
-        return cast(list[dict[str, object]], sounddevice.query_devices())
+        return [dict(device) for device in sounddevice.query_devices()]
 
 
 sounddevice = _SoundDevice()

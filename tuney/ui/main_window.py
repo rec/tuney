@@ -9,7 +9,7 @@ from functools import cached_property
 from pathlib import Path
 from queue import Queue
 from types import FrameType
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
@@ -72,7 +72,8 @@ class MainWindow(QMainWindow):
         if (instance := QApplication.instance()) is None:
             self.qt_app = QApplication(sys.argv[:1])
         else:
-            self.qt_app = cast(QApplication, instance)
+            assert isinstance(instance, QApplication)
+            self.qt_app = instance
         self.qt_app.setApplicationName(APP_NAME)
         self.qt_app.setStyle('Fusion')
         from .layout import Layout

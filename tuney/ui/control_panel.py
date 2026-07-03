@@ -4,11 +4,12 @@ import enum
 import json
 import math
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, TypeAlias, cast, get_args, get_origin
+from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QButtonGroup,
     QCheckBox,
     QComboBox,
@@ -382,10 +383,14 @@ def _add_control_cell(
     layout.setSpacing(0)
     if _is_wide_field(data, name):
         cell.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        cast(QHBoxLayout, parent.layout()).addWidget(cell, stretch=1)
+        layout = parent.layout()
+        assert isinstance(layout, QHBoxLayout)
+        layout.addWidget(cell, stretch=1)
     else:
         cell.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        cast(QHBoxLayout, parent.layout()).addWidget(cell)
+        layout = parent.layout()
+        assert isinstance(layout, QHBoxLayout)
+        layout.addWidget(cell)
 
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
@@ -1019,22 +1024,24 @@ def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
     return args + tuple(i for a in args for i in _flatten_type_args(a))
 
 
-def _parent_layout(parent: QWidget) -> QVBoxLayout | QHBoxLayout:
+def _parent_layout(parent: QWidget) -> QBoxLayout:
     if (layout := parent.layout()) is None:
         layout = QVBoxLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-    return cast(QVBoxLayout | QHBoxLayout, layout)
+    assert isinstance(layout, QBoxLayout)
+    return layout
 
 
-def _clear_layout(layout: QVBoxLayout | QHBoxLayout) -> None:
+def _clear_layout(layout: QBoxLayout) -> None:
     while layout.count():
         if (item := layout.takeAt(0)) is None:
             continue
         if (widget := item.widget()) is not None:
             widget.deleteLater()
         if (child_layout := item.layout()) is not None:
-            _clear_layout(cast(QVBoxLayout | QHBoxLayout, child_layout))
+            assert isinstance(child_layout, QBoxLayout)
+            _clear_layout(child_layout)
 
 
 def _after(

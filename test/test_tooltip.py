@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Any, cast
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
@@ -53,7 +52,7 @@ def test_tooltips_bind_only_to_leaf_widgets() -> None:
     first, second = _Widget(), _Widget()
     root = _Widget(_Widget(first), second)
 
-    assert _field_widgets(cast(Any, root)) == [first, second]
+    assert _field_widgets(root) == [first, second]
 
 
 def test_field_widgets_walks_qt_leaf_widgets() -> None:

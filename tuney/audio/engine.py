@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
 from threading import Event
-from typing import Any, Protocol, cast, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -66,8 +66,7 @@ class AudioEngine(BaseModel):
         kwargs = self.device.model_dump()
         kwargs['samplerate'] = kwargs.pop('sample_rate')
         try:
-            return cast(Stream, sd.OutputStream(callback=self.callback, **kwargs))
-            # assert isinstance(s, Stream)
+            return sd.OutputStream(callback=self.callback, **kwargs)
         except sd.PortAudioError as error:
             self.diagnostics.record_stream_error(str(error))
             raise

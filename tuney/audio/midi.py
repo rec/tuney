@@ -2,7 +2,7 @@ import json
 import subprocess
 import sys
 from functools import cached_property
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
 import mido
 from pydantic import BaseModel
@@ -12,6 +12,7 @@ from ..tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
 INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'
+MIDO_GET_OUTPUT_NAMES = 'get_output_names'
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
@@ -91,7 +92,10 @@ def output_names() -> list[str]:
 
 def _output_names() -> list[str]:
     try:
-        names = cast(Any, mido).get_output_names()
+        get_output_names = getattr(mido, MIDO_GET_OUTPUT_NAMES)
+        if not callable(get_output_names):
+            return []
+        names = get_output_names()
     except (OSError, RuntimeError) as error:
         print(f'Could not list MIDI outputs: {error}')
         return []
