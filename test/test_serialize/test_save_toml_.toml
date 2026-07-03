@@ -18,8 +18,6 @@ limiter = "wrap"
 [player]
 gain = 1.0
 note_offset = 44
-polyphonic_headroom = 4
-max_polyphony = 32
 minimum_note_time = 0.5
 
 [player.device]
@@ -50,6 +48,10 @@ root_frequency = 440
 root_note = 69
 table = []
 table_blend = true
+
+[player.polyphony]
+headroom = 4
+max_voices = 32
 
 [midi]
 enable = false

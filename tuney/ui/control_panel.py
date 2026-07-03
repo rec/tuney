@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..audio.polyphony import Polyphony
 from ..display import Display
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
@@ -142,10 +143,14 @@ def _add_model_controls(
         _add_section_title(parent, title)
 
     controls = _visible_control_names(data, advanced)
-    children = _visible_child_names(data, advanced)
+    children = [
+        name
+        for name in _visible_child_names(data, advanced)
+        if not _inline_child(getattr(data, name))
+    ]
 
     if controls:
-        _add_control_grid(parent, data, controls, option_controls)
+        _add_control_grid(parent, data, controls, option_controls, advanced)
 
     for name in children:
         child = getattr(data, name)
@@ -240,22 +245,83 @@ def _add_control_grid(
     data: BaseModel,
     fields: list[str],
     option_controls: list[_OptionControl],
+    advanced: bool,
 ) -> None:
     frame = QWidget(parent)
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(3)
 
-    for row_fields in _control_rows(data, fields):
+    for row_fields in _control_ref_rows(_control_refs(data, fields, advanced)):
         row_frame = QWidget(frame)
         row_layout = QHBoxLayout(row_frame)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(6)
-        for name in row_fields:
-            _add_control_cell(row_frame, data, name, option_controls)
+        for control_data, name in row_fields:
+            _add_control_cell(row_frame, control_data, name, option_controls)
         row_layout.addStretch()
         layout.addWidget(row_frame)
     _parent_layout(parent).addWidget(frame)
+
+
+def _control_refs(
+    data: BaseModel, fields: list[str], advanced: bool
+) -> list[tuple[BaseModel, str]]:
+    controls = [(data, name) for name in fields]
+    for name in _visible_child_names(data, advanced):
+        child = getattr(data, name)
+        if _inline_child(child):
+            controls.extend(
+                (child, child_name)
+                for child_name in _visible_control_names(child, advanced)
+            )
+    return controls
+
+
+def _control_ref_rows(
+    controls: list[tuple[BaseModel, str]],
+) -> list[list[tuple[BaseModel, str]]]:
+    if not any(
+        _control_metadata(type(data), name).row is not None for data, name in controls
+    ):
+        return _control_groups(controls, max(1, math.ceil(len(controls) ** 0.5)))
+
+    rows: list[list[tuple[BaseModel, str]]] = []
+    row_numbers = sorted(
+        {
+            row
+            for data, name in controls
+            if (row := _control_metadata(type(data), name).row) is not None
+        }
+    )
+    for row_number in row_numbers:
+        row = [
+            (data, name)
+            for data, name in controls
+            if _control_metadata(type(data), name).row == row_number
+        ]
+        rows.append(
+            sorted(
+                row,
+                key=lambda control: _control_metadata(
+                    type(control[0]), control[1]
+                ).order,
+            )
+        )
+
+    extra_fields = [
+        control
+        for control in controls
+        if _control_metadata(type(control[0]), control[1]).row is None
+    ]
+    rows.extend(
+        _control_groups(extra_fields, max(1, math.ceil(len(extra_fields) ** 0.5)))
+    )
+    return rows
+
+
+def _inline_child(data: object) -> bool:
+    return isinstance(data, Polyphony)
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:

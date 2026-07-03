@@ -47,8 +47,10 @@
     },
     "gain": 1.0,
     "note_offset": 44,
-    "polyphonic_headroom": 4,
-    "max_polyphony": 32,
+    "polyphony": {
+      "headroom": 4,
+      "max_voices": 32
+    },
     "minimum_note_time": 0.5
   },
   "midi": {

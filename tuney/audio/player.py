@@ -16,6 +16,7 @@ from .engine import AudioEngine, Configure, StopAll
 from .mixer import Mixer, NotePress
 from .oscillator import Oscillator
 from .output_file import AudioFileWriter, render_file
+from .polyphony import Polyphony
 from .voice import Voice
 
 
@@ -38,15 +39,7 @@ class Player(BaseModel, frozen=True):
         Display(general=True, beginner=True),
     ] = 44
 
-    # Divisor applied to mixed voices to provide polyphonic headroom
-    polyphonic_headroom: Annotated[float, tyro_option(), Display(row=0, order=1)] = (
-        Field(4, gt=0)
-    )
-
-    # Maximum number of notes that can play simultaneously
-    max_polyphony: Annotated[int, tyro_option(), Display(row=0, order=2)] = Field(
-        32, gt=0
-    )
+    polyphony: Polyphony = Polyphony()
 
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[
@@ -62,8 +55,7 @@ class Player(BaseModel, frozen=True):
         engine = AudioEngine(
             mixer=Mixer(
                 sound=self.sound,
-                polyphonic_headroom=self.polyphonic_headroom,
-                max_polyphony=self.max_polyphony,
+                polyphony=self.polyphony,
             ),
             device=self.device,
         )
@@ -106,8 +98,7 @@ class Player(BaseModel, frozen=True):
         mixer = Mixer(
             sound=partial(self.sound, sample_rate=self.sample_rate),
             channels=self.channels,
-            polyphonic_headroom=self.polyphonic_headroom,
-            max_polyphony=self.max_polyphony,
+            polyphony=self.polyphony,
         )
         render_file(path, mixer, events, self.sample_rate, self.channels, comment)
 
@@ -133,7 +124,7 @@ class Player(BaseModel, frozen=True):
     def start(self, note_number: NoteNumber) -> bool:
         if (
             note_number in self.pressed_notes
-            or len(self.pressed_notes) >= self.max_polyphony
+            or len(self.pressed_notes) >= self.polyphony.max_voices
         ):
             return False
         self.pressed_notes.append(note_number)
@@ -142,8 +133,7 @@ class Player(BaseModel, frozen=True):
             self.engine.submit(
                 Configure(
                     sound=sound,
-                    polyphonic_headroom=self.polyphonic_headroom,
-                    max_polyphony=self.max_polyphony,
+                    polyphony=self.polyphony,
                 )
             )
             self.engine.submit(NotePress(note_number))

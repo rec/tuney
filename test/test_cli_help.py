@@ -17,8 +17,8 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
     '--backspace-repeat-delay',
     '--backspace-repeat-rate',
-    '--polyphonic-headroom',
-    '--max-polyphony',
+    '--headroom',
+    '--max-voices',
     '--sample-rate',
     '--dtype',
     '--table',
@@ -185,8 +185,8 @@ def test_cli_accepts_flat_long_options() -> None:
             '--midi-note-offset=12',
             '--dot=301',
             '--scale=4',
-            '--polyphonic-headroom=3',
-            '--max-polyphony=8',
+            '--headroom=3',
+            '--max-voices=8',
             '--sample-rate=44100',
             '--dtype=int16',
             '--table',
@@ -221,8 +221,8 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.midi.note_offset == 12
     assert tuney.text_timings.dot == 301
     assert tuney.text_timings.scale == 4
-    assert tuney.player.polyphonic_headroom == 3
-    assert tuney.player.max_polyphony == 8
+    assert tuney.player.polyphony.headroom == 3
+    assert tuney.player.polyphony.max_voices == 8
     assert tuney.player.device.sample_rate == 44100
     assert tuney.player.device.dtype.value == 'int16'
     assert tuney.player.scale.tuning.table == [440, 880]
@@ -344,8 +344,7 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.limiter.value == 'reflect'
     assert tuney.player.gain == 0.5
     assert tuney.player.note_offset == 47
-    assert tuney.player.polyphonic_headroom == Tuney().player.polyphonic_headroom
-    assert tuney.player.max_polyphony == Tuney().player.max_polyphony
+    assert tuney.player.polyphony == Tuney().player.polyphony
     assert tuney.player.minimum_note_time == 0.25
     assert tuney.player.device.device == 'Built-in'
     assert tuney.player.oscillator.waveform.name == 'sine'

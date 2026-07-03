@@ -14,6 +14,7 @@ from .device import Device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter
+from .polyphony import Polyphony
 from .voice import Voice
 
 
@@ -34,8 +35,7 @@ class Configure(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     sound: Callable[[NoteNumber], Voice]
-    polyphonic_headroom: float
-    max_polyphony: int
+    polyphony: Polyphony
 
 
 class StopAll:
@@ -141,8 +141,7 @@ class AudioEngine(BaseModel):
                 self.mixer.apply(command)
             elif isinstance(command, Configure):
                 self.mixer.sound = command.sound
-                self.mixer.polyphonic_headroom = command.polyphonic_headroom
-                self.mixer.max_polyphony = command.max_polyphony
+                self.mixer.polyphony = command.polyphony
             else:
                 self.stop_when_silent = True
                 self.mixer.stop_all()

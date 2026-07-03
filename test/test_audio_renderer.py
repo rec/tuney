@@ -323,10 +323,10 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
 def test_mixer_limits_max_polyphony() -> None:
     voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
     mixer = Mixer(sound=lambda _: voice)
-    for note_number in range(mixer.max_polyphony):
+    for note_number in range(mixer.polyphony.max_voices):
         assert mixer.apply(NotePress(note_number))
 
-    assert not mixer.apply(NotePress(mixer.max_polyphony))
+    assert not mixer.apply(NotePress(mixer.polyphony.max_voices))
 
     out = mixer.render(48_000, np.float32)
 

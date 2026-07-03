@@ -7,6 +7,7 @@ from numpy.typing import DTypeLike
 from pydantic import BaseModel, Field
 
 from ..scale import NoteNumber
+from .polyphony import Polyphony
 from .voice import Voice, VoiceState
 
 
@@ -21,8 +22,7 @@ class NotePress(BaseModel, frozen=True):
 class Mixer(BaseModel):
     sound: Callable[[NoteNumber], Voice]
     channels: int = 1
-    polyphonic_headroom: float = Field(4, gt=0)
-    max_polyphony: int = Field(32, gt=0)
+    polyphony: Polyphony = Polyphony()
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
@@ -31,7 +31,7 @@ class Mixer(BaseModel):
         if note.is_press:
             if (
                 note_number in self.voices
-                or len(self.pressed_notes) >= self.max_polyphony
+                or len(self.pressed_notes) >= self.polyphony.max_voices
             ):
                 return False
             self.voices[note_number] = VoiceState(voice=self.sound(note_number))
@@ -63,7 +63,7 @@ class Mixer(BaseModel):
             mixed += voice.render(frame_size)
             if voice.complete:
                 self.voices.pop(note_number)
-        mixed /= self.polyphonic_headroom
+        mixed /= self.polyphony.headroom
         np.clip(mixed, -1, 1, out=mixed)
 
         channel_count = self.channels if channels is None else channels

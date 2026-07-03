@@ -1,5 +1,6 @@
 tuney = []
-player = [["minimum_note_time", "polyphonic_headroom", "max_polyphony"]]
+player = [["minimum_note_time"]]
+polyphony = [["headroom", "max_voices"]]
 device = [["sample_rate", "device", "dtype"]]
 mapper = [["alphabet"], ["length", "offset", "range_limit", "limiter", "case_sensitive", "invert"]]
 oscillator = [["waveform", "period", "duty_cycle", "key_scale_note", "key_scale"]]

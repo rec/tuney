@@ -60,10 +60,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Audio output gain (default: 1.0)
   -n INT, --audio-note-offset INT
         Offset added to generated note numbers before tuning (default: 44)
-  --polyphonic-headroom FLOAT
-        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
-  --max-polyphony INT
-        Maximum number of notes that can play simultaneously (default: 32)
   -N FLOAT, --minimum-note-time FLOAT
         Minimum duration of each synthesized note, in seconds (default: 0.5)
 
@@ -137,6 +133,13 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --table-blend, --no-table-blend
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)
+
+ player.polyphony options
+ ----------------------------------------------------------------------------------------------------------------------
+  --headroom FLOAT
+        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
+  --max-voices INT
+        Maximum number of notes that can play simultaneously (default: 32)
 
  midi options
  ----------------------------------------------------------------------------------------------------------------------

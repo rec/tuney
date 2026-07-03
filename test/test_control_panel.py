@@ -261,6 +261,9 @@ def test_control_rows_use_compact_model_layouts(
             'player': control_panel._control_rows(
                 tuney.player, _control_fields(tuney.player)
             ),
+            'polyphony': control_panel._control_rows(
+                tuney.player.polyphony, _control_fields(tuney.player.polyphony)
+            ),
             'device': control_panel._control_rows(
                 tuney.player.device, _control_fields(tuney.player.device)
             ),
@@ -336,6 +339,7 @@ def test_visible_field_names(file_regression: FileRegressionFixture) -> None:
                 ('tuney', tuney),
                 ('mapper', tuney.mapper),
                 ('player', tuney.player),
+                ('polyphony', tuney.player.polyphony),
                 ('device', tuney.player.device),
             ]
         },
