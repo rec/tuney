@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from pyinstaller_entrypoint import app_args, main
+from install.pyinstaller_entrypoint import app_args, main
 from tuney import app_state
 from tuney.audio import midi as midi_module
 
@@ -39,8 +39,8 @@ def test_frozen_app_preserves_explicit_arguments() -> None:
 
 
 def test_regular_script_preserves_cli_default() -> None:
-    assert app_args(['pyinstaller_entrypoint.py'], frozen=False) == [
-        'pyinstaller_entrypoint.py'
+    assert app_args(['install/pyinstaller_entrypoint.py'], frozen=False) == [
+        'install/pyinstaller_entrypoint.py'
     ]
 
 
@@ -94,7 +94,7 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     def show_frozen_exception(error: BaseException, path: Path) -> None:
         messages.append((error, path))
 
-    monkeypatch.setattr('pyinstaller_entrypoint.app_args', fail)
+    monkeypatch.setattr('install.pyinstaller_entrypoint.app_args', fail)
     monkeypatch.setattr(app_state, 'show_frozen_exception', show_frozen_exception)
 
     with pytest.raises(SystemExit) as error:

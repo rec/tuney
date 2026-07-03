@@ -112,15 +112,15 @@ jobs:
 
       - name: Build macOS application
         if: runner.os == 'macOS'
-        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._darwin --hidden-import pynput._util.darwin --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md pyinstaller_entrypoint.py
+        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._darwin --hidden-import pynput._util.darwin --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md install/pyinstaller_entrypoint.py
 
       - name: Build Linux application
         if: runner.os == 'Linux'
-        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._xorg --hidden-import pynput._util.xorg --hidden-import pynput._util.uinput --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md pyinstaller_entrypoint.py
+        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._xorg --hidden-import pynput._util.xorg --hidden-import pynput._util.uinput --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md install/pyinstaller_entrypoint.py
 
       - name: Build Windows application
         if: runner.os == 'Windows'
-        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --icon icon.png --version-file windows-version-info.txt --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._win32 --hidden-import pynput._util.win32 --hidden-import pynput._util.win32_vks --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md pyinstaller_entrypoint.py
+        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --icon icon.png --version-file windows-version-info.txt --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._win32 --hidden-import pynput._util.win32 --hidden-import pynput._util.win32_vks --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md install/pyinstaller_entrypoint.py
 
       - name: Ad-hoc sign macOS app
         if: runner.os == 'macOS'

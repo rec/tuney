@@ -33,12 +33,11 @@ if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
 fi
 
 uv run pytest
-uv run ruff check --fix --select B,E,F,I tuney test/*.py pyinstaller_entrypoint.py
+uv run ruff check --fix --select B,E,F,I tuney install test/*.py
 uv run ty check tuney
 python_version="$(cat .python-version)"
 python_version="${python_version//./}"
-find test tuney -name '*.py' | xargs uv run pyupgrade --py"${python_version}"-plus
-uv run pyupgrade --py"${python_version}"-plus pyinstaller_entrypoint.py
+find install test tuney -name '*.py' | xargs uv run pyupgrade --py"${python_version}"-plus
 git diff --check
 
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -84,7 +83,7 @@ uv run --with pyinstaller --with pillow pyinstaller \
   --add-data "$repo_root/packaging/README-WINDOWS.txt:README-WINDOWS.txt" \
   --add-data "$repo_root/packaging/README-MACOS.txt:README-MACOS.txt" \
   --add-data "$repo_root/packaging/README-LINUX.txt:README-LINUX.txt" \
-  pyinstaller_entrypoint.py
+  install/pyinstaller_entrypoint.py
 
 if [[ "$(uname)" == "Darwin" ]]; then
   codesign --force --deep --sign - "$build_root/dist/Tuney.app"
