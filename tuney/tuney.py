@@ -10,9 +10,9 @@ from pydantic import BaseModel, Field, field_validator
 from .audio.midi import MIDI
 from .audio.player import Player
 from .display import Display
-from .keyboard.char_press import CharPress
 from .mapper.mapper import Mapper
 from .presets import preset_names
+from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
 from .tuney_state import TuneyState

@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import tomlkit
 
 from .audio.mixer import NotePress
-from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .platform_info import exit_with_message, report_error
 from .presets import merged_data, read_preset
@@ -19,6 +18,7 @@ from .recorders.audio_recorder import AudioRecorder
 from .recorders.key_recorder import KeyRecorder
 from .serialize import serialize
 from .time import to_ms
+from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 
 if TYPE_CHECKING:

@@ -6,7 +6,7 @@ from functools import cached_property, wraps
 from typing import Any, Literal
 
 from ..runnable import Runnable
-from .char_press import CharPress
+from ..time.char_press import CharPress
 from .modifiers import Modifiers
 
 WHITESPACE = {'space': ' ', 'enter': '\n', 'backspace': '\b'}

@@ -1,6 +1,6 @@
 from tuney.keyboard import listener as listener_module
-from tuney.keyboard.char_press import CharPress
 from tuney.keyboard.listener import KeyboardListener
+from tuney.time.char_press import CharPress
 
 
 class FakeKey:

@@ -10,8 +10,8 @@ import pytest
 
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
-from tuney.keyboard.char_press import CharPress
 from tuney.platform_info import exit_with_message, report_error
+from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState

@@ -7,7 +7,7 @@ from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.__main__ import main
 from tuney.cli import cli
-from tuney.keyboard.char_press import CharPress
+from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 

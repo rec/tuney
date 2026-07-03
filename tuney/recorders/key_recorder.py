@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..keyboard.char_press import CharPress
 from ..time import Milliseconds, Seconds, to_ms
+from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 
 if TYPE_CHECKING:

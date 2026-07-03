@@ -3,8 +3,8 @@ import tomllib
 import pytest
 import tomlkit
 
-from tuney.keyboard.char_press import CharPress
 from tuney.serialize import serialize
+from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 

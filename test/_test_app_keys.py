@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent
 
-from tuney.keyboard.char_press import CharPress
+from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.ui import main_window as main_window_module
 from tuney.ui.history import History
