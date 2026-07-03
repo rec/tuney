@@ -39,12 +39,7 @@ def test_output_device_names_lists_unique_output_devices(monkeypatch):
 
 def test_midi_output_names_uses_subprocess(monkeypatch):
     def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(
-            args=[],
-            returncode=0,
-            stdout='["synth", "keyboard"]',
-            stderr='',
-        )
+        return completed_process('["synth", "keyboard"]')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
 
@@ -56,12 +51,7 @@ def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
 
     def run(args: list[str], **__: Any) -> subprocess.CompletedProcess[str]:
         calls.append(args)
-        return subprocess.CompletedProcess(
-            args=args,
-            returncode=0,
-            stdout='["synth"]',
-            stderr='',
-        )
+        return completed_process('["synth"]', args=args)
 
     monkeypatch.setattr(midi_module.sys, 'frozen', True, raising=False)
     monkeypatch.setattr(midi_module.sys, 'executable', 'Tuney')
@@ -93,12 +83,7 @@ def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, caps
 
 def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
     def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess(
-            args=[],
-            returncode=0,
-            stdout='{}',
-            stderr='',
-        )
+        return completed_process('{}')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
 
@@ -122,3 +107,14 @@ def test_oscillator_key_scale_changes_gain_by_octave() -> None:
     assert oscillator.gain(64) == 1
     assert oscillator.gain(76) == 2
     assert oscillator.gain(52) == 0.5
+
+
+def completed_process(
+    stdout: str, args: list[str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(
+        args=args or [],
+        returncode=0,
+        stdout=stdout,
+        stderr='',
+    )
