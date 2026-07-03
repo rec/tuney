@@ -6,8 +6,8 @@ from typing import Annotated, cast
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
+from ..display import Display
 from ..tyro_option import tyro_option
-from ..ui.control import Control
 
 
 class _SoundDevice:
@@ -30,7 +30,7 @@ class DType(StrEnum):
 
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: Annotated[int | None, tyro_option(), Control(beginner=True, row=0)] = (
+    samplerate: Annotated[int | None, tyro_option(), Display(beginner=True, row=0)] = (
         None
     )
 
@@ -38,11 +38,11 @@ class Device(BaseModel, frozen=True):
     device: Annotated[
         int | str | None,
         tyro_option(name='audio-device', aliases=['-d']),
-        Control(beginner=True, row=0, order=1),
+        Display(beginner=True, row=0, order=1),
     ] = None
 
     # Sample data type sent to the audio output device
-    dtype: Annotated[DType | None, tyro_option(), Control(row=0, order=2)] = None
+    dtype: Annotated[DType | None, tyro_option(), Display(row=0, order=2)] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None
     channels: tyro.conf.Suppress[int | None] = None

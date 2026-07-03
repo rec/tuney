@@ -5,9 +5,9 @@ from typing import Annotated, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from ..display import Display
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
-from ..ui.control import Control
 from . import NoteNumber
 
 type Frequency = float  # Must be non-negative
@@ -52,15 +52,15 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     #: Detune everything, in cents of an octave division
     detune: Annotated[
-        float, tyro_option(aliases=['-T']), Control(beginner=True, row=0)
+        float, tyro_option(aliases=['-T']), Display(beginner=True, row=0)
     ] = 0
 
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro_option(aliases=['-v']), Control(row=0, order=1)] = 0
+    limit: Annotated[int, tyro_option(aliases=['-v']), Display(row=0, order=1)] = 0
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option(aliases=['-V']), Control(beginner=True, row=0, order=2)
+        int, tyro_option(aliases=['-V']), Display(beginner=True, row=0, order=2)
     ] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -68,34 +68,34 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option(aliases=['-J']), Control(beginner=True, row=0, order=3)
+        float, tyro_option(aliases=['-J']), Display(beginner=True, row=0, order=3)
     ] = 2
 
     #: The rule for converting a pitch to a frequency
     pitch_to_frequency: Annotated[
-        PitchToFrequency, tyro_option(aliases=['-F']), Control(general=False)
+        PitchToFrequency, tyro_option(aliases=['-F']), Display(general=False)
     ] = PitchToFrequency.power
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
-        Frequency, tyro_option(aliases=['-U']), Control(beginner=True, row=0, order=4)
+        Frequency, tyro_option(aliases=['-U']), Display(beginner=True, row=0, order=4)
     ] = 440
 
     #: The note number of the reference note
     root_note: Annotated[
-        NoteNumber, tyro_option(aliases=['-W']), Control(beginner=True, row=0, order=5)
+        NoteNumber, tyro_option(aliases=['-W']), Display(beginner=True, row=0, order=5)
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[
         list[Frequency] | dict[NoteNumber, Frequency],
         tyro_option(),
-        Control(row=1),
+        Display(row=1),
     ] = Field(default_factory=list)
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.
-    table_blend: Annotated[bool, tyro_option(), Control(row=0, order=6)] = True
+    table_blend: Annotated[bool, tyro_option(), Display(row=0, order=6)] = True
 
     def __call__(self, note_number: NoteNumber) -> float:
         """Return the frequency in this tuning for a NoteNumber"""

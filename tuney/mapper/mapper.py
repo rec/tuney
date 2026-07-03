@@ -9,9 +9,9 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel
 
+from ..display import Display
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
-from ..ui.control import Control
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44
@@ -80,21 +80,21 @@ class Mapper(BaseModel, frozen=True):
     alphabet: Annotated[
         str | None,
         tyro_option(aliases=['-a']),
-        Control(beginner=True, row=0),
+        Display(beginner=True, row=0),
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet
     length: Annotated[
-        int, tyro_option(aliases=['-l']), Control(beginner=True, row=1)
+        int, tyro_option(aliases=['-l']), Display(beginner=True, row=1)
     ] = 0
 
     # Treat uppercase and lowercase characters as distinct
     case_sensitive: Annotated[
-        bool, tyro_option(aliases=['-C']), Control(row=1, order=4)
+        bool, tyro_option(aliases=['-C']), Display(row=1, order=4)
     ] = True
 
     # Reverse the order of mapped note numbers
-    invert: Annotated[bool, tyro_option(aliases=['-I']), Control(row=1, order=5)] = (
+    invert: Annotated[bool, tyro_option(aliases=['-I']), Display(row=1, order=5)] = (
         False
     )
 
@@ -102,17 +102,17 @@ class Mapper(BaseModel, frozen=True):
     offset: Annotated[
         int,
         tyro_option(name='mapper-offset', aliases=['-O']),
-        Control(beginner=True, row=1, order=1),
+        Display(beginner=True, row=1, order=1),
     ] = 0
 
     # Limit pitch range to this many notes
     range_limit: Annotated[
-        int, tyro_option(aliases=['-r']), Control(beginner=True, row=1, order=2)
+        int, tyro_option(aliases=['-r']), Display(beginner=True, row=1, order=2)
     ] = 60
 
     # What to do when mapped notes are outside the pitch range
     limiter: Annotated[
-        Limiter, tyro_option(aliases=['-L']), Control(beginner=True, row=1, order=3)
+        Limiter, tyro_option(aliases=['-L']), Display(beginner=True, row=1, order=3)
     ] = Limiter.wrap
 
     @cached_property

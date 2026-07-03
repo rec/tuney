@@ -15,6 +15,7 @@ from .app_state import exit_with_message, report_error
 from .audio.midi import MIDI
 from .audio.mixer import NotePress
 from .audio.multi_player import MultiPlayer
+from .display import Display
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
@@ -26,7 +27,6 @@ from .serialize import serialize
 from .time import to_ms
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
-from .ui.control import Control
 
 if TYPE_CHECKING:
     from .ui.app import App
@@ -51,12 +51,12 @@ class Tuney(BaseModel):
 
     # Named performance preset to load
     preset: Annotated[
-        str | None, tyro.conf.arg(aliases=['-p']), Control(general=True, beginner=True)
+        str | None, tyro.conf.arg(aliases=['-p']), Display(general=True, beginner=True)
     ] = None
 
     # Load configs from a JSON or toml file
     config_file: Annotated[
-        Path | None, tyro.conf.arg(aliases=['-c']), Control(hidden=True)
+        Path | None, tyro.conf.arg(aliases=['-c']), Display(hidden=True)
     ] = None
 
     # Map letters to notes
@@ -80,7 +80,7 @@ class Tuney(BaseModel):
             help_behavior_hint='(optional)',
             metavar='TEXT',
         ),
-        Control(hidden=True),
+        Display(hidden=True),
     ] = None
 
     # Positional text to start the program with
@@ -88,39 +88,39 @@ class Tuney(BaseModel):
         list[str],
         tyro.conf.Positional,
         tyro.conf.arg(name='text', metavar='TEXT'),
-        Control(hidden=True),
+        Display(hidden=True),
     ] = Field(default_factory=list, exclude=True)
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
-        float, tyro.conf.arg(aliases=['-m']), Control(general=True, beginner=True)
+        float, tyro.conf.arg(aliases=['-m']), Display(general=True, beginner=True)
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds
-    hover_time: Annotated[float, Control(general=True)] = 1.0
+    hover_time: Annotated[float, Display(general=True)] = 1.0
 
     # Time to hold backspace before it starts repeating, in seconds
-    backspace_repeat_delay: Annotated[float, Control(hidden=True)] = 2.0
+    backspace_repeat_delay: Annotated[float, Display(hidden=True)] = 2.0
 
     # Backspace repeats per second after backspace_repeat_delay
-    backspace_repeat_rate: Annotated[float, Control(hidden=True)] = 4.0
+    backspace_repeat_rate: Annotated[float, Display(hidden=True)] = 4.0
 
     # Open the graphical interface
-    gui: Annotated[bool, tyro.conf.arg(aliases=['-g']), Control(hidden=True)] = False
+    gui: Annotated[bool, tyro.conf.arg(aliases=['-g']), Display(hidden=True)] = False
 
     # Disable synthesized audio output
     silent: Annotated[
-        bool, tyro.conf.arg(aliases=['-s']), Control(general=True, beginner=True)
+        bool, tyro.conf.arg(aliases=['-s']), Display(general=True, beginner=True)
     ] = False
 
     # Audio file to write while playing text
     output: Annotated[
-        Path | None, tyro.conf.arg(aliases=['-o']), Control(hidden=True)
+        Path | None, tyro.conf.arg(aliases=['-o']), Display(hidden=True)
     ] = None
 
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: Annotated[
-        bool, tyro.conf.arg(aliases=['-b']), Control(general=True)
+        bool, tyro.conf.arg(aliases=['-b']), Display(general=True)
     ] = False
 
     # Path to the automatically saved GUI state

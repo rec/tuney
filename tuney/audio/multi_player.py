@@ -7,10 +7,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from ..display import Display
 from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..tyro_option import tyro_option
-from ..ui.control import Control
 from .device import Device
 from .engine import AudioEngine, Configure, StopAll, port_audio_error
 from .mixer import Mixer, NotePress
@@ -26,29 +26,29 @@ class MultiPlayer(BaseModel, frozen=True):
 
     # Audio output gain
     gain: Annotated[
-        float, tyro_option(aliases=['-G']), Control(general=True, beginner=True)
+        float, tyro_option(aliases=['-G']), Display(general=True, beginner=True)
     ] = 1.0
 
     # Offset added to generated note numbers before tuning
     note_offset: Annotated[
         NoteNumber,
         tyro_option(name='audio-note-offset', aliases=['-n']),
-        Control(general=True, beginner=True),
+        Display(general=True, beginner=True),
     ] = 44
 
     # Divisor applied to mixed voices to provide polyphonic headroom
-    polyphonic_headroom: Annotated[float, tyro_option(), Control(row=0, order=1)] = (
+    polyphonic_headroom: Annotated[float, tyro_option(), Display(row=0, order=1)] = (
         Field(4, gt=0)
     )
 
     # Maximum number of notes that can play simultaneously
-    max_polyphony: Annotated[int, tyro_option(), Control(row=0, order=2)] = Field(
+    max_polyphony: Annotated[int, tyro_option(), Display(row=0, order=2)] = Field(
         32, gt=0
     )
 
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[
-        float, tyro_option(aliases=['-N']), Control(beginner=True, row=0)
+        float, tyro_option(aliases=['-N']), Display(beginner=True, row=0)
     ] = Field(0.5, ge=0)
 
     @cached_property

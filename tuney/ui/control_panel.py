@@ -28,10 +28,10 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..display import Display
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
-from .control import Control
 from .tooltip import Tooltip
 
 Scalar: TypeAlias = bool | float | int | str | None
@@ -433,11 +433,11 @@ def _model_tree(data: BaseModel) -> list[BaseModel]:
     return models
 
 
-def _control_metadata(cls: type[BaseModel], name: str) -> Control:
+def _control_metadata(cls: type[BaseModel], name: str) -> Display:
     for metadata in cls.model_fields[name].metadata:
-        if isinstance(metadata, Control):
+        if isinstance(metadata, Display):
             return metadata
-    return Control()
+    return Display()
 
 
 def _display_label(name: str) -> str:

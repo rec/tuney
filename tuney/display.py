@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Control:
+class Display:
     hidden: bool = False
     general: bool = False
     beginner: bool = False
