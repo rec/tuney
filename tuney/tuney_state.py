@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from .app_state import exit_with_message, report_error
 from .audio.mixer import NotePress
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
+from .platform_info import exit_with_message, report_error
 from .presets import merged_data, read_preset
 from .presets.autosave import Autosave
 from .recorders.audio_recorder import AudioRecorder

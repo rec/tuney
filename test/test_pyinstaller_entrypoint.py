@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from install.pyinstaller_entrypoint import app_args, main
-from tuney import app_state
+from tuney import platform_info
 from tuney.audio import midi as midi_module
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
@@ -95,7 +95,7 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
         messages.append((error, path))
 
     monkeypatch.setattr('install.pyinstaller_entrypoint.app_args', fail)
-    monkeypatch.setattr(app_state, 'show_frozen_exception', show_frozen_exception)
+    monkeypatch.setattr(platform_info, 'show_frozen_exception', show_frozen_exception)
 
     with pytest.raises(SystemExit) as error:
         main()

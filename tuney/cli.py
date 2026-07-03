@@ -4,7 +4,7 @@ from pathlib import Path
 import tyro
 from pydantic import ValidationError
 
-from .app_state import exit_with_message
+from .platform_info import exit_with_message
 from .presets import merged_data, read_file, read_preset
 
 

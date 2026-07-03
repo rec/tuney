@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
-from ..app_state import app_state_dir, report_error
+from ..platform_info import app_state_dir, report_error
 from . import read_file
 
 if TYPE_CHECKING:

@@ -17,7 +17,7 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 def main() -> None:
     frozen = bool(getattr(sys, 'frozen', False))
     if frozen:
-        from tuney.app_state import install_frozen_excepthook
+        from tuney.platform_info import install_frozen_excepthook
 
         install_frozen_excepthook()
     try:
@@ -32,7 +32,7 @@ def main() -> None:
     except Exception as error:
         if not frozen:
             raise
-        from tuney.app_state import handle_frozen_exception
+        from tuney.platform_info import handle_frozen_exception
 
         handle_frozen_exception(error)
 

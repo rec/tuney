@@ -30,8 +30,8 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..app_state import log_path
 from ..keyboard.char_press import CharPress
+from ..platform_info import log_path
 from . import Action, StateChange
 from .help import show_help
 from .history import History

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from ..app_state import report_error
+from ..platform_info import report_error
 
 # See https://www.huygens-fokker.org/scala/scl_format.html
 
