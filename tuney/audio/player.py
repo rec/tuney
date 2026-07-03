@@ -19,7 +19,7 @@ from .output_file import AudioFileWriter, render_file
 from .voice import Voice
 
 
-class MultiPlayer(BaseModel, frozen=True):
+class Player(BaseModel, frozen=True):
     device: Device = Field(default_factory=Device)
     oscillator: Oscillator = Oscillator()
     scale: Scale = Scale()

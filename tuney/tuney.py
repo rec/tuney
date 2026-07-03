@@ -8,7 +8,7 @@ import tyro
 from pydantic import BaseModel, Field, field_validator
 
 from .audio.midi import MIDI
-from .audio.multi_player import MultiPlayer
+from .audio.player import Player
 from .display import Display
 from .keyboard.char_press import CharPress
 from .mapper.mapper import Mapper
@@ -41,7 +41,7 @@ class Tuney(BaseModel):
     mapper: Mapper = Mapper()
 
     # How to play back audio
-    player: MultiPlayer = MultiPlayer()
+    player: Player = Player()
 
     # How to send MIDI output
     midi: MIDI = MIDI()

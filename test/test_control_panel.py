@@ -7,8 +7,8 @@ from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
-from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator
+from tuney.audio.player import Player
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
@@ -197,8 +197,8 @@ def test_entry_width_uses_compact_numeric_widths(
             ),
             'gain': control_panel._entry_width(
                 'gain',
-                MultiPlayer.model_fields['gain'].annotation,
-                control_panel._control_metadata(MultiPlayer, 'gain'),
+                Player.model_fields['gain'].annotation,
+                control_panel._control_metadata(Player, 'gain'),
             ),
             'scale': control_panel._entry_width(
                 'scale',

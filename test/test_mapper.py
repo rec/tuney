@@ -1,9 +1,9 @@
-from tuney.audio.multi_player import MultiPlayer
+from tuney.audio.player import Player
 from tuney.mapper.mapper import Mapper
 
 
 def _final_note_numbers(mapper: Mapper) -> list[int]:
-    note_offset = MultiPlayer().note_offset
+    note_offset = Player().note_offset
     return [note_number + note_offset for note_number in mapper.char_to_number.values()]
 
 

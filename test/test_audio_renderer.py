@@ -12,9 +12,9 @@ from sounddevice import CallbackAbort, PortAudioError
 from tuney.audio import engine as engine_module
 from tuney.audio.engine import AudioEngine, StopAll
 from tuney.audio.mixer import Mixer, NotePress
-from tuney.audio.multi_player import MultiPlayer
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
+from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
@@ -167,9 +167,9 @@ def test_stream_open_failure_leaves_engine_stopped(monkeypatch) -> None:
     assert 'stream' not in engine.__dict__
 
 
-def test_multi_player_rolls_back_failed_stream_open(monkeypatch) -> None:
+def test_player_rolls_back_failed_stream_open(monkeypatch) -> None:
     monkeypatch.setattr(engine_module, 'OutputStream', _FailingOpenStream)
-    player = MultiPlayer()
+    player = Player()
 
     assert not player.start(0)
     assert not player.pressed_notes
@@ -259,10 +259,10 @@ def test_audio_file_writer_raises_unexpected_comment_errors() -> None:
         writer._set_comment('metadata')
 
 
-def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
+def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
-    player = MultiPlayer()
+    player = Player()
 
     assert player.start(0)
     assert player.start(7)
@@ -278,15 +278,15 @@ def test_multi_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     )
 
 
-def test_multi_player_uses_scale_note_subset_for_frequencies() -> None:
-    chromatic = MultiPlayer(note_offset=0)
-    white_notes = MultiPlayer(note_offset=0, scale=Scale(notes='ABCDEFG'))
+def test_player_uses_scale_note_subset_for_frequencies() -> None:
+    chromatic = Player(note_offset=0)
+    white_notes = Player(note_offset=0, scale=Scale(notes='ABCDEFG'))
 
     assert white_notes.sound(1).frequency == chromatic.sound(2).frequency
 
 
-def test_multi_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
-    player = MultiPlayer(
+def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
+    player = Player(
         note_offset=0,
         gain=0.25,
         oscillator=Oscillator(key_scale_note=12, key_scale=1),
@@ -298,7 +298,7 @@ def test_multi_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(engine_module, 'OutputStream', _EngineStream)
-    player = MultiPlayer()
+    player = Player()
     player.start(0)
     first = _EngineStream.instances[0]
 

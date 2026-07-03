@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from tuney.audio.mixer import NotePress
-from tuney.audio.multi_player import MultiPlayer
+from tuney.audio.player import Player
 from tuney.keyboard.char_press import CharPress
 from tuney.platform_info import exit_with_message, report_error
 from tuney.time.text_timings import TextTimings
@@ -752,15 +752,13 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     events: list[tuple[int, bool]] = []
     lifecycle: list[str] = []
     monkeypatch.setattr(
-        MultiPlayer,
+        Player,
         'on_note',
         lambda self, note, is_press: events.append((note, is_press)) or True,
     )
-    monkeypatch.setattr(
-        MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
-    )
-    monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
-    monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
+    monkeypatch.setattr(Player, 'stop_all', lambda self: lifecycle.append('stop_all'))
+    monkeypatch.setattr(Player, 'wait', lambda self: lifecycle.append('wait'))
+    monkeypatch.setattr(Player, 'close', lambda self: lifecycle.append('close'))
     tuney = Tuney(
         text=[
             CharPress('a', time=0),
@@ -780,7 +778,7 @@ def test_cli_mode_prints_characters_as_they_play(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     printed: list[tuple[tuple[object, ...], dict[str, object]]] = []
-    monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    monkeypatch.setattr(Player, 'on_note', lambda *args: True)
     monkeypatch.setattr(
         'builtins.print',
         lambda *args, **kwargs: printed.append((args, kwargs)),
@@ -815,7 +813,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
         'builtins.print',
         lambda *args, **kwargs: printed.append((args, kwargs)),
     )
-    monkeypatch.setattr(MultiPlayer, 'on_note', interrupt)
+    monkeypatch.setattr(Player, 'on_note', interrupt)
     tuney = Tuney(text=[CharPress('a', time=0)])
     try:
         tuney.state._play_cli()
@@ -857,14 +855,14 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
     ] = []
 
     def render_file(
-        self: MultiPlayer,
+        self: Player,
         output: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None = None,
     ) -> None:
         rendered.append((output, events, comment))
 
-    monkeypatch.setattr(MultiPlayer, 'render_file', render_file)
+    monkeypatch.setattr(Player, 'render_file', render_file)
     tuney = Tuney(
         output=path,
         silent=True,
@@ -888,24 +886,22 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
 def test_live_cli_output_records_during_playback(monkeypatch) -> None:
     path = Path('out.wav')
     lifecycle: list[object] = []
-    monkeypatch.setattr(MultiPlayer, 'on_note', lambda *args: True)
+    monkeypatch.setattr(Player, 'on_note', lambda *args: True)
     monkeypatch.setattr(
-        MultiPlayer,
+        Player,
         'start_recording',
         lambda self, output, comment=None: lifecycle.append(
             ('start_recording', output, comment)
         ),
     )
+    monkeypatch.setattr(Player, 'stop_all', lambda self: lifecycle.append('stop_all'))
+    monkeypatch.setattr(Player, 'wait', lambda self: lifecycle.append('wait'))
     monkeypatch.setattr(
-        MultiPlayer, 'stop_all', lambda self: lifecycle.append('stop_all')
-    )
-    monkeypatch.setattr(MultiPlayer, 'wait', lambda self: lifecycle.append('wait'))
-    monkeypatch.setattr(
-        MultiPlayer,
+        Player,
         'stop_recording',
         lambda self: lifecycle.append('stop_recording'),
     )
-    monkeypatch.setattr(MultiPlayer, 'close', lambda self: lifecycle.append('close'))
+    monkeypatch.setattr(Player, 'close', lambda self: lifecycle.append('close'))
     monkeypatch.setattr(
         TuneyState, '_play_cli', lambda self: lifecycle.append('play_cli')
     )
@@ -945,7 +941,7 @@ def test_interrupted_output_removes_partial_file(monkeypatch) -> None:
             output.write_bytes(b'partial')
             raise KeyboardInterrupt
 
-        monkeypatch.setattr(MultiPlayer, 'render_file', interrupt)
+        monkeypatch.setattr(Player, 'render_file', interrupt)
         tuney = Tuney(output=path, silent=True, text='a')
 
         with pytest.raises(KeyboardInterrupt):
@@ -967,9 +963,9 @@ def test_gui_transport_records_audio_until_save(monkeypatch) -> None:
         ) -> None:
             lifecycle.append(('start_recording', path, comment, append))
 
-        monkeypatch.setattr(MultiPlayer, 'start_recording', start_recording)
+        monkeypatch.setattr(Player, 'start_recording', start_recording)
         monkeypatch.setattr(
-            MultiPlayer,
+            Player,
             'stop_recording',
             lambda self: lifecycle.append('stop_recording'),
         )
@@ -1000,14 +996,14 @@ def test_gui_transport_records_audio_until_save(monkeypatch) -> None:
 def test_gui_transport_cancel_keeps_audio_recording(monkeypatch) -> None:
     lifecycle: list[object] = []
     monkeypatch.setattr(
-        MultiPlayer,
+        Player,
         'start_recording',
         lambda self, path, comment=None, append=False: lifecycle.append(
             ('start_recording', path, comment, append)
         ),
     )
     monkeypatch.setattr(
-        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+        Player, 'stop_recording', lambda self: lifecycle.append('stop_recording')
     )
     tuney = Tuney(gui=True)
 
@@ -1025,14 +1021,14 @@ def test_gui_transport_cancel_keeps_audio_recording(monkeypatch) -> None:
 def test_gui_transport_clear_discards_audio_recording(monkeypatch) -> None:
     lifecycle: list[object] = []
     monkeypatch.setattr(
-        MultiPlayer,
+        Player,
         'start_recording',
         lambda self, path, comment=None, append=False: lifecycle.append(
             ('start_recording', path, comment, append)
         ),
     )
     monkeypatch.setattr(
-        MultiPlayer, 'stop_recording', lambda self: lifecycle.append('stop_recording')
+        Player, 'stop_recording', lambda self: lifecycle.append('stop_recording')
     )
     tuney = Tuney(gui=True)
 

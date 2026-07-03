@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from ..audio.multi_player import MultiPlayer
+from ..audio.player import Player
 from ..ui import Action, State, StateChange
 
 
@@ -19,7 +19,7 @@ class AudioRecorder(BaseModel):
     def on_transport_state(
         self,
         change: StateChange,
-        player: MultiPlayer,
+        player: Player,
         comment_factory: Callable[[], Callable[[], str]],
         path: Path | None = None,
     ) -> bool:
@@ -40,7 +40,7 @@ class AudioRecorder(BaseModel):
         return True
 
     def start(
-        self, player: MultiPlayer, comment_factory: Callable[[], Callable[[], str]]
+        self, player: Player, comment_factory: Callable[[], Callable[[], str]]
     ) -> None:
         if self.path is None:
             self.path = Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
@@ -54,7 +54,7 @@ class AudioRecorder(BaseModel):
         )
         self.started = True
 
-    def stop(self, player: MultiPlayer) -> None:
+    def stop(self, player: Player) -> None:
         player.stop_recording()
 
     def save(self, path: Path) -> None:
