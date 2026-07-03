@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from .platform_info import exit_with_message
 from .presets import merged_data, read_file, read_preset
+from .tuney_state import TuneyState
 
 
 def cli(cls, prog: str):
@@ -22,7 +23,7 @@ def cli(cls, prog: str):
                 data = merged_data(data, read_file(f.config_file))
             default = cls(**data)
             f = tyro.cli(cls, prog=prog, default=default)
-        result = f.state()
+        result = TuneyState(f)()
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):
             raise

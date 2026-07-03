@@ -11,7 +11,7 @@ from ..platform_info import app_state_dir, report_error
 from . import read_file
 
 if TYPE_CHECKING:
-    from ..tuney import Tuney
+    from ..tuney_state import TuneyState
 
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
@@ -29,11 +29,12 @@ class Autosave(BaseModel, frozen=True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         save(self.path)
 
-    def restore(self, t: Tuney) -> None:
+    def restore(self, state: TuneyState) -> None:
+        tuney = state.tuney
         if not (
-            t.gui
+            tuney.gui
             and self.path.exists()
-            and not (t.config_file or t.preset or t.text or t.text_args)
+            and not (tuney.config_file or tuney.preset or tuney.text or tuney.text_args)
         ):
             return
         try:
@@ -43,7 +44,7 @@ class Autosave(BaseModel, frozen=True):
             return
         while True:
             try:
-                t.state.restore_data(data)
+                state.restore_data(data)
                 return
             except ValidationError as error:
                 report_error(f'Could not restore fields from {self.path}: {error}')

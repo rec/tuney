@@ -71,7 +71,7 @@ class Layout(QWidget):
                 max(NOTE_GRID_HEIGHT * main_window.rows, NOTE_GRID_HEIGHT),
             ]
         )
-        self.set_text(main_window.tuney.state.display_text)
+        self.set_text(main_window.state.display_text)
 
     def set_text(self, s: str) -> None:
         self.textbox.setPlainText(s)
@@ -92,7 +92,12 @@ class Layout(QWidget):
 
     @cached_property
     def control_panel(self) -> ControlPanel:
-        panel = ControlPanel(self, self.main_window.tuney, CONTROL_PANEL_HEIGHT)
+        panel = ControlPanel(
+            self,
+            self.main_window.state.tuney,
+            CONTROL_PANEL_HEIGHT,
+            self.main_window.state,
+        )
         self.splitter.addWidget(panel)
         return panel
 
@@ -168,7 +173,7 @@ class Layout(QWidget):
         self.transport = Transport(
             frame,
             self.main_window.on_transport_state,
-            lambda: self.main_window.tuney.hover_time,
+            lambda: self.main_window.state.tuney.hover_time,
         )
         layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
         self.replay = QPushButton('Replay', frame)
@@ -248,15 +253,15 @@ class Layout(QWidget):
 
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
-        it = self.main_window.tuney.state.note_labels.items()
+        it = self.main_window.state.note_labels.items()
         return {k: self._note_frame(i, k, text) for i, (k, text) in enumerate(it)}
 
     def rebuild_note_grid(self) -> None:
-        self.main_window.tuney.state.__dict__.pop('note_labels', None)
+        self.main_window.state.__dict__.pop('note_labels', None)
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
         try:
-            has_note_buttons = self.main_window.tuney.player.scale.note_count > 0
+            has_note_buttons = self.main_window.state.tuney.player.scale.note_count > 0
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
         if has_note_buttons:
@@ -270,7 +275,7 @@ class Layout(QWidget):
             column,
             char,
             text,
-            self.main_window.tuney.state.on_char,
+            self.main_window.state.on_char,
         )
 
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from pathlib import Path
 from typing import Annotated, final
 
@@ -15,7 +14,6 @@ from .presets import preset_names
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
-from .tuney_state import TuneyState
 from .tyro_option import tyro_option
 
 
@@ -120,10 +118,5 @@ class Tuney(BaseModel):
     def model_post_init(self, __context: object) -> None:
         if self.text_args:
             object.__setattr__(self, 'text', ' '.join(self.text_args))
-            self.__dict__.pop('state', None)
         if self.output:
             object.__setattr__(self, 'gui', False)
-
-    @cached_property
-    def state(self) -> TuneyState:
-        return TuneyState(self)

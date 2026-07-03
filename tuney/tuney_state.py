@@ -35,7 +35,7 @@ class TuneyState:
         assert self.tuney.gui
         from .ui.main_window import MainWindow
 
-        return MainWindow(self.tuney)
+        return MainWindow(self)
 
     @cached_property
     def listener(self) -> KeyboardListener:
@@ -258,7 +258,7 @@ class TuneyState:
 
     def __call__(self) -> None:
         if self.tuney.gui:
-            self._autosave.restore(self.tuney)
+            self._autosave.restore(self)
             self.start()
             self.main_window.mainloop()
         else:

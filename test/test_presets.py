@@ -5,6 +5,7 @@ import pytest
 from tuney.presets import preset_names, read_preset
 from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
+from tuney.tuney_state import TuneyState
 
 
 def test_bundled_presets_are_listed() -> None:
@@ -26,23 +27,25 @@ def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
 
 def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     tuney = Tuney()
-    tuney.state.char_presses.append(CharPress('a', time=0))
+    state = TuneyState(tuney)
+    state.char_presses.append(CharPress('a', time=0))
 
-    tuney.state.apply_preset('white-notes')
+    state.apply_preset('white-notes')
 
     assert tuney.preset == 'white-notes'
     assert tuney.player.scale.notes == 'ABCDEFG'
-    assert tuney.state.char_presses == [CharPress('a', time=0)]
+    assert state.char_presses == [CharPress('a', time=0)]
 
 
 def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     tuney = Tuney(gui=True)
+    state = TuneyState(tuney)
     app = object()
     listener = object()
-    tuney.state.__dict__['main_window'] = app
-    tuney.state.__dict__['listener'] = listener
+    state.__dict__['main_window'] = app
+    state.__dict__['listener'] = listener
 
-    tuney.state.apply_preset('white-notes')
+    state.apply_preset('white-notes')
 
-    assert tuney.state.main_window is app
-    assert tuney.state.listener is listener
+    assert state.main_window is app
+    assert state.listener is listener

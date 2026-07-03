@@ -4,7 +4,7 @@ import enum
 import json
 import math
 from collections.abc import Callable
-from typing import Any, TypeAlias, cast, get_args, get_origin
+from typing import TYPE_CHECKING, Any, TypeAlias, cast, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
 from PySide6.QtCore import Qt, QTimer
@@ -34,6 +34,9 @@ from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
 from .tooltip import Tooltip
+
+if TYPE_CHECKING:
+    from ..tuney_state import TuneyState
 
 Scalar: TypeAlias = bool | float | int | str | None
 
@@ -76,9 +79,16 @@ class _OptionControl:
 
 
 class ControlPanel(QScrollArea):
-    def __init__(self, parent: QWidget, data: BaseModel, height: int = 200) -> None:
+    def __init__(
+        self,
+        parent: QWidget,
+        data: BaseModel,
+        height: int = 200,
+        state: TuneyState | None = None,
+    ) -> None:
         super().__init__(parent)
         self.data = data
+        self.state = state
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
         self.setWidgetResizable(True)
@@ -617,7 +627,9 @@ def _add_option_control(
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
             _checkpoint_undo(parent)
-            cast(Any, data).state.apply_preset(raw)
+            state = _control_panel(parent).state
+            assert state is not None
+            state.apply_preset(raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
         else:
@@ -658,8 +670,9 @@ def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
 
 
 def _rebuild_note_grid(parent: Any) -> None:
-    layout = cast(Any, _control_panel(parent).data).state.main_window.ui
-    layout.rebuild_note_grid()
+    state = _control_panel(parent).state
+    assert state is not None
+    state.main_window.ui.rebuild_note_grid()
 
 
 def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) -> None:
@@ -886,15 +899,13 @@ def _set_model_value(
 
 
 def _checkpoint_undo(parent: Any) -> None:
-    root = _control_panel(parent).data
-    if type(root).__name__ == 'Tuney':
-        cast(Any, root).state.main_window.history.checkpoint_undo()
+    control_panel = _control_panel(parent)
+    if type(control_panel.data).__name__ == 'Tuney':
+        assert control_panel.state is not None
+        control_panel.state.main_window.history.checkpoint_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:
-    if type(data).__name__ == 'Tuney':
-        cast(Any, data).state._clear_cached_values()
-        return
     fields = type(data).model_fields
     for key in tuple(data.__dict__):
         if key not in fields:

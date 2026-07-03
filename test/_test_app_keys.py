@@ -8,6 +8,7 @@ from PySide6.QtGui import QKeyEvent
 
 from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
+from tuney.tuney_state import TuneyState
 from tuney.ui import main_window as main_window_module
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
@@ -25,8 +26,7 @@ def test_qt_key_events() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.tuney = type('Tuney', (), {})()
-    app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
+    app.state = type('TuneyState', (), {'on_char': chars.append})()
     main_window_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
 
     assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
@@ -62,8 +62,7 @@ def test_app_event_filter() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.focus_in_control_panel = False
-    app.tuney = type('Tuney', (), {})()
-    app.tuney.state = type('TuneyState', (), {'on_char': chars.append})()
+    app.state = type('TuneyState', (), {'on_char': chars.append})()
     app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
         app, event, is_press
     )
@@ -150,7 +149,9 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_application_uses_cross_platform_style() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
-        window = MainWindow(Tuney(gui=True, silent=True, autosave_file=path))
+        window = MainWindow(
+            TuneyState(Tuney(gui=True, silent=True, autosave_file=path))
+        )
         app = window.qt_app
 
         assert app.applicationName() == 'Tuney'
@@ -178,21 +179,21 @@ def test_app_activate_and_history() -> None:
 
     app = HistoryApp()
     app.history.checkpoint_undo()
-    object.__setattr__(app.tuney, 'max_gap', 2.0)
+    object.__setattr__(app.state.tuney, 'max_gap', 2.0)
     app.history.loop_before = 0.5
     app.history.undo()
 
-    assert app.tuney.max_gap == 1.0
+    assert app.state.tuney.max_gap == 1.0
     assert app.history.loop_before == 0.0
 
     app.history.redo()
 
-    assert app.tuney.max_gap == 2.0
+    assert app.state.tuney.max_gap == 2.0
     assert app.history.loop_before == 0.5
 
-    object.__setattr__(app.tuney, 'max_gap', 3.0)
-    object.__setattr__(app.tuney, 'text', [CharPress('a', time=0.0)])
-    app.tuney.state.__dict__.pop('char_presses', None)
+    object.__setattr__(app.state.tuney, 'max_gap', 3.0)
+    object.__setattr__(app.state.tuney, 'text', [CharPress('a', time=0.0)])
+    app.state.__dict__.pop('char_presses', None)
     app.history.loop_replay = True
     app.history.loop_before = 0.25
     app.history.loop_after = 0.5
@@ -201,9 +202,9 @@ def test_app_activate_and_history() -> None:
 
     app.history.clear_settings()
 
-    assert app.tuney.max_gap == Tuney().max_gap
-    assert app.tuney.state.char_presses == []
-    assert app.tuney.gui
+    assert app.state.tuney.max_gap == Tuney().max_gap
+    assert app.state.char_presses == []
+    assert app.state.tuney.gui
     assert not app.history.loop_replay
     assert app.history.loop_before == 0.0
     assert app.history.loop_after == 0.0
@@ -270,6 +271,6 @@ class FakeLayout:
 
 class HistoryApp:
     def __init__(self) -> None:
-        self.tuney = Tuney(max_gap=1.0)
+        self.state = TuneyState(Tuney(max_gap=1.0))
         self.ui = FakeLayout()
         self.history = History(self)

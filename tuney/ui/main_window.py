@@ -37,7 +37,7 @@ from .help import show_help
 from .history import History
 
 if TYPE_CHECKING:
-    from ..tuney import Tuney
+    from ..tuney_state import TuneyState
 
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
@@ -68,7 +68,7 @@ class _AfterDispatcher(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, tuney: Tuney) -> None:
+    def __init__(self, state: TuneyState) -> None:
         instance = QApplication.instance()
         if instance is None:
             self.qt_app = QApplication(sys.argv[:1])
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APP_NAME)
         if ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(ICON_PATH)))
-        self.tuney = tuney
+        self.state = state
         self.queue = Queue[CharPress]()
         self.key_queue = Queue[CharPress]()
         self._key_chars: dict[int, str] = {}
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
         self._after_dispatcher = _AfterDispatcher(self)
         self._after_dispatcher.schedule.connect(self._schedule_after)
         self._after_dispatcher.cancel.connect(self._cancel_after)
-        n = len(tuney.state.note_labels)
+        n = len(state.note_labels)
         c = int(math.ceil(n**0.5))
         r = n // c
         r += n > (r * c)
@@ -170,8 +170,8 @@ class MainWindow(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        self.tuney.state._autosave.save(self.tuney.state.save)
-        self.tuney.player.close()
+        self.state._autosave.save(self.state.save)
+        self.state.tuney.player.close()
         super().closeEvent(event)
 
     def destroy(
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
             self.key_queue.put(c)
 
     def on_clear(self, *_: object) -> None:
-        self.tuney.state.clear()
+        self.state.clear()
 
     def on_open_text_file(self, *_: object) -> None:
         self._is_saving = True
@@ -198,7 +198,7 @@ class MainWindow(QMainWindow):
             )
             filename = result[0]
             if filename:
-                self.tuney.state.load_text_file(Path(filename))
+                self.state.load_text_file(Path(filename))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
             )
             filename = result[0]
             if filename:
-                self.tuney.state.save(Path(filename))
+                self.state.save(Path(filename))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -243,10 +243,10 @@ class MainWindow(QMainWindow):
                 self._is_saving = False
                 self._has_focus = False
         path = Path(filename) if filename else None
-        return self.tuney.state.audio_recorder.on_transport_state(
+        return self.state.audio_recorder.on_transport_state(
             change,
-            self.tuney.player,
-            self.tuney.state._output_comment,
+            self.state.tuney.player,
+            self.state._output_comment,
             path,
         )
 
@@ -254,7 +254,7 @@ class MainWindow(QMainWindow):
         self.ui.refresh_devices()
 
     def on_randomize_timing(self, *_: object) -> None:
-        self.tuney.state.randomize_timing()
+        self.state.randomize_timing()
 
     def on_help(self, *_: object) -> None:
         show_help(self)
@@ -331,7 +331,7 @@ class MainWindow(QMainWindow):
         else:
             c = self._key_chars.pop(key, '')
         if c:
-            self.tuney.state.on_char(CharPress(c, is_press, time=time.time()))
+            self.state.on_char(CharPress(c, is_press, time=time.time()))
             event.accept()
             return True
         else:
@@ -370,7 +370,7 @@ class MainWindow(QMainWindow):
         if self._is_replaying != is_replaying:
             self._is_replaying = is_replaying
             self.ui.set_replay_state(is_replaying)
-            self.tuney.state.on_replay()
+            self.state.on_replay()
 
     def on_replay(self, *_: object) -> None:
         self.is_replaying = not self.is_replaying
@@ -408,10 +408,10 @@ class MainWindow(QMainWindow):
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():
-            self.tuney.state.on_char(self.key_queue.get())
+            self.state.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
-        engine = self.tuney.player.__dict__.get('engine')
+        engine = self.state.tuney.player.__dict__.get('engine')
         if engine:
             for error in engine.diagnostics.take_errors():
                 QMessageBox.critical(self, 'Audio error', error)

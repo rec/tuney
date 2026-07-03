@@ -24,6 +24,14 @@ def temporary_path() -> Iterator[Path]:
         yield Path(directory)
 
 
+def state_for(tuney: Tuney) -> TuneyState:
+    state = tuney.__dict__.get('_test_state')
+    if state is None:
+        state = TuneyState(tuney)
+        tuney.__dict__['_test_state'] = state
+    return state
+
+
 def on_transport_state(
     tuney: Tuney,
     old_state: State,
@@ -31,17 +39,17 @@ def on_transport_state(
     action: Action,
     path: Path | None = None,
 ) -> bool:
-    return tuney.state.audio_recorder.on_transport_state(
+    return state_for(tuney).audio_recorder.on_transport_state(
         StateChange(old_state=old_state, state=state, action=action),
         tuney.player,
-        tuney.state._output_comment,
+        state_for(tuney)._output_comment,
         path,
     )
 
 
 def recorded_char_press(tuney: Tuney, c: CharPress) -> CharPress:
-    return tuney.state.key_recorder.recorded_char_press(
-        c, tuney.state.char_presses, tuney.max_gap
+    return state_for(tuney).key_recorder.recorded_char_press(
+        c, state_for(tuney).char_presses, tuney.max_gap
     )
 
 
@@ -129,7 +137,7 @@ def test_recorded_char_press_reuses_deleted_time_for_next_insert():
     assert recorded_char_press(tuney, CharPress('a', time=100.0)) == CharPress(
         'a', time=0.0
     )
-    tuney.state.key_recorder.insert_time = 0.0
+    state_for(tuney).key_recorder.insert_time = 0.0
 
     actual = [
         recorded_char_press(tuney, CharPress('b', time=110.0)),
@@ -150,7 +158,7 @@ def test_recorded_char_press_caps_silent_gap():
         CharPress('a', time=100.0),
         CharPress('a', False, 100.25),
     ]:
-        tuney.state.append_char_press(recorded_char_press(tuney, c))
+        state_for(tuney).append_char_press(recorded_char_press(tuney, c))
 
     actual = [
         recorded_char_press(tuney, CharPress('b', time=110.0)),
@@ -184,7 +192,7 @@ def test_recorded_char_press_appends_to_restored_recording() -> None:
 
 def test_recorded_char_press_does_not_cap_time_while_note_is_held():
     tuney = Tuney(max_gap=0.5)
-    tuney.state.append_char_press(
+    state_for(tuney).append_char_press(
         recorded_char_press(tuney, CharPress('a', time=100.0))
     )
 
@@ -203,10 +211,10 @@ def test_append_char_press_sorts_late_char_press(
 ) -> None:
     tuney = Tuney()
 
-    tuney.state.append_char_press(CharPress('b', time=1000))
-    tuney.state.append_char_press(CharPress('a', time=0))
+    state_for(tuney).append_char_press(CharPress('b', time=1000))
+    state_for(tuney).append_char_press(CharPress('a', time=0))
 
-    assert tuney.state.char_presses == [
+    assert state_for(tuney).char_presses == [
         CharPress('a', time=0),
         CharPress('b', time=1000),
     ]
@@ -223,25 +231,25 @@ def test_display_text_uses_only_key_presses():
         ]
     )
 
-    assert tuney.state.display_text == 'ab'
+    assert state_for(tuney).display_text == 'ab'
 
 
 def test_clear_resets_recording_state():
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
-    tuney.state.key_recorder.start_time = 100.0
-    tuney.state.key_recorder.time_offset = 20.0
-    tuney.state.key_recorder.insert_time = 10.0
-    tuney.state.key_recorder.replay_text = 'a'
+    state_for(tuney).__dict__['main_window'] = app
+    state_for(tuney).key_recorder.start_time = 100.0
+    state_for(tuney).key_recorder.time_offset = 20.0
+    state_for(tuney).key_recorder.insert_time = 10.0
+    state_for(tuney).key_recorder.replay_text = 'a'
 
-    tuney.state.clear()
+    state_for(tuney).clear()
 
-    assert tuney.state.char_presses == []
-    assert tuney.state.key_recorder.start_time is None
-    assert tuney.state.key_recorder.time_offset == 0.0
-    assert tuney.state.key_recorder.insert_time is None
-    assert tuney.state.key_recorder.replay_text == ''
+    assert state_for(tuney).char_presses == []
+    assert state_for(tuney).key_recorder.start_time is None
+    assert state_for(tuney).key_recorder.time_offset == 0.0
+    assert state_for(tuney).key_recorder.insert_time is None
+    assert state_for(tuney).key_recorder.replay_text == ''
     assert app.undo_count == 1
 
 
@@ -256,22 +264,22 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
         ],
     )
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
-    original_char_presses = list(tuney.state.char_presses)
-    tuney.state.key_recorder.start_time = 100.0
-    tuney.state.key_recorder.time_offset = 20.0
-    tuney.state.key_recorder.insert_time = 10.0
-    tuney.state.key_recorder.replay_text = 'a'
+    state_for(tuney).__dict__['main_window'] = app
+    original_char_presses = list(state_for(tuney).char_presses)
+    state_for(tuney).key_recorder.start_time = 100.0
+    state_for(tuney).key_recorder.time_offset = 20.0
+    state_for(tuney).key_recorder.insert_time = 10.0
+    state_for(tuney).key_recorder.replay_text = 'a'
 
-    tuney.state.randomize_timing()
+    state_for(tuney).randomize_timing()
 
-    assert tuney.state.display_text == 'ab'
-    assert tuney.state.char_presses != original_char_presses
-    assert [c.char for c in tuney.state.char_presses if c.is_press] == ['a', 'b']
-    assert tuney.state.key_recorder.start_time is None
-    assert tuney.state.key_recorder.time_offset == 0.0
-    assert tuney.state.key_recorder.insert_time is None
-    assert tuney.state.key_recorder.replay_text == ''
+    assert state_for(tuney).display_text == 'ab'
+    assert state_for(tuney).char_presses != original_char_presses
+    assert [c.char for c in state_for(tuney).char_presses if c.is_press] == ['a', 'b']
+    assert state_for(tuney).key_recorder.start_time is None
+    assert state_for(tuney).key_recorder.time_offset == 0.0
+    assert state_for(tuney).key_recorder.insert_time is None
+    assert state_for(tuney).key_recorder.replay_text == ''
     assert app.undo_count == 1
 
 
@@ -283,8 +291,8 @@ def test_text_file_loads_char_presses(tmp_path) -> None:
         text_timings=TextTimings(seed=1, overlap=0, timings=[10]),
     )
 
-    assert tuney.state.display_text == 'ab'
-    assert [c.char for c in tuney.state.char_presses if c.is_press] == ['a', 'b']
+    assert state_for(tuney).display_text == 'ab'
+    assert [c.char for c in state_for(tuney).char_presses if c.is_press] == ['a', 'b']
 
 
 def test_load_text_file_replaces_char_presses(tmp_path) -> None:
@@ -296,23 +304,23 @@ def test_load_text_file_replaces_char_presses(tmp_path) -> None:
         text_timings=TextTimings(seed=1, overlap=0, timings=[10]),
     )
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
-    tuney.state.key_recorder.start_time = 100.0
+    state_for(tuney).__dict__['main_window'] = app
+    state_for(tuney).key_recorder.start_time = 100.0
 
-    tuney.state.load_text_file(path)
+    state_for(tuney).load_text_file(path)
 
-    assert tuney.state.display_text == 'ab'
-    assert [c.char for c in tuney.state.char_presses if c.is_press] == ['a', 'b']
-    assert tuney.state.key_recorder.start_time is None
+    assert state_for(tuney).display_text == 'ab'
+    assert [c.char for c in state_for(tuney).char_presses if c.is_press] == ['a', 'b']
+    assert state_for(tuney).key_recorder.start_time is None
     assert app.undo_count == 1
 
 
 def test_on_char_records_undo_for_added_char_press() -> None:
     tuney = Tuney(gui=True, silent=True)
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('a', time=100.0))
+    state_for(tuney).on_char(CharPress('a', time=100.0))
 
     assert app.undo_count == 1
 
@@ -320,19 +328,21 @@ def test_on_char_records_undo_for_added_char_press() -> None:
 def test_gui_listener_queues_keys_through_app() -> None:
     tuney = Tuney(gui=True)
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    assert tuney.state.listener.callback == app.on_key
+    assert state_for(tuney).listener.callback == app.on_key
 
 
 def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None:
     started = []
     tuney = Tuney(gui=True)
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
-    monkeypatch.setattr(tuney.state.listener, 'start', lambda: started.append(True))
+    state_for(tuney).__dict__['main_window'] = app
+    monkeypatch.setattr(
+        state_for(tuney).listener, 'start', lambda: started.append(True)
+    )
 
-    tuney.state.start()
+    state_for(tuney).start()
 
     assert started == []
 
@@ -341,10 +351,12 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     started = []
     tuney = Tuney(gui=True, run_in_background=True)
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
-    monkeypatch.setattr(tuney.state.listener, 'start', lambda: started.append(True))
+    state_for(tuney).__dict__['main_window'] = app
+    monkeypatch.setattr(
+        state_for(tuney).listener, 'start', lambda: started.append(True)
+    )
 
-    tuney.state.start()
+    state_for(tuney).start()
 
     assert started == [True]
 
@@ -360,11 +372,11 @@ def test_backspace_autorepeat_starts_after_configured_delay() -> None:
         backspace_repeat_rate=4.0,
     )
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('\b', time=200.0))
+    state_for(tuney).on_char(CharPress('\b', time=200.0))
 
-    assert tuney.state.display_text == 'a'
+    assert state_for(tuney).display_text == 'a'
     assert app.after_calls[0][1] == 1500
 
 
@@ -380,27 +392,27 @@ def test_backspace_autorepeat_repeats_at_configured_rate() -> None:
         backspace_repeat_rate=5.0,
     )
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('\b', time=300.0))
+    state_for(tuney).on_char(CharPress('\b', time=300.0))
     first_callback = app.after_calls[0][2]
     assert callable(first_callback)
     first_callback()
 
-    assert tuney.state.display_text == 'a'
+    assert state_for(tuney).display_text == 'a'
     assert app.after_calls[1][1] == 200
 
 
 def test_backspace_release_cancels_autorepeat() -> None:
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('\b', time=100.0))
-    tuney.state.on_char(CharPress('\b', False, time=200.0))
+    state_for(tuney).on_char(CharPress('\b', time=100.0))
+    state_for(tuney).on_char(CharPress('\b', False, time=200.0))
 
     assert app.cancelled_after_ids == ['after-0']
-    assert tuney.state.key_recorder.backspace_repeat_after_id is None
+    assert state_for(tuney).key_recorder.backspace_repeat_after_id is None
 
 
 def test_backspace_autorepeat_can_be_disabled() -> None:
@@ -410,9 +422,9 @@ def test_backspace_autorepeat_can_be_disabled() -> None:
         backspace_repeat_rate=0,
     )
     app = FakeApp()
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('\b', time=100.0))
+    state_for(tuney).on_char(CharPress('\b', time=100.0))
 
     assert app.after_calls == []
 
@@ -420,19 +432,19 @@ def test_backspace_autorepeat_can_be_disabled() -> None:
 def test_restore_data_restores_char_presses_and_model_values() -> None:
     tuney = Tuney(max_gap=1.0, text=[CharPress('a', time=0)])
 
-    tuney.state.restore_data(
+    state_for(tuney).restore_data(
         {'max_gap': 2.0, 'text': [CharPress('b', time=0).model_dump()]}
     )
 
     assert tuney.max_gap == 2.0
-    assert tuney.state.char_presses == [CharPress('b', time=0)]
+    assert state_for(tuney).char_presses == [CharPress('b', time=0)]
 
 
 def test_autosave_path_uses_xdg_state_home(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        assert Tuney().state._autosave.path == tmp_path / 'tuney' / 'state.toml'
+        assert TuneyState(Tuney())._autosave.path == tmp_path / 'tuney' / 'state.toml'
 
 
 def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
@@ -472,7 +484,7 @@ def test_autosave_writes_current_model_without_app_state() -> None:
             ],
         )
 
-        tuney.state._autosave.save(tuney.state.save)
+        state_for(tuney)._autosave.save(state_for(tuney).save)
 
         data = tomllib.loads(path.read_text())
     assert data['gui']
@@ -498,13 +510,13 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
                 CharPress('a', False, 100),
             ],
         )
-        saved.state._autosave.save(saved.state.save)
+        state_for(saved)._autosave.save(state_for(saved).save)
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.state._autosave.restore(tuney)
+        state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.max_gap == 2.0
-        assert tuney.state.char_presses == [
+        assert state_for(tuney).char_presses == [
             CharPress('a', time=0),
             CharPress('a', False, 100),
         ]
@@ -519,7 +531,7 @@ def test_restore_autosave_ignores_invalid_state_file(
         path.write_text('max_gap =')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.state._autosave.restore(tuney)
+        state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.max_gap == Tuney().max_gap
     assert f'Could not restore {path}' in capsys.readouterr().err
@@ -533,7 +545,7 @@ def test_restore_autosave_defaults_invalid_fields(
         path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.state._autosave.restore(tuney)
+        state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.max_gap == Tuney().max_gap
         assert tuney.hover_time == 2.0
@@ -561,7 +573,7 @@ def test_restore_autosave_defaults_invalid_nested_scale(
         )
         tuney = Tuney(gui=True, autosave_file=path)
 
-        tuney.state._autosave.restore(tuney)
+        state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.hover_time == 2.0
         assert tuney.player.scale == Tuney().player.scale
@@ -574,12 +586,12 @@ def test_restore_autosave_does_not_override_explicit_text() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         saved = Tuney(gui=True, autosave_file=path, text=[CharPress('a', time=0)])
-        saved.state._autosave.save(saved.state.save)
+        state_for(saved)._autosave.save(state_for(saved).save)
         tuney = Tuney(gui=True, autosave_file=path, text='b')
 
-        tuney.state._autosave.restore(tuney)
+        state_for(tuney)._autosave.restore(state_for(tuney))
 
-        assert tuney.state.display_text == 'b'
+        assert state_for(tuney).display_text == 'b'
 
 
 def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
@@ -588,10 +600,10 @@ def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
     app = FakeApp()
     app.is_replaying = True
     app.loop_replay = True
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
     monkeypatch.setattr(TuneyState, 'on_replay', lambda self: calls.append('replay'))
 
-    tuney.state.key_recorder.finish_replay(tuney.state)
+    state_for(tuney).key_recorder.finish_replay(state_for(tuney))
 
     assert calls == ['replay']
     assert app.is_replaying
@@ -602,9 +614,9 @@ def test_finished_empty_replay_stops_when_looping() -> None:
     app = FakeApp()
     app.is_replaying = True
     app.loop_replay = True
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.key_recorder.finish_replay(tuney.state)
+    state_for(tuney).key_recorder.finish_replay(state_for(tuney))
 
     assert not app.is_replaying
 
@@ -619,9 +631,9 @@ def test_replay_char_presses_use_loop_tempo() -> None:
     )
     app = FakeApp()
     app.loop_tempo = 2.0
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    assert tuney.state._replay_char_presses() == [
+    assert state_for(tuney)._replay_char_presses() == [
         CharPress('a', time=0),
         CharPress('a', False, 500),
     ]
@@ -640,9 +652,9 @@ def test_replay_char_presses_cut_loop_start_and_end() -> None:
     app = FakeApp()
     app.loop_before = 0.5
     app.loop_after = 0.25
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    assert tuney.state._replay_char_presses() == [
+    assert state_for(tuney)._replay_char_presses() == [
         CharPress('a', False, 0),
         CharPress('b', time=500),
     ]
@@ -659,9 +671,9 @@ def test_replay_char_presses_add_loop_start_and_end_space() -> None:
     app = FakeApp()
     app.loop_before = -0.25
     app.loop_after = -0.75
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    assert tuney.state._replay_char_presses() == [
+    assert state_for(tuney)._replay_char_presses() == [
         CharPress('a', time=250),
         CharPress('a', False, 750),
         CharPress(time=1500),
@@ -686,13 +698,13 @@ def test_loop_randomize_replaces_playback_timing_without_changing_recording() ->
     app = FakeApp()
     app.loop_replay = True
     app.randomize_on_each_loop = True
-    tuney.state.__dict__['main_window'] = app
-    recorded_char_presses = list(tuney.state.char_presses)
+    state_for(tuney).__dict__['main_window'] = app
+    recorded_char_presses = list(state_for(tuney).char_presses)
 
-    first_loop = tuney.state._replay_char_presses()
-    second_loop = tuney.state._replay_char_presses()
+    first_loop = state_for(tuney)._replay_char_presses()
+    second_loop = state_for(tuney)._replay_char_presses()
 
-    assert tuney.state.char_presses == recorded_char_presses
+    assert state_for(tuney).char_presses == recorded_char_presses
     assert first_loop != recorded_char_presses
     assert second_loop != first_loop
     assert ''.join(c.char for c in first_loop if c.is_press) == 'abcd'
@@ -710,42 +722,42 @@ def test_randomize_on_each_loop_only_affects_loop_replay() -> None:
     )
     app = FakeApp()
     app.randomize_on_each_loop = True
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    assert tuney.state._replay_char_presses() == tuney.state.char_presses
+    assert state_for(tuney)._replay_char_presses() == state_for(tuney).char_presses
 
 
 def test_on_char_ignores_input_while_saving():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.is_saving = True
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('a', time=100.0))
+    state_for(tuney).on_char(CharPress('a', time=100.0))
 
-    assert tuney.state.char_presses == []
+    assert state_for(tuney).char_presses == []
 
 
 def test_on_char_ignores_input_without_app_focus():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.has_focus = False
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('a', time=100.0))
+    state_for(tuney).on_char(CharPress('a', time=100.0))
 
-    assert tuney.state.char_presses == []
+    assert state_for(tuney).char_presses == []
 
 
 def test_on_char_ignores_input_with_control_panel_focus():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.focus_in_control_panel = True
-    tuney.state.__dict__['main_window'] = app
+    state_for(tuney).__dict__['main_window'] = app
 
-    tuney.state.on_char(CharPress('a', time=100.0))
+    state_for(tuney).on_char(CharPress('a', time=100.0))
 
-    assert tuney.state.char_presses == []
+    assert state_for(tuney).char_presses == []
 
 
 def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
@@ -766,12 +778,12 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
         ],
     )
 
-    tuney.state()
+    state_for(tuney)()
 
     assert events == [(-6, True), (-6, False)]
     assert lifecycle == ['stop_all', 'wait', 'close']
-    assert 'main_window' not in tuney.state.__dict__
-    assert 'listener' not in tuney.state.__dict__
+    assert 'main_window' not in state_for(tuney).__dict__
+    assert 'listener' not in state_for(tuney).__dict__
 
 
 def test_cli_mode_prints_characters_as_they_play(
@@ -792,7 +804,7 @@ def test_cli_mode_prints_characters_as_they_play(
         ],
     )
 
-    tuney.state._play_cli()
+    state_for(tuney)._play_cli()
 
     assert printed == [
         (('a',), {'end': '', 'flush': True}),
@@ -816,7 +828,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
     monkeypatch.setattr(Player, 'on_note', interrupt)
     tuney = Tuney(text=[CharPress('a', time=0)])
     try:
-        tuney.state._play_cli()
+        state_for(tuney)._play_cli()
     except KeyboardInterrupt:
         interrupted = True
 
@@ -829,7 +841,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
 
 def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc_info:
-        Tuney().state()
+        TuneyState(Tuney())()
 
     error = capsys.readouterr().err
     assert exc_info.value.code == 2
@@ -839,7 +851,7 @@ def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_cli_mode_requires_sound() -> None:
     with pytest.raises(SystemExit, match='CLI mode requires sound'):
-        Tuney(silent=True, text='a').state()
+        state_for(Tuney(silent=True, text='a'))()
 
 
 def test_output_forces_cli_mode() -> None:
@@ -872,7 +884,7 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
         ],
     )
 
-    tuney.state()
+    state_for(tuney)()
     output, events, comment = rendered[0]
 
     assert output == path
@@ -912,7 +924,7 @@ def test_live_cli_output_records_during_playback(monkeypatch) -> None:
             CharPress('a', False, 0),
         ],
     )
-    tuney.state()
+    state_for(tuney)()
 
     start_recording, play_cli, stop_all, wait, stop_recording, close = lifecycle
     assert start_recording[0] == 'start_recording'
@@ -945,7 +957,7 @@ def test_interrupted_output_removes_partial_file(monkeypatch) -> None:
         tuney = Tuney(output=path, silent=True, text='a')
 
         with pytest.raises(KeyboardInterrupt):
-            tuney.state()
+            state_for(tuney)()
 
         assert not path.exists()
 
@@ -971,7 +983,7 @@ def test_gui_transport_records_audio_until_save(monkeypatch) -> None:
         )
         tuney = Tuney(gui=True)
         assert on_transport_state(tuney, State.ready, State.recording, Action.record)
-        comment = tuney.state.audio_recorder.comment
+        comment = state_for(tuney).audio_recorder.comment
         assert on_transport_state(tuney, State.recording, State.paused, Action.record)
         assert on_transport_state(tuney, State.paused, State.recording, Action.record)
         assert on_transport_state(
@@ -989,8 +1001,8 @@ def test_gui_transport_records_audio_until_save(monkeypatch) -> None:
         assert second_start[3] is True
         assert stop_before_save == 'stop_recording'
         assert output.exists()
-        assert tuney.state.audio_recorder.path is None
-        assert tuney.state.audio_recorder.comment is None
+        assert state_for(tuney).audio_recorder.path is None
+        assert state_for(tuney).audio_recorder.comment is None
 
 
 def test_gui_transport_cancel_keeps_audio_recording(monkeypatch) -> None:
@@ -1008,10 +1020,10 @@ def test_gui_transport_cancel_keeps_audio_recording(monkeypatch) -> None:
     tuney = Tuney(gui=True)
 
     assert on_transport_state(tuney, State.ready, State.recording, Action.record)
-    recording_path = tuney.state.audio_recorder.path
+    recording_path = state_for(tuney).audio_recorder.path
 
     assert not on_transport_state(tuney, State.recording, State.ready, Action.save)
-    assert tuney.state.audio_recorder.path == recording_path
+    assert state_for(tuney).audio_recorder.path == recording_path
     assert lifecycle[0][0] == 'start_recording'
     assert lifecycle == [lifecycle[0]]
     if recording_path is not None:
@@ -1033,7 +1045,7 @@ def test_gui_transport_clear_discards_audio_recording(monkeypatch) -> None:
     tuney = Tuney(gui=True)
 
     assert on_transport_state(tuney, State.ready, State.recording, Action.record)
-    recording_path = tuney.state.audio_recorder.path
+    recording_path = state_for(tuney).audio_recorder.path
     assert recording_path is not None
 
     assert on_transport_state(tuney, State.recording, State.ready, Action.clear)
@@ -1041,5 +1053,5 @@ def test_gui_transport_clear_discards_audio_recording(monkeypatch) -> None:
     assert lifecycle[0][0] == 'start_recording'
     assert lifecycle[1] == 'stop_recording'
     assert not recording_path.exists()
-    assert tuney.state.audio_recorder.path is None
-    assert tuney.state.audio_recorder.comment is None
+    assert state_for(tuney).audio_recorder.path is None
+    assert state_for(tuney).audio_recorder.comment is None

@@ -96,14 +96,14 @@ class History:
 
     def clear_settings(self) -> None:
         self.checkpoint_undo()
-        data = type(self.main_window.tuney)().state.dump_data()
+        data = type(self.main_window.state.tuney)().model_dump()
         data['gui'] = True
         self.restore(HistoryState(tuney=data))
 
     def state(self) -> HistoryState:
         return HistoryState(
-            tuney=deepcopy(self.main_window.tuney.state.dump_data()),
-            key_recorder=self.main_window.tuney.state.key_recorder.model_copy(
+            tuney=deepcopy(self.main_window.state.dump_data()),
+            key_recorder=self.main_window.state.key_recorder.model_copy(
                 deep=True
             ),
             loop=self.loop_state,
@@ -111,13 +111,13 @@ class History:
 
     def restore(self, state: HistoryState) -> None:
         window = self.main_window
-        window.tuney.state.restore_data(state.tuney)
-        window.tuney.state.key_recorder.start_time = state.key_recorder.start_time
-        window.tuney.state.key_recorder.time_offset = state.key_recorder.time_offset
-        window.tuney.state.key_recorder.insert_time = state.key_recorder.insert_time
-        window.tuney.state.key_recorder.replay_text = state.key_recorder.replay_text
+        window.state.restore_data(state.tuney)
+        window.state.key_recorder.start_time = state.key_recorder.start_time
+        window.state.key_recorder.time_offset = state.key_recorder.time_offset
+        window.state.key_recorder.insert_time = state.key_recorder.insert_time
+        window.state.key_recorder.replay_text = state.key_recorder.replay_text
         self.loop_state = state.loop
-        window.ui.set_text(window.tuney.state.display_text)
+        window.ui.set_text(window.state.display_text)
         window.ui.rebuild_control_panel()
         window.ui.rebuild_note_grid()
         window.ui.refresh_loop_controls()

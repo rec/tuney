@@ -408,7 +408,7 @@ def test_cli_positional_text_replaces_default_char_presses() -> None:
     tuney = tyro.cli(Tuney, args=['new', 'text'], default=default)
 
     assert tuney.text == 'new text'
-    assert tuney.state.char_presses != default.state.char_presses
+    assert TuneyState(tuney).char_presses != TuneyState(default).char_presses
 
 
 def test_output_option_forces_cli_mode() -> None:
