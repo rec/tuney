@@ -7,6 +7,13 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if not getattr(sys, 'frozen', False) and str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from tuney.__main__ import main as tuney_main  # noqa: E402
+from tuney.audio.midi import INTERNAL_LIST_MIDI_OUTPUTS, output_names_json  # noqa: E402
+from tuney.platform_info import (  # noqa: E402
+    handle_frozen_exception,
+    install_frozen_excepthook,
+)
+
 
 def app_args(argv: list[str], *, frozen: bool) -> list[str]:
     if frozen and len(argv) == 1:
@@ -17,13 +24,8 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 def main() -> None:
     frozen = bool(getattr(sys, 'frozen', False))
     if frozen:
-        from tuney.platform_info import install_frozen_excepthook
-
         install_frozen_excepthook()
     try:
-        from tuney.__main__ import main as tuney_main
-        from tuney.audio.midi import INTERNAL_LIST_MIDI_OUTPUTS, output_names_json
-
         if sys.argv[1:] == [INTERNAL_LIST_MIDI_OUTPUTS]:
             print(output_names_json())
             return
@@ -32,8 +34,6 @@ def main() -> None:
     except Exception as error:
         if not frozen:
             raise
-        from tuney.platform_info import handle_frozen_exception
-
         handle_frozen_exception(error)
 
 
