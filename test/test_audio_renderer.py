@@ -23,7 +23,7 @@ SAMPLE_RATE = 48_000
 SAMPLE_COUNT = SAMPLE_RATE
 
 
-def _sound(note_number: int) -> Voice:
+def _voice_maker(note_number: int) -> Voice:
     return Voice(
         frequency=220 * 2 ** (note_number / 12),
         fade_in=0.1,
@@ -33,8 +33,8 @@ def _sound(note_number: int) -> Voice:
     )
 
 
-def _renderer(sound: Callable[[int], Voice] = _sound) -> OfflineRenderer:
-    return OfflineRenderer(mixer=Mixer(sound=sound))
+def _renderer(voice_maker: Callable[[int], Voice] = _voice_maker) -> OfflineRenderer:
+    return OfflineRenderer(mixer=Mixer(voice_maker=voice_maker))
 
 
 def _render_scenario(scenario: str, block_size: int = 997) -> np.ndarray:
@@ -178,7 +178,7 @@ def test_player_rolls_back_failed_stream_open(monkeypatch) -> None:
 
 
 def test_callback_failure_is_recorded() -> None:
-    engine = AudioEngine(mixer=_FailingMixer(sound=_sound))
+    engine = AudioEngine(mixer=_FailingMixer(voice_maker=_voice_maker))
 
     with pytest.raises(CallbackAbort):
         engine.callback(np.zeros((4, 1)), 4, 0.0, None)
@@ -282,7 +282,7 @@ def test_player_uses_scale_note_subset_for_frequencies() -> None:
     chromatic = Player(note_offset=0)
     white_notes = Player(note_offset=0, scale=Scale(notes='ABCDEFG'))
 
-    assert white_notes.sound(1).frequency == chromatic.sound(2).frequency
+    assert white_notes.voice_maker(1).frequency == chromatic.voice_maker(2).frequency
 
 
 def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
@@ -292,7 +292,7 @@ def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
         oscillator=Oscillator(key_scale_note=12, key_scale=1),
     )
 
-    assert player.sound(24).gain == 0.5
+    assert player.voice_maker(24).gain == 0.5
 
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
@@ -322,7 +322,7 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
 
 def test_mixer_limits_max_polyphony() -> None:
     voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
-    mixer = Mixer(sound=lambda _: voice)
+    mixer = Mixer(voice_maker=lambda _: voice)
     for note_number in range(mixer.polyphony.max_voices):
         assert mixer.apply(NotePress(note_number))
 

@@ -20,7 +20,7 @@ class NotePress(BaseModel, frozen=True):
 
 
 class Mixer(BaseModel):
-    sound: Callable[[NoteNumber], Voice]
+    voice_maker: Callable[[NoteNumber], Voice]
     channels: int = 1
     polyphony: Polyphony = Polyphony()
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
@@ -34,7 +34,7 @@ class Mixer(BaseModel):
                 or len(self.pressed_notes) >= self.polyphony.max_voices
             ):
                 return False
-            self.voices[note_number] = VoiceState(voice=self.sound(note_number))
+            self.voices[note_number] = VoiceState(voice=self.voice_maker(note_number))
             self.pressed_notes.append(note_number)
             return True
 

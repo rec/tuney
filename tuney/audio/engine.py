@@ -34,7 +34,7 @@ class Stream(Protocol):
 class Configure(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    sound: Callable[[NoteNumber], Voice]
+    voice_maker: Callable[[NoteNumber], Voice]
     polyphony: Polyphony
 
 
@@ -140,7 +140,7 @@ class AudioEngine(BaseModel):
                 self.stop_when_silent = False
                 self.mixer.apply(command)
             elif isinstance(command, Configure):
-                self.mixer.sound = command.sound
+                self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
             else:
                 self.stop_when_silent = True

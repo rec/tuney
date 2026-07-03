@@ -54,7 +54,7 @@ class Player(BaseModel, frozen=True):
     def engine(self) -> AudioEngine:
         engine = AudioEngine(
             mixer=Mixer(
-                sound=self.sound,
+                voice_maker=self.voice_maker,
                 polyphony=self.polyphony,
             ),
             device=self.device,
@@ -70,7 +70,7 @@ class Player(BaseModel, frozen=True):
             if e.__class__.__name__ != 'PortAudioError':
                 raise
 
-    def sound(self, note_number: int, sample_rate: int | None = None) -> Voice:
+    def voice_maker(self, note_number: int, sample_rate: int | None = None) -> Voice:
         scaled_note_number = note_number + self.note_offset
         frequency = self.scale.frequency(scaled_note_number)
         return Voice(
@@ -96,7 +96,7 @@ class Player(BaseModel, frozen=True):
         comment: Callable[[], str] | None = None,
     ) -> None:
         mixer = Mixer(
-            sound=partial(self.sound, sample_rate=self.sample_rate),
+            voice_maker=partial(self.voice_maker, sample_rate=self.sample_rate),
             channels=self.channels,
             polyphony=self.polyphony,
         )
@@ -129,10 +129,12 @@ class Player(BaseModel, frozen=True):
             return False
         self.pressed_notes.append(note_number)
         try:
-            sound = partial(self.sound, sample_rate=int(self.engine.stream.samplerate))
+            voice_maker = partial(
+                self.voice_maker, sample_rate=int(self.engine.stream.samplerate)
+            )
             self.engine.submit(
                 Configure(
-                    sound=sound,
+                    voice_maker=voice_maker,
                     polyphony=self.polyphony,
                 )
             )
