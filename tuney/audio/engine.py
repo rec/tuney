@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class Stream(Protocol):
     active: bool
-    samplerate: float
+    samplerate: int
     channels: int
 
     def start(self) -> None: ...
@@ -79,7 +79,9 @@ class AudioEngine(BaseModel):
             OutputStream = OutputStream_
 
         try:
-            return OutputStream(callback=self.callback, **self.device.model_dump())
+            return OutputStream(
+                callback=self.callback, **self.device.output_stream_kwargs()
+            )
         except port_audio_error() as error:
             self.diagnostics.record_stream_error(str(error))
             raise

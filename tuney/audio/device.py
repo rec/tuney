@@ -46,7 +46,7 @@ def dtype_names() -> list[str]:
 
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: Annotated[
+    sample_rate: Annotated[
         int | None, tyro_option(), Display(beginner=True, row=0, width=6)
     ] = None
 
@@ -80,3 +80,9 @@ class Device(BaseModel, frozen=True):
     def notify_change(self) -> None:
         if self._change_callback:
             self._change_callback()
+
+    def output_stream_kwargs(self) -> dict[str, object]:
+        values = self.model_dump()
+        sample_rate = values.pop('sample_rate')
+        values['samplerate'] = sample_rate
+        return values

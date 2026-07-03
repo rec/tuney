@@ -69,7 +69,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
 
  player.device options
  ----------------------------------------------------------------------------------------------------------------------
-  --samplerate {None}|INT
+  --sample-rate {None}|INT
         Audio output sample rate, in frames per second (default: None)
   -d {None}|INT|STR, --audio-device {None}|INT|STR
         Audio output device name or index (default: None)

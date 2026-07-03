@@ -13,24 +13,28 @@ class SampleData(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     data: np.ndarray
-    samplerate: int
+    sample_rate: int
 
     def device(self, device: int | str | None) -> Device:
-        return Device(channels=self.channels, device=device, samplerate=self.samplerate)
+        return Device(
+            channels=self.channels,
+            device=device,
+            sample_rate=self.sample_rate,
+        )
 
     @staticmethod
     def make(filename: str) -> SampleData:
-        data, samplerate = soundfile.read(filename, always_2d=True)
-        return SampleData(data=data, samplerate=samplerate)
+        data, sample_rate = soundfile.read(filename, always_2d=True)
+        return SampleData(data=data, sample_rate=sample_rate)
 
     def cut_to(self, time: float) -> SampleData:
-        count = round(time * self.samplerate)
+        count = round(time * self.sample_rate)
         to_cut = len(self.data) - count
         if to_cut <= 0:
             return self
         half = to_cut // 2
         return SampleData(
-            data=self.data[half : count + half], samplerate=self.samplerate
+            data=self.data[half : count + half], sample_rate=self.sample_rate
         )
 
     @cached_property

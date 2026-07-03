@@ -225,10 +225,10 @@ def test_entry_width_uses_compact_numeric_widths(
                 Device.model_fields['device'].annotation,
                 control_panel._control_metadata(Device, 'device'),
             ),
-            'samplerate': control_panel._entry_width(
-                'samplerate',
-                Device.model_fields['samplerate'].annotation,
-                control_panel._control_metadata(Device, 'samplerate'),
+            'sample_rate': control_panel._entry_width(
+                'sample_rate',
+                Device.model_fields['sample_rate'].annotation,
+                control_panel._control_metadata(Device, 'sample_rate'),
             ),
             'space': control_panel._entry_width(
                 'space',

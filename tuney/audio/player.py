@@ -77,7 +77,7 @@ class Player(BaseModel, frozen=True):
         except port_audio_error():
             pass
 
-    def sound(self, note_number: int, sample_rate: float | None = None) -> Voice:
+    def sound(self, note_number: int, sample_rate: int | None = None) -> Voice:
         scaled_note_number = note_number + self.note_offset
         frequency = self.scale.frequency(scaled_note_number)
         return Voice(
@@ -85,12 +85,12 @@ class Player(BaseModel, frozen=True):
             gain=self.gain * self.oscillator.gain(scaled_note_number),
             minimum_note_time=self.minimum_note_time,
             oscillator=self.oscillator,
-            sample_rate=sample_rate or self.device.samplerate or 48_000,
+            sample_rate=sample_rate or self.device.sample_rate or 48_000,
         )
 
     @property
     def sample_rate(self) -> int:
-        return self.device.samplerate or 48_000
+        return self.device.sample_rate or 48_000
 
     @property
     def channels(self) -> int:
@@ -118,11 +118,7 @@ class Player(BaseModel, frozen=True):
     ) -> None:
         stream = self.engine.stream
         self.engine.recorder = AudioFileWriter(
-            path,
-            int(stream.samplerate),
-            int(stream.channels),
-            comment,
-            append,
+            path, stream.samplerate, stream.channels, comment, append
         )
 
     def stop_recording(self) -> None:
@@ -141,7 +137,7 @@ class Player(BaseModel, frozen=True):
             return False
         self.pressed_notes.append(note_number)
         try:
-            sound = partial(self.sound, sample_rate=self.engine.stream.samplerate)
+            sound = partial(self.sound, sample_rate=int(self.engine.stream.samplerate))
             self.engine.submit(
                 Configure(
                     sound=sound,

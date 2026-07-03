@@ -1,6 +1,6 @@
 tuney = []
 player = [["minimum_note_time", "polyphonic_headroom", "max_polyphony"]]
-device = [["samplerate", "device", "dtype"]]
+device = [["sample_rate", "device", "dtype"]]
 mapper = [["alphabet"], ["length", "offset", "range_limit", "limiter", "case_sensitive", "invert"]]
 oscillator = [["waveform", "period", "duty_cycle", "key_scale_note", "key_scale"]]
 scale = [["root", "begin", "end", "offset"], ["notes", "intervals", "accidentals"], ["note_names"]]

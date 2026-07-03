@@ -19,7 +19,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--backspace-repeat-rate',
     '--polyphonic-headroom',
     '--max-polyphony',
-    '--samplerate',
+    '--sample-rate',
     '--dtype',
     '--table',
     '--table-blend',
@@ -187,7 +187,7 @@ def test_cli_accepts_flat_long_options() -> None:
             '--scale=4',
             '--polyphonic-headroom=3',
             '--max-polyphony=8',
-            '--samplerate=44100',
+            '--sample-rate=44100',
             '--dtype=int16',
             '--table',
             '440',
@@ -223,7 +223,7 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.text_timings.scale == 4
     assert tuney.player.polyphonic_headroom == 3
     assert tuney.player.max_polyphony == 8
-    assert tuney.player.device.samplerate == 44100
+    assert tuney.player.device.sample_rate == 44100
     assert tuney.player.device.dtype.value == 'int16'
     assert tuney.player.scale.tuning.table == [440, 880]
     assert not tuney.player.scale.tuning.table_blend

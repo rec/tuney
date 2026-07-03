@@ -18,7 +18,7 @@ class Voice(BaseModel, frozen=True):
     fade_out: Seconds = DEFAULT_FADE
     minimum_note_time: Seconds = 0.5
     oscillator: Oscillator = Oscillator()
-    sample_rate: float = 48_000
+    sample_rate: int = 48_000
 
     @cached_property
     def period(self) -> float:

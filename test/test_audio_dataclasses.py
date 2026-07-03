@@ -11,7 +11,7 @@ from tuney.audio.sample_data import SampleData
 
 def test_sample_data_reports_channels_and_cuts_from_center():
     data = np.arange(8).reshape((4, 2))
-    sample_data = SampleData(data=data, samplerate=2)
+    sample_data = SampleData(data=data, sample_rate=2)
 
     device = sample_data.device('speaker')
     cut = sample_data.cut_to(1)
@@ -19,7 +19,7 @@ def test_sample_data_reports_channels_and_cuts_from_center():
     assert sample_data.channels == 2
     assert device.channels == 2
     assert device.device == 'speaker'
-    assert device.samplerate == 2
+    assert device.sample_rate == 2
     np.testing.assert_array_equal(cut.data, data[1:3])
 
 
