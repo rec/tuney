@@ -17,6 +17,10 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 )
 
 
+def midi_output_names() -> list[str]:
+    return output_names()
+
+
 class MIDI(BaseModel, frozen=True):
     # Enable MIDI output
     enable: Annotated[
@@ -27,7 +31,7 @@ class MIDI(BaseModel, frozen=True):
     output: Annotated[
         str | None,
         tyro_option(name='midi-output'),
-        Display(beginner=True, row=0, order=1),
+        Display(beginner=True, row=0, order=1, width=12, options=midi_output_names),
     ] = None
 
     # MIDI channel, from 0 to 15

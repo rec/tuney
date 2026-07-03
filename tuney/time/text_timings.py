@@ -17,26 +17,34 @@ from .sequencer import Sequencer
 
 class TextTimings(BaseModel, frozen=True):
     # Base duration for a space, in milliseconds
-    space: Annotated[Milliseconds, tyro_option(), Display(beginner=True, row=0)] = 100
+    space: Annotated[
+        Milliseconds, tyro_option(), Display(beginner=True, row=0, width=5)
+    ] = 100
 
     # Base duration for a dot, in milliseconds
     dot: Annotated[
-        Milliseconds, tyro_option(), Display(beginner=True, row=0, order=1)
+        Milliseconds, tyro_option(), Display(beginner=True, row=0, order=1, width=5)
     ] = 300
 
     # Base duration for a comma, in milliseconds
     comma: Annotated[
-        Milliseconds, tyro_option(), Display(beginner=True, row=0, order=2)
+        Milliseconds, tyro_option(), Display(beginner=True, row=0, order=2, width=5)
     ] = 200
 
     # Base duration for a colon, in milliseconds
-    colon: Annotated[Milliseconds, tyro_option(), Display(row=0, order=3)] = 400
+    colon: Annotated[Milliseconds, tyro_option(), Display(row=0, order=3, width=5)] = (
+        400
+    )
 
     # Base duration for a semicolon, in milliseconds
-    semicolon: Annotated[Milliseconds, tyro_option(), Display(row=0, order=4)] = 400
+    semicolon: Annotated[
+        Milliseconds, tyro_option(), Display(row=0, order=4, width=5)
+    ] = 400
 
     # Base duration for a blank line, in milliseconds
-    blank_line: Annotated[Milliseconds, tyro_option(), Display(row=0, order=5)] = 1000
+    blank_line: Annotated[
+        Milliseconds, tyro_option(), Display(row=0, order=5, width=5)
+    ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
     overlap: Annotated[Milliseconds, tyro_option(), Display(beginner=True, row=1)] = 20
@@ -51,7 +59,9 @@ class TextTimings(BaseModel, frozen=True):
     strip_accents: Annotated[bool, tyro_option(), Display(row=1, order=3)] = True
 
     # Multiplier applied to all generated timing values
-    scale: Annotated[float, tyro_option(), Display(beginner=True, row=1, order=4)] = 1.0
+    scale: Annotated[
+        float, tyro_option(), Display(beginner=True, row=1, order=4, step=0.01)
+    ] = 1.0
 
     # Additional per-character base durations, in milliseconds
     other: Annotated[dict[str, Milliseconds], tyro_option(), Display(row=2)] = Field(

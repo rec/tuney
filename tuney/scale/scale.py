@@ -62,19 +62,23 @@ class Scale(BaseModel, frozen=True):
     )
 
     #: The root note to start scales with
-    root: Annotated[str, tyro_option(aliases=['-q']), Display(beginner=True, row=0)] = (
-        'C'
-    )
+    root: Annotated[
+        str, tyro_option(aliases=['-q']), Display(beginner=True, row=0, width=1)
+    ] = 'C'
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[
-        str, tyro_option(aliases=['-j']), Display(beginner=True, row=0, order=1)
+        str,
+        tyro_option(aliases=['-j']),
+        Display(beginner=True, row=0, order=1, width=1),
     ] = 'A'
 
     #: The Last note from the alphabet
     end: Annotated[
-        str, tyro_option(aliases=['-E']), Display(beginner=True, row=0, order=2)
+        str,
+        tyro_option(aliases=['-E']),
+        Display(beginner=True, row=0, order=2, width=1),
     ] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in

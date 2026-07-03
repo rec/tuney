@@ -26,7 +26,9 @@ class MultiPlayer(BaseModel, frozen=True):
 
     # Audio output gain
     gain: Annotated[
-        float, tyro_option(aliases=['-G']), Display(general=True, beginner=True)
+        float,
+        tyro_option(aliases=['-G']),
+        Display(general=True, beginner=True, step=0.01, dial=True),
     ] = 1.0
 
     # Offset added to generated note numbers before tuning

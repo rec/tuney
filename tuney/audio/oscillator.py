@@ -34,12 +34,16 @@ class Oscillator(BaseModel, frozen=True):
 
     # Number of waveform cycles per note period
     period: Annotated[
-        float, tyro_option(aliases=['-e']), Display(beginner=True, row=0, order=1)
+        float,
+        tyro_option(aliases=['-e']),
+        Display(beginner=True, row=0, order=1, dial=True),
     ] = 1.0
 
     # Fraction of each waveform cycle before its falling edge
     duty_cycle: Annotated[
-        float, tyro_option(aliases=['-u']), Display(beginner=True, row=0, order=2)
+        float,
+        tyro_option(aliases=['-u']),
+        Display(beginner=True, row=0, order=2, dial=True),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment

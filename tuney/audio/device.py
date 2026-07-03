@@ -20,6 +20,18 @@ class _SoundDevice:
 sounddevice = _SoundDevice()
 
 
+@cache
+def device_names() -> list[str]:
+    devices = sounddevice.query_devices()
+    names: list[str] = []
+    for device in devices:
+        name = device.get('name')
+        channels = device.get('max_output_channels', 0)
+        if isinstance(name, str) and isinstance(channels, int) and channels > 0:
+            names.append(name)
+    return names
+
+
 class DType(StrEnum):
     int8 = auto()
     uint8 = auto()
@@ -28,21 +40,27 @@ class DType(StrEnum):
     float32 = auto()
 
 
+def dtype_names() -> list[str]:
+    return [dtype.value for dtype in DType]
+
+
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
-    samplerate: Annotated[int | None, tyro_option(), Display(beginner=True, row=0)] = (
-        None
-    )
+    samplerate: Annotated[
+        int | None, tyro_option(), Display(beginner=True, row=0, width=6)
+    ] = None
 
     # Audio output device name or index
     device: Annotated[
         int | str | None,
         tyro_option(name='audio-device', aliases=['-d']),
-        Display(beginner=True, row=0, order=1),
+        Display(beginner=True, row=0, order=1, options=device_names),
     ] = None
 
     # Sample data type sent to the audio output device
-    dtype: Annotated[DType | None, tyro_option(), Display(row=0, order=2)] = None
+    dtype: Annotated[
+        DType | None, tyro_option(), Display(row=0, order=2, options=dtype_names)
+    ] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None
     channels: tyro.conf.Suppress[int | None] = None
@@ -62,15 +80,3 @@ class Device(BaseModel, frozen=True):
     def notify_change(self) -> None:
         if self._change_callback:
             self._change_callback()
-
-
-@cache
-def device_names() -> list[str]:
-    devices = sounddevice.query_devices()
-    names: list[str] = []
-    for device in devices:
-        name = device.get('name')
-        channels = device.get('max_output_channels', 0)
-        if isinstance(name, str) and isinstance(channels, int) and channels > 0:
-            names.append(name)
-    return names

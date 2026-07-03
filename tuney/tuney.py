@@ -19,7 +19,7 @@ from .display import Display
 from .keyboard.char_press import CharPress
 from .keyboard.listener import KeyboardListener
 from .mapper.mapper import Mapper
-from .presets import merged_data, read_preset
+from .presets import merged_data, preset_names, read_preset
 from .presets.autosave import Autosave
 from .recorders.audio_recorder import AudioRecorder
 from .recorders.key_recorder import KeyRecorder
@@ -51,7 +51,9 @@ class Tuney(BaseModel):
 
     # Named performance preset to load
     preset: Annotated[
-        str | None, tyro.conf.arg(aliases=['-p']), Display(general=True, beginner=True)
+        str | None,
+        tyro.conf.arg(aliases=['-p']),
+        Display(general=True, beginner=True, options=preset_names),
     ] = None
 
     # Load configs from a JSON or toml file
@@ -93,7 +95,9 @@ class Tuney(BaseModel):
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
-        float, tyro.conf.arg(aliases=['-m']), Display(general=True, beginner=True)
+        float,
+        tyro.conf.arg(aliases=['-m']),
+        Display(general=True, beginner=True, step=0.01),
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds

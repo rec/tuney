@@ -479,11 +479,12 @@ def _configure_editor(widget: QWidget, width: int | None = None) -> None:
 def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    if constants.ENTRY_WIDTHS.get(f'{type(data).__name__}.{name}'):
+    display = _control_metadata(type(data), name)
+    if display.width:
         return False
     if isinstance(value, bool | int | float | enum.Enum):
         return False
-    if constants.OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
+    if display.options:
         return False
     return str in set(_annotation_types(annotation)) or isinstance(value, list | dict)
 
@@ -515,9 +516,10 @@ def _add_control(
 ) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
+    display = _control_metadata(type(data), name)
     enum_cls = _enum_class(annotation, value)
 
-    if values := constants.OPTION_VALUES.get(f'{type(data).__name__}.{name}'):
+    if values := display.options:
         _add_option_control(parent, data, name, value, values, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
@@ -538,7 +540,9 @@ def _add_option_control(
     frame, layout, _ = _add_labeled_control_frame(parent, name)
     menu = QComboBox(frame)
     width = _entry_width(
-        name, type(data).model_fields[name].annotation, type(data).__name__
+        name,
+        type(data).model_fields[name].annotation,
+        _control_metadata(type(data), name),
     )
     _configure_editor(menu, width)
     menu.addItems(_option_values(values))
@@ -645,7 +649,7 @@ def _add_entry_control(
 
     frame, layout, _ = _add_labeled_control_frame(parent, name)
     entry = QLineEdit(text, frame)
-    width = _entry_width(name, annotation, type(data).__name__)
+    width = _entry_width(name, annotation, _control_metadata(type(data), name))
     _configure_editor(entry, width)
     text_color = entry.palette().text().color().name()
 
@@ -694,7 +698,7 @@ def _add_spin_control(
         spin = QDoubleSpinBox(frame)
         spin.setDecimals(3)
         spin.setRange(-9999.0, 9999.0)
-        spin.setSingleStep(_float_step(name))
+        spin.setSingleStep(_float_step(data, name))
         spin.setValue(float(value))
 
         def update() -> None:
@@ -716,7 +720,7 @@ def _add_spin_control(
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)
 
-    width = _entry_width(name, annotation, type(data).__name__)
+    width = _entry_width(name, annotation, _control_metadata(type(data), name))
     _configure_editor(spin, max(width + 18, 56) if width else MIN_EDITOR_WIDTH)
     _parent_layout(parent).addWidget(frame)
 
@@ -738,12 +742,12 @@ def _is_float_annotation(annotation: Any) -> bool:
     return float in set(_annotation_types(annotation))
 
 
-def _float_step(name: str) -> float:
-    return 0.01 if name in constants.SMALL_FLOAT_FIELDS else 0.1
+def _float_step(data: BaseModel, name: str) -> float:
+    return _control_metadata(type(data), name).step
 
 
 def _uses_dial(data: BaseModel, name: str) -> bool:
-    return f'{type(data).__name__}.{name}' in constants.DIAL_FIELDS
+    return _control_metadata(type(data), name).dial
 
 
 def _dial_value(value: float, name: str) -> int:
@@ -889,12 +893,11 @@ def _parse_entry_value(
 
 
 def _entry_width(
-    name: str, annotation: Any, model_name: str | None = None
+    name: str, annotation: Any, display: Display | None = None
 ) -> int | None:
-    if model_name and (
-        characters := constants.ENTRY_WIDTHS.get(f'{model_name}.{name}')
-    ):
-        return characters * constants.ENTRY_CHAR_WIDTH
+    display = display or Display()
+    if display.width:
+        return display.width * constants.ENTRY_CHAR_WIDTH
 
     types = set(_annotation_types(annotation))
     if str in types:
@@ -902,9 +905,7 @@ def _entry_width(
     if int in types and float not in types and bool not in types:
         return 4 * constants.ENTRY_CHAR_WIDTH
     if float in types:
-        return (
-            4 if name in constants.SMALL_FLOAT_FIELDS else 6
-        ) * constants.ENTRY_CHAR_WIDTH
+        return (4 if display.step == 0.01 else 6) * constants.ENTRY_CHAR_WIDTH
     return None
 
 

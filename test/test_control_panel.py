@@ -191,48 +191,59 @@ def test_entry_width_uses_compact_numeric_widths(
         file_regression,
         {
             'max_gap': control_panel._entry_width(
-                'max_gap', Tuney.model_fields['max_gap'].annotation
+                'max_gap',
+                Tuney.model_fields['max_gap'].annotation,
+                control_panel._control_metadata(Tuney, 'max_gap'),
             ),
             'gain': control_panel._entry_width(
-                'gain', MultiPlayer.model_fields['gain'].annotation
+                'gain',
+                MultiPlayer.model_fields['gain'].annotation,
+                control_panel._control_metadata(MultiPlayer, 'gain'),
             ),
             'scale': control_panel._entry_width(
-                'scale', TextTimings.model_fields['scale'].annotation
+                'scale',
+                TextTimings.model_fields['scale'].annotation,
+                control_panel._control_metadata(TextTimings, 'scale'),
             ),
             'period': control_panel._entry_width(
                 'period',
                 Oscillator.model_fields['period'].annotation,
+                control_panel._control_metadata(Oscillator, 'period'),
             ),
             'root_frequency': control_panel._entry_width(
                 'root_frequency',
                 Tuning.model_fields['root_frequency'].annotation,
+                control_panel._control_metadata(Tuning, 'root_frequency'),
             ),
             'root_note': control_panel._entry_width(
                 'root_note',
                 Tuning.model_fields['root_note'].annotation,
+                control_panel._control_metadata(Tuning, 'root_note'),
             ),
             'device': control_panel._entry_width(
-                'device', Device.model_fields['device'].annotation
+                'device',
+                Device.model_fields['device'].annotation,
+                control_panel._control_metadata(Device, 'device'),
             ),
             'samplerate': control_panel._entry_width(
                 'samplerate',
                 Device.model_fields['samplerate'].annotation,
-                'Device',
+                control_panel._control_metadata(Device, 'samplerate'),
             ),
             'space': control_panel._entry_width(
                 'space',
                 TextTimings.model_fields['space'].annotation,
-                'TextTimings',
+                control_panel._control_metadata(TextTimings, 'space'),
             ),
             'root': control_panel._entry_width(
                 'root',
                 Scale.model_fields['root'].annotation,
-                'Scale',
+                control_panel._control_metadata(Scale, 'root'),
             ),
             'output': control_panel._entry_width(
                 'output',
                 MIDI.model_fields['output'].annotation,
-                'MIDI',
+                control_panel._control_metadata(MIDI, 'output'),
             ),
         },
     )
