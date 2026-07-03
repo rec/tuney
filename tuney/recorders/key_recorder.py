@@ -74,17 +74,19 @@ class KeyRecorder(BaseModel):
             sequencer.stop()
 
         self.replay_text = ''
-        if state.app.is_replaying:
-            state.app.ui.set_text(self.replay_text)
+        if state.main_window.is_replaying:
+            state.main_window.ui.set_text(self.replay_text)
 
             def callback(char_press: CharPress | None) -> None:
                 if char_press:
                     if char_press.is_press:
                         self.replay_text += char_press.char
-                        state.app.after(0, state.app.ui.set_text, self.replay_text)
+                        state.main_window.after(
+                            0, state.main_window.ui.set_text, self.replay_text
+                        )
                     state._on_char(char_press)
-                elif state.app.is_replaying and self.sequencer is not None:
-                    state.app.after(0, self.finish_replay, state)
+                elif state.main_window.is_replaying and self.sequencer is not None:
+                    state.main_window.after(0, self.finish_replay, state)
 
             self.sequencer = Sequencer(
                 char_presses=state._replay_char_presses(),
@@ -92,10 +94,10 @@ class KeyRecorder(BaseModel):
             )
             self.sequencer.start()
         else:
-            state.app.ui.set_text(state.display_text)
+            state.main_window.ui.set_text(state.display_text)
 
     def finish_replay(self, state: TuneyState) -> None:
-        if state.app.history.loop_replay and state._replay_char_presses():
+        if state.main_window.history.loop_replay and state._replay_char_presses():
             state.on_replay()
             return
         state.tuney.player.stop_all()

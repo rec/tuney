@@ -229,7 +229,7 @@ def test_display_text_uses_only_key_presses():
 def test_clear_resets_recording_state():
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     tuney.state.key_recorder.start_time = 100.0
     tuney.state.key_recorder.time_offset = 20.0
     tuney.state.key_recorder.insert_time = 10.0
@@ -256,7 +256,7 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
         ],
     )
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     original_char_presses = list(tuney.state.char_presses)
     tuney.state.key_recorder.start_time = 100.0
     tuney.state.key_recorder.time_offset = 20.0
@@ -296,7 +296,7 @@ def test_load_text_file_replaces_char_presses(tmp_path) -> None:
         text_timings=TextTimings(seed=1, overlap=0, timings=[10]),
     )
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     tuney.state.key_recorder.start_time = 100.0
 
     tuney.state.load_text_file(path)
@@ -310,7 +310,7 @@ def test_load_text_file_replaces_char_presses(tmp_path) -> None:
 def test_on_char_records_undo_for_added_char_press() -> None:
     tuney = Tuney(gui=True, silent=True)
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('a', time=100.0))
 
@@ -320,7 +320,7 @@ def test_on_char_records_undo_for_added_char_press() -> None:
 def test_gui_listener_queues_keys_through_app() -> None:
     tuney = Tuney(gui=True)
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     assert tuney.state.listener.callback == app.on_key
 
@@ -329,7 +329,7 @@ def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None
     started = []
     tuney = Tuney(gui=True)
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     monkeypatch.setattr(tuney.state.listener, 'start', lambda: started.append(True))
 
     tuney.state.start()
@@ -341,7 +341,7 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     started = []
     tuney = Tuney(gui=True, run_in_background=True)
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     monkeypatch.setattr(tuney.state.listener, 'start', lambda: started.append(True))
 
     tuney.state.start()
@@ -360,7 +360,7 @@ def test_backspace_autorepeat_starts_after_configured_delay() -> None:
         backspace_repeat_rate=4.0,
     )
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('\b', time=200.0))
 
@@ -380,7 +380,7 @@ def test_backspace_autorepeat_repeats_at_configured_rate() -> None:
         backspace_repeat_rate=5.0,
     )
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('\b', time=300.0))
     first_callback = app.after_calls[0][2]
@@ -394,7 +394,7 @@ def test_backspace_autorepeat_repeats_at_configured_rate() -> None:
 def test_backspace_release_cancels_autorepeat() -> None:
     tuney = Tuney(gui=True, text=[CharPress('a', time=0.0)])
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('\b', time=100.0))
     tuney.state.on_char(CharPress('\b', False, time=200.0))
@@ -410,7 +410,7 @@ def test_backspace_autorepeat_can_be_disabled() -> None:
         backspace_repeat_rate=0,
     )
     app = FakeApp()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('\b', time=100.0))
 
@@ -588,7 +588,7 @@ def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
     app = FakeApp()
     app.is_replaying = True
     app.loop_replay = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     monkeypatch.setattr(TuneyState, 'on_replay', lambda self: calls.append('replay'))
 
     tuney.state.key_recorder.finish_replay(tuney.state)
@@ -602,7 +602,7 @@ def test_finished_empty_replay_stops_when_looping() -> None:
     app = FakeApp()
     app.is_replaying = True
     app.loop_replay = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.key_recorder.finish_replay(tuney.state)
 
@@ -619,7 +619,7 @@ def test_replay_char_presses_use_loop_tempo() -> None:
     )
     app = FakeApp()
     app.loop_tempo = 2.0
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     assert tuney.state._replay_char_presses() == [
         CharPress('a', time=0),
@@ -640,7 +640,7 @@ def test_replay_char_presses_cut_loop_start_and_end() -> None:
     app = FakeApp()
     app.loop_before = 0.5
     app.loop_after = 0.25
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     assert tuney.state._replay_char_presses() == [
         CharPress('a', False, 0),
@@ -659,7 +659,7 @@ def test_replay_char_presses_add_loop_start_and_end_space() -> None:
     app = FakeApp()
     app.loop_before = -0.25
     app.loop_after = -0.75
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     assert tuney.state._replay_char_presses() == [
         CharPress('a', time=250),
@@ -686,7 +686,7 @@ def test_loop_randomize_replaces_playback_timing_without_changing_recording() ->
     app = FakeApp()
     app.loop_replay = True
     app.randomize_on_each_loop = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     recorded_char_presses = list(tuney.state.char_presses)
 
     first_loop = tuney.state._replay_char_presses()
@@ -710,7 +710,7 @@ def test_randomize_on_each_loop_only_affects_loop_replay() -> None:
     )
     app = FakeApp()
     app.randomize_on_each_loop = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     assert tuney.state._replay_char_presses() == tuney.state.char_presses
 
@@ -719,7 +719,7 @@ def test_on_char_ignores_input_while_saving():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.is_saving = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('a', time=100.0))
 
@@ -730,7 +730,7 @@ def test_on_char_ignores_input_without_app_focus():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.has_focus = False
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('a', time=100.0))
 
@@ -741,7 +741,7 @@ def test_on_char_ignores_input_with_control_panel_focus():
     tuney = Tuney(gui=True)
     app = FakeApp()
     app.focus_in_control_panel = True
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
 
     tuney.state.on_char(CharPress('a', time=100.0))
 
@@ -770,7 +770,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 
     assert events == [(-6, True), (-6, False)]
     assert lifecycle == ['stop_all', 'wait', 'close']
-    assert 'app' not in tuney.state.__dict__
+    assert 'main_window' not in tuney.state.__dict__
     assert 'listener' not in tuney.state.__dict__
 
 

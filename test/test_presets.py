@@ -39,10 +39,10 @@ def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     tuney = Tuney(gui=True)
     app = object()
     listener = object()
-    tuney.state.__dict__['app'] = app
+    tuney.state.__dict__['main_window'] = app
     tuney.state.__dict__['listener'] = listener
 
     tuney.state.apply_preset('white-notes')
 
-    assert tuney.state.app is app
+    assert tuney.state.main_window is app
     assert tuney.state.listener is listener

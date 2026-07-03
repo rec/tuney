@@ -31,7 +31,7 @@ class TuneyState:
         self.tuney = tuney
 
     @cached_property
-    def app(self) -> MainWindow:
+    def main_window(self) -> MainWindow:
         assert self.tuney.gui
         from .ui.main_window import MainWindow
 
@@ -39,7 +39,9 @@ class TuneyState:
 
     @cached_property
     def listener(self) -> KeyboardListener:
-        return KeyboardListener(self.app.on_key if self.tuney.gui else self.on_char)
+        return KeyboardListener(
+            self.main_window.on_key if self.tuney.gui else self.on_char
+        )
 
     @cached_property
     def note_labels(self) -> dict[str, str]:
@@ -77,7 +79,7 @@ class TuneyState:
             self._stop_backspace_repeat()
         if self._is_listening:
             if c.char != '\b' or (c.is_press and self.char_presses):
-                self.app.history.checkpoint_undo()
+                self.main_window.history.checkpoint_undo()
             recorded = self.key_recorder.recorded_char_press(
                 c, self.char_presses, self.tuney.max_gap
             )
@@ -87,7 +89,7 @@ class TuneyState:
                 elif self.char_presses:
                     self.key_recorder.delete_last_char(self.char_presses)
                     self._start_backspace_repeat()
-                self.app.ui.set_text(self.display_text)
+                self.main_window.ui.set_text(self.display_text)
             else:
                 if c.char != '\b':
                     self.append_char_press(recorded)
@@ -108,7 +110,7 @@ class TuneyState:
             self.tuney.backspace_repeat_delay >= 0
             and self.tuney.backspace_repeat_rate > 0
         ):
-            self.key_recorder.backspace_repeat_after_id = self.app.after(
+            self.key_recorder.backspace_repeat_after_id = self.main_window.after(
                 round(to_ms(self.tuney.backspace_repeat_delay)),
                 self._repeat_backspace,
             )
@@ -117,48 +119,48 @@ class TuneyState:
         self.key_recorder.backspace_repeat_after_id = None
         if not self._is_listening or not self.char_presses:
             return
-        self.app.history.checkpoint_undo()
+        self.main_window.history.checkpoint_undo()
         self.key_recorder.delete_last_char(self.char_presses)
-        self.app.ui.set_text(self.display_text)
+        self.main_window.ui.set_text(self.display_text)
         self._on_char(CharPress('\b', time=0))
         if self.char_presses:
-            self.key_recorder.backspace_repeat_after_id = self.app.after(
+            self.key_recorder.backspace_repeat_after_id = self.main_window.after(
                 round(1000 / self.tuney.backspace_repeat_rate),
                 self._repeat_backspace,
             )
 
     def _stop_backspace_repeat(self) -> None:
         if self.key_recorder.backspace_repeat_after_id is not None:
-            self.app.after_cancel(self.key_recorder.backspace_repeat_after_id)
+            self.main_window.after_cancel(self.key_recorder.backspace_repeat_after_id)
             self.key_recorder.backspace_repeat_after_id = None
 
     def clear(self) -> None:
         if self.tuney.gui and self.char_presses:
-            self.app.history.checkpoint_undo()
+            self.main_window.history.checkpoint_undo()
         self.char_presses.clear()
         self.key_recorder.clear()
         if self.tuney.gui:
-            self.app.ui.set_text('')
+            self.main_window.ui.set_text('')
 
     def randomize_timing(self) -> None:
         text = self.display_text
         if not text:
             return
         if self.tuney.gui:
-            self.app.history.checkpoint_undo()
+            self.main_window.history.checkpoint_undo()
         self.__dict__['char_presses'] = list(self.tuney.text_timings.char_presses(text))
         self.key_recorder.clear()
         if self.tuney.gui:
-            self.app.ui.set_text(text)
+            self.main_window.ui.set_text(text)
 
     def load_text_file(self, path: Path) -> None:
         text = path.read_text()
         if self.tuney.gui:
-            self.app.history.checkpoint_undo()
+            self.main_window.history.checkpoint_undo()
         self.__dict__['char_presses'] = list(self.tuney.text_timings.char_presses(text))
         self.key_recorder.clear()
         if self.tuney.gui:
-            self.app.ui.set_text(self.display_text)
+            self.main_window.ui.set_text(self.display_text)
 
     def save(self, path: Path) -> None:
         data = serialize(self.dump_data())
@@ -206,10 +208,10 @@ class TuneyState:
                 self.tuney.player.on_note(note, c.is_press)
             self.tuney.midi(note, c.is_press)
         if self.tuney.gui:
-            self.app.on_char(c)
+            self.main_window.on_char(c)
 
     def _clear_cached_values(self) -> None:
-        keep = {'tuney', 'app', 'listener', 'key_recorder', 'audio_recorder'}
+        keep = {'tuney', 'main_window', 'listener', 'key_recorder', 'audio_recorder'}
         for key in tuple(self.__dict__):
             if key not in keep:
                 self.__dict__.pop(key, None)
@@ -217,10 +219,10 @@ class TuneyState:
     @property
     def _is_listening(self) -> bool:
         return (
-            not self.app.is_replaying
-            and not self.app.is_saving
-            and not self.app.focus_in_control_panel
-            and (self.tuney.run_in_background or self.app.has_focus)
+            not self.main_window.is_replaying
+            and not self.main_window.is_saving
+            and not self.main_window.focus_in_control_panel
+            and (self.tuney.run_in_background or self.main_window.has_focus)
         )
 
     def on_replay(self) -> None:
@@ -229,34 +231,41 @@ class TuneyState:
     def _replay_char_presses(self) -> list[CharPress]:
         char_presses = _loop_window(
             self._replay_source_char_presses(),
-            self.app.history.loop_before * 1000,
-            self.app.history.loop_after * 1000,
+            self.main_window.history.loop_before * 1000,
+            self.main_window.history.loop_after * 1000,
         )
-        if self.app.history.loop_tempo == 1:
+        if self.main_window.history.loop_tempo == 1:
             return char_presses
         return [
-            CharPress(c.char, c.is_press, time=c.time / self.app.history.loop_tempo)
+            CharPress(
+                c.char,
+                c.is_press,
+                time=c.time / self.main_window.history.loop_tempo,
+            )
             for c in char_presses
         ]
 
     def _replay_source_char_presses(self) -> list[CharPress]:
-        if self.app.history.loop_replay and self.app.history.randomize_on_each_loop:
+        if (
+            self.main_window.history.loop_replay
+            and self.main_window.history.randomize_on_each_loop
+        ):
             return list(self.tuney.text_timings.char_presses(self.display_text))
         return self.char_presses
 
     def _stop_replaying(self) -> None:
-        self.app.is_replaying = False
+        self.main_window.is_replaying = False
 
     def __call__(self) -> None:
         if self.tuney.gui:
             self._autosave.restore(self.tuney)
             self.start()
-            self.app.mainloop()
+            self.main_window.mainloop()
         else:
             self._run_cli()
 
     def start(self) -> None:
-        self.app.start()
+        self.main_window.start()
         if self.tuney.run_in_background:
             self.listener.start()
 

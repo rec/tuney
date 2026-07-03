@@ -658,7 +658,7 @@ def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
 
 
 def _rebuild_note_grid(parent: Any) -> None:
-    layout = cast(Any, _control_panel(parent).data).state.app.ui
+    layout = cast(Any, _control_panel(parent).data).state.main_window.ui
     layout.rebuild_note_grid()
 
 
@@ -888,7 +888,7 @@ def _set_model_value(
 def _checkpoint_undo(parent: Any) -> None:
     root = _control_panel(parent).data
     if type(root).__name__ == 'Tuney':
-        cast(Any, root).state.app.history.checkpoint_undo()
+        cast(Any, root).state.main_window.history.checkpoint_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:
