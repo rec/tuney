@@ -73,9 +73,9 @@ def show_emoji_test(parent: QWidget) -> None:
         '<p>If this window stays open, QTextBrowser can render these emoji:</p>'
         '<p style="font-size: 24px;">'
         '🎵 '
-#        '🎶 '
-#        '😀 '
-#        '✅ '
+        #        '🎶 '
+        #        '😀 '
+        #        '✅ '
         '</p>'
     )
 
