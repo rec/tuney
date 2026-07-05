@@ -1,30 +1,30 @@
-# Install the Tuney command line on Windows
+# Install the Tuney command line on macOS
 
 These steps install Tuney from PyPI, the Python package site. They assume Python,
 pipx, and Tuney are not installed yet.
 
 ## 1. Install Python
 
-1. Open <https://www.python.org/downloads/windows/>.
-2. Download the latest Python installer for Windows.
-3. Open the downloaded installer.
-4. Turn on **Add python.exe to PATH** if the installer shows that checkbox.
-5. Click **Install Now** and finish the installer.
+1. Open <https://www.python.org/downloads/macos/>.
+2. Download the latest Python installer for macOS.
+3. Open the downloaded `.pkg` file.
+4. Accept the defaults and finish the installer.
 
-## 2. Open PowerShell
+## 2. Open Terminal
 
-1. Click **Start**.
-2. Type **PowerShell**.
-3. Open **Windows PowerShell**.
+1. Open **Finder**.
+2. Open **Applications**.
+3. Open **Utilities**.
+4. Open **Terminal**.
 
-PowerShell is the app where you type commands.
+Terminal is the app where you type commands.
 
 ## 3. Check Python
 
-Copy this command, paste it into PowerShell, then press **Enter**:
+Copy this command, paste it into Terminal, then press **Return**:
 
-```powershell
-py --version
+```sh
+python3 --version
 ```
 
 Tuney needs Python 3.12 or newer. If the number is older, install a newer Python
@@ -32,20 +32,20 @@ from the Python download page above.
 
 ## 4. Install pipx
 
-Copy and paste these commands one at a time:
+Copy and run these commands one at a time:
 
-```powershell
-py -m pip install --user pipx
-py -m pipx ensurepath
+```sh
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
 ```
 
-Close PowerShell, then open PowerShell again.
+Close Terminal, then open Terminal again.
 
 ## 5. Install Tuney
 
 Run:
 
-```powershell
+```sh
 pipx install tuney
 ```
 
@@ -53,13 +53,13 @@ pipx install tuney
 
 Check that Tuney is installed:
 
-```powershell
+```sh
 tuney --help
 ```
 
 Create a WAV file from text:
 
-```powershell
+```sh
 tuney --silent --output hello.wav "Hello from Tuney"
 ```
 
