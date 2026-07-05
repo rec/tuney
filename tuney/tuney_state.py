@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
@@ -13,7 +14,7 @@ from .audio.mixer import NotePress
 from .audio.player import Player
 from .keyboard.listener import KeyboardListener
 from .platform_info import exit_with_message, report_error
-from .presets import merged_data, read_preset
+from .presets import is_str_dict, merged_data, read_preset
 from .presets.autosave import Autosave
 from .recorders.audio_recorder import AudioRecorder
 from .recorders.key_recorder import KeyRecorder
@@ -167,15 +168,20 @@ class TuneyState:
             self.main_window.ui.set_text(self.display_text)
 
     def save(self, path: Path) -> None:
-        data = serialize(self.dump_data())
         match path.suffix:
             case '.toml':
-                text = tomlkit.dumps(data)
+                text = self.dump_toml()
             case '.json':
-                text = json.dumps(data, indent=2) + '\n'
+                text = json.dumps(serialize(self.dump_data()), indent=2) + '\n'
             case _:
                 raise ValueError(f'Do not understand file {path}')
         path.write_text(text)
+
+    def dump_toml(self) -> str:
+        return tomlkit.dumps(serialize(self.dump_data()))
+
+    def restore_text(self, text: str) -> None:
+        self.restore_data(_read_state_text(text))
 
     @cached_property
     def _autosave(self) -> Autosave:
@@ -401,3 +407,18 @@ def _loop_window(
     if result and suffix:
         result.append(CharPress(time=result[-1].time + suffix))
     return result
+
+
+def _read_state_text(text: str) -> dict[str, object]:
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as toml_error:
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as json_error:
+            raise ValueError(
+                f'Clipboard does not contain TOML or JSON: {json_error}'
+            ) from toml_error
+    if not is_str_dict(data):
+        raise ValueError('Clipboard does not contain a string dictionary')
+    return data

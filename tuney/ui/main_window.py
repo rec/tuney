@@ -11,6 +11,7 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
+from pydantic import ValidationError
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
@@ -264,6 +265,20 @@ class MainWindow(QMainWindow):
             f'Log file:\n\n{log_path()}',
         )
 
+    def on_copy_from_state(self, *_: object) -> None:
+        self.qt_app.clipboard().setText(self.state.dump_toml())
+
+    def on_paste_into_state(self, *_: object) -> None:
+        try:
+            self.history.checkpoint_undo()
+            self.state.restore_text(self.qt_app.clipboard().text())
+        except (ValueError, ValidationError) as error:
+            QMessageBox.critical(self, 'Paste into state', str(error))
+            return
+        self.ui.rebuild_control_panel()
+        self.ui.rebuild_note_grid()
+        self.ui.set_text(self.state.display_text)
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -346,6 +361,8 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
+        _add_action(file_menu, 'Copy from state', None, self.on_copy_from_state)
+        _add_action(file_menu, 'Paste into state', None, self.on_paste_into_state)
         _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(file_menu, 'Clear settings...', None, self.on_clear_settings)
         _add_action(

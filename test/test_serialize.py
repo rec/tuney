@@ -1,3 +1,4 @@
+import json
 import tomllib
 
 import pytest
@@ -54,3 +55,26 @@ def test_save_rejects_unknown_suffix(tmp_path):
 
     with pytest.raises(ValueError, match='Do not understand file'):
         TuneyState(Tuney()).save(path)
+
+
+def test_dump_toml_uses_serialized_state() -> None:
+    state = TuneyState(Tuney(max_gap=2.0))
+
+    actual = tomllib.loads(state.dump_toml())
+
+    assert actual['max_gap'] == 2.0
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        'max_gap = 2.0\n',
+        json.dumps({'max_gap': 2.0}),
+    ],
+)
+def test_restore_text_accepts_toml_and_json(text: str) -> None:
+    tuney = Tuney(max_gap=1.0)
+
+    TuneyState(tuney).restore_text(text)
+
+    assert tuney.max_gap == 2.0
