@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import re
 from fractions import Fraction
-from functools import cached_property
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -15,17 +15,37 @@ LIMIT = 13
 ADJUST = False
 
 
-class Power(BaseModel, frozen=True):
-    base: float | Fraction
-    power: float | Fraction
+"""
+10 / 2 ^ 3.0 / 4 cents
+10/2^3.0/4 cents
+"""
 
-    @cached_property
-    def value(self) -> float | Fraction:
-        return type(self.base)(self.base**self.power)
+OTHER_RE = re.compile(r'[^^/.0-9\s]')
+
+
+def scala_str_to_frequency_ratio(s: str, extended: bool = False) -> float:
+    if m := OTHER_RE.search(s):
+        s = s[: m.start()]
+
+    base, _, exp = s.partition('^')
+    if not (base := base.strip()):
+        raise ValueError('Empty scala string')
+    if '^' in exp:
+        raise ValueError(f'String "{s}" has two or more ^ symbols')
+    if exp and not extended:
+        raise ValueError(f'String "{s}" has a ^ symbol')
+
+    if extended:
+        exp = (exp.split() or [''])[0] or '1'
+    elif exp:
+        raise ValueError(f'String "{s}" has a ^ symbol')
+
+    result = Fraction(base) ** Fraction(exp)
+    return 2 ** (result / 1200) if '.' in s else result
 
 
 class Scala(BaseModel, frozen=True):
-    pitches: list[float | Fraction | tuple[Fraction]]
+    frequencies: list[float]
     description: str = ''
 
     @staticmethod
@@ -35,28 +55,5 @@ class Scala(BaseModel, frozen=True):
         if int(length) != len(names):
             report_error(f'{length=} != {len(names)=}')
 
-        pitches = [to_pitch(p) for p in names if p.strip()]
-        return Scala(description=desc, pitches=pitches)
-
-
-def to_pitch(s: str, adjust: bool = False) -> float | Fraction:
-    s = s.split()[0]  # Doesn't fully comply but seems to work
-    if '.' not in s:
-        return Fraction(s)
-
-    cents = float(s)
-    if adjust and (f := perhaps_round(cents)) is not None:
-        # Correct numbers are very close to small fractions like 257.14286
-        # but this code is wrong.
-        cents = f
-    return 2 ** (cents / 1200)
-
-
-def perhaps_round(f: float) -> float | None:
-    fr = float(Fraction(f).limit_denominator(LIMIT))
-    if abs(f - fr) < EPSILON:
-        return fr
-
-
-def read_all(path: Path) -> dict[str, Scala]:
-    return {p.stem: Scala.make(p) for p in path.glob('*.scl')}
+        freq = [scala_str_to_frequency_ratio(p) for p in names if p.strip()]
+        return Scala(frequencies=freq, description=desc)
