@@ -208,7 +208,7 @@ def _section(parent: QWidget) -> QFrame:
 
 
 def _add_section_title(parent: QWidget, title: str) -> None:
-    label = QLabel(title, parent)
+    label = QLabel(_display_label(title), parent)
     label.setObjectName('control_section_title')
     font = label.font()
     font.setBold(True)
@@ -524,7 +524,7 @@ def _control_metadata(cls: type[BaseModel], name: str) -> Display:
 
 
 def _display_label(name: str) -> str:
-    return name.replace('_', ' ')
+    return name.replace('_', ' ').capitalize()
 
 
 def _add_labeled_control_frame(

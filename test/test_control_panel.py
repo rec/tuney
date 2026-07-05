@@ -248,6 +248,11 @@ def test_entry_width_uses_compact_numeric_widths(
     )
 
 
+def test_display_labels_use_sentence_case() -> None:
+    assert control_panel._display_label('text_timings') == 'Text timings'
+    assert control_panel._display_label('sample_rate') == 'Sample rate'
+
+
 def test_control_rows_use_compact_model_layouts(
     file_regression: FileRegressionFixture,
 ) -> None:
