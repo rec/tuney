@@ -23,6 +23,7 @@ from .main_window import MainWindow
 from .note_button import NoteButton
 from .platform import command_key
 from .splitter import SpacedSplitter
+from .tooltip import Tooltip
 from .transport import Transport
 
 TEXT_BOX_HEIGHT = 120
@@ -33,6 +34,12 @@ LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
 COMMAND_KEY = command_key(sys.platform)
+REPLAY_TOOLTIPS = {
+    'replay': 'Replay recorded text, or stop replaying',
+    'randomize': 'Randomize the recorded text timing',
+    'loop': 'Repeat replay until stopped',
+    'help': 'Help',
+}
 
 WIDTH, HEIGHT = 70, 80
 
@@ -176,10 +183,15 @@ class Layout(QWidget):
             lambda: self.main_window.state.tuney.hover_time,
         )
         layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        def hover_time() -> float:
+            return self.main_window.state.tuney.hover_time
+
         self.replay = QPushButton('Replay', frame)
         self.replay.setFixedSize(156, 36)
         self.replay.setFont(QFont(FONT_FAMILY, 16))
         self.replay.clicked.connect(self.main_window.on_replay)
+        Tooltip(self.replay, REPLAY_TOOLTIPS['replay'], hover_time)
         layout.addWidget(self.replay, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
         right = QWidget(frame)
         right_layout = QHBoxLayout(right)
@@ -188,14 +200,16 @@ class Layout(QWidget):
         self.randomize = QPushButton('Randomize', frame)
         self.randomize.setFixedWidth(96)
         self.randomize.clicked.connect(self.main_window.on_randomize_timing)
+        Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
         right_layout.addWidget(self.randomize)
         self.loop = QCheckBox('Loop', frame)
         self.loop.toggled.connect(lambda _: self.main_window.on_loop_replay())
+        Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
         right_layout.addWidget(self.loop)
         self.help = QPushButton('?', frame)
         self.help.setFixedSize(34, 34)
         self.help.setFont(QFont(FONT_FAMILY, 18))
-        self.help.setToolTip('Help')
+        Tooltip(self.help, REPLAY_TOOLTIPS['help'], hover_time)
         self.help.clicked.connect(self.main_window.on_help)
         right_layout.addWidget(self.help)
         layout.addWidget(right, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)

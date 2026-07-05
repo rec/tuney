@@ -19,6 +19,7 @@ from tuney.ui.control_panel import (
     _visible_child_names,
     _visible_control_names,
 )
+from tuney.ui.layout import REPLAY_TOOLTIPS
 from tuney.ui.transport import TOOLTIPS
 
 
@@ -93,4 +94,13 @@ def test_transport_button_tooltips_cover_all_buttons() -> None:
         'stop': 'Stop',
         'save': 'Save',
         'clear': 'Clear',
+    }
+
+
+def test_replay_bar_tooltips_cover_all_widgets() -> None:
+    assert REPLAY_TOOLTIPS == {
+        'replay': 'Replay recorded text, or stop replaying',
+        'randomize': 'Randomize the recorded text timing',
+        'loop': 'Repeat replay until stopped',
+        'help': 'Help',
     }
