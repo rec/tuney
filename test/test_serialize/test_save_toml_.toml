@@ -15,21 +15,21 @@ offset = 0
 range_limit = 60
 limiter = "wrap"
 
-[player]
+[device]
+
+[sound]
 gain = 1.0
 note_offset = 44
 minimum_note_time = 0.5
 
-[player.device]
-
-[player.oscillator]
+[sound.oscillator]
 waveform = "triangle"
 period = 1.0
 duty_cycle = 0.5
 key_scale_note = 64
 key_scale = 0.0
 
-[player.scale]
+[sound.scale]
 note_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 root = "C"
 begin = "A"
@@ -38,17 +38,7 @@ intervals = [2, 2, 1, 2, 2, 2, 1]
 accidentals = "whole"
 offset = 0
 
-[player.polyphony]
-headroom = 4
-max_voices = 32
-
-[midi]
-enable = false
-channel = 0
-velocity = 64
-note_offset = 0
-
-[tuning]
+[sound.tuning]
 detune = 0
 limit = 0
 notes_per_octave = 12
@@ -58,6 +48,16 @@ root_frequency = 440
 root_note = 69
 table = []
 table_blend = true
+
+[sound.polyphony]
+headroom = 4
+max_voices = 32
+
+[midi]
+enable = false
+channel = 0
+velocity = 64
+note_offset = 0
 
 [text_timings]
 space = 100

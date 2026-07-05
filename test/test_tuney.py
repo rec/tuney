@@ -575,7 +575,7 @@ def test_restore_autosave_defaults_invalid_nested_scale(
             '\n'.join(
                 [
                     'hover_time = 2.0',
-                    '[player.scale]',
+                    '[sound.scale]',
                     'note_names = "AB"',
                     'root = "C"',
                     'begin = "A"',
@@ -588,7 +588,7 @@ def test_restore_autosave_defaults_invalid_nested_scale(
         state_for(tuney)._autosave.restore(state_for(tuney))
 
         assert tuney.hover_time == 2.0
-        assert state_for(tuney).player.scale == Player().scale
+        assert tuney.sound.scale == Tuney().sound.scale
     error = capsys.readouterr().err
     assert f'Could not restore fields from {path}' in error
     assert 'root must be present in note_names' in error
@@ -901,7 +901,7 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> N
     output, events, comment = rendered[0]
 
     assert output == path
-    assert state.player.tuning == tuney.tuning
+    assert state.player.sound.tuning == tuney.sound.tuning
     assert [(frame, note.is_press) for frame, note in events] == [
         (0, True),
         (4800, False),

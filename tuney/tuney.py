@@ -6,11 +6,12 @@ from typing import Annotated, final
 import tyro
 from pydantic import BaseModel, Field, field_validator
 
+from .audio.device import Device
 from .audio.midi import MIDI
+from .audio.sound import Sound
 from .display import Display
 from .mapper.mapper import Mapper
 from .presets import preset_names
-from .scale.tuning import Tuning
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
@@ -38,11 +39,14 @@ class Tuney(BaseModel):
     # Map letters to notes
     mapper: Mapper = Mapper()
 
+    # Audio output device settings
+    device: Device = Field(default_factory=Device)
+
+    # Synthesizer sound settings
+    sound: Sound = Sound()
+
     # How to send MIDI output
     midi: MIDI = MIDI()
-
-    # The tuning used to convert note numbers into frequencies
-    tuning: Tuning = Tuning()
 
     # Timings for playing back texts
     text_timings: TextTimings = TextTimings(scale=3.0)

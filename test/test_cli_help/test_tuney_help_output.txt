@@ -52,22 +52,68 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -L {wrap,reflect,reflect_repeat}, --limiter {wrap,reflect,reflect_repeat}
         What to do when mapped notes are outside the pitch range (default: wrap)
 
- midi options
+ device options
  ----------------------------------------------------------------------------------------------------------------------
-  How to send MIDI output
+  Audio output device settings
   ----------------------------------------------------------------------------------------------------------------------
-  --midi-enable, --no-midi-enable
-        Enable MIDI output (default: False)
-  --midi-output {None}|STR
-        MIDI output port name (default: None)
-  --midi-channel INT
-        MIDI channel, from 0 to 15 (default: 0)
-  --midi-velocity INT
-        Velocity used for MIDI note-on messages (default: 64)
-  --midi-note-offset INT
-        Offset added to MIDI note numbers (default: 0)
+  --sample-rate {None}|INT
+        Audio output sample rate, in frames per second (default: None)
+  -d {None}|INT|STR, --audio-device {None}|INT|STR
+        Audio output device name or index (default: None)
+  --dtype {None,int8,uint8,int32,int16,float32}
+        Sample data type sent to the audio output device (default: None)
 
- tuning options
+ sound options
+ ----------------------------------------------------------------------------------------------------------------------
+  Synthesizer sound settings
+  ----------------------------------------------------------------------------------------------------------------------
+  -G FLOAT, --gain FLOAT
+        Audio output gain (default: 1.0)
+  -n INT, --audio-note-offset INT
+        Offset added to generated note numbers before tuning (default: 44)
+  -N FLOAT, --minimum-note-time FLOAT
+        Minimum duration of each synthesized note, in seconds (default: 0.5)
+
+ sound.oscillator options
+ ----------------------------------------------------------------------------------------------------------------------
+  Synthesizer oscillator settings
+  ----------------------------------------------------------------------------------------------------------------------
+  -w {sine,triangle}, --waveform {sine,triangle}
+        Waveform used to synthesize notes (default: triangle)
+  -e FLOAT, --period FLOAT
+        Number of waveform cycles per note period (default: 1.0)
+  -u FLOAT, --duty-cycle FLOAT
+        Fraction of each waveform cycle before its falling edge (default: 0.5)
+  -K INT, --key-scale-note INT
+        Note number with no keyboard gain adjustment (default: 64)
+  -k FLOAT, --key-scale FLOAT
+        Gain octaves added per keyboard octave above key_scale_note (default: 0.0)
+
+ sound.scale options
+ ----------------------------------------------------------------------------------------------------------------------
+  Map note numbers to note names and tuning positions
+  ----------------------------------------------------------------------------------------------------------------------
+  -A STR, --note-names STR
+        The base note names (default: ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+  -q STR, --root STR
+        The root note to start scales with (default: C)
+  -j STR, --begin STR
+        The first note from the note names: TODO: validate begin <= base <= end (default: A)
+  -E STR, --end STR
+        The Last note from the alphabet (default: G)
+  -Q {None}|STR, --notes {None}|STR
+        If `notes` is set, once the scale is generated, only the notes in
+        `notes` are actually used in the list.
+
+        For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)
+  -i [INT [INT ...]], --intervals [INT [INT ...]]
+        The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)
+  -X {none,whole,half}, --accidentals {none,whole,half}
+        Which accidentals are allowed in note names (default: whole)
+  -Y INT, --scale-offset INT
+        Offset all note numbers by this (default: 0)
+
+ sound.tuning options
  ----------------------------------------------------------------------------------------------------------------------
   The tuning used to convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
@@ -93,6 +139,28 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --table-blend, --no-table-blend
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)
+
+ sound.polyphony options
+ ----------------------------------------------------------------------------------------------------------------------
+  --headroom FLOAT
+        Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
+  --max-voices INT
+        Maximum number of notes that can play simultaneously (default: 32)
+
+ midi options
+ ----------------------------------------------------------------------------------------------------------------------
+  How to send MIDI output
+  ----------------------------------------------------------------------------------------------------------------------
+  --midi-enable, --no-midi-enable
+        Enable MIDI output (default: False)
+  --midi-output {None}|STR
+        MIDI output port name (default: None)
+  --midi-channel INT
+        MIDI channel, from 0 to 15 (default: 0)
+  --midi-velocity INT
+        Velocity used for MIDI note-on messages (default: 64)
+  --midi-note-offset INT
+        Offset added to MIDI note numbers (default: 0)
 
  text-timings options
  ----------------------------------------------------------------------------------------------------------------------

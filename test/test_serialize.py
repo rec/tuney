@@ -25,6 +25,10 @@ def test_tuney_dump_data_uses_recorded_char_presses():
     ]
 
 
+def test_tuney_player_serializes_no_configuration() -> None:
+    assert 'player' not in Tuney().model_dump()
+
+
 def test_tuney_dump_data_excludes_text_file(tmp_path) -> None:
     path = tmp_path / 'input.txt'
     path.write_text('a')

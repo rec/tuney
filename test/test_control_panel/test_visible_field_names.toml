@@ -1,5 +1,5 @@
-tuney = ["mapper", "midi", "tuning", "text_timings"]
+tuney = ["mapper", "device", "sound", "midi", "text_timings"]
 mapper = ["alphabet", "length", "case_sensitive", "invert", "offset", "range_limit", "limiter"]
-player = ["device", "oscillator", "scale", "polyphony", "minimum_note_time"]
+sound = ["oscillator", "scale", "tuning", "polyphony", "minimum_note_time"]
 polyphony = ["headroom", "max_voices"]
 device = ["sample_rate", "device", "dtype"]

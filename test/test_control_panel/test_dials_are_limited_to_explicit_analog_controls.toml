@@ -1,4 +1,4 @@
-player_gain = true
+sound_gain = true
 oscillator_period = true
-player_minimum_note_time = false
-player_note_offset = false
+sound_minimum_note_time = false
+sound_note_offset = false

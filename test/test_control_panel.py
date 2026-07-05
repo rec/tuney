@@ -8,7 +8,7 @@ from pytest_regressions.file_regression import FileRegressionFixture
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.oscillator import Oscillator
-from tuney.audio.player import Player
+from tuney.audio.sound import Sound
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
@@ -78,11 +78,11 @@ def test_set_model_value_validates_and_clears_cached_values(
 def test_set_model_value_converts_dtype_string(
     file_regression: FileRegressionFixture,
 ) -> None:
-    player = Player()
+    device = Device()
 
-    control_panel._set_model_value(player.device, 'dtype', 'int16')
+    control_panel._set_model_value(device, 'dtype', 'int16')
 
-    _check_regression(file_regression, {'dtype': player.device.dtype})
+    _check_regression(file_regression, {'dtype': device.dtype})
 
 
 def test_set_model_value_notifies_device_change(
@@ -196,8 +196,8 @@ def test_entry_width_uses_compact_numeric_widths(
             ),
             'gain': control_panel._entry_width(
                 'gain',
-                Player.model_fields['gain'].annotation,
-                control_panel._control_metadata(Player, 'gain'),
+                Sound.model_fields['gain'].annotation,
+                control_panel._control_metadata(Sound, 'gain'),
             ),
             'scale': control_panel._entry_width(
                 'scale',
@@ -257,30 +257,31 @@ def test_control_rows_use_compact_model_layouts(
     file_regression: FileRegressionFixture,
 ) -> None:
     tuney = Tuney()
-    player = Player()
 
     _check_regression(
         file_regression,
         {
             'tuney': control_panel._control_rows(tuney, _control_fields(tuney)),
-            'player': control_panel._control_rows(player, _control_fields(player)),
+            'sound': control_panel._control_rows(
+                tuney.sound, _control_fields(tuney.sound)
+            ),
             'polyphony': control_panel._control_rows(
-                player.polyphony, _control_fields(player.polyphony)
+                tuney.sound.polyphony, _control_fields(tuney.sound.polyphony)
             ),
             'device': control_panel._control_rows(
-                player.device, _control_fields(player.device)
+                tuney.device, _control_fields(tuney.device)
             ),
             'mapper': control_panel._control_rows(
                 tuney.mapper, _control_fields(tuney.mapper)
             ),
             'oscillator': control_panel._control_rows(
-                player.oscillator, _control_fields(player.oscillator)
+                tuney.sound.oscillator, _control_fields(tuney.sound.oscillator)
             ),
             'scale': control_panel._control_rows(
-                player.scale, _control_fields(player.scale)
+                tuney.sound.scale, _control_fields(tuney.sound.scale)
             ),
             'tuning': control_panel._control_rows(
-                tuney.tuning, _control_fields(tuney.tuning)
+                tuney.sound.tuning, _control_fields(tuney.sound.tuning)
             ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)
@@ -314,24 +315,23 @@ def test_beginner_mode_filters_advanced_controls(
 def test_dials_are_limited_to_explicit_analog_controls(
     file_regression: FileRegressionFixture,
 ) -> None:
-    player = Player()
+    sound = Sound()
 
     _check_regression(
         file_regression,
         {
-            'player_gain': control_panel._uses_dial(player, 'gain'),
-            'oscillator_period': control_panel._uses_dial(player.oscillator, 'period'),
-            'player_minimum_note_time': control_panel._uses_dial(
-                player, 'minimum_note_time'
+            'sound_gain': control_panel._uses_dial(sound, 'gain'),
+            'oscillator_period': control_panel._uses_dial(sound.oscillator, 'period'),
+            'sound_minimum_note_time': control_panel._uses_dial(
+                sound, 'minimum_note_time'
             ),
-            'player_note_offset': control_panel._uses_dial(player, 'note_offset'),
+            'sound_note_offset': control_panel._uses_dial(sound, 'note_offset'),
         },
     )
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture) -> None:
     tuney = Tuney()
-    player = Player()
 
     _check_regression(
         file_regression,
@@ -340,9 +340,9 @@ def test_visible_field_names(file_regression: FileRegressionFixture) -> None:
             for name, data in [
                 ('tuney', tuney),
                 ('mapper', tuney.mapper),
-                ('player', player),
-                ('polyphony', player.polyphony),
-                ('device', player.device),
+                ('sound', tuney.sound),
+                ('polyphony', tuney.sound.polyphony),
+                ('device', tuney.device),
             ]
         },
     )

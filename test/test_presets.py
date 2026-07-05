@@ -13,7 +13,7 @@ def test_bundled_presets_are_listed() -> None:
 
 
 def test_bundled_preset_loads_partial_config() -> None:
-    assert read_preset('white-notes') == {'player': {'scale': {'notes': 'ABCDEFG'}}}
+    assert read_preset('white-notes') == {'sound': {'scale': {'notes': 'ABCDEFG'}}}
 
 
 def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
@@ -33,7 +33,7 @@ def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     state.apply_preset('white-notes')
 
     assert tuney.preset == 'white-notes'
-    assert state.player.scale.notes == 'ABCDEFG'
+    assert tuney.sound.scale.notes == 'ABCDEFG'
     assert state.char_presses == [CharPress('a', time=0)]
 
 

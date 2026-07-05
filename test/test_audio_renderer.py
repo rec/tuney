@@ -16,6 +16,7 @@ from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
 from tuney.audio.renderer import OfflineRenderer
+from tuney.audio.sound import Sound
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
 
@@ -279,17 +280,19 @@ def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
 
 
 def test_player_uses_scale_note_subset_for_frequencies() -> None:
-    chromatic = Player(note_offset=0)
-    white_notes = Player(note_offset=0, scale=Scale(notes='ABCDEFG'))
+    chromatic = Player(sound=Sound(note_offset=0))
+    white_notes = Player(sound=Sound(note_offset=0, scale=Scale(notes='ABCDEFG')))
 
     assert white_notes.voice_maker(1).frequency == chromatic.voice_maker(2).frequency
 
 
 def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
     player = Player(
-        note_offset=0,
-        gain=0.25,
-        oscillator=Oscillator(key_scale_note=12, key_scale=1),
+        sound=Sound(
+            note_offset=0,
+            gain=0.25,
+            oscillator=Oscillator(key_scale_note=12, key_scale=1),
+        )
     )
 
     assert player.voice_maker(24).gain == 0.5

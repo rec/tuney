@@ -47,12 +47,12 @@ class TuneyState:
 
     @cached_property
     def player(self) -> Player:
-        return Player(tuning=self.tuney.tuning)
+        return Player(device=self.tuney.device, sound=self.tuney.sound)
 
     @cached_property
     def note_labels(self) -> dict[str, str]:
         return {
-            c: '\n'.join([self.player.scale.to_name(n), ' ' + c])
+            c: '\n'.join([self.tuney.sound.scale.to_name(n), ' ' + c])
             for c, n in self.tuney.mapper.char_to_number.items()
         }
 
@@ -190,42 +190,26 @@ class TuneyState:
     def apply_preset(self, name: str) -> None:
         char_presses = self.__dict__.get('char_presses')
         data = merged_data(self.tuney.model_dump(), read_preset(name), {'preset': name})
-        player_data = data.pop('player', None)
         validated = type(self.tuney).model_validate(data)
         for field in type(self.tuney).model_fields:
             object.__setattr__(self.tuney, field, getattr(validated, field))
-        if isinstance(player_data, dict):
-            player_data = {str(key): value for key, value in player_data.items()}
-            self.__dict__['player'] = Player.model_validate(
-                merged_data(
-                    self.player.model_dump(), player_data, {'tuning': self.tuney.tuning}
-                )
-            )
         self._clear_cached_values()
         if char_presses is not None:
             self.__dict__['char_presses'] = char_presses
 
     def restore_data(self, data: dict[str, object]) -> None:
         autosave_file = self.tuney.autosave_file
-        player_data = data.pop('player', None)
         validated = type(self.tuney).model_validate(data)
         for field in type(self.tuney).model_fields:
             object.__setattr__(self.tuney, field, getattr(validated, field))
         if 'autosave_file' not in data:
             object.__setattr__(self.tuney, 'autosave_file', autosave_file)
-        if isinstance(player_data, dict):
-            player_data = {str(key): value for key, value in player_data.items()}
-            self.__dict__['player'] = Player.model_validate(
-                merged_data(
-                    self.player.model_dump(), player_data, {'tuning': self.tuney.tuning}
-                )
-            )
         self._clear_cached_values()
 
     def dump_data(self) -> dict[str, object]:
         data = self.tuney.model_dump()
         mapper = data.pop('mapper')
-        data = {'mapper': mapper, 'player': self.player.model_dump(), **data}
+        data = {'mapper': mapper, **data}
         if self.char_presses:
             data['text'] = [c.model_dump() for c in self.char_presses]
         return data
@@ -243,7 +227,6 @@ class TuneyState:
             'tuney',
             'main_window',
             'listener',
-            'player',
             'key_recorder',
             'audio_recorder',
         }

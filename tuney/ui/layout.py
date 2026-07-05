@@ -275,7 +275,7 @@ class Layout(QWidget):
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
         try:
-            has_note_buttons = self.main_window.state.player.scale.note_count > 0
+            has_note_buttons = self.main_window.state.tuney.sound.scale.note_count > 0
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
         if has_note_buttons:

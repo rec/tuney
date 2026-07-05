@@ -4,7 +4,6 @@ from pathlib import Path
 import tyro
 from pydantic import BaseModel, ValidationError
 
-from .audio.player import Player
 from .platform_info import exit_with_message
 from .presets import merged_data, read_file, read_preset
 from .tuney_state import TuneyState
@@ -34,11 +33,6 @@ def cli(cls, prog: str):
             default = cls(**data)
             f = tyro.cli(cls, prog=prog, default=default)
         state = TuneyState(f)
-        if isinstance(player_data := data.get('player'), dict):
-            player_data = {str(key): value for key, value in player_data.items()}
-            state.__dict__['player'] = Player.model_validate(
-                {**player_data, 'tuning': f.tuning}
-            )
         result = state()
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):
