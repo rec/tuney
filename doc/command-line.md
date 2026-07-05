@@ -7,7 +7,7 @@ with a unique, short, predictable command-line name.
 
 ## Problems To Solve
 
-1. Nested configuration names are long, for example `--player.oscillator.period`.
+1. Nested configuration names are long, for example `--sound.oscillator.period`.
 2. Some leaf names repeat across the model, for example `note_offset`, `gain`, and
    `device`, so flattening names requires a collision rule.
 3. Common commands should have short aliases.

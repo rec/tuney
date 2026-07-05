@@ -126,7 +126,7 @@ Include:
 * File menu commands for Save, Clear, and Refresh Devices.
 * A render-loop callback or frame polling function that replaces Tk `after`.
 * Audio diagnostic polling equivalent to the current queue poll.
-* A shutdown path that calls `tuney.player.close()`.
+* A shutdown path that calls `state.player.close()`.
 
 Acceptance tests should stay unit-level. Do not launch the GUI in pytest.
 Extract pure callback/state helpers where tests need coverage.

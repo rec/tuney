@@ -59,7 +59,7 @@ Suggested beginner fields:
 
 * top-level text, recording, and output settings that are relevant in the GUI.
 * mapper alphabet, accidentals, limiter, and range limit.
-* player gain, note offset, waveform, and basic oscillator shape.
+* sound gain, note offset, waveform, and basic oscillator shape.
 * scale root, tuning type, and interval text.
 * MIDI enable and output.
 * device output and sample rate.
