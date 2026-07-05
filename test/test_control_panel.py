@@ -395,6 +395,29 @@ def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
         assert editor.minimumWidth() >= control_panel.MIN_EDITOR_WIDTH
 
 
+def test_float_spinboxes_use_config_decimal_separator() -> None:
+    from PySide6.QtCore import QLocale
+    from PySide6.QtWidgets import QDoubleSpinBox, QWidget
+
+    _qt_app()
+    original = QLocale()
+    QLocale.setDefault(QLocale(QLocale.Language.French, QLocale.Country.France))
+    try:
+        parent = QWidget()
+        panel = control_panel.ControlPanel(parent, Tuney())
+        spinboxes = [
+            spinbox
+            for spinbox in panel.findChildren(QDoubleSpinBox)
+            if spinbox.objectName() == 'control_editor'
+        ]
+
+        assert spinboxes
+        assert {spinbox.locale().decimalPoint() for spinbox in spinboxes} == {'.'}
+        assert any('.' in spinbox.text() for spinbox in spinboxes)
+    finally:
+        QLocale.setDefault(original)
+
+
 def test_large_seed_uses_text_entry_instead_of_spinbox() -> None:
     from PySide6.QtWidgets import QLineEdit, QSpinBox, QWidget
 

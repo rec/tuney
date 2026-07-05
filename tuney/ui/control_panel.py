@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QLocale, Qt, QTimer
 from PySide6.QtWidgets import (
     QBoxLayout,
     QButtonGroup,
@@ -43,6 +43,7 @@ Scalar: TypeAlias = bool | float | int | str | None
 
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
+NUMERIC_LOCALE = QLocale.c()
 GENERAL_COLUMNS = 4
 LABEL_PADDING = 8
 MIN_EDITOR_WIDTH = 72
@@ -767,6 +768,7 @@ def _add_spin_control(
     if _is_int_annotation(annotation):
         assert isinstance(value, int)
         spin = QSpinBox(frame)
+        spin.setLocale(NUMERIC_LOCALE)
         spin.setRange(SPIN_MINIMUM, SPIN_MAXIMUM)
         spin.setValue(value)
 
@@ -779,6 +781,7 @@ def _add_spin_control(
     else:
         assert isinstance(value, float | int)
         spin = QDoubleSpinBox(frame)
+        spin.setLocale(NUMERIC_LOCALE)
         spin.setDecimals(3)
         spin.setRange(float(SPIN_MINIMUM), float(SPIN_MAXIMUM))
         spin.setSingleStep(_float_step(data, name))
