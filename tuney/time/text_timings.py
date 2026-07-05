@@ -14,6 +14,8 @@ from . import Milliseconds
 from .char_press import CharPress
 from .sequencer import Sequencer
 
+MAX_GENERATED_SEED = 9999
+
 
 class TextTimings(BaseModel, frozen=True):
     # Base duration for a space, in milliseconds
@@ -84,7 +86,7 @@ class TextTimings(BaseModel, frozen=True):
     @cached_property
     def random(self) -> Random:
         if (seed := self.seed) is None:
-            seed = random.randint(0, 2**32 - 1)
+            seed = random.randint(0, MAX_GENERATED_SEED)
             object.__setattr__(self, 'seed', seed)
         return random.Random(seed)
 

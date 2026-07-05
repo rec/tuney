@@ -3,7 +3,7 @@ import random
 import pytest
 
 from tuney.time.sequencer import Sequencer
-from tuney.time.text_timings import TextTimings
+from tuney.time.text_timings import MAX_GENERATED_SEED, TextTimings
 
 
 def test_text_timings():
@@ -19,13 +19,18 @@ def test_text_timings():
 def test_text_timings_generates_and_stores_seed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(random, 'randint', lambda start, end: 23)
+    def randint(start: int, end: int) -> int:
+        assert start == 0
+        assert end == MAX_GENERATED_SEED
+        return MAX_GENERATED_SEED
+
+    monkeypatch.setattr(random, 'randint', randint)
     timings = TextTimings()
 
     actual = timings.random.random()
 
-    assert timings.seed == 23
-    assert actual == random.Random(23).random()
+    assert timings.seed == MAX_GENERATED_SEED
+    assert actual == random.Random(MAX_GENERATED_SEED).random()
 
 
 def test_text_timings_sorts_overlapping_events() -> None:
