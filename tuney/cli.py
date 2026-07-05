@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 import tyro
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from .audio.player import Player
 from .platform_info import exit_with_message
@@ -16,7 +16,16 @@ def cli(cls, prog: str):
         f = tyro.cli(cls, prog=prog)
         assert hasattr(f, 'config_file')
         assert hasattr(f, 'preset')
-        if f.config_file or f.preset:
+        if _startup_files_should_be_skipped(f):
+            assert isinstance(f, BaseModel)
+            f = f.model_copy(
+                update={
+                    'config_file': None,
+                    'preset': None,
+                    'skip_startup_files': True,
+                }
+            )
+        elif f.config_file or f.preset:
             if f.preset:
                 data = merged_data(data, read_preset(f.preset), {'preset': f.preset})
             if f.config_file:
@@ -38,3 +47,11 @@ def cli(cls, prog: str):
     if result is None:
         sys.exit()
     exit_with_message(str(result))
+
+
+def _startup_files_should_be_skipped(f: object) -> bool:
+    if not getattr(f, 'gui', False):
+        return False
+    from .ui.startup import startup_modifier_held
+
+    return startup_modifier_held()

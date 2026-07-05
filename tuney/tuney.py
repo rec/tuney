@@ -106,6 +106,9 @@ class Tuney(BaseModel):
     # Path to the automatically saved GUI state
     autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)
 
+    # Skip preset, config, and autosave loading during GUI startup
+    skip_startup_files: tyro.conf.Suppress[bool] = Field(default=False, exclude=True)
+
     @field_validator('text')
     @classmethod
     def _validate_text(

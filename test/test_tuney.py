@@ -523,6 +523,18 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
         assert tuney.autosave_file == path
 
 
+def test_restore_autosave_skips_startup_files() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        saved = Tuney(gui=True, max_gap=2.0, autosave_file=path)
+        state_for(saved)._autosave.save(state_for(saved).save)
+        tuney = Tuney(gui=True, autosave_file=path, skip_startup_files=True)
+
+        state_for(tuney)._autosave.restore(state_for(tuney))
+
+        assert tuney.max_gap == Tuney().max_gap
+
+
 def test_restore_autosave_ignores_invalid_state_file(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

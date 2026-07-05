@@ -33,6 +33,7 @@ class Autosave(BaseModel, frozen=True):
         tuney = state.tuney
         if not (
             tuney.gui
+            and not tuney.skip_startup_files
             and self.path.exists()
             and not (tuney.config_file or tuney.preset or tuney.text or tuney.text_args)
         ):
