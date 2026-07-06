@@ -198,7 +198,10 @@ class MainWindow(QMainWindow):
                 self, 'Open Text File', '', 'Text (*.txt);;All files (*)'
             )
             if filename := result[0]:
-                self.state.load_text_file(Path(filename))
+                try:
+                    self.state.load_text_file(Path(filename))
+                except ValueError as error:
+                    QMessageBox.critical(self, 'Open Text File', str(error))
         finally:
             self._is_saving = False
             self._has_focus = False

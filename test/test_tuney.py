@@ -295,6 +295,29 @@ def test_text_file_loads_char_presses(tmp_path) -> None:
     assert [c.char for c in state_for(tuney).char_presses if c.is_press] == ['a', 'b']
 
 
+def test_text_file_loads_non_utf8_char_presses(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.write_bytes('café'.encode('cp1252'))
+    tuney = Tuney(
+        text_file=path,
+        text_timings=TextTimings(seed=1, overlap=0, strip_accents=False, timings=[10]),
+    )
+
+    assert state_for(tuney).display_text == 'café'
+
+
+def test_text_file_reports_unreadable_file(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.mkdir()
+    tuney = Tuney(text_file=path)
+
+    with pytest.raises(SystemExit) as exc_info:
+        _ = state_for(tuney).display_text
+
+    assert str(path) in str(exc_info.value)
+    assert 'unreadable file' in str(exc_info.value)
+
+
 def test_load_text_file_replaces_char_presses(tmp_path) -> None:
     path = tmp_path / 'input.txt'
     path.write_text('ab')
@@ -313,6 +336,18 @@ def test_load_text_file_replaces_char_presses(tmp_path) -> None:
     assert [c.char for c in state_for(tuney).char_presses if c.is_press] == ['a', 'b']
     assert state_for(tuney).key_recorder.start_time is None
     assert app.undo_count == 1
+
+
+def test_load_text_file_reports_unreadable_file(tmp_path) -> None:
+    path = tmp_path / 'input.txt'
+    path.mkdir()
+    tuney = Tuney(gui=True)
+
+    with pytest.raises(ValueError) as exc_info:
+        state_for(tuney).load_text_file(path)
+
+    assert str(path) in str(exc_info.value)
+    assert 'unreadable file' in str(exc_info.value)
 
 
 def test_on_char_records_undo_for_added_char_press() -> None:

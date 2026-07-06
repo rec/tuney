@@ -19,6 +19,7 @@ from .presets.autosave import Autosave
 from .recorders.audio_recorder import AudioRecorder
 from .recorders.key_recorder import KeyRecorder
 from .serialize import serialize
+from .text_file import UnreadableTextFile, read_text_file
 from .time import to_ms
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
@@ -67,9 +68,14 @@ class TuneyState:
     @cached_property
     def char_presses(self) -> list[CharPress]:
         if self.tuney.text_file is not None:
-            return list(
-                self.tuney.text_timings.char_presses(self.tuney.text_file.read_text())
-            )
+            try:
+                return list(
+                    self.tuney.text_timings.char_presses(
+                        read_text_file(self.tuney.text_file)
+                    )
+                )
+            except UnreadableTextFile as error:
+                exit_with_message(str(error))
         if self.tuney.text is None:
             return []
         if isinstance(self.tuney.text, list):
@@ -159,7 +165,7 @@ class TuneyState:
             self.main_window.ui.set_text(text)
 
     def load_text_file(self, path: Path) -> None:
-        text = path.read_text()
+        text = read_text_file(path)
         if self.tuney.gui:
             self.main_window.history.checkpoint_undo()
         self.__dict__['char_presses'] = list(self.tuney.text_timings.char_presses(text))
