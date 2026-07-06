@@ -1,89 +1,111 @@
 import ast
 import math
+import operator as op
 import random
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from fractions import Fraction
-from functools import singledispatchmethod
-from typing import cast
+from functools import cached_property, singledispatchmethod
 
-from pydantic import BaseModel
+from . import cents
 
 MODULES = {'math': math, 'random': random}
+FUNCTIONS = {'cents': cents}
 
 
 def evaluate(expression: str) -> float | Fraction:
-    return _Evaluate(float_mode='.' in expression).eval(
-        ast.parse(expression, mode='eval')
-    )
+    return _Evaluate(expression).evaluate()
 
 
-class _Evaluate(BaseModel, frozen=True):
-    float_mode: bool
+def evaluate_all(expressions: Iterable[str]) -> list[float | Fraction]:
+    values, bad = [], []
+    for s in expressions:
+        try:
+            values.append(evaluate(s))
+        except Exception:
+            bad.append(s)
+    if bad:
+        msg = ', '.join(f'"{e}"' for e in bad)
+        raise ValueError(f'Bad expressions {msg}')
+    return values
+
+
+class _Evaluate:
+    def __init__(self, expression: str) -> None:
+        self.expression = expression
+
+    def evaluate(self) -> float | Fraction:
+        return self._eval(self.root)
+
+    @cached_property
+    def root(self) -> ast.AST:
+        return ast.parse(self.expression.partition('#')[0], mode='eval')
 
     @singledispatchmethod
-    def eval(self, node: ast.AST) -> float | Fraction:
+    def _eval(self, node: ast.AST) -> float | Fraction:
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.Expression) -> float | Fraction:
-        return self.eval(node.body)
+        return self._eval(node.body)
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.Constant) -> float | Fraction:
         if type(node.value) is int:
             return self.number(node.value)
         if type(node.value) is float:
-            return node.value
+            return self.number(node.value)
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.BinOp) -> float | Fraction:
         if (operation := BINARY_OPERATORS.get(type(node.op))) is None:
             raise ValueError(
                 f'Unsupported binary operator {node.op.__class__.__name__}'
             )
-        return operation(self.eval(node.left), self.eval(node.right))
+        return operation(self._eval(node.left), self._eval(node.right))
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.UnaryOp) -> float | Fraction:
-        value = self.eval(node.operand)
+        value = self._eval(node.operand)
         if isinstance(node.op, ast.UAdd):
             return value
         if isinstance(node.op, ast.USub):
             return -value
         raise ValueError(f'Unsupported unary operator {node.op.__class__.__name__}')
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.Call) -> float | Fraction:
         if node.keywords:
             raise ValueError('Keyword arguments are not supported')
-        f = node.func
+
+        if isinstance((f := node.func), ast.Name) and f.id in FUNCTIONS:
+            args = (self._eval(a) for a in node.args)
+            result = FUNCTIONS[f.id](*args)
+            if isinstance(result, (float, Fraction)):
+                return result
+            raise TypeError(f'Function returned unsupported value {result!r}')
+
         if not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)):
             raise ValueError('Only math and random attributes can be used')
         if f.attr.startswith('_'):
             raise ValueError(f'Private attributes {f.attr!r} are not allowed')
         if f.value.id not in MODULES:
             raise NameError(f'Unknown module {f.value.id!r}')
-        if not isinstance(func := getattr(MODULES[f.value.id], f.attr), Callable):
+
+        func = getattr(MODULES[f.value.id], f.attr)
+        if not callable(func):
             raise TypeError(f'{ast.unparse(f)} is not callable')
 
         def convert(node: ast.AST) -> float | int | Fraction:
-            value = self.eval(node)
-            # Dodgy code here.
-            if isinstance(value, Fraction) and value.denominator == 1:
-                return value.numerator
-            elif isinstance(value, float) and value.is_integer():
-                return int(value)
-            else:
-                return value
+            v = float(self._eval(node))
+            return int(v) if v.is_integer() else v
 
-        args = [convert(arg) for arg in node.args]
-        result = cast(Callable[..., object], func)(*args)
+        result = func(*(convert(a) for a in node.args))
         if isinstance(result, int | float | Fraction):
             return self.number(result)
         raise TypeError(f'Function returned unsupported value {result!r}')
 
-    @eval.register
+    @_eval.register
     def _(self, node: ast.Attribute) -> float | Fraction:
         if not isinstance(node.value, ast.Name):
             raise ValueError('Only math and random attributes can be used')
@@ -97,17 +119,16 @@ class _Evaluate(BaseModel, frozen=True):
         raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
 
     def number(self, v: int | float | Fraction) -> float | Fraction:
-        return float(v) if self.float_mode or isinstance(v, float) else Fraction(v)
+        return Fraction(str(v)) if isinstance(v, float) else Fraction(v)
 
 
 BINARY_OPERATORS: dict[
     type[ast.operator], Callable[[float | Fraction, float | Fraction], float | Fraction]
 ] = {
-    ast.Add: lambda a, b: a + b,
-    ast.Sub: lambda a, b: a - b,
-    ast.Mult: lambda a, b: a * b,
-    ast.Div: lambda a, b: a / b,
-    ast.FloorDiv: lambda a, b: a // b,
-    ast.Mod: lambda a, b: a % b,
-    ast.Pow: lambda a, b: a**b,
+    ast.Add: op.add,
+    ast.Sub: op.sub,
+    ast.Mult: op.mul,
+    ast.Div: op.truediv,
+    ast.Mod: op.mod,
+    ast.Pow: op.pow,
 }

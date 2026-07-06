@@ -1,3 +1,4 @@
+import math
 import random
 from fractions import Fraction
 
@@ -11,11 +12,12 @@ def test_evaluate_fraction_expressions() -> None:
 
 
 def test_evaluate_float_expressions() -> None:
-    assert evaluate('1.0 / 2 + 1 / 3') == 0.8333333333333333
-    assert evaluate('2.0 * (3 + 4)') == 14.0
+    assert evaluate('1.0 / 2 + 1 / 3') == Fraction(5, 6)
+    assert evaluate('2.0 * (3 + 4)') == Fraction(14)
     assert evaluate('4.0**0.5') == 2.0
-    assert evaluate('5.5 % 2') == 1.5
-    assert evaluate('math.factorial(3) + 1') == 7.0
+    assert evaluate('5.5 % 2') == Fraction(3, 2)
+    assert evaluate('math.factorial(3) + 1') == Fraction(7)
+    assert evaluate('cents(1 / 2)') == math.exp2(0.5 / 1200)
 
 
 def test_evaluate_math_and_random_functions(monkeypatch) -> None:
