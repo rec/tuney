@@ -1,0 +1,113 @@
+import ast
+import math
+import random
+from collections.abc import Callable
+from fractions import Fraction
+from functools import singledispatchmethod
+from typing import cast
+
+from pydantic import BaseModel
+
+MODULES = {'math': math, 'random': random}
+
+
+def evaluate(expression: str) -> float | Fraction:
+    return _Evaluate(float_mode='.' in expression).eval(
+        ast.parse(expression, mode='eval')
+    )
+
+
+class _Evaluate(BaseModel, frozen=True):
+    float_mode: bool
+
+    @singledispatchmethod
+    def eval(self, node: ast.AST) -> float | Fraction:
+        raise ValueError(f'Unsupported expression {ast.unparse(node)}')
+
+    @eval.register
+    def _(self, node: ast.Expression) -> float | Fraction:
+        return self.eval(node.body)
+
+    @eval.register
+    def _(self, node: ast.Constant) -> float | Fraction:
+        if type(node.value) is int:
+            return self.number(node.value)
+        if type(node.value) is float:
+            return node.value
+        raise ValueError(f'Unsupported expression {ast.unparse(node)}')
+
+    @eval.register
+    def _(self, node: ast.BinOp) -> float | Fraction:
+        if (operation := BINARY_OPERATORS.get(type(node.op))) is None:
+            raise ValueError(
+                f'Unsupported binary operator {node.op.__class__.__name__}'
+            )
+        return operation(self.eval(node.left), self.eval(node.right))
+
+    @eval.register
+    def _(self, node: ast.UnaryOp) -> float | Fraction:
+        value = self.eval(node.operand)
+        if isinstance(node.op, ast.UAdd):
+            return value
+        if isinstance(node.op, ast.USub):
+            return -value
+        raise ValueError(f'Unsupported unary operator {node.op.__class__.__name__}')
+
+    @eval.register
+    def _(self, node: ast.Call) -> float | Fraction:
+        if node.keywords:
+            raise ValueError('Keyword arguments are not supported')
+        f = node.func
+        if not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)):
+            raise ValueError('Only math and random attributes can be used')
+        if f.attr.startswith('_'):
+            raise ValueError(f'Private attributes {f.attr!r} are not allowed')
+        if f.value.id not in MODULES:
+            raise NameError(f'Unknown module {f.value.id!r}')
+        if not isinstance(func := getattr(MODULES[f.value.id], f.attr), Callable):
+            raise TypeError(f'{ast.unparse(f)} is not callable')
+
+        def convert(node: ast.AST) -> float | int | Fraction:
+            value = self.eval(node)
+            # Dodgy code here.
+            if isinstance(value, Fraction) and value.denominator == 1:
+                return value.numerator
+            elif isinstance(value, float) and value.is_integer():
+                return int(value)
+            else:
+                return value
+
+        args = [convert(arg) for arg in node.args]
+        result = cast(Callable[..., object], func)(*args)
+        if isinstance(result, int | float | Fraction):
+            return self.number(result)
+        raise TypeError(f'Function returned unsupported value {result!r}')
+
+    @eval.register
+    def _(self, node: ast.Attribute) -> float | Fraction:
+        if not isinstance(node.value, ast.Name):
+            raise ValueError('Only math and random attributes can be used')
+        if node.attr.startswith('_'):
+            raise ValueError(f'Private attribute {node.attr!r} is not allowed')
+        if node.value.id not in MODULES:
+            raise NameError(f'Unknown name {node.value.id!r}')
+        value = getattr(MODULES[node.value.id], node.attr)
+        if isinstance(value, int | float | Fraction):
+            return self.number(value)
+        raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
+
+    def number(self, v: int | float | Fraction) -> float | Fraction:
+        return float(v) if self.float_mode or isinstance(v, float) else Fraction(v)
+
+
+BINARY_OPERATORS: dict[
+    type[ast.operator], Callable[[float | Fraction, float | Fraction], float | Fraction]
+] = {
+    ast.Add: lambda a, b: a + b,
+    ast.Sub: lambda a, b: a - b,
+    ast.Mult: lambda a, b: a * b,
+    ast.Div: lambda a, b: a / b,
+    ast.FloorDiv: lambda a, b: a // b,
+    ast.Mod: lambda a, b: a % b,
+    ast.Pow: lambda a, b: a**b,
+}
