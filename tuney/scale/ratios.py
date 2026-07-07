@@ -24,7 +24,7 @@ class Ratios(BaseModel, frozen=True):
 
     @cached_property
     def length(self) -> int:
-        return 1 + len(self.ratios)
+        return len(self.ratios)
 
     @staticmethod
     def read_scala_file(path: Path, name: str = '') -> Ratios:
@@ -48,7 +48,7 @@ class Ratios(BaseModel, frozen=True):
             _ = self.length
             fp.write(SCALA_TEMPLATE.format(**self.__dict__))
             for r in self.ratios:
-                s = f'{uncents(r):.6}' if isinstance(r, float) else str(r)
+                s = f'{uncents(r):.6f}' if isinstance(r, float) else str(r)
                 fp.write(f' {s}\n')
 
 
