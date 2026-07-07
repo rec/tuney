@@ -19,7 +19,7 @@ from .presets.autosave import Autosave
 from .recorders.audio_recorder import AudioRecorder
 from .recorders.key_recorder import KeyRecorder
 from .serialize import serialize
-from .text_file import UnreadableTextFile, read_text_file
+from .text_file import read_text_file
 from .time import to_ms
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
@@ -74,8 +74,8 @@ class TuneyState:
                         read_text_file(self.tuney.text_file)
                     )
                 )
-            except UnreadableTextFile as error:
-                exit_with_message(str(error))
+            except Exception as e:
+                report_error(str(e))
         if self.tuney.text is None:
             return []
         if isinstance(self.tuney.text, list):
