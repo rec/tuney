@@ -335,8 +335,8 @@ def test_dials_are_limited_to_explicit_analog_controls(
 def test_dial_values_use_dial_range() -> None:
     dial = Dial(min=2, max=6)
 
-    assert dial.dial_value(4) == 50
-    assert dial.spin_value(50) == 4
+    assert dial.spin_to_dial(4) == 50
+    assert dial.dial_to_spin(50) == 4
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture) -> None:

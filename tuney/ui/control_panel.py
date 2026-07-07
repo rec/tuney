@@ -31,7 +31,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..display import Beginner, Dial, Display, General, Hidden
+from ..display import Beginner, Dial, Display, General, Hidden, Options
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from .tooltip import Tooltip
@@ -526,9 +526,16 @@ def _dial_metadata(cls: type[BaseModel], name: str) -> Dial | None:
     return None
 
 
+def _options_metadata(cls: type[BaseModel], name: str) -> Options | None:
+    for metadata in cls.model_fields[name].metadata:
+        if isinstance(metadata, Options):
+            return metadata
+    return None
+
+
 def _has_metadata(cls: type[BaseModel], name: str, metadata_type: type[object]) -> bool:
     return any(
-        isinstance(metadata, metadata_type)
+        metadata is metadata_type or isinstance(metadata, metadata_type)
         for metadata in cls.model_fields[name].metadata
     )
 
@@ -573,9 +580,9 @@ def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
     return not (
-        (display := _control_metadata(type(data), name)).width
+        _control_metadata(type(data), name).width
         or isinstance(value, bool | int | float | enum.Enum)
-        or display.options
+        or _options_metadata(type(data), name)
     ) and (str in _annotation_types(annotation) or isinstance(value, list | dict))
 
 
@@ -594,11 +601,10 @@ def _add_control(
 ) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    display = _control_metadata(type(data), name)
     enum_cls = _enum_class(annotation, value)
 
-    if values := display.options:
-        _add_option_control(parent, data, name, value, values, option_controls)
+    if options := _options_metadata(type(data), name):
+        _add_option_control(parent, data, name, value, options.options, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
     elif isinstance(value, bool):
@@ -795,9 +801,9 @@ def _add_spin_control(
             dial.setFixedSize(30, 30)
             dial.setWrapping(False)
             dial.setRange(0, 100)
-            dial.setValue(dial_metadata.dial_value(spin.value()))
+            dial.setValue(dial_metadata.spin_to_dial(spin.value()))
             dial.valueChanged.connect(
-                lambda value: spin.setValue(dial_metadata.spin_value(value))
+                lambda value: spin.setValue(dial_metadata.dial_to_spin(value))
             )
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)

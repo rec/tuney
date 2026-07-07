@@ -17,27 +17,33 @@ class Display(_Base, frozen=True):
     row: int | None = None
     width: int | None = None
     step: float = 0.1
-    options: Callable[[], list[str]] | None = None
+
+
+class Options(_Base, frozen=True):
+    options: Callable[[], list[str]]
+
+    def __init__(self, options: Callable[[], list[str]]) -> None:
+        super().__init__(**{'options': options})
 
 
 class Dial(_Base, frozen=True):
     min: float = 0.0
     max: float = 4.0
 
-    def dial_value(self, value: float) -> int:
+    def spin_to_dial(self, value: float) -> int:
         return round((float(value) - self.min) * 100 / (self.max - self.min))
 
-    def spin_value(self, value: int) -> float:
+    def dial_to_spin(self, value: int) -> float:
         return self.min + value * (self.max - self.min) / 100
 
 
-class Hidden(_Base, frozen=True):
+class Hidden:
     pass
 
 
-class General(_Base, frozen=True):
+class General:
     pass
 
 
-class Beginner(_Base, frozen=True):
+class Beginner:
     pass

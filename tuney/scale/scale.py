@@ -59,14 +59,14 @@ class Scale(BaseModel, frozen=True):
     )
 
     #: The root note to start scales with
-    root: Annotated[str, tyro_option('-q'), Beginner(), Display(row=0, width=1)] = 'C'
+    root: Annotated[str, tyro_option('-q'), Beginner, Display(row=0, width=1)] = 'C'
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[
         str,
         tyro_option('-j'),
-        Beginner(),
+        Beginner,
         Display(column=1, row=0, width=1),
     ] = 'A'
 
@@ -74,7 +74,7 @@ class Scale(BaseModel, frozen=True):
     end: Annotated[
         str,
         tyro_option('-E'),
-        Beginner(),
+        Beginner,
         Display(column=2, row=0, width=1),
     ] = 'G'
 
@@ -83,20 +83,20 @@ class Scale(BaseModel, frozen=True):
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: Annotated[str | None, tyro_option('-Q'), Beginner(), Display(row=1)] = None
+    notes: Annotated[str | None, tyro_option('-Q'), Beginner, Display(row=1)] = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[
         list[int],
         validate_intervals,
         tyro_option('-i'),
-        Beginner(),
+        Beginner,
         Display(column=1, row=1),
     ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[
-        Accidentals, tyro_option('-X'), Beginner(), Display(column=2, row=1)
+        Accidentals, tyro_option('-X'), Beginner, Display(column=2, row=1)
     ] = Accidentals.whole
 
     #: Offset all note numbers by this

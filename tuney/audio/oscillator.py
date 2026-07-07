@@ -28,7 +28,7 @@ class Waveform(NamedEnum):
 
 class Oscillator(BaseModel, frozen=True):
     # Waveform used to synthesize notes
-    waveform: Annotated[Waveform, tyro_option('-w'), Beginner(), Display(row=0)] = (
+    waveform: Annotated[Waveform, tyro_option('-w'), Beginner, Display(row=0)] = (
         Waveform.triangle
     )
 
@@ -36,7 +36,7 @@ class Oscillator(BaseModel, frozen=True):
     period: Annotated[
         float,
         tyro_option('-e'),
-        Beginner(),
+        Beginner,
         Display(column=1, row=0),
         Dial(),
     ] = 1.0
@@ -45,7 +45,7 @@ class Oscillator(BaseModel, frozen=True):
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Beginner(),
+        Beginner,
         Display(column=2, row=0),
         Dial(max=1.0),
     ] = 0.5

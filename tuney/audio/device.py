@@ -6,7 +6,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
-from ..display import Beginner, Display
+from ..display import Beginner, Display, Options
 from ..tyro_option import tyro_option
 
 
@@ -47,20 +47,21 @@ def dtype_names() -> list[str]:
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
-        int | None, tyro_option(), Beginner(), Display(row=0, width=6)
+        int | None, tyro_option(), Beginner, Display(row=0, width=6)
     ] = None
 
     # Audio output device name or index
     device: Annotated[
         int | str | None,
         tyro_option('-d', name='audio-device'),
-        Beginner(),
-        Display(column=1, row=0, options=device_names),
+        Beginner,
+        Display(column=1, row=0),
+        Options(device_names),
     ] = None
 
     # Sample data type sent to the audio output device
     dtype: Annotated[
-        DType | None, tyro_option(), Display(column=2, row=0, options=dtype_names)
+        DType | None, tyro_option(), Display(column=2, row=0), Options(dtype_names)
     ] = None
 
     blocksize: tyro.conf.Suppress[int | None] = None

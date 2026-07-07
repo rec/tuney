@@ -80,12 +80,12 @@ class Mapper(BaseModel, frozen=True):
     alphabet: Annotated[
         str | None,
         tyro_option('-a'),
-        Beginner(),
+        Beginner,
         Display(row=0),
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet
-    length: Annotated[int, tyro_option('-l'), Beginner(), Display(row=1)] = 0
+    length: Annotated[int, tyro_option('-l'), Beginner, Display(row=1)] = 0
 
     # Treat uppercase and lowercase characters as distinct
     case_sensitive: Annotated[bool, tyro_option('-C'), Display(column=4, row=1)] = True
@@ -97,18 +97,18 @@ class Mapper(BaseModel, frozen=True):
     offset: Annotated[
         int,
         tyro_option('-O', name='mapper-offset'),
-        Beginner(),
+        Beginner,
         Display(column=1, row=1),
     ] = 0
 
     # Limit pitch range to this many notes
     range_limit: Annotated[
-        int, tyro_option('-r'), Beginner(), Display(column=2, row=1)
+        int, tyro_option('-r'), Beginner, Display(column=2, row=1)
     ] = 60
 
     # What to do when mapped notes are outside the pitch range
     limiter: Annotated[
-        Limiter, tyro_option('-L'), Beginner(), Display(column=3, row=1)
+        Limiter, tyro_option('-L'), Beginner, Display(column=3, row=1)
     ] = Limiter.wrap
 
     @cached_property

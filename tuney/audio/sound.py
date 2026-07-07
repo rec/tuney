@@ -27,8 +27,8 @@ class Sound(BaseModel, frozen=True):
     gain: Annotated[
         float,
         tyro_option('-G'),
-        General(),
-        Beginner(),
+        General,
+        Beginner,
         Display(step=0.01),
         Dial(max=2.0),
     ] = 1.0
@@ -37,13 +37,13 @@ class Sound(BaseModel, frozen=True):
     note_offset: Annotated[
         NoteNumber,
         tyro_option('-n', name='audio-note-offset'),
-        General(),
-        Beginner(),
+        General,
+        Beginner,
     ] = 44
 
     polyphony: Polyphony = Polyphony()
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: Annotated[
-        float, tyro_option('-N'), Beginner(), Display(row=0)
-    ] = Field(0.5, ge=0)
+    minimum_note_time: Annotated[float, tyro_option('-N'), Beginner, Display(row=0)] = (
+        Field(0.5, ge=0)
+    )
