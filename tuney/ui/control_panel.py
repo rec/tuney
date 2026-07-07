@@ -31,7 +31,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..display import Display
+from ..display import Beginner, Dial, Display, General, Hidden
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
 from . import constants
@@ -225,7 +225,7 @@ def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel,
         (model, name)
         for model in _model_tree(data)
         for name in type(model).model_fields
-        if _control_metadata(type(model), name).general
+        if _has_metadata(type(model), name, General)
         and (advanced or _is_beginner_field(model, name))
     ]
 
@@ -408,8 +408,8 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
         name
         for name in cls.model_fields
         if not _is_suppressed_field(cls, name)
-        and not _control_metadata(cls, name).hidden
-        and not _control_metadata(cls, name).general
+        and not _has_metadata(cls, name, Hidden)
+        and not _has_metadata(cls, name, General)
     )
 
 
@@ -496,7 +496,7 @@ def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
 
 
 def _is_beginner_field(data: BaseModel, name: str) -> bool:
-    return _control_metadata(type(data), name).beginner
+    return _has_metadata(type(data), name, Beginner)
 
 
 def _model_tree(data: BaseModel) -> list[BaseModel]:
@@ -504,7 +504,7 @@ def _model_tree(data: BaseModel) -> list[BaseModel]:
     for name in type(data).model_fields:
         if _is_suppressed_field(type(data), name):
             continue
-        if _control_metadata(type(data), name).hidden:
+        if _has_metadata(type(data), name, Hidden):
             continue
         child = getattr(data, name)
         if isinstance(child, BaseModel):
@@ -517,6 +517,20 @@ def _control_metadata(cls: type[BaseModel], name: str) -> Display:
         if isinstance(metadata, Display):
             return metadata
     return Display()
+
+
+def _dial_metadata(cls: type[BaseModel], name: str) -> Dial | None:
+    for metadata in cls.model_fields[name].metadata:
+        if isinstance(metadata, Dial):
+            return metadata
+    return None
+
+
+def _has_metadata(cls: type[BaseModel], name: str, metadata_type: type[object]) -> bool:
+    return any(
+        isinstance(metadata, metadata_type)
+        for metadata in cls.model_fields[name].metadata
+    )
 
 
 def _display_label(name: str) -> str:
@@ -776,15 +790,14 @@ def _add_spin_control(
         spin.editingFinished.connect(update)
         layout.addWidget(spin)
 
-        if _uses_dial(data, name):
+        if dial_metadata := _dial_metadata(type(data), name):
             dial = QDial(frame)
             dial.setFixedSize(30, 30)
             dial.setWrapping(False)
             dial.setRange(0, 100)
-            display = _control_metadata(type(data), name)
-            dial.setValue(_dial_value(spin.value(), display))
+            dial.setValue(dial_metadata.dial_value(spin.value()))
             dial.valueChanged.connect(
-                lambda value: spin.setValue(_spin_value(value, display))
+                lambda value: spin.setValue(dial_metadata.spin_value(value))
             )
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)
@@ -818,22 +831,7 @@ def _float_step(data: BaseModel, name: str) -> float:
 
 
 def _uses_dial(data: BaseModel, name: str) -> bool:
-    return _control_metadata(type(data), name).dial
-
-
-def _dial_value(value: float, display: Display) -> int:
-    return round(
-        (float(value) - display.dial_minimum)
-        * 100
-        / (display.dial_maximum - display.dial_minimum)
-    )
-
-
-def _spin_value(value: int, display: Display) -> float:
-    return (
-        display.dial_minimum
-        + value * (display.dial_maximum - display.dial_minimum) / 100
-    )
+    return _dial_metadata(type(data), name) is not None
 
 
 def _add_enum_control(

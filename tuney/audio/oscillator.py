@@ -5,7 +5,7 @@ from typing import Annotated
 import numpy as np
 from pydantic import BaseModel
 
-from ..display import Display
+from ..display import Beginner, Dial, Display
 from ..named_enum import NamedEnum
 from ..scale import NoteNumber
 from ..tyro_option import tyro_option
@@ -28,7 +28,7 @@ class Waveform(NamedEnum):
 
 class Oscillator(BaseModel, frozen=True):
     # Waveform used to synthesize notes
-    waveform: Annotated[Waveform, tyro_option('-w'), Display(beginner=True, row=0)] = (
+    waveform: Annotated[Waveform, tyro_option('-w'), Beginner(), Display(row=0)] = (
         Waveform.triangle
     )
 
@@ -36,14 +36,18 @@ class Oscillator(BaseModel, frozen=True):
     period: Annotated[
         float,
         tyro_option('-e'),
-        Display(beginner=True, column=1, row=0, dial=True),
+        Beginner(),
+        Display(column=1, row=0),
+        Dial(),
     ] = 1.0
 
     # Fraction of each waveform cycle before its falling edge
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Display(beginner=True, column=2, row=0, dial=True, dial_maximum=1.0),
+        Beginner(),
+        Display(column=2, row=0),
+        Dial(max=1.0),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment

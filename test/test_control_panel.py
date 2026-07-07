@@ -9,7 +9,7 @@ from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.sound import Sound
-from tuney.display import Display
+from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
@@ -331,11 +331,11 @@ def test_dials_are_limited_to_explicit_analog_controls(
     )
 
 
-def test_dial_values_use_display_range() -> None:
-    display = Display(dial=True, dial_minimum=2, dial_maximum=6)
+def test_dial_values_use_dial_range() -> None:
+    dial = Dial(min=2, max=6)
 
-    assert control_panel._dial_value(4, display) == 50
-    assert control_panel._spin_value(50, display) == 4
+    assert dial.dial_value(4) == 50
+    assert dial.spin_value(50) == 4
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture) -> None:

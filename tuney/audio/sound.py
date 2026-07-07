@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..display import Display
+from ..display import Beginner, Dial, Display, General
 from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
@@ -27,19 +27,23 @@ class Sound(BaseModel, frozen=True):
     gain: Annotated[
         float,
         tyro_option('-G'),
-        Display(general=True, beginner=True, step=0.01, dial=True, dial_maximum=2.0),
+        General(),
+        Beginner(),
+        Display(step=0.01),
+        Dial(max=2.0),
     ] = 1.0
 
     # Offset added to generated note numbers before tuning
     note_offset: Annotated[
         NoteNumber,
         tyro_option('-n', name='audio-note-offset'),
-        Display(general=True, beginner=True),
+        General(),
+        Beginner(),
     ] = 44
 
     polyphony: Polyphony = Polyphony()
 
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[
-        float, tyro_option('-N'), Display(beginner=True, row=0)
+        float, tyro_option('-N'), Beginner(), Display(row=0)
     ] = Field(0.5, ge=0)

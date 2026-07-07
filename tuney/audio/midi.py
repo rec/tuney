@@ -7,7 +7,7 @@ from typing import Annotated, Any
 import mido
 from pydantic import BaseModel
 
-from ..display import Display
+from ..display import Beginner, Display
 from ..tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
@@ -44,14 +44,15 @@ def output_names() -> list[str]:
 class MIDI(BaseModel, frozen=True):
     # Enable MIDI output
     enable: Annotated[
-        bool, tyro_option(name='midi-enable'), Display(beginner=True, row=0)
+        bool, tyro_option(name='midi-enable'), Beginner(), Display(row=0)
     ] = False
 
     # MIDI output port name
     output: Annotated[
         str | None,
         tyro_option(name='midi-output'),
-        Display(beginner=True, column=1, row=0, width=12, options=output_names),
+        Beginner(),
+        Display(column=1, row=0, width=12, options=output_names),
     ] = None
 
     # MIDI channel, from 0 to 15

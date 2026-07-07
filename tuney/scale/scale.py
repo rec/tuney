@@ -10,7 +10,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
-from ..display import Display
+from ..display import Beginner, Display
 from ..tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
@@ -59,23 +59,23 @@ class Scale(BaseModel, frozen=True):
     )
 
     #: The root note to start scales with
-    root: Annotated[str, tyro_option('-q'), Display(beginner=True, row=0, width=1)] = (
-        'C'
-    )
+    root: Annotated[str, tyro_option('-q'), Beginner(), Display(row=0, width=1)] = 'C'
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[
         str,
         tyro_option('-j'),
-        Display(beginner=True, column=1, row=0, width=1),
+        Beginner(),
+        Display(column=1, row=0, width=1),
     ] = 'A'
 
     #: The Last note from the alphabet
     end: Annotated[
         str,
         tyro_option('-E'),
-        Display(beginner=True, column=2, row=0, width=1),
+        Beginner(),
+        Display(column=2, row=0, width=1),
     ] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
@@ -83,21 +83,20 @@ class Scale(BaseModel, frozen=True):
     #
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
-    notes: Annotated[str | None, tyro_option('-Q'), Display(beginner=True, row=1)] = (
-        None
-    )
+    notes: Annotated[str | None, tyro_option('-Q'), Beginner(), Display(row=1)] = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
     intervals: Annotated[
         list[int],
         validate_intervals,
         tyro_option('-i'),
-        Display(beginner=True, column=1, row=1),
+        Beginner(),
+        Display(column=1, row=1),
     ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[
-        Accidentals, tyro_option('-X'), Display(beginner=True, column=2, row=1)
+        Accidentals, tyro_option('-X'), Beginner(), Display(column=2, row=1)
     ] = Accidentals.whole
 
     #: Offset all note numbers by this

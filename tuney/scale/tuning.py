@@ -5,7 +5,7 @@ from typing import Annotated, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from ..display import Display
+from ..display import Beginner, Display
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
 from . import NoteNumber
@@ -51,14 +51,14 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
 
     #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro_option('-T'), Display(beginner=True, row=0)] = 0
+    detune: Annotated[float, tyro_option('-T'), Beginner(), Display(row=0)] = 0
 
     #: If limit is greater than zero, use rounded N-limit just intonation
     limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0)] = 0
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option('-V'), Display(beginner=True, column=2, row=0)
+        int, tyro_option('-V'), Beginner(), Display(column=2, row=0)
     ] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -66,22 +66,22 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option('-J'), Display(beginner=True, column=3, row=0)
+        float, tyro_option('-J'), Beginner(), Display(column=3, row=0)
     ] = 2
 
     #: The rule for converting a pitch to a frequency
-    pitch_to_frequency: Annotated[
-        PitchToFrequency, tyro_option('-F'), Display(general=False)
-    ] = PitchToFrequency.power
+    pitch_to_frequency: Annotated[PitchToFrequency, tyro_option('-F')] = (
+        PitchToFrequency.power
+    )
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
-        Frequency, tyro_option('-U'), Display(beginner=True, column=4, row=0)
+        Frequency, tyro_option('-U'), Beginner(), Display(column=4, row=0)
     ] = 440
 
     #: The note number of the reference note
     root_note: Annotated[
-        NoteNumber, tyro_option('-W'), Display(beginner=True, column=5, row=0)
+        NoteNumber, tyro_option('-W'), Beginner(), Display(column=5, row=0)
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
