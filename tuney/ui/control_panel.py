@@ -34,7 +34,6 @@ from ..audio.polyphony import Polyphony
 from ..display import Beginner, Dial, Display, General, Hidden
 from ..mapper.mapper import Mapper
 from ..scale.scale import Scale
-from . import constants
 from .tooltip import Tooltip
 
 if TYPE_CHECKING:
@@ -43,6 +42,7 @@ if TYPE_CHECKING:
 Scalar: TypeAlias = bool | float | int | str | None
 
 INLINE_CHILDREN = (Polyphony,)
+ENTRY_CHAR_WIDTH = 10
 
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
@@ -944,15 +944,15 @@ def _entry_width(
 ) -> int | None:
     display = display or Display()
     if width := display.width:
-        return width * constants.ENTRY_CHAR_WIDTH
+        return width * ENTRY_CHAR_WIDTH
 
     types = _annotation_types(annotation)
     if str in types:
         return None
     if int in types and float not in types and bool not in types:
-        return 4 * constants.ENTRY_CHAR_WIDTH
+        return 4 * ENTRY_CHAR_WIDTH
     if float in types:
-        return (4 if display.step == 0.01 else 6) * constants.ENTRY_CHAR_WIDTH
+        return (4 if display.step == 0.01 else 6) * ENTRY_CHAR_WIDTH
     return None
 
 
@@ -1016,18 +1016,3 @@ def _after(
         parent.after(delay, callback, *args)
     else:
         QTimer.singleShot(delay, lambda: callback(*args))
-
-
-class _DemoWaveform(enum.Enum):
-    sine = enum.auto()
-    triangle = enum.auto()
-    sawtooth = enum.auto()
-
-
-class _DemoSettings(BaseModel):
-    waveform: _DemoWaveform = _DemoWaveform.triangle
-    gain: float = 0.75
-    note_offset: int = 32
-    enabled: bool = True
-    label: str = 'demo'
-    device: str | None = None
