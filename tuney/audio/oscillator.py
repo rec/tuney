@@ -43,7 +43,7 @@ class Oscillator(BaseModel, frozen=True):
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Display(beginner=True, column=2, row=0, dial=True),
+        Display(beginner=True, column=2, row=0, dial=True, dial_maximum=1.0),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment

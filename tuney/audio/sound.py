@@ -27,7 +27,7 @@ class Sound(BaseModel, frozen=True):
     gain: Annotated[
         float,
         tyro_option('-G'),
-        Display(general=True, beginner=True, step=0.01, dial=True),
+        Display(general=True, beginner=True, step=0.01, dial=True, dial_maximum=2.0),
     ] = 1.0
 
     # Offset added to generated note numbers before tuning

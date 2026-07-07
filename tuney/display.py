@@ -13,6 +13,8 @@ class Display(BaseModel, frozen=True):
     width: int | None = None
     step: float = 0.1
     dial: bool = False
+    dial_minimum: float = 0.0
+    dial_maximum: float = 4.0
     options: Callable[[], list[str]] | None = None
 
     @classmethod

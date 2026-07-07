@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..audio.device import Device
+from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..display import Display
 from ..mapper.mapper import Mapper
@@ -78,9 +79,10 @@ class _OptionControl:
         self.values = values
 
     def refresh(self) -> None:
-        value = _option_text(getattr(self.data, self.name))
+        value1 = getattr(self.data, self.name)
+        value = '' if value1 is None else str(value1)
         self.menu.clear()
-        self.menu.addItems(_option_values(self.values))
+        self.menu.addItems(['', *self.values()])
         self.menu.setCurrentText(value)
 
 
@@ -396,11 +398,7 @@ def _add_control_cell(
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
     CONTROL_FIELD_NAMES[id(cell)] = name
-    if (
-        type(data).__name__ == 'MIDI'
-        and name != 'enable'
-        and not _is_midi_enabled(data)
-    ):
+    if isinstance(data, MIDI) and not data.enable:
         _set_widget_state(cell, False)
 
 
@@ -560,17 +558,11 @@ def _configure_editor(widget: QWidget, width: int | None = None) -> None:
 def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    if (display := _control_metadata(type(data), name)).width:
-        return False
-    if isinstance(value, bool | int | float | enum.Enum):
-        return False
-    if display.options:
-        return False
-    return str in _annotation_types(annotation) or isinstance(value, list | dict)
-
-
-def _is_midi_enabled(data: Any) -> bool:
-    return bool(data.enable)
+    return not (
+        (display := _control_metadata(type(data), name)).width
+        or isinstance(value, bool | int | float | enum.Enum)
+        or display.options
+    ) and (str in _annotation_types(annotation) or isinstance(value, list | dict))
 
 
 def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
@@ -578,14 +570,6 @@ def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
     return str(annotation).startswith('tyro.conf.Suppress') or 'Suppress' in {
         str(i) for i in get_args(annotation)
     }
-
-
-def _option_values(values: Callable[[], list[str]]) -> list[str]:
-    return ['', *values()]
-
-
-def _option_text(value: Scalar) -> str:
-    return '' if value is None else str(value)
 
 
 def _add_control(
@@ -625,8 +609,8 @@ def _add_option_control(
         _control_metadata(type(data), name),
     )
     _configure_editor(menu, width)
-    menu.addItems(_option_values(values))
-    menu.setCurrentText(_option_text(value))
+    menu.addItems(['', *values()])
+    menu.setCurrentText('' if value is None else str(value))
 
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
@@ -797,9 +781,10 @@ def _add_spin_control(
             dial.setFixedSize(30, 30)
             dial.setWrapping(False)
             dial.setRange(0, 100)
-            dial.setValue(_dial_value(spin.value(), name))
+            display = _control_metadata(type(data), name)
+            dial.setValue(_dial_value(spin.value(), display))
             dial.valueChanged.connect(
-                lambda value: spin.setValue(_spin_value(value, name))
+                lambda value: spin.setValue(_spin_value(value, display))
             )
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)
@@ -836,26 +821,19 @@ def _uses_dial(data: BaseModel, name: str) -> bool:
     return _control_metadata(type(data), name).dial
 
 
-def _dial_value(value: float, name: str) -> int:
-    minimum, maximum = _dial_range(name)
-    return round((float(value) - minimum) * 100 / (maximum - minimum))
+def _dial_value(value: float, display: Display) -> int:
+    return round(
+        (float(value) - display.dial_minimum)
+        * 100
+        / (display.dial_maximum - display.dial_minimum)
+    )
 
 
-def _spin_value(value: int, name: str) -> float:
-    minimum, maximum = _dial_range(name)
-    return minimum + value * (maximum - minimum) / 100
-
-
-def _dial_range(name: str) -> tuple[float, float]:
-    match name:
-        case 'duty_cycle':
-            return 0.0, 1.0
-        case 'gain':
-            return 0.0, 2.0
-        case 'minimum_note_time':
-            return 0.0, 2.0
-        case _:
-            return 0.0, 4.0
+def _spin_value(value: int, display: Display) -> float:
+    return (
+        display.dial_minimum
+        + value * (display.dial_maximum - display.dial_minimum) / 100
+    )
 
 
 def _add_enum_control(
