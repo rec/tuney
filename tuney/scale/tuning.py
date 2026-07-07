@@ -50,6 +50,16 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     can be customized.
     """
 
+    #: The frequency of the reference `root_note`
+    root_frequency: Annotated[
+        Frequency, tyro_option('-U'), Beginner, Display(column=4, row=0)
+    ] = 440
+
+    #: The note number of the reference note
+    root_note: Annotated[
+        NoteNumber, tyro_option('-W'), Beginner, Display(column=5, row=0)
+    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
+
     #: Detune everything, in cents of an octave division
     detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
 
@@ -73,16 +83,6 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     pitch_to_frequency: Annotated[PitchToFrequency, tyro_option('-F')] = (
         PitchToFrequency.power
     )
-
-    #: The frequency of the reference `root_note`
-    root_frequency: Annotated[
-        Frequency, tyro_option('-U'), Beginner, Display(column=4, row=0)
-    ] = 440
-
-    #: The note number of the reference note
-    root_note: Annotated[
-        NoteNumber, tyro_option('-W'), Beginner, Display(column=5, row=0)
-    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[
