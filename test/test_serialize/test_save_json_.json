@@ -26,10 +26,10 @@
     "offset": 0
   },
   "tuning": {
+    "detune": 0,
     "root": {
       "frequency": 440,
-      "note": 69,
-      "detune": 0
+      "note": 69
     },
     "computed": {
       "limit": 0,

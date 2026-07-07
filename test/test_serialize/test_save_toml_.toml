@@ -25,13 +25,13 @@ accidentals = "whole"
 offset = 0
 
 [tuning]
+detune = 0
 table = []
 table_blend = true
 
 [tuning.root]
 frequency = 440
 note = 69
-detune = 0
 
 [tuning.computed]
 limit = 0

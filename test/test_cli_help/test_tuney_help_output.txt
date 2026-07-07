@@ -80,6 +80,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
+  -T FLOAT, --detune FLOAT
+        Detune everything, in cents of an octave division (default: 0)
   --table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}
         A table, either a Sequence or a dict, mapping note number to frequency. (default: )
   --table-blend, --no-table-blend
@@ -92,8 +94,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         The frequency of the reference `root_note` (default: 440)
   -W INT, --root-note INT
         The note number of the reference note (default: 69)
-  -T FLOAT, --detune FLOAT
-        Detune everything, in cents of an octave division (default: 0)
 
  tuning.computed options
  ----------------------------------------------------------------------------------------------------------------------

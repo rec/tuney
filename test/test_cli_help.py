@@ -290,7 +290,7 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.offset == 1
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
-    assert tuney.tuning.root.detune == 5
+    assert tuney.tuning.detune == 5
     assert tuney.tuning.computed.limit == 7
     assert tuney.tuning.computed.notes_per_octave == 19
     assert tuney.tuning.computed.octave_ratio == 3

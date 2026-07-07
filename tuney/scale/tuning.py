@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fractions import Fraction
+from functools import cached_property
 from typing import Annotated, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
@@ -8,7 +9,7 @@ from pydantic import BaseModel, Field
 from ..display import Beginner, Display
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
-from . import NoteNumber
+from . import NoteNumber, cents
 
 type Frequency = float  # Must be non-negative
 
@@ -66,7 +67,7 @@ class Computed(BaseModel, frozen=True):
     )
 
     def __call__(self, note_number: NoteNumber, root: Root) -> float:
-        divisions = note_number - root.note + root.detune / 100.0
+        divisions = note_number - root.note
         octaves = divisions / self.notes_per_octave
 
         f = self.pitch_to_frequency(root.frequency, self.octave_ratio, octaves)
@@ -92,9 +93,6 @@ class Root(BaseModel, frozen=True):
         Display(column=5, row=0),
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
-    #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
-
 
 class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
@@ -102,6 +100,9 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     are the same as classic twelve-tone equal temperament (12-tet) but
     can be customized.
     """
+
+    #: Detune everything, in cents of an octave division
+    detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
 
     root: Root = Root()
     computed: Computed = Computed()
@@ -117,16 +118,20 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     #: looked up with the default algorithm.
     table_blend: Annotated[bool, tyro_option(), Display(column=6, row=0)] = True
 
+    @cached_property
+    def detune_ratio(self) -> float:
+        return cents(self.detune)
+
     def __call__(self, note_number: NoteNumber) -> float:
         """Return the frequency in this tuning for a NoteNumber"""
         if isinstance(self.table, dict) or note_number >= 0:
             try:
-                return self.table[note_number]
+                return self.table[note_number] * self.detune_ratio
             except (KeyError, IndexError):
                 if not self.table_blend:
                     raise
 
-        return self.computed(note_number, self.root)
+        return self.computed(note_number, self.root) * self.detune_ratio
 
 
 assert isinstance(Tuning(), TuningP)
