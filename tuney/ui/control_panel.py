@@ -41,6 +41,8 @@ if TYPE_CHECKING:
 
 Scalar: TypeAlias = bool | float | int | str | None
 
+INLINE_CHILDREN = (Polyphony,)
+
 CONTROL_FIELD_NAMES: dict[int, str] = {}
 INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
 NUMERIC_LOCALE = QLocale.c()
@@ -160,7 +162,7 @@ def _add_model_controls(
     children = [
         name
         for name in _visible_child_names(data, advanced)
-        if not _inline_child(getattr(data, name))
+        if not isinstance(getattr(data, name), INLINE_CHILDREN)
     ]
 
     if controls:
@@ -283,7 +285,7 @@ def _control_refs(
     controls = [(data, name) for name in fields]
     for name in _visible_child_names(data, advanced):
         child = getattr(data, name)
-        if _inline_child(child):
+        if isinstance(child, INLINE_CHILDREN):
             controls.extend(
                 (child, child_name)
                 for child_name in _visible_control_names(child, advanced)
@@ -331,10 +333,6 @@ def _control_ref_rows(
         _control_groups(extra_fields, max(1, math.ceil(len(extra_fields) ** 0.5)))
     )
     return rows
-
-
-def _inline_child(data: object) -> bool:
-    return isinstance(data, Polyphony)
 
 
 def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
@@ -568,7 +566,7 @@ def _is_wide_field(data: BaseModel, name: str) -> bool:
         return False
     if display.options:
         return False
-    return str in set(_annotation_types(annotation)) or isinstance(value, list | dict)
+    return str in _annotation_types(annotation) or isinstance(value, list | dict)
 
 
 def _is_midi_enabled(data: Any) -> bool:
@@ -822,12 +820,12 @@ def _can_use_spin_control(annotation: Any, value: object) -> bool:
 
 
 def _is_int_annotation(annotation: Any) -> bool:
-    types = set(_annotation_types(annotation))
+    types = _annotation_types(annotation)
     return int in types and float not in types and bool not in types
 
 
 def _is_float_annotation(annotation: Any) -> bool:
-    return float in set(_annotation_types(annotation))
+    return float in _annotation_types(annotation)
 
 
 def _float_step(data: BaseModel, name: str) -> float:
@@ -988,7 +986,7 @@ def _entry_width(
     if width := display.width:
         return width * constants.ENTRY_CHAR_WIDTH
 
-    types = set(_annotation_types(annotation))
+    types = _annotation_types(annotation)
     if str in types:
         return None
     if int in types and float not in types and bool not in types:
