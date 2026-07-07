@@ -780,7 +780,7 @@ def _add_spin_control(
         spin.setLocale(NUMERIC_LOCALE)
         spin.setDecimals(3)
         spin.setRange(float(SPIN_MINIMUM), float(SPIN_MAXIMUM))
-        spin.setSingleStep(_float_step(data, name))
+        spin.setSingleStep(_control_metadata(type(data), name).step)
         spin.setValue(float(value))
 
         def update() -> None:
@@ -813,25 +813,13 @@ def _can_use_spin_control(annotation: Any, value: object) -> bool:
     return (
         isinstance(value, int | float)
         and SPIN_MINIMUM <= value <= SPIN_MAXIMUM
-        and (_is_int_annotation(annotation) or _is_float_annotation(annotation))
+        and (_is_int_annotation(annotation) or float in _annotation_types(annotation))
     )
 
 
 def _is_int_annotation(annotation: Any) -> bool:
     types = _annotation_types(annotation)
     return int in types and float not in types and bool not in types
-
-
-def _is_float_annotation(annotation: Any) -> bool:
-    return float in _annotation_types(annotation)
-
-
-def _float_step(data: BaseModel, name: str) -> float:
-    return _control_metadata(type(data), name).step
-
-
-def _uses_dial(data: BaseModel, name: str) -> bool:
-    return _dial_metadata(type(data), name) is not None
 
 
 def _add_enum_control(
@@ -861,10 +849,6 @@ def _add_enum_control(
         )
         layout.addWidget(radio)
     _parent_layout(parent).addWidget(frame)
-
-
-def _compact_radio_width(text: str) -> int:
-    return constants.RADIO_SIZE + 8 + len(text) * 7
 
 
 def _set_model_value(

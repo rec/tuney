@@ -316,17 +316,18 @@ def test_beginner_mode_filters_advanced_controls(
 def test_dials_are_limited_to_explicit_analog_controls(
     file_regression: FileRegressionFixture,
 ) -> None:
-    sound = Sound()
-
     _check_regression(
         file_regression,
         {
-            'sound_gain': control_panel._uses_dial(sound, 'gain'),
-            'oscillator_period': control_panel._uses_dial(sound.oscillator, 'period'),
-            'sound_minimum_note_time': control_panel._uses_dial(
-                sound, 'minimum_note_time'
-            ),
-            'sound_note_offset': control_panel._uses_dial(sound, 'note_offset'),
+            'sound_gain': control_panel._dial_metadata(Sound, 'gain') is not None,
+            'oscillator_period': control_panel._dial_metadata(Oscillator, 'period')
+            is not None,
+            'sound_minimum_note_time': control_panel._dial_metadata(
+                Sound, 'minimum_note_time'
+            )
+            is not None,
+            'sound_note_offset': control_panel._dial_metadata(Sound, 'note_offset')
+            is not None,
         },
     )
 
