@@ -7,6 +7,8 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from ..scale import NoteNumber
+from ..scale.scale import Scale
+from ..scale.tuning import Tuning
 from .device import Device
 from .engine import AudioEngine, Configure, StopAll
 from .mixer import Mixer, NotePress
@@ -18,6 +20,8 @@ from .voice import Voice
 class Player(BaseModel, frozen=True):
     device: Device = Device()
     sound: Sound = Sound()
+    scale: Scale = Scale()
+    tuning: Tuning = Tuning()
 
     @cached_property
     def pressed_notes(self) -> list[NoteNumber]:
@@ -44,7 +48,7 @@ class Player(BaseModel, frozen=True):
         sample_rate: int | None = None,
     ) -> Voice:
         scaled_note_number = note_number + self.sound.note_offset
-        frequency = self.sound.scale.frequency(self.sound.tuning, scaled_note_number)
+        frequency = self.scale.frequency(self.tuning, scaled_note_number)
         return Voice(
             frequency=frequency,
             gain=self.sound.gain * self.sound.oscillator.gain(scaled_note_number),

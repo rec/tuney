@@ -10,10 +10,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   -h, --help
         show this help message and exit
-  -p {None}|STR, --preset {None}|STR
-        Named performance preset to load (default: None)
-  -c {None}|PATH, --config-file {None}|PATH
-        Load configs from a JSON or toml file (default: None)
   -m FLOAT, --max-gap FLOAT
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)
   --hover-time FLOAT
@@ -30,12 +26,16 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Audio file to write while playing text (default: None)
   -b, --run-in-background, --no-run-in-background
         If True, listen to the keyboard even when other applications are in front (default: False)
+  -p {None}|STR, --preset {None}|STR
+        Named performance preset to load (default: None)
+  -c {None}|PATH, --config-file {None}|PATH
+        Load configs from a JSON or toml file (default: None)
   -t TEXT, --text TEXT
         Text to start the program with (optional)
 
  mapper options
  ----------------------------------------------------------------------------------------------------------------------
-  Map letters to notes
+  Convert letters to scale indexes
   ----------------------------------------------------------------------------------------------------------------------
   -a {None}|STR, --alphabet {None}|STR
         Characters mapped to note numbers, or the default alphabet if empty (default: None)
@@ -51,6 +51,57 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Limit pitch range to this many notes (default: 60)
   -L {wrap,reflect,reflect_repeat}, --limiter {wrap,reflect,reflect_repeat}
         What to do when mapped notes are outside the pitch range (default: wrap)
+
+ scale options
+ ----------------------------------------------------------------------------------------------------------------------
+  Convert scale indexes to note names and note numbers
+  ----------------------------------------------------------------------------------------------------------------------
+  -A STR, --note-names STR
+        The base note names (default: ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+  -q STR, --root STR
+        The root note to start scales with (default: C)
+  -j STR, --begin STR
+        The first note from the note names: TODO: validate begin <= base <= end (default: A)
+  -E STR, --end STR
+        The Last note from the alphabet (default: G)
+  -Q {None}|STR, --notes {None}|STR
+        If `notes` is set, once the scale is generated, only the notes in
+        `notes` are actually used in the list.
+
+        For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)
+  -i [INT [INT ...]], --intervals [INT [INT ...]]
+        The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)
+  -X {none,whole,half}, --accidentals {none,whole,half}
+        Which accidentals are allowed in note names (default: whole)
+  -Y INT, --scale-offset INT
+        Offset all note numbers by this (default: 0)
+
+ tuning options
+ ----------------------------------------------------------------------------------------------------------------------
+  Convert note numbers into frequencies
+  ----------------------------------------------------------------------------------------------------------------------
+  -T FLOAT, --detune FLOAT
+        Detune everything, in cents of an octave division (default: 0)
+  -v INT, --limit INT
+        If limit is greater than zero, use rounded N-limit just intonation (default: 0)
+  -V INT, --notes-per-octave INT
+        Number of divisions of an octave (default: 12)
+  -J FLOAT, --octave-ratio FLOAT
+        Frequency change between octaves. For the default "power" pitch_to_frequency the change is a ratio, so if it's
+        2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave
+        would be
+        100Hz greater in frequency than the previous. (default: 2)
+  -F {power,linear}, --pitch-to-frequency {power,linear}
+        The rule for converting a pitch to a frequency (default: power)
+  -U FLOAT, --root-frequency FLOAT
+        The frequency of the reference `root_note` (default: 440)
+  -W INT, --root-note INT
+        The note number of the reference note (default: 69)
+  --table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}
+        A table, either a Sequence or a dict, mapping note number to frequency. (default: )
+  --table-blend, --no-table-blend
+        If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
+        (default: True)
 
  device options
  ----------------------------------------------------------------------------------------------------------------------
@@ -89,57 +140,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -k FLOAT, --key-scale FLOAT
         Gain octaves added per keyboard octave above key_scale_note (default: 0.0)
 
- sound.scale options
- ----------------------------------------------------------------------------------------------------------------------
-  Map note numbers to note names and tuning positions
-  ----------------------------------------------------------------------------------------------------------------------
-  -A STR, --note-names STR
-        The base note names (default: ABCDEFGHIJKLMNOPQRSTUVWXYZ)
-  -q STR, --root STR
-        The root note to start scales with (default: C)
-  -j STR, --begin STR
-        The first note from the note names: TODO: validate begin <= base <= end (default: A)
-  -E STR, --end STR
-        The Last note from the alphabet (default: G)
-  -Q {None}|STR, --notes {None}|STR
-        If `notes` is set, once the scale is generated, only the notes in
-        `notes` are actually used in the list.
-
-        For example, notes='CDEFGAB' would correspond to only the white notes on the piano. (default: None)
-  -i [INT [INT ...]], --intervals [INT [INT ...]]
-        The intervals between notes. Can also be entered as a string: "2212221" (default: 2 2 1 2 2 2 1)
-  -X {none,whole,half}, --accidentals {none,whole,half}
-        Which accidentals are allowed in note names (default: whole)
-  -Y INT, --scale-offset INT
-        Offset all note numbers by this (default: 0)
-
- sound.tuning options
- ----------------------------------------------------------------------------------------------------------------------
-  The tuning used to convert note numbers into frequencies
-  ----------------------------------------------------------------------------------------------------------------------
-  -T FLOAT, --detune FLOAT
-        Detune everything, in cents of an octave division (default: 0)
-  -v INT, --limit INT
-        If limit is greater than zero, use rounded N-limit just intonation (default: 0)
-  -V INT, --notes-per-octave INT
-        Number of divisions of an octave (default: 12)
-  -J FLOAT, --octave-ratio FLOAT
-        Frequency change between octaves. For the default "power" pitch_to_frequency the change is a ratio, so if it's
-        2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave
-        would be
-        100Hz greater in frequency than the previous. (default: 2)
-  -F {power,linear}, --pitch-to-frequency {power,linear}
-        The rule for converting a pitch to a frequency (default: power)
-  -U FLOAT, --root-frequency FLOAT
-        The frequency of the reference `root_note` (default: 440)
-  -W INT, --root-note INT
-        The note number of the reference note (default: 69)
-  --table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}
-        A table, either a Sequence or a dict, mapping note number to frequency. (default: )
-  --table-blend, --no-table-blend
-        If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
-        (default: True)
-
  sound.polyphony options
  ----------------------------------------------------------------------------------------------------------------------
   --headroom FLOAT
@@ -149,7 +149,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
 
  midi options
  ----------------------------------------------------------------------------------------------------------------------
-  How to send MIDI output
+  Where to send MIDI output
   ----------------------------------------------------------------------------------------------------------------------
   --midi-enable, --no-midi-enable
         Enable MIDI output (default: False)

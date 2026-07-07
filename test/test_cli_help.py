@@ -209,8 +209,8 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.midi.note_offset == 12
     assert tuney.text_timings.dot == 301
     assert tuney.text_timings.scale == 4
-    assert tuney.sound.tuning.table == [440, 880]
-    assert not tuney.sound.tuning.table_blend
+    assert tuney.tuning.table == [440, 880]
+    assert not tuney.tuning.table_blend
     assert tuney.text_timings.space == 101
     assert tuney.text_timings.comma == 201
     assert tuney.text_timings.colon == 401
@@ -290,13 +290,13 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.offset == 1
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
-    assert tuney.sound.tuning.detune == 5
-    assert tuney.sound.tuning.limit == 7
-    assert tuney.sound.tuning.notes_per_octave == 19
-    assert tuney.sound.tuning.octave_ratio == 3
-    assert tuney.sound.tuning.pitch_to_frequency.name == 'linear'
-    assert tuney.sound.tuning.root_frequency == 442
-    assert tuney.sound.tuning.root_note == 70
+    assert tuney.tuning.detune == 5
+    assert tuney.tuning.limit == 7
+    assert tuney.tuning.notes_per_octave == 19
+    assert tuney.tuning.octave_ratio == 3
+    assert tuney.tuning.pitch_to_frequency.name == 'linear'
+    assert tuney.tuning.root_frequency == 442
+    assert tuney.tuning.root_note == 70
 
 
 def test_removed_single_character_aliases_are_not_options() -> None:
@@ -368,7 +368,7 @@ def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert exc_info.value.code is None
     assert captured[0].tuney.preset == 'white-notes'
-    assert captured[0].tuney.sound.scale.notes == 'ABCDEFG'
+    assert captured[0].tuney.scale.notes == 'ABCDEFG'
     assert captured[0].tuney.text == 'abc'
 
 
@@ -400,7 +400,7 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     assert captured[0].tuney.preset is None
     assert captured[0].tuney.config_file is None
     assert captured[0].tuney.skip_startup_files
-    assert captured[0].tuney.sound.scale.notes != 'ABCDEFG'
+    assert captured[0].tuney.scale.notes != 'ABCDEFG'
     assert captured[0].tuney.text == 'abc'
 
 

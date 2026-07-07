@@ -281,7 +281,7 @@ def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
 
 def test_player_uses_scale_note_subset_for_frequencies() -> None:
     chromatic = Player(sound=Sound(note_offset=0))
-    white_notes = Player(sound=Sound(note_offset=0, scale=Scale(notes='ABCDEFG')))
+    white_notes = Player(sound=Sound(note_offset=0), scale=Scale(notes='ABCDEFG'))
 
     assert white_notes.voice_maker(1).frequency == chromatic.voice_maker(2).frequency
 

@@ -12,6 +12,8 @@ from .audio.sound import Sound
 from .display import Beginner, Display, General, Hidden, Options
 from .mapper.mapper import Mapper
 from .presets import preset_names
+from .scale.scale import Scale
+from .scale.tuning import Tuning
 from .time.char_press import CharPress
 from .time.sequencer import Sequencer
 from .time.text_timings import TextTimings
@@ -26,20 +28,14 @@ class Tuney(BaseModel):
     audio, MIDI, and timing from the same config model.
     """
 
-    # Named performance preset to load
-    preset: Annotated[
-        str | None,
-        tyro_option('-p'),
-        General,
-        Beginner,
-        Options(preset_names),
-    ] = None
-
-    # Load configs from a JSON or toml file
-    config_file: Annotated[Path | None, tyro_option('-c'), Hidden] = None
-
-    # Map letters to notes
+    # Convert letters to scale indexes
     mapper: Mapper = Mapper()
+
+    # Convert scale indexes to note names and note numbers
+    scale: Scale = Scale()
+
+    # Convert note numbers into frequencies
+    tuning: Tuning = Tuning()
 
     # Audio output device settings
     device: Device = Field(default_factory=Device)
@@ -47,7 +43,7 @@ class Tuney(BaseModel):
     # Synthesizer sound settings
     sound: Sound = Sound()
 
-    # How to send MIDI output
+    # Where to send MIDI output
     midi: MIDI = MIDI()
 
     # Timings for playing back texts
@@ -78,6 +74,18 @@ class Tuney(BaseModel):
 
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: Annotated[bool, tyro_option('-b'), General] = False
+
+    # Named performance preset to load
+    preset: Annotated[
+        str | None,
+        tyro_option('-p'),
+        General,
+        Beginner,
+        Options(preset_names),
+    ] = None
+
+    # Load configs from a JSON or toml file
+    config_file: Annotated[Path | None, tyro_option('-c'), Hidden] = None
 
     # Path to the automatically saved GUI state
     autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)

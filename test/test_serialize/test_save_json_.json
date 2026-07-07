@@ -8,6 +8,34 @@
     "range_limit": 60,
     "limiter": "wrap"
   },
+  "scale": {
+    "note_names": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    "root": "C",
+    "begin": "A",
+    "end": "G",
+    "intervals": [
+      2,
+      2,
+      1,
+      2,
+      2,
+      2,
+      1
+    ],
+    "accidentals": "whole",
+    "offset": 0
+  },
+  "tuning": {
+    "detune": 0,
+    "limit": 0,
+    "notes_per_octave": 12,
+    "octave_ratio": 2,
+    "pitch_to_frequency": "power",
+    "root_frequency": 440,
+    "root_note": 69,
+    "table": [],
+    "table_blend": true
+  },
   "device": {},
   "sound": {
     "oscillator": {
@@ -16,34 +44,6 @@
       "duty_cycle": 0.5,
       "key_scale_note": 64,
       "key_scale": 0.0
-    },
-    "scale": {
-      "note_names": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-      "root": "C",
-      "begin": "A",
-      "end": "G",
-      "intervals": [
-        2,
-        2,
-        1,
-        2,
-        2,
-        2,
-        1
-      ],
-      "accidentals": "whole",
-      "offset": 0
-    },
-    "tuning": {
-      "detune": 0,
-      "limit": 0,
-      "notes_per_octave": 12,
-      "octave_ratio": 2,
-      "pitch_to_frequency": "power",
-      "root_frequency": 440,
-      "root_note": 69,
-      "table": [],
-      "table_blend": true
     },
     "gain": 1.0,
     "note_offset": 44,

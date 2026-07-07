@@ -279,10 +279,10 @@ def test_control_rows_use_compact_model_layouts(
                 tuney.sound.oscillator, _control_fields(tuney.sound.oscillator)
             ),
             'scale': control_panel._control_rows(
-                tuney.sound.scale, _control_fields(tuney.sound.scale)
+                tuney.scale, _control_fields(tuney.scale)
             ),
             'tuning': control_panel._control_rows(
-                tuney.sound.tuning, _control_fields(tuney.sound.tuning)
+                tuney.tuning, _control_fields(tuney.tuning)
             ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)

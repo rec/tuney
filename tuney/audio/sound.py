@@ -6,8 +6,6 @@ from pydantic import BaseModel, Field
 
 from ..display import Beginner, Dial, Display, General
 from ..scale import NoteNumber
-from ..scale.scale import Scale
-from ..scale.tuning import Tuning
 from ..tyro_option import tyro_option
 from .oscillator import Oscillator
 from .polyphony import Polyphony
@@ -16,12 +14,6 @@ from .polyphony import Polyphony
 class Sound(BaseModel, frozen=True):
     # Synthesizer oscillator settings
     oscillator: Oscillator = Oscillator()
-
-    # Map note numbers to note names and tuning positions
-    scale: Scale = Scale()
-
-    # The tuning used to convert note numbers into frequencies
-    tuning: Tuning = Tuning()
 
     # Audio output gain
     gain: Annotated[

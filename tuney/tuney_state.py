@@ -48,12 +48,17 @@ class TuneyState:
 
     @cached_property
     def player(self) -> Player:
-        return Player(device=self.tuney.device, sound=self.tuney.sound)
+        return Player(
+            device=self.tuney.device,
+            sound=self.tuney.sound,
+            scale=self.tuney.scale,
+            tuning=self.tuney.tuning,
+        )
 
     @cached_property
     def note_labels(self) -> dict[str, str]:
         return {
-            c: '\n'.join([self.tuney.sound.scale.to_name(n), ' ' + c])
+            c: '\n'.join([self.tuney.scale.to_name(n), ' ' + c])
             for c, n in self.tuney.mapper.char_to_number.items()
         }
 
