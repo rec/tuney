@@ -43,26 +43,7 @@ class PitchToFrequency(NamedEnum):
         return self.value[0](root, change, octaves)
 
 
-class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
-    """
-    A generalization of equal temperament, where the default values
-    are the same as classic twelve-tone equal temperament (12-tet) but
-    can be customized.
-    """
-
-    #: The frequency of the reference `root_note`
-    root_frequency: Annotated[
-        Frequency, tyro_option('-U'), Beginner, Display(column=4, row=0)
-    ] = 440
-
-    #: The note number of the reference note
-    root_note: Annotated[
-        NoteNumber, tyro_option('-W'), Beginner, Display(column=5, row=0)
-    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
-
-    #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
-
+class Computed(BaseModel, frozen=True):
     #: If limit is greater than zero, use rounded N-limit just intonation
     limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0)] = 0
 
@@ -84,6 +65,47 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         PitchToFrequency.power
     )
 
+    def __call__(self, note_number: NoteNumber, root: Root) -> float:
+        divisions = note_number - root.note + root.detune / 100.0
+        octaves = divisions / self.notes_per_octave
+
+        f = self.pitch_to_frequency(root.frequency, self.octave_ratio, octaves)
+        if self.limit:
+            return float(Fraction(f).limit_denominator(self.limit))
+        return f
+
+
+class Root(BaseModel, frozen=True):
+    #: The frequency of the reference `root_note`
+    frequency: Annotated[
+        Frequency,
+        tyro_option('-U', name='root-frequency'),
+        Beginner,
+        Display(column=4, row=0),
+    ] = 440
+
+    #: The note number of the reference note
+    note: Annotated[
+        NoteNumber,
+        tyro_option('-W', name='root-note'),
+        Beginner,
+        Display(column=5, row=0),
+    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
+
+    #: Detune everything, in cents of an octave division
+    detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
+
+
+class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
+    """
+    A generalization of equal temperament, where the default values
+    are the same as classic twelve-tone equal temperament (12-tet) but
+    can be customized.
+    """
+
+    root: Root = Root()
+    computed: Computed = Computed()
+
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[
         list[Frequency] | dict[NoteNumber, Frequency],
@@ -104,13 +126,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
                 if not self.table_blend:
                     raise
 
-        divisions = note_number - self.root_note + self.detune / 100.0
-        octaves = divisions / self.notes_per_octave
-
-        f = self.pitch_to_frequency(self.root_frequency, self.octave_ratio, octaves)
-        if self.limit:
-            return float(Fraction(f).limit_denominator(self.limit))
-        return f
+        return self.computed(note_number, self.root)
 
 
 assert isinstance(Tuning(), TuningP)

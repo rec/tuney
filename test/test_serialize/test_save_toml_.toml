@@ -25,15 +25,19 @@ accidentals = "whole"
 offset = 0
 
 [tuning]
+table = []
+table_blend = true
+
+[tuning.root]
+frequency = 440
+note = 69
 detune = 0
+
+[tuning.computed]
 limit = 0
 notes_per_octave = 12
 octave_ratio = 2
 pitch_to_frequency = "power"
-root_frequency = 440
-root_note = 69
-table = []
-table_blend = true
 
 [device]
 

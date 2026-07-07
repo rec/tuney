@@ -12,7 +12,7 @@ from tuney.audio.sound import Sound
 from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
-from tuney.scale.tuning import Tuning
+from tuney.scale.tuning import Root
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui import control_panel
@@ -210,15 +210,15 @@ def test_entry_width_uses_compact_numeric_widths(
                 Oscillator.model_fields['period'].annotation,
                 control_panel._control_metadata(Oscillator, 'period'),
             ),
-            'root_frequency': control_panel._entry_width(
-                'root_frequency',
-                Tuning.model_fields['root_frequency'].annotation,
-                control_panel._control_metadata(Tuning, 'root_frequency'),
+            'frequency': control_panel._entry_width(
+                'frequency',
+                Root.model_fields['frequency'].annotation,
+                control_panel._control_metadata(Root, 'frequency'),
             ),
-            'root_note': control_panel._entry_width(
-                'root_note',
-                Tuning.model_fields['root_note'].annotation,
-                control_panel._control_metadata(Tuning, 'root_note'),
+            'note': control_panel._entry_width(
+                'note',
+                Root.model_fields['note'].annotation,
+                control_panel._control_metadata(Root, 'note'),
             ),
             'device': control_panel._entry_width(
                 'device',
@@ -283,6 +283,12 @@ def test_control_rows_use_compact_model_layouts(
             ),
             'tuning': control_panel._control_rows(
                 tuney.tuning, _control_fields(tuney.tuning)
+            ),
+            'root': control_panel._control_rows(
+                tuney.tuning.root, _control_fields(tuney.tuning.root)
+            ),
+            'computed': control_panel._control_rows(
+                tuney.tuning.computed, _control_fields(tuney.tuning.computed)
             ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)

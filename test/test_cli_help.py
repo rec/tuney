@@ -290,13 +290,13 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.offset == 1
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
-    assert tuney.tuning.detune == 5
-    assert tuney.tuning.limit == 7
-    assert tuney.tuning.notes_per_octave == 19
-    assert tuney.tuning.octave_ratio == 3
-    assert tuney.tuning.pitch_to_frequency.name == 'linear'
-    assert tuney.tuning.root_frequency == 442
-    assert tuney.tuning.root_note == 70
+    assert tuney.tuning.root.detune == 5
+    assert tuney.tuning.computed.limit == 7
+    assert tuney.tuning.computed.notes_per_octave == 19
+    assert tuney.tuning.computed.octave_ratio == 3
+    assert tuney.tuning.computed.pitch_to_frequency.name == 'linear'
+    assert tuney.tuning.root.frequency == 442
+    assert tuney.tuning.root.note == 70
 
 
 def test_removed_single_character_aliases_are_not_options() -> None:
