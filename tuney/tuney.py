@@ -26,18 +26,6 @@ class Tuney(BaseModel):
     audio, MIDI, and timing from the same config model.
     """
 
-    # Named performance preset to load
-    preset: Annotated[
-        str | None,
-        tyro_option('-p'),
-        General(),
-        Beginner(),
-        Display(options=preset_names),
-    ] = None
-
-    # Load configs from a JSON or toml file
-    config_file: Annotated[Path | None, tyro_option('-c'), Hidden()] = None
-
     # Map letters to notes
     mapper: Mapper = Mapper()
 
@@ -53,39 +41,9 @@ class Tuney(BaseModel):
     # Timings for playing back texts
     text_timings: TextTimings = TextTimings(scale=3.0)
 
-    # Text to start the program with
-    text: Annotated[
-        str | list[CharPress] | None,
-        tyro_option(
-            '-t',
-            constructor=str,
-            help_behavior_hint='(optional)',
-            metavar='TEXT',
-        ),
-        Hidden(),
-    ] = None
-
-    # Text file to start the program with
-    text_file: Annotated[
-        tyro.conf.Suppress[Path | None],
-        Hidden(),
-    ] = Field(default=None, exclude=True)
-
-    # Positional text to start the program with
-    text_args: Annotated[
-        list[str],
-        tyro.conf.Positional,
-        tyro_option(name='text', metavar='TEXT'),
-        Hidden(),
-    ] = Field(default_factory=list, exclude=True)
-
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
-        float,
-        tyro_option('-m'),
-        General(),
-        Beginner(),
-        Display(step=0.01),
+        float, tyro_option('-m'), General(), Beginner(), Display(step=0.01)
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds
@@ -114,6 +72,44 @@ class Tuney(BaseModel):
 
     # Skip preset, config, and autosave loading during GUI startup
     skip_startup_files: tyro.conf.Suppress[bool] = Field(default=False, exclude=True)
+
+    # Named performance preset to load
+    preset: Annotated[
+        str | None,
+        tyro_option('-p'),
+        General(),
+        Beginner(),
+        Display(options=preset_names),
+    ] = None
+
+    # Load configs from a JSON or toml file
+    config_file: Annotated[Path | None, tyro_option('-c'), Hidden()] = None
+
+    # Text to start the program with
+    text: Annotated[
+        str | list[CharPress] | None,
+        tyro_option(
+            '-t',
+            constructor=str,
+            help_behavior_hint='(optional)',
+            metavar='TEXT',
+        ),
+        Hidden(),
+    ] = None
+
+    # Text file to start the program with
+    text_file: Annotated[
+        tyro.conf.Suppress[Path | None],
+        Hidden(),
+    ] = Field(default=None, exclude=True)
+
+    # Positional text to start the program with
+    text_args: Annotated[
+        list[str],
+        tyro.conf.Positional,
+        tyro_option(name='text', metavar='TEXT'),
+        Hidden(),
+    ] = Field(default_factory=list, exclude=True)
 
     @field_validator('text')
     @classmethod
