@@ -12,10 +12,11 @@ from types import FrameType
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
+    QDesktopServices,
     QFocusEvent,
     QIcon,
     QKeyEvent,
@@ -268,6 +269,25 @@ class MainWindow(QMainWindow):
             f'Log file:\n\n{log_path()}',
         )
 
+    def on_open_config_folder(self, *_: object) -> None:
+        path = self.state.tuney.config_file or self.state._autosave.path
+        folder = path.expanduser().parent.resolve()
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            QMessageBox.critical(
+                self,
+                'Open enclosing folder for config file',
+                f'Could not create {folder}:\n\n{error}',
+            )
+            return
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))):
+            QMessageBox.critical(
+                self,
+                'Open enclosing folder for config file',
+                f'Could not open {folder}',
+            )
+
     def on_copy_from_state(self, *_: object) -> None:
         self.qt_app.clipboard().setText(self.state.dump_toml())
 
@@ -364,6 +384,12 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
+        _add_action(
+            file_menu,
+            'Open enclosing folder for config file',
+            None,
+            self.on_open_config_folder,
+        )
         _add_action(file_menu, 'Copy from state', None, self.on_copy_from_state)
         _add_action(file_menu, 'Paste into state', None, self.on_paste_into_state)
         _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)

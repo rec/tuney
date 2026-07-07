@@ -3,7 +3,7 @@ import signal
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
 from tuney.time.char_press import CharPress
@@ -230,6 +230,34 @@ def test_app_activate_and_history() -> None:
                 f'Log file:\n\n{Path(tmp) / "tuney" / "tuney.txt"}',
             )
         ]
+
+    opened = []
+
+    class FakeDesktopServices:
+        @staticmethod
+        def openUrl(url: QUrl) -> bool:
+            opened.append(url.toLocalFile())
+            return True
+
+    main_window_module.QDesktopServices = FakeDesktopServices
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config_file = Path(tmp) / 'configs' / 'settings.toml'
+        object.__setattr__(app.state.tuney, 'config_file', config_file)
+        MainWindow.on_open_config_folder(app)
+
+        assert opened == [str(config_file.parent.resolve())]
+        assert config_file.parent.is_dir()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        opened.clear()
+        autosave_file = Path(tmp) / 'state' / 'state.toml'
+        app = HistoryApp()
+        object.__setattr__(app.state.tuney, 'autosave_file', autosave_file)
+        MainWindow.on_open_config_folder(app)
+
+        assert opened == [str(autosave_file.parent.resolve())]
+        assert autosave_file.parent.is_dir()
 
 
 class FakeLoop:
