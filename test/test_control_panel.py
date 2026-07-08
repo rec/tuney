@@ -9,7 +9,6 @@ from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
-from tuney.audio.oscillator import Oscillator
 from tuney.audio.sound import Sound
 from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
@@ -208,11 +207,6 @@ def test_entry_width_uses_compact_numeric_widths(
                 TextTimings.model_fields['scale'].annotation,
                 control_panel._control_metadata(TextTimings, 'scale'),
             ),
-            'period': control_panel._entry_width(
-                'period',
-                Oscillator.model_fields['period'].annotation,
-                control_panel._control_metadata(Oscillator, 'period'),
-            ),
             'frequency': control_panel._entry_width(
                 'frequency',
                 Tuning.model_fields['root_frequency'].annotation,
@@ -391,8 +385,6 @@ def test_dials_are_limited_to_explicit_analog_controls(
         file_regression,
         {
             'sound_gain': control_panel._dial_metadata(Sound, 'gain') is not None,
-            'oscillator_period': control_panel._dial_metadata(Oscillator, 'period')
-            is not None,
             'sound_minimum_note_time': control_panel._dial_metadata(
                 Sound, 'minimum_note_time'
             )

@@ -119,8 +119,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   -w {sine,square,triangle}, --waveform {sine,square,triangle}
         Waveform used to synthesize notes (default: triangle)
-  -e FLOAT, --period FLOAT
-        Number of waveform cycles per note period (default: 1.0)
   -u FLOAT, --duty-cycle FLOAT
         Fraction of each waveform cycle before its falling edge (default: 0.5)
   -K INT, --key-scale-note INT

@@ -1,7 +1,6 @@
 max_gap = 40
 gain = 40
 scale = 40
-period = 60
 frequency = 60
 note = 40
 device = "None"

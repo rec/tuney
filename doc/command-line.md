@@ -7,7 +7,7 @@ with a unique, short, predictable command-line name.
 
 ## Problems To Solve
 
-1. Nested configuration names are long, for example `--sound.oscillator.period`.
+1. Nested configuration names are long.
 2. Some leaf names repeat across the model, for example `note_offset`, `gain`, and
    `device`, so flattening names requires a collision rule.
 3. Common commands should have short aliases.
@@ -51,7 +51,6 @@ model path:
 * `--midi-output`
 * `--audio-note-offset`
 * `--midi-note-offset`
-* `--oscillator-period`
 * `--oscillator-duty-cycle`
 * `--scale-root`
 * `--mapper-range-limit`

@@ -96,7 +96,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     )
 
 
-def test_oscillator_default_period_matches_previous_phase_scaling():
+def test_oscillator_uses_one_cycle_per_note_period():
     actual = Oscillator(waveform=Waveform.sine)(start=0, length=8, period=8)
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
 

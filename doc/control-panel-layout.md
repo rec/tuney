@@ -106,7 +106,7 @@ Suggested widgets:
 
 * Use spin boxes for all bounded integers and floats.
 * Add a dial only for values where analog adjustment feels natural, such as
-  gain, oscillator duty cycle, oscillator period, and loop trimming.
+  gain, oscillator duty cycle, and loop trimming.
 * Use a horizontal slider instead of a dial when the value has a clear low to
   high direction.
 * Keep direct text entry available for exact values.

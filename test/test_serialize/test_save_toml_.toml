@@ -44,7 +44,6 @@ minimum_note_time = 0.5
 
 [sound.oscillator]
 waveform = "triangle"
-period = 1.0
 duty_cycle = 0.5
 key_scale_note = 64
 key_scale = 0.0

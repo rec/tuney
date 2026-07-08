@@ -257,11 +257,6 @@ type = "object"
 ["$defs".Oscillator.properties.waveform]
 "$ref" = "#/$defs/Waveform"
 
-["$defs".Oscillator.properties.period]
-default = 1.0
-title = "Period"
-type = "number"
-
 ["$defs".Oscillator.properties.duty_cycle]
 default = 0.5
 title = "Duty Cycle"

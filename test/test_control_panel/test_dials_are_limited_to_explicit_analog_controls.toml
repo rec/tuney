@@ -1,4 +1,3 @@
 sound_gain = true
-oscillator_period = true
 sound_minimum_note_time = false
 sound_note_offset = false
