@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from .audio.device import Device
 from .audio.midi import MIDI
 from .audio.sound import Sound
-from .display import Beginner, Display, General, Hidden, Options
+from .display import Beginner, General, Hidden, Numeric, Options
 from .mapper.mapper import Mapper
 from .presets import preset_names
 from .scale.scale import Scale
@@ -51,7 +51,7 @@ class Tuney(BaseModel):
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
-        float, tyro_option('-m'), General, Beginner, Display(step=0.01)
+        float, tyro_option('-m'), General, Beginner, Numeric(min=0, max=4, inc=0.01)
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds

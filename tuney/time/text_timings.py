@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
-from ..display import Beginner, Display
+from ..display import Beginner, Display, Numeric
 from ..tyro_option import tyro_option
 from . import Milliseconds
 from .char_press import CharPress
@@ -62,7 +62,11 @@ class TextTimings(BaseModel, frozen=True):
 
     # Multiplier applied to all generated timing values
     scale: Annotated[
-        float, tyro_option(), Beginner, Display(column=4, row=1, step=0.01)
+        float,
+        tyro_option(),
+        Beginner,
+        Display(column=4, row=1),
+        Numeric(min=0, max=4, inc=0.01),
     ] = 1.0
 
     # Additional per-character base durations, in milliseconds

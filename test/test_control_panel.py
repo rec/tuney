@@ -11,7 +11,7 @@ from pytest_regressions.file_regression import FileRegressionFixture
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.sound import Sound
-from tuney.display import Dial
+from tuney.display import Numeric
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale
@@ -51,6 +51,15 @@ def _control_fields(data: BaseModel) -> list[str]:
         for name in control_panel._visible_field_names(data)
         if not isinstance(getattr(data, name), BaseModel)
     ]
+
+
+def _entry_width(cls: type[BaseModel], name: str) -> int | None:
+    return control_panel._entry_width(
+        name,
+        cls.model_fields[name].annotation,
+        control_panel._control_metadata(cls, name),
+        control_panel._numeric_metadata(cls, name),
+    )
 
 
 def _qt_app() -> object:
@@ -193,56 +202,16 @@ def test_entry_width_uses_compact_numeric_widths(
     _check_regression(
         file_regression,
         {
-            'max_gap': control_panel._entry_width(
-                'max_gap',
-                Tuney.model_fields['max_gap'].annotation,
-                control_panel._control_metadata(Tuney, 'max_gap'),
-            ),
-            'gain': control_panel._entry_width(
-                'gain',
-                Sound.model_fields['gain'].annotation,
-                control_panel._control_metadata(Sound, 'gain'),
-            ),
-            'scale': control_panel._entry_width(
-                'scale',
-                TextTimings.model_fields['scale'].annotation,
-                control_panel._control_metadata(TextTimings, 'scale'),
-            ),
-            'frequency': control_panel._entry_width(
-                'frequency',
-                Tuning.model_fields['root_frequency'].annotation,
-                control_panel._control_metadata(Tuning, 'root_frequency'),
-            ),
-            'note': control_panel._entry_width(
-                'note',
-                Tuning.model_fields['root_note'].annotation,
-                control_panel._control_metadata(Tuning, 'root_note'),
-            ),
-            'device': control_panel._entry_width(
-                'device',
-                Device.model_fields['device'].annotation,
-                control_panel._control_metadata(Device, 'device'),
-            ),
-            'sample_rate': control_panel._entry_width(
-                'sample_rate',
-                Device.model_fields['sample_rate'].annotation,
-                control_panel._control_metadata(Device, 'sample_rate'),
-            ),
-            'space': control_panel._entry_width(
-                'space',
-                TextTimings.model_fields['space'].annotation,
-                control_panel._control_metadata(TextTimings, 'space'),
-            ),
-            'root': control_panel._entry_width(
-                'root',
-                Scale.model_fields['root'].annotation,
-                control_panel._control_metadata(Scale, 'root'),
-            ),
-            'output': control_panel._entry_width(
-                'output',
-                MIDI.model_fields['output'].annotation,
-                control_panel._control_metadata(MIDI, 'output'),
-            ),
+            'max_gap': _entry_width(Tuney, 'max_gap'),
+            'gain': _entry_width(Sound, 'gain'),
+            'scale': _entry_width(TextTimings, 'scale'),
+            'frequency': _entry_width(Tuning, 'root_frequency'),
+            'note': _entry_width(Tuning, 'root_note'),
+            'device': _entry_width(Device, 'device'),
+            'sample_rate': _entry_width(Device, 'sample_rate'),
+            'space': _entry_width(TextTimings, 'space'),
+            'root': _entry_width(Scale, 'root'),
+            'output': _entry_width(MIDI, 'output'),
         },
     )
 
@@ -385,36 +354,52 @@ def test_dials_are_limited_to_explicit_analog_controls(
     _check_regression(
         file_regression,
         {
-            'sound_gain': control_panel._dial_metadata(Sound, 'gain') is not None,
-            'sound_minimum_note_time': control_panel._dial_metadata(
+            'sound_gain': control_panel._numeric_metadata(Sound, 'gain').dial,
+            'sound_minimum_note_time': control_panel._numeric_metadata(
                 Sound, 'minimum_note_time'
-            )
-            is not None,
-            'sound_note_offset': control_panel._dial_metadata(Sound, 'note_offset')
-            is not None,
+            ).dial,
+            'sound_note_offset': control_panel._numeric_metadata(
+                Sound, 'note_offset'
+            ).dial,
         },
     )
 
 
-def test_dial_values_use_dial_range() -> None:
-    dial = Dial(min=2, max=6)
+def test_numeric_dial_values_use_dial_range() -> None:
+    dial = Numeric(min=2, max=6)
 
     assert dial.spin_to_dial(4) == 50
     assert dial.dial_to_spin(50) == 4
 
 
-def test_log_dial_values_are_exponential() -> None:
-    dial = Dial(min=1, max=100, log=True)
+def test_log_numeric_dial_values_are_exponential() -> None:
+    dial = Numeric(min=1, max=100, log=True)
 
     assert dial.spin_to_dial(10) == 50
     assert dial.dial_to_spin(50) == 10
 
 
-def test_log_dial_values_require_positive_range() -> None:
+def test_log_numeric_values_require_positive_range() -> None:
     with pytest.raises(
         ValueError, match='Logarithmic dials require positive min and max'
     ):
-        Dial(log=True)
+        Numeric(log=True)
+
+
+def test_numeric_dials_require_range() -> None:
+    numeric = Numeric()
+
+    assert numeric.min is None
+    assert numeric.max is None
+    with pytest.raises(ValueError, match='Numeric dials require min and max'):
+        Numeric(dial=True)
+
+
+def test_numeric_increment_is_absolute_or_percentage() -> None:
+    assert Numeric(inc=2).step(10, 3) == 16
+    assert Numeric(min=1, max=100, log=True, inc=10).step(100, -1) == pytest.approx(
+        100 / 1.1
+    )
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture) -> None:

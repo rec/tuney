@@ -33,7 +33,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..display import Beginner, Dial, Display, General, Hidden, Options
+from ..display import Beginner, Display, General, Hidden, Numeric, Options
 from ..mapper.mapper import Mapper
 from ..scale import evaluate
 from ..scale.ratios import Ratios
@@ -93,6 +93,22 @@ class _OptionControl:
         self.menu.clear()
         self.menu.addItems(['', *self.values()])
         self.menu.setCurrentText(value)
+
+
+class _NumericDoubleSpinBox(QDoubleSpinBox):
+    def __init__(self, parent: QWidget, numeric: Numeric) -> None:
+        super().__init__(parent)
+        self.numeric = numeric
+
+    def stepBy(self, steps: int) -> None:
+        if not self.numeric.log:
+            super().stepBy(steps)
+            return
+        value = self.value()
+        if value <= 0:
+            assert self.numeric.min is not None
+            value = self.numeric.min
+        self.setValue(self.numeric.step(value, steps))
 
 
 class ControlPanel(QScrollArea):
@@ -629,11 +645,11 @@ def _control_metadata(cls: type[BaseModel], name: str) -> Display:
     return Display()
 
 
-def _dial_metadata(cls: type[BaseModel], name: str) -> Dial | None:
+def _numeric_metadata(cls: type[BaseModel], name: str) -> Numeric:
     for metadata in cls.model_fields[name].metadata:
-        if isinstance(metadata, Dial):
+        if isinstance(metadata, Numeric):
             return metadata
-    return None
+    return Numeric()
 
 
 def _options_metadata(cls: type[BaseModel], name: str) -> Options | None:
@@ -879,6 +895,7 @@ def _add_spin_control(
     parent: QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
+    numeric = _numeric_metadata(type(data), name)
     frame, layout, _ = _add_labeled_control_frame(parent, name)
 
     if _is_int_annotation(annotation):
@@ -886,6 +903,8 @@ def _add_spin_control(
         spin = QSpinBox(frame)
         spin.setLocale(NUMERIC_LOCALE)
         spin.setRange(SPIN_MINIMUM, SPIN_MAXIMUM)
+        if numeric.inc is not None:
+            spin.setSingleStep(max(1, round(numeric.inc)))
         spin.setValue(value)
 
         def update() -> None:
@@ -896,11 +915,11 @@ def _add_spin_control(
         layout.addWidget(spin)
     else:
         assert isinstance(value, float | int)
-        spin = QDoubleSpinBox(frame)
+        spin = _NumericDoubleSpinBox(frame, numeric)
         spin.setLocale(NUMERIC_LOCALE)
-        spin.setDecimals(3)
+        spin.setDecimals(numeric.displayed_decimals)
         spin.setRange(float(SPIN_MINIMUM), float(SPIN_MAXIMUM))
-        spin.setSingleStep(_control_metadata(type(data), name).step)
+        spin.setSingleStep(numeric.increment)
         spin.setValue(float(value))
 
         def update() -> None:
@@ -910,19 +929,19 @@ def _add_spin_control(
         spin.editingFinished.connect(update)
         layout.addWidget(spin)
 
-        if dial_metadata := _dial_metadata(type(data), name):
+        if numeric.dial:
             dial = QDial(frame)
             dial.setFixedSize(30, 30)
             dial.setWrapping(False)
             dial.setRange(0, 100)
-            dial.setValue(dial_metadata.spin_to_dial(spin.value()))
+            dial.setValue(numeric.spin_to_dial(spin.value()))
             dial.valueChanged.connect(
-                lambda value: spin.setValue(dial_metadata.dial_to_spin(value))
+                lambda value: spin.setValue(numeric.dial_to_spin(value))
             )
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)
 
-    width = _entry_width(name, annotation, _control_metadata(type(data), name))
+    width = _entry_width(name, annotation, _control_metadata(type(data), name), numeric)
     _configure_editor(spin, max(width + 18, 56) if width else MIN_EDITOR_WIDTH)
     _parent_layout(parent).addWidget(frame)
 
@@ -1097,9 +1116,13 @@ def _split_expression_list(raw: str) -> list[str]:
 
 
 def _entry_width(
-    name: str, annotation: Any, display: Display | None = None
+    name: str,
+    annotation: Any,
+    display: Display | None = None,
+    numeric: Numeric | None = None,
 ) -> int | None:
     display = display or Display()
+    numeric = numeric or Numeric()
     if width := display.width:
         return width * ENTRY_CHAR_WIDTH
 
@@ -1109,7 +1132,7 @@ def _entry_width(
     if int in types and float not in types and bool not in types:
         return 4 * ENTRY_CHAR_WIDTH
     if float in types:
-        return (4 if display.step == 0.01 else 6) * ENTRY_CHAR_WIDTH
+        return (4 if numeric.inc == 0.01 else 6) * ENTRY_CHAR_WIDTH
     return None
 
 

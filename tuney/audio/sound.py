@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..display import Beginner, Dial, Display, General
+from ..display import Beginner, Display, General, Numeric
 from ..scale import NoteNumber
 from ..tyro_option import tyro_option
 from .oscillator import Oscillator
@@ -21,8 +21,7 @@ class Sound(BaseModel, frozen=True):
         tyro_option('-G'),
         General,
         Beginner,
-        Display(step=0.01),
-        Dial(max=2.0),
+        Numeric(min=0, max=2.0, dial=True, inc=0.01),
     ] = 1.0
 
     # Offset added to generated note numbers before tuning

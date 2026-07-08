@@ -5,7 +5,7 @@ from typing import Annotated
 import numpy as np
 from pydantic import BaseModel
 
-from ..display import Beginner, Dial, Display
+from ..display import Beginner, Display, Numeric
 from ..named_enum import NamedEnum
 from ..scale import NoteNumber
 from ..tyro_option import tyro_option
@@ -45,7 +45,7 @@ class Oscillator(BaseModel, frozen=True):
         tyro_option('-u'),
         Beginner,
         Display(column=1, row=0),
-        Dial(max=1.0),
+        Numeric(min=0, max=1.0, dial=True),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment
