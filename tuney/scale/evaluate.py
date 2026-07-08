@@ -6,17 +6,17 @@ from collections.abc import Callable, Iterable
 from fractions import Fraction
 from functools import cached_property, singledispatchmethod
 
-from . import cents
+from . import Number, cents
 
 MODULES = {'math': math, 'random': random}
 FUNCTIONS = {'cents': cents}
 
 
-def evaluate(expression: str) -> float | Fraction:
+def evaluate(expression: str) -> Number:
     return _Evaluate(expression).evaluate()
 
 
-def evaluate_all(expressions: Iterable[str]) -> list[float | Fraction]:
+def evaluate_all(expressions: Iterable[str]) -> list[Number]:
     values, bad = [], []
     for s in expressions:
         try:
@@ -33,7 +33,7 @@ class _Evaluate:
     def __init__(self, expression: str) -> None:
         self.expression = expression
 
-    def evaluate(self) -> float | Fraction:
+    def evaluate(self) -> Number:
         return self._eval(self.root)
 
     @cached_property
@@ -41,15 +41,15 @@ class _Evaluate:
         return ast.parse(self.expression.partition('#')[0], mode='eval')
 
     @singledispatchmethod
-    def _eval(self, node: ast.AST) -> float | Fraction:
+    def _eval(self, node: ast.AST) -> Number:
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
     @_eval.register
-    def _(self, node: ast.Expression) -> float | Fraction:
+    def _(self, node: ast.Expression) -> Number:
         return self._eval(node.body)
 
     @_eval.register
-    def _(self, node: ast.Constant) -> float | Fraction:
+    def _(self, node: ast.Constant) -> Number:
         if type(node.value) is int:
             return self.number(node.value)
         if type(node.value) is float:
@@ -57,7 +57,7 @@ class _Evaluate:
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
     @_eval.register
-    def _(self, node: ast.BinOp) -> float | Fraction:
+    def _(self, node: ast.BinOp) -> Number:
         if (operation := BINARY_OPERATORS.get(type(node.op))) is None:
             raise ValueError(
                 f'Unsupported binary operator {node.op.__class__.__name__}'
@@ -65,7 +65,7 @@ class _Evaluate:
         return operation(self._eval(node.left), self._eval(node.right))
 
     @_eval.register
-    def _(self, node: ast.UnaryOp) -> float | Fraction:
+    def _(self, node: ast.UnaryOp) -> Number:
         value = self._eval(node.operand)
         if isinstance(node.op, ast.UAdd):
             return value
@@ -74,7 +74,7 @@ class _Evaluate:
         raise ValueError(f'Unsupported unary operator {node.op.__class__.__name__}')
 
     @_eval.register
-    def _(self, node: ast.Call) -> float | Fraction:
+    def _(self, node: ast.Call) -> Number:
         if node.keywords:
             raise ValueError('Keyword arguments are not supported')
 
@@ -96,17 +96,17 @@ class _Evaluate:
         if not callable(func):
             raise TypeError(f'{ast.unparse(f)} is not callable')
 
-        def convert(node: ast.AST) -> float | int | Fraction:
+        def convert(node: ast.AST) -> Number:
             v = float(self._eval(node))
             return int(v) if v.is_integer() else v
 
         result = func(*(convert(a) for a in node.args))
-        if isinstance(result, int | float | Fraction):
+        if isinstance(result, Number):
             return self.number(result)
         raise TypeError(f'Function returned unsupported value {result!r}')
 
     @_eval.register
-    def _(self, node: ast.Attribute) -> float | Fraction:
+    def _(self, node: ast.Attribute) -> Number:
         if not isinstance(node.value, ast.Name):
             raise ValueError('Only math and random attributes can be used')
         if node.attr.startswith('_'):
@@ -114,17 +114,15 @@ class _Evaluate:
         if node.value.id not in MODULES:
             raise NameError(f'Unknown name {node.value.id!r}')
         value = getattr(MODULES[node.value.id], node.attr)
-        if isinstance(value, int | float | Fraction):
+        if isinstance(value, Number):
             return self.number(value)
         raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
 
-    def number(self, v: int | float | Fraction) -> float | Fraction:
+    def number(self, v: Number) -> Number:
         return Fraction(str(v)) if isinstance(v, float) else Fraction(v)
 
 
-BINARY_OPERATORS: dict[
-    type[ast.operator], Callable[[float | Fraction, float | Fraction], float | Fraction]
-] = {
+BINARY_OPERATORS: dict[type[ast.operator], Callable[[Number, Number], Number]] = {
     ast.Add: op.add,
     ast.Sub: op.sub,
     ast.Mult: op.mul,

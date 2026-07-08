@@ -31,13 +31,11 @@
       "frequency": 440,
       "note": 69
     },
-    "computed": {
+    "tuning": {
       "limit": 0,
       "notes_per_octave": 12,
-      "octave_ratio": 2,
-      "pitch_to_frequency": "power"
-    },
-    "table_blend": true
+      "octave_ratio": 2
+    }
   },
   "device": {},
   "sound": {

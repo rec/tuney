@@ -19,8 +19,6 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--backspace-repeat-rate',
     '--sample-rate',
     '--dtype',
-    '--table',
-    '--table-blend',
     '--headroom',
     '--max-voices',
     '--midi-enable',
@@ -180,10 +178,6 @@ def test_cli_accepts_flat_long_options() -> None:
             '--midi-note-offset=12',
             '--dot=301',
             '--scale=4',
-            '--table',
-            '440',
-            '880',
-            '--no-table-blend',
             '--space=101',
             '--comma=201',
             '--colon=401',
@@ -209,8 +203,6 @@ def test_cli_accepts_flat_long_options() -> None:
     assert tuney.midi.note_offset == 12
     assert tuney.text_timings.dot == 301
     assert tuney.text_timings.scale == 4
-    assert tuney.tuning.table == [440, 880]
-    assert not tuney.tuning.table_blend
     assert tuney.text_timings.space == 101
     assert tuney.text_timings.comma == 201
     assert tuney.text_timings.colon == 401
@@ -260,18 +252,17 @@ def test_cli_accepts_single_character_aliases() -> None:
             'reflect',
             '-T',
             '5',
+            '-U',
+            '442',
+            '-W',
+            '70',
+            'tuning.tuning:computed',
             '-v',
             '7',
             '-V',
             '19',
             '-J',
             '3',
-            '-F',
-            'linear',
-            '-U',
-            '442',
-            '-W',
-            '70',
         ],
     )
 
@@ -291,10 +282,9 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
     assert tuney.tuning.detune == 5
-    assert tuney.tuning.computed.limit == 7
-    assert tuney.tuning.computed.notes_per_octave == 19
-    assert tuney.tuning.computed.octave_ratio == 3
-    assert tuney.tuning.computed.pitch_to_frequency.name == 'linear'
+    assert tuney.tuning.tuning.limit == 7
+    assert tuney.tuning.tuning.notes_per_octave == 19
+    assert tuney.tuning.tuning.octave_ratio == 3
     assert tuney.tuning.root.frequency == 442
     assert tuney.tuning.root.note == 70
 

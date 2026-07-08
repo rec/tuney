@@ -1,4 +1,4 @@
-usage: tuney [-h] [OPTIONS]
+usage: tuney [-h] [OPTIONS] [{tuning.tuning:computed,tuning.tuning:ratios,tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')}]
 
 Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
 
@@ -82,11 +82,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
-  --table {None}|{[FLOAT [FLOAT ...]]}
-        A table, either a Sequence or a dict, mapping note number to frequency. (default: None)
-  --table-blend, --no-table-blend
-        If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
-        (default: True)
 
  tuning.root options
  ----------------------------------------------------------------------------------------------------------------------
@@ -94,20 +89,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         The frequency of the reference `root_note` (default: 440)
   -W INT, --root-note INT
         The note number of the reference note (default: 69)
-
- tuning.computed options
- ----------------------------------------------------------------------------------------------------------------------
-  -v INT, --limit INT
-        If limit is greater than zero, use rounded N-limit just intonation (default: 0)
-  -V INT, --notes-per-octave INT
-        Number of divisions of an octave (default: 12)
-  -J FLOAT, --octave-ratio FLOAT
-        Frequency change between octaves. For the default "power" pitch_to_frequency the change is a ratio, so if it's
-        2, each octave is twice the frequency of the last; for "linear", it's a difference, so if it's 100, each octave
-        would be
-        100Hz greater in frequency than the previous. (default: 2)
-  -F {power,linear}, --pitch-to-frequency {power,linear}
-        The rule for converting a pitch to a frequency (default: power)
 
  device options
  ----------------------------------------------------------------------------------------------------------------------
@@ -198,3 +179,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Additional per-character base durations, in milliseconds (default: )
   --timings {None}|{[FLOAT [FLOAT ...]]}
         Possible durations for alphabetic characters, in milliseconds (default: None)
+
+ subcommands
+ ----------------------------------------------------------------------------------------------------------------------
+  (default: tuning.tuning:computed)
+    • tuning.tuning:computed
+    • tuning.tuning:ratios
+    • tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')

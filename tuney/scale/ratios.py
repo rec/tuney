@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from fractions import Fraction
-from functools import cache, cached_property
+from functools import cached_property
 from pathlib import Path
 from typing import Annotated
 
@@ -12,17 +12,14 @@ from ..display import Display
 from ..platform_info import report_error
 from ..text_file import read_text_file
 from ..tyro_option import tyro_option
-from . import NoteNumber, evaluate, uncents
-from .root import Root
+from . import Number, evaluate, uncents
 
 
 class Ratios(BaseModel, frozen=True):
     #: Frequency ratios for each step in the scale
-    ratios: Annotated[
-        Sequence[float | Fraction],
-        tyro_option(),
-        Display(row=0, width=24),
-    ] = Field(default_factory=list)
+    ratios: Annotated[Sequence[Number], tyro_option(), Display(row=0, width=24)] = (
+        Field(default_factory=list)
+    )
 
     #: Name of this ratio scale
     name: Annotated[str, tyro_option(), Display(row=1, column=0)] = ''
@@ -30,12 +27,9 @@ class Ratios(BaseModel, frozen=True):
     #: Description of this ratio scale
     desc: Annotated[str, tyro_option(), Display(row=1, column=1, width=24)] = ''
 
-    def __call__(self, note_number: NoteNumber, root: Root) -> float | Fraction:
-        return self[note_number - root.note]
-
-    @cache  # noqa: B019
-    def __getitem__(self, steps: int) -> float | Fraction:
-        d, m = divmod(steps, self.length)
+    def __call__(self, note_delta: int) -> Number:
+        # Returns a frequency ratio
+        d, m = divmod(note_delta, self.length)
         return self.ratios[-1] ** d * (self.ratios[m - 1] if m else 1)
 
     @cached_property
