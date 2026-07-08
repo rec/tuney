@@ -26,10 +26,8 @@ offset = 0
 
 [tuning]
 detune = 0
-
-[tuning.root]
-frequency = 440
-note = 69
+root_frequency = 440
+root_note = 69
 
 [tuning.tuning]
 limit = 0

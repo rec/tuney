@@ -11,7 +11,6 @@ from ..display import Beginner, Display
 from ..tyro_option import tyro_option
 from . import NoteNumber, Number, cents
 from .ratios import Ratios
-from .root import Root
 
 type Frequency = float  # Must be non-negative
 
@@ -57,11 +56,26 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     can be customized.
     """
 
+    tuning: Computed | Ratios | list[Frequency] = Computed()
+
     #: Detune everything, in cents of an octave division
     detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
-    root: Root = Root()
 
-    tuning: Computed | Ratios | list[Frequency] = Computed()
+    #: The frequency of the reference `root_note`
+    root_frequency: Annotated[
+        float,
+        tyro_option('-U'),
+        Beginner,
+        Display(column=4, row=0),
+    ] = 440
+
+    #: The note number of the reference note
+    root_note: Annotated[
+        NoteNumber,
+        tyro_option('-W'),
+        Beginner,
+        Display(column=5, row=0),
+    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     @model_validator(mode='before')
     @classmethod
@@ -74,11 +88,11 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     def __call__(self, note_number: NoteNumber) -> Number:
         """Return the frequency in this tuning for a NoteNumber"""
-        note_delta = note_number - self.root.note
+        note_delta = note_number - self.root_note
         if isinstance(self.tuning, list):
             freq = self.tuning[note_delta % len(self.tuning)]
         else:
-            freq = self.tuning(note_delta) * self.root.frequency
+            freq = self.tuning(note_delta) * self.root_frequency
         return freq * self.detune_ratio
 
 

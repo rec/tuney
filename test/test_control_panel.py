@@ -11,8 +11,8 @@ from tuney.audio.oscillator import Oscillator
 from tuney.audio.sound import Sound
 from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
-from tuney.scale.root import Root
 from tuney.scale.scale import Scale
+from tuney.scale.tuning import Tuning
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui import control_panel
@@ -212,13 +212,13 @@ def test_entry_width_uses_compact_numeric_widths(
             ),
             'frequency': control_panel._entry_width(
                 'frequency',
-                Root.model_fields['frequency'].annotation,
-                control_panel._control_metadata(Root, 'frequency'),
+                Tuning.model_fields['root_frequency'].annotation,
+                control_panel._control_metadata(Tuning, 'root_frequency'),
             ),
             'note': control_panel._entry_width(
                 'note',
-                Root.model_fields['note'].annotation,
-                control_panel._control_metadata(Root, 'note'),
+                Tuning.model_fields['root_note'].annotation,
+                control_panel._control_metadata(Tuning, 'root_note'),
             ),
             'device': control_panel._entry_width(
                 'device',
@@ -283,9 +283,6 @@ def test_control_rows_use_compact_model_layouts(
             ),
             'tuning': control_panel._control_rows(
                 tuney.tuning, _control_fields(tuney.tuning)
-            ),
-            'root': control_panel._control_rows(
-                tuney.tuning.root, _control_fields(tuney.tuning.root)
             ),
             'computed': control_panel._control_rows(
                 tuney.tuning.tuning, _control_fields(tuney.tuning.tuning)

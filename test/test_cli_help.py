@@ -285,8 +285,8 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.tuning.tuning.limit == 7
     assert tuney.tuning.tuning.notes_per_octave == 19
     assert tuney.tuning.tuning.octave_ratio == 3
-    assert tuney.tuning.root.frequency == 442
-    assert tuney.tuning.root.note == 70
+    assert tuney.tuning.root_frequency == 442
+    assert tuney.tuning.root_note == 70
 
 
 def test_removed_single_character_aliases_are_not_options() -> None:

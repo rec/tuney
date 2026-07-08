@@ -82,9 +82,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
-
- tuning.root options
- ----------------------------------------------------------------------------------------------------------------------
   -U FLOAT, --root-frequency FLOAT
         The frequency of the reference `root_note` (default: 440)
   -W INT, --root-note INT

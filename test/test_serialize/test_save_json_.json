@@ -26,16 +26,14 @@
     "offset": 0
   },
   "tuning": {
-    "detune": 0,
-    "root": {
-      "frequency": 440,
-      "note": 69
-    },
     "tuning": {
       "limit": 0,
       "notes_per_octave": 12,
       "octave_ratio": 2
-    }
+    },
+    "detune": 0,
+    "root_frequency": 440,
+    "root_note": 69
   },
   "device": {},
   "sound": {
