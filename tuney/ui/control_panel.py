@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -99,35 +100,53 @@ class ControlPanel(QScrollArea):
         self.state = state
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
+        self.pages: dict[bool, QWidget] = {}
         self.setWidgetResizable(True)
         self.setMinimumHeight(min(height, 80))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.content = QWidget()
+        self.content: QStackedWidget = QStackedWidget()
         self.content.setObjectName('control_panel_content')
-        self.content_layout = QVBoxLayout(self.content)
-        self.content_layout.setContentsMargins(6, 6, 6, 6)
-        self.content_layout.setSpacing(8)
         self.setWidget(self.content)
         self.rebuild()
 
     def rebuild(self) -> None:
-        _clear_layout(self.content_layout)
+        while self.content.count():
+            page = self.content.widget(0)
+            assert page is not None
+            self.content.removeWidget(page)
+            page.deleteLater()
+        self.pages.clear()
         self.option_controls.clear()
+        self.show_mode(self.show_advanced)
+
+    def show_mode(self, advanced: bool) -> None:
+        self.show_advanced = advanced
+        if advanced not in self.pages:
+            self.pages[advanced] = self._build_page(advanced)
+        self.content.setCurrentWidget(self.pages[advanced])
+
+    def _build_page(self, advanced: bool) -> QWidget:
+        page = QWidget(self.content)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(8)
+        self.content.addWidget(page)
         if type(self.data).__name__ == 'Tuney':
-            _add_mode_switch(self)
+            _add_mode_switch(self, page, layout)
             _add_general_controls(
-                self.content,
+                page,
                 self.data,
                 self.option_controls,
-                self.show_advanced,
+                advanced,
             )
-        _add_model_controls(
-            self.content, self.data, self.option_controls, advanced=self.show_advanced
-        )
+        _add_model_controls(page, self.data, self.option_controls, advanced=advanced)
+        return page
 
 
-def _add_mode_switch(control_panel: ControlPanel) -> None:
-    frame = QWidget(control_panel.content)
+def _add_mode_switch(
+    control_panel: ControlPanel, page: QWidget, page_layout: QBoxLayout
+) -> None:
+    frame = QWidget(page)
     layout = QHBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(4)
@@ -142,12 +161,11 @@ def _add_mode_switch(control_panel: ControlPanel) -> None:
         group.addButton(radio)
         layout.addWidget(radio)
     layout.addStretch()
-    control_panel.content_layout.addWidget(frame)
+    page_layout.addWidget(frame)
 
 
 def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None:
-    control_panel.show_advanced = advanced
-    control_panel.rebuild()
+    control_panel.show_mode(advanced)
 
 
 def _add_model_controls(
@@ -1004,17 +1022,6 @@ def _parent_layout(parent: QWidget) -> QBoxLayout:
         layout.setSpacing(2)
     assert isinstance(layout, QBoxLayout)
     return layout
-
-
-def _clear_layout(layout: QBoxLayout) -> None:
-    while layout.count():
-        if (item := layout.takeAt(0)) is None:
-            continue
-        if (widget := item.widget()) is not None:
-            widget.deleteLater()
-        if (child_layout := item.layout()) is not None:
-            assert isinstance(child_layout, QBoxLayout)
-            _clear_layout(child_layout)
 
 
 def _after(

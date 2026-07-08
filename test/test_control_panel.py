@@ -3,6 +3,7 @@ from enum import Enum
 
 import tomlkit
 from pydantic import BaseModel
+from pytest import MonkeyPatch
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.audio.device import Device
@@ -314,6 +315,43 @@ def test_beginner_mode_filters_advanced_controls(
             ),
         },
     )
+
+
+def test_control_panel_reuses_mode_pages(monkeypatch: MonkeyPatch) -> None:
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    calls: list[bool] = []
+    add_model_controls = control_panel._add_model_controls
+
+    def wrapped_add_model_controls(
+        parent: QWidget,
+        data: BaseModel,
+        option_controls: list[object],
+        title: str | None = None,
+        advanced: bool = True,
+    ) -> None:
+        calls.append(advanced)
+        add_model_controls(parent, data, option_controls, title, advanced)
+
+    monkeypatch.setattr(
+        control_panel, '_add_model_controls', wrapped_add_model_controls
+    )
+
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    advanced_calls = len(calls)
+
+    control_panel._set_control_panel_mode(panel, False)
+    beginner_calls = len(calls)
+
+    assert advanced_calls > 0
+    assert beginner_calls > advanced_calls
+
+    control_panel._set_control_panel_mode(panel, True)
+    control_panel._set_control_panel_mode(panel, False)
+
+    assert len(calls) == beginner_calls
 
 
 def test_dials_are_limited_to_explicit_analog_controls(
