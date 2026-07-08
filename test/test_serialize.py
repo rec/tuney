@@ -1,8 +1,10 @@
 import json
 import tomllib
+import warnings
 
 import pytest
 import tomlkit
+from pydantic.json_schema import PydanticJsonSchemaWarning
 
 from tuney.serialize import serialize
 from tuney.time.char_press import CharPress
@@ -27,6 +29,17 @@ def test_tuney_dump_data_uses_recorded_char_presses():
 
 def test_tuney_player_serializes_no_configuration() -> None:
     assert 'player' not in Tuney().model_dump()
+
+
+def test_tuney_model_json_schema(file_regression) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', PydanticJsonSchemaWarning)
+        schema = Tuney.model_json_schema()
+
+    file_regression.check(
+        tomlkit.dumps(_toml_schema_value(schema)),
+        extension='.toml',
+    )
 
 
 def test_tuney_dump_data_excludes_text_file(tmp_path) -> None:
@@ -82,3 +95,13 @@ def test_restore_text_accepts_toml_and_json(text: str) -> None:
     TuneyState(tuney).restore_text(text)
 
     assert tuney.max_gap == 2.0
+
+
+def _toml_schema_value(value: object) -> object:
+    if value is None:
+        return '<null>'
+    if isinstance(value, dict):
+        return {str(k): _toml_schema_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_toml_schema_value(v) for v in value]
+    return value

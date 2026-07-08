@@ -1,0 +1,696 @@
+description = "Turn text into music.\n\nUse positional `TEXT` to play characters as notes, then tune the scale,\naudio, MIDI, and timing from the same config model."
+title = "Tuney"
+type = "object"
+
+["$defs".Accidentals]
+enum = ["none", "whole", "half"]
+title = "Accidentals"
+type = "string"
+
+["$defs".CharPress]
+required = ["char", "time"]
+title = "CharPress"
+type = "object"
+
+["$defs".CharPress.properties.char]
+title = "Char"
+type = "string"
+
+["$defs".CharPress.properties.is_press]
+default = true
+title = "Is Press"
+type = "boolean"
+
+["$defs".CharPress.properties.time]
+"$ref" = "#/$defs/Seconds"
+
+["$defs".Computed]
+title = "Computed"
+type = "object"
+
+["$defs".Computed.properties.limit]
+default = 0
+title = "Limit"
+type = "integer"
+
+["$defs".Computed.properties.notes_per_octave]
+default = 12
+title = "Notes Per Octave"
+type = "integer"
+
+["$defs".Computed.properties.octave_ratio]
+default = 2
+title = "Octave Ratio"
+type = "number"
+
+["$defs".DType]
+enum = ["int8", "uint8", "int32", "int16", "float32"]
+title = "DType"
+type = "string"
+
+["$defs".Device]
+title = "Device"
+type = "object"
+
+["$defs".Device.properties.sample_rate]
+default = "<null>"
+title = "Sample Rate"
+[["$defs".Device.properties.sample_rate.anyOf]]
+type = "integer"
+
+[["$defs".Device.properties.sample_rate.anyOf]]
+type = "null"
+
+["$defs".Device.properties.device]
+default = "<null>"
+title = "Device"
+[["$defs".Device.properties.device.anyOf]]
+type = "integer"
+
+[["$defs".Device.properties.device.anyOf]]
+type = "string"
+
+[["$defs".Device.properties.device.anyOf]]
+type = "null"
+
+["$defs".Device.properties.dtype]
+default = "<null>"
+[["$defs".Device.properties.dtype.anyOf]]
+"$ref" = "#/$defs/DType"
+
+[["$defs".Device.properties.dtype.anyOf]]
+type = "null"
+
+["$defs".Device.properties.blocksize]
+default = "<null>"
+title = "Blocksize"
+[["$defs".Device.properties.blocksize.anyOf]]
+type = "integer"
+
+[["$defs".Device.properties.blocksize.anyOf]]
+type = "null"
+
+["$defs".Device.properties.channels]
+default = "<null>"
+title = "Channels"
+[["$defs".Device.properties.channels.anyOf]]
+type = "integer"
+
+[["$defs".Device.properties.channels.anyOf]]
+type = "null"
+
+["$defs".Device.properties.latency]
+default = "<null>"
+title = "Latency"
+[["$defs".Device.properties.latency.anyOf]]
+type = "integer"
+
+[["$defs".Device.properties.latency.anyOf]]
+type = "null"
+
+["$defs".Device.properties.extra_settings]
+default = "<null>"
+title = "Extra Settings"
+[["$defs".Device.properties.extra_settings.anyOf]]
+type = "string"
+
+[["$defs".Device.properties.extra_settings.anyOf]]
+type = "null"
+
+["$defs".Device.properties.clip_off]
+default = "<null>"
+title = "Clip Off"
+[["$defs".Device.properties.clip_off.anyOf]]
+type = "boolean"
+
+[["$defs".Device.properties.clip_off.anyOf]]
+type = "null"
+
+["$defs".Device.properties.dither_off]
+default = "<null>"
+title = "Dither Off"
+[["$defs".Device.properties.dither_off.anyOf]]
+type = "boolean"
+
+[["$defs".Device.properties.dither_off.anyOf]]
+type = "null"
+
+["$defs".Device.properties.never_drop_input]
+default = "<null>"
+title = "Never Drop Input"
+[["$defs".Device.properties.never_drop_input.anyOf]]
+type = "boolean"
+
+[["$defs".Device.properties.never_drop_input.anyOf]]
+type = "null"
+
+["$defs".Device.properties.prime_output_buffers_using_stream_callback]
+default = "<null>"
+title = "Prime Output Buffers Using Stream Callback"
+[["$defs".Device.properties.prime_output_buffers_using_stream_callback.anyOf]]
+type = "boolean"
+
+[["$defs".Device.properties.prime_output_buffers_using_stream_callback.anyOf]]
+type = "null"
+
+["$defs".Frequency]
+type = "number"
+
+["$defs".Limiter]
+enum = ["wrap", "reflect", "reflect_repeat"]
+title = "Limiter"
+type = "string"
+
+["$defs".MIDI]
+title = "MIDI"
+type = "object"
+
+["$defs".MIDI.properties.enable]
+default = false
+title = "Enable"
+type = "boolean"
+
+["$defs".MIDI.properties.output]
+default = "<null>"
+title = "Output"
+[["$defs".MIDI.properties.output.anyOf]]
+type = "string"
+
+[["$defs".MIDI.properties.output.anyOf]]
+type = "null"
+
+["$defs".MIDI.properties.channel]
+default = 0
+title = "Channel"
+type = "integer"
+
+["$defs".MIDI.properties.velocity]
+default = 64
+title = "Velocity"
+type = "integer"
+
+["$defs".MIDI.properties.note_offset]
+default = 0
+title = "Note Offset"
+type = "integer"
+
+["$defs".Map]
+enum = ["linear"]
+title = "Map"
+type = "string"
+
+["$defs".Mapper]
+title = "Mapper"
+type = "object"
+
+["$defs".Mapper.properties.map]
+"$ref" = "#/$defs/Map"
+
+["$defs".Mapper.properties.alphabet]
+default = "<null>"
+title = "Alphabet"
+[["$defs".Mapper.properties.alphabet.anyOf]]
+type = "string"
+
+[["$defs".Mapper.properties.alphabet.anyOf]]
+type = "null"
+
+["$defs".Mapper.properties.length]
+default = 0
+title = "Length"
+type = "integer"
+
+["$defs".Mapper.properties.case_sensitive]
+default = true
+title = "Case Sensitive"
+type = "boolean"
+
+["$defs".Mapper.properties.invert]
+default = false
+title = "Invert"
+type = "boolean"
+
+["$defs".Mapper.properties.offset]
+default = 0
+title = "Offset"
+type = "integer"
+
+["$defs".Mapper.properties.range_limit]
+default = 60
+title = "Range Limit"
+type = "integer"
+
+["$defs".Mapper.properties.limiter]
+"$ref" = "#/$defs/Limiter"
+default = "wrap"
+
+["$defs".Milliseconds]
+type = "number"
+
+["$defs".NoteNumber]
+type = "integer"
+
+["$defs".Oscillator]
+title = "Oscillator"
+type = "object"
+
+["$defs".Oscillator.properties.waveform]
+"$ref" = "#/$defs/Waveform"
+
+["$defs".Oscillator.properties.period]
+default = 1.0
+title = "Period"
+type = "number"
+
+["$defs".Oscillator.properties.duty_cycle]
+default = 0.5
+title = "Duty Cycle"
+type = "number"
+
+["$defs".Oscillator.properties.key_scale_note]
+"$ref" = "#/$defs/NoteNumber"
+default = 64
+
+["$defs".Oscillator.properties.key_scale]
+default = 0.0
+title = "Key Scale"
+type = "number"
+
+["$defs".Polyphony]
+title = "Polyphony"
+type = "object"
+
+["$defs".Polyphony.properties.headroom]
+default = 4
+exclusiveMinimum = 0
+title = "Headroom"
+type = "number"
+
+["$defs".Polyphony.properties.max_voices]
+default = 32
+exclusiveMinimum = 0
+title = "Max Voices"
+type = "integer"
+
+["$defs".Ratios]
+title = "Ratios"
+type = "object"
+
+["$defs".Ratios.properties.ratios]
+title = "Ratios"
+type = "array"
+
+[["$defs".Ratios.properties.ratios.items.anyOf]]
+type = "number"
+
+[["$defs".Ratios.properties.ratios.items.anyOf]]
+type = "integer"
+
+[["$defs".Ratios.properties.ratios.items.anyOf]]
+format = "fraction"
+type = "string"
+
+["$defs".Ratios.properties.name]
+default = ""
+title = "Name"
+type = "string"
+
+["$defs".Ratios.properties.desc]
+default = ""
+title = "Desc"
+type = "string"
+
+["$defs".Scale]
+description = "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale generalizes this to allow more or less than 12 notes per octave, N-just limit,\ncustom tunings, different note names and intervals."
+title = "Scale"
+type = "object"
+
+["$defs".Scale.properties.note_names]
+default = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+title = "Note Names"
+type = "string"
+
+["$defs".Scale.properties.root]
+default = "C"
+title = "Root"
+type = "string"
+
+["$defs".Scale.properties.begin]
+default = "A"
+title = "Begin"
+type = "string"
+
+["$defs".Scale.properties.end]
+default = "G"
+title = "End"
+type = "string"
+
+["$defs".Scale.properties.notes]
+default = "<null>"
+title = "Notes"
+[["$defs".Scale.properties.notes.anyOf]]
+type = "string"
+
+[["$defs".Scale.properties.notes.anyOf]]
+type = "null"
+
+["$defs".Scale.properties.intervals]
+title = "Intervals"
+type = "array"
+
+["$defs".Scale.properties.intervals.items]
+type = "integer"
+
+["$defs".Scale.properties.accidentals]
+"$ref" = "#/$defs/Accidentals"
+default = "whole"
+
+["$defs".Scale.properties.offset]
+default = 0
+title = "Offset"
+type = "integer"
+
+["$defs".Seconds]
+type = "number"
+
+["$defs".Sound]
+title = "Sound"
+type = "object"
+
+["$defs".Sound.properties.oscillator]
+"$ref" = "#/$defs/Oscillator"
+
+["$defs".Sound.properties.gain]
+default = 1.0
+title = "Gain"
+type = "number"
+
+["$defs".Sound.properties.note_offset]
+"$ref" = "#/$defs/NoteNumber"
+default = 44
+
+["$defs".Sound.properties.polyphony]
+"$ref" = "#/$defs/Polyphony"
+
+["$defs".Sound.properties.polyphony.default]
+headroom = 4.0
+max_voices = 32
+
+["$defs".Sound.properties.minimum_note_time]
+default = 0.5
+minimum = 0
+title = "Minimum Note Time"
+type = "number"
+
+["$defs".TextTimings]
+title = "TextTimings"
+type = "object"
+
+["$defs".TextTimings.properties.space]
+"$ref" = "#/$defs/Milliseconds"
+default = 100
+
+["$defs".TextTimings.properties.dot]
+"$ref" = "#/$defs/Milliseconds"
+default = 300
+
+["$defs".TextTimings.properties.comma]
+"$ref" = "#/$defs/Milliseconds"
+default = 200
+
+["$defs".TextTimings.properties.colon]
+"$ref" = "#/$defs/Milliseconds"
+default = 400
+
+["$defs".TextTimings.properties.semicolon]
+"$ref" = "#/$defs/Milliseconds"
+default = 400
+
+["$defs".TextTimings.properties.blank_line]
+"$ref" = "#/$defs/Milliseconds"
+default = 1000
+
+["$defs".TextTimings.properties.overlap]
+"$ref" = "#/$defs/Milliseconds"
+default = 20
+
+["$defs".TextTimings.properties.seed]
+default = "<null>"
+title = "Seed"
+[["$defs".TextTimings.properties.seed.anyOf]]
+type = "integer"
+
+[["$defs".TextTimings.properties.seed.anyOf]]
+type = "null"
+
+["$defs".TextTimings.properties.alpha_only]
+default = true
+title = "Alpha Only"
+type = "boolean"
+
+["$defs".TextTimings.properties.strip_accents]
+default = true
+title = "Strip Accents"
+type = "boolean"
+
+["$defs".TextTimings.properties.scale]
+default = 1.0
+title = "Scale"
+type = "number"
+
+["$defs".TextTimings.properties.other]
+title = "Other"
+type = "object"
+
+["$defs".TextTimings.properties.other.additionalProperties]
+"$ref" = "#/$defs/Milliseconds"
+
+["$defs".TextTimings.properties.timings]
+default = "<null>"
+title = "Timings"
+[["$defs".TextTimings.properties.timings.anyOf]]
+type = "array"
+
+["$defs".TextTimings.properties.timings.anyOf.items]
+"$ref" = "#/$defs/Milliseconds"
+
+[["$defs".TextTimings.properties.timings.anyOf]]
+type = "null"
+
+["$defs".Tuning]
+description = "A generalization of equal temperament, where the default values\nare the same as classic twelve-tone equal temperament (12-tet) but\ncan be customized."
+title = "Tuning"
+type = "object"
+
+["$defs".Tuning.properties.tuning]
+title = "Tuning"
+[["$defs".Tuning.properties.tuning.anyOf]]
+"$ref" = "#/$defs/Computed"
+
+[["$defs".Tuning.properties.tuning.anyOf]]
+"$ref" = "#/$defs/Ratios"
+
+[["$defs".Tuning.properties.tuning.anyOf]]
+type = "array"
+
+["$defs".Tuning.properties.tuning.anyOf.items]
+"$ref" = "#/$defs/Frequency"
+
+["$defs".Tuning.properties.tuning.default]
+limit = 0
+notes_per_octave = 12
+octave_ratio = 2.0
+
+["$defs".Tuning.properties.detune]
+default = 0
+title = "Detune"
+type = "number"
+
+["$defs".Tuning.properties.root_frequency]
+default = 440
+title = "Root Frequency"
+type = "number"
+
+["$defs".Tuning.properties.root_note]
+"$ref" = "#/$defs/NoteNumber"
+default = 69
+
+["$defs".Waveform]
+enum = ["sine", "square", "triangle"]
+title = "Waveform"
+type = "string"
+
+[properties.mapper]
+"$ref" = "#/$defs/Mapper"
+
+[properties.scale]
+"$ref" = "#/$defs/Scale"
+
+[properties.scale.default]
+note_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+root = "C"
+begin = "A"
+end = "G"
+notes = "<null>"
+intervals = [2, 2, 1, 2, 2, 2, 1]
+accidentals = "whole"
+offset = 0
+
+[properties.tuning]
+"$ref" = "#/$defs/Tuning"
+
+[properties.tuning.default]
+detune = 0.0
+root_frequency = 440.0
+root_note = 69
+
+[properties.tuning.default.tuning]
+limit = 0
+notes_per_octave = 12
+octave_ratio = 2.0
+
+[properties.device]
+"$ref" = "#/$defs/Device"
+
+[properties.sound]
+"$ref" = "#/$defs/Sound"
+
+[properties.midi]
+"$ref" = "#/$defs/MIDI"
+
+[properties.midi.default]
+enable = false
+output = "<null>"
+channel = 0
+velocity = 64
+note_offset = 0
+
+[properties.text_timings]
+"$ref" = "#/$defs/TextTimings"
+
+[properties.text_timings.default]
+space = 100.0
+dot = 300.0
+comma = 200.0
+colon = 400.0
+semicolon = 400.0
+blank_line = 1000.0
+overlap = 20.0
+seed = "<null>"
+alpha_only = true
+strip_accents = true
+scale = 3.0
+timings = "<null>"
+
+[properties.text_timings.default.other]
+
+[properties.max_gap]
+default = 4.0
+title = "Max Gap"
+type = "number"
+
+[properties.hover_time]
+default = 1.0
+title = "Hover Time"
+type = "number"
+
+[properties.backspace_repeat_delay]
+default = 2.0
+title = "Backspace Repeat Delay"
+type = "number"
+
+[properties.backspace_repeat_rate]
+default = 4.0
+title = "Backspace Repeat Rate"
+type = "number"
+
+[properties.gui]
+default = false
+title = "Gui"
+type = "boolean"
+
+[properties.silent]
+default = false
+title = "Silent"
+type = "boolean"
+
+[properties.output]
+default = "<null>"
+title = "Output"
+[[properties.output.anyOf]]
+format = "path"
+type = "string"
+
+[[properties.output.anyOf]]
+type = "null"
+
+[properties.run_in_background]
+default = false
+title = "Run In Background"
+type = "boolean"
+
+[properties.preset]
+default = "<null>"
+title = "Preset"
+[[properties.preset.anyOf]]
+type = "string"
+
+[[properties.preset.anyOf]]
+type = "null"
+
+[properties.config_file]
+default = "<null>"
+title = "Config File"
+[[properties.config_file.anyOf]]
+format = "path"
+type = "string"
+
+[[properties.config_file.anyOf]]
+type = "null"
+
+[properties.autosave_file]
+default = "<null>"
+title = "Autosave File"
+[[properties.autosave_file.anyOf]]
+format = "path"
+type = "string"
+
+[[properties.autosave_file.anyOf]]
+type = "null"
+
+[properties.skip_startup_files]
+default = false
+title = "Skip Startup Files"
+type = "boolean"
+
+[properties.text]
+default = "<null>"
+title = "Text"
+[[properties.text.anyOf]]
+type = "string"
+
+[[properties.text.anyOf]]
+type = "array"
+
+[properties.text.anyOf.items]
+"$ref" = "#/$defs/CharPress"
+
+[[properties.text.anyOf]]
+type = "null"
+
+[properties.text_file]
+default = "<null>"
+title = "Text File"
+[[properties.text_file.anyOf]]
+format = "path"
+type = "string"
+
+[[properties.text_file.anyOf]]
+type = "null"
+
+[properties.text_args]
+title = "Text Args"
+type = "array"
+
+[properties.text_args.items]
+type = "string"
