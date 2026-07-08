@@ -356,6 +356,34 @@ def test_control_panel_reuses_mode_pages(monkeypatch: MonkeyPatch) -> None:
     assert len(calls) == beginner_calls
 
 
+def test_control_panel_sections_are_collapsible() -> None:
+    from PySide6.QtWidgets import QToolButton, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    button = next(
+        button
+        for button in panel.findChildren(QToolButton)
+        if button.objectName() == 'control_section_disclosure'
+        and button.text() == 'General'
+    )
+    section = button.parent()
+    assert isinstance(section, QWidget)
+    body = section.findChild(QWidget, 'control_section_body')
+    assert body is not None
+
+    assert not body.isHidden()
+
+    button.click()
+
+    assert body.isHidden()
+
+    button.click()
+
+    assert not body.isHidden()
+
+
 def test_dials_are_limited_to_explicit_analog_controls(
     file_regression: FileRegressionFixture,
 ) -> None:

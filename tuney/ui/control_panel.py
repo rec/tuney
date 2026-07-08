@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QStackedWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -60,8 +61,12 @@ QFrame#control_section {
     border: 1px solid #c8c8c8;
     border-radius: 4px;
 }
-QLabel#control_section_title {
+QToolButton#control_section_disclosure {
+    border: none;
     color: #303030;
+    font-weight: 600;
+    padding: 2px;
+    text-align: left;
 }
 """
 
@@ -176,7 +181,7 @@ def _add_model_controls(
     advanced: bool = True,
 ) -> None:
     if title:
-        _add_section_title(parent, title)
+        parent = _add_collapsible_section(parent, title)
 
     controls = _visible_control_names(data, advanced)
     children = [
@@ -196,12 +201,7 @@ def _add_model_controls(
         if not _visible_control_names(child, advanced):
             _add_model_controls(parent, child, option_controls, advanced=advanced)
             continue
-        section = _section(parent)
-        _parent_layout(parent).addWidget(section)
-        layout = QVBoxLayout(section)
-        layout.setContentsMargins(6, 4, 6, 6)
-        layout.setSpacing(3)
-        _add_model_controls(section, child, option_controls, name, advanced)
+        _add_model_controls(parent, child, option_controls, name, advanced)
 
 
 def _add_general_controls(
@@ -212,13 +212,8 @@ def _add_general_controls(
 ) -> None:
     if not (controls := _general_controls(data, advanced)):
         return
-    section = _section(parent)
-    _parent_layout(parent).addWidget(section)
-    layout = QVBoxLayout(section)
-    layout.setContentsMargins(6, 4, 6, 6)
-    layout.setSpacing(3)
-    _add_section_title(section, 'general')
-    _add_control_group_grid(section, controls, option_controls)
+    body = _add_collapsible_section(parent, 'general')
+    _add_control_group_grid(body, controls, option_controls)
 
 
 def _section(parent: QWidget) -> QFrame:
@@ -229,13 +224,37 @@ def _section(parent: QWidget) -> QFrame:
     return section
 
 
-def _add_section_title(parent: QWidget, title: str) -> None:
-    label = QLabel(_display_label(title), parent)
-    label.setObjectName('control_section_title')
-    font = label.font()
-    font.setBold(True)
-    label.setFont(font)
-    _parent_layout(parent).addWidget(label)
+def _add_collapsible_section(parent: QWidget, title: str) -> QWidget:
+    section = _section(parent)
+    _parent_layout(parent).addWidget(section)
+    layout = QVBoxLayout(section)
+    layout.setContentsMargins(6, 4, 6, 6)
+    layout.setSpacing(3)
+
+    body = QWidget(section)
+    body.setObjectName('control_section_body')
+    body_layout = QVBoxLayout(body)
+    body_layout.setContentsMargins(0, 0, 0, 0)
+    body_layout.setSpacing(3)
+
+    button = QToolButton(section)
+    button.setObjectName('control_section_disclosure')
+    button.setText(_display_label(title))
+    button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+    button.setArrowType(Qt.ArrowType.DownArrow)
+    button.setCheckable(True)
+    button.setChecked(True)
+    button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    button.toggled.connect(lambda checked: _set_section_expanded(button, body, checked))
+
+    layout.addWidget(button)
+    layout.addWidget(body)
+    return body
+
+
+def _set_section_expanded(button: QToolButton, body: QWidget, expanded: bool) -> None:
+    body.setVisible(expanded)
+    button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
 
 
 def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel, str]]:
