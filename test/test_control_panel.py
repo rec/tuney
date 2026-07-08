@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from enum import Enum
 from fractions import Fraction
 
+import pytest
 import tomlkit
 from pydantic import BaseModel
 from pytest import MonkeyPatch
@@ -400,6 +401,20 @@ def test_dial_values_use_dial_range() -> None:
 
     assert dial.spin_to_dial(4) == 50
     assert dial.dial_to_spin(50) == 4
+
+
+def test_log_dial_values_are_exponential() -> None:
+    dial = Dial(min=1, max=100, log=True)
+
+    assert dial.spin_to_dial(10) == 50
+    assert dial.dial_to_spin(50) == 10
+
+
+def test_log_dial_values_require_positive_range() -> None:
+    with pytest.raises(
+        ValueError, match='Logarithmic dials require positive min and max'
+    ):
+        Dial(log=True)
 
 
 def test_visible_field_names(file_regression: FileRegressionFixture) -> None:

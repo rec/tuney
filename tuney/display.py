@@ -1,6 +1,9 @@
-from collections.abc import Callable
+from __future__ import annotations
 
-from pydantic import BaseModel, GetCoreSchemaHandler
+from collections.abc import Callable
+from math import log as logarithm
+
+from pydantic import BaseModel, GetCoreSchemaHandler, model_validator
 from pydantic_core import CoreSchema
 
 
@@ -29,11 +32,25 @@ class Options(_Base, frozen=True):
 class Dial(_Base, frozen=True):
     min: float = 0.0
     max: float = 4.0
+    log: bool = False
+
+    @model_validator(mode='after')
+    def validate_log_range(self) -> Dial:
+        if self.log and (self.min <= 0 or self.max <= 0):
+            raise ValueError('Logarithmic dials require positive min and max')
+        return self
 
     def spin_to_dial(self, value: float) -> int:
-        return round((float(value) - self.min) * 100 / (self.max - self.min))
+        value = float(value)
+        if self.log:
+            return round(
+                logarithm(value / self.min) * 100 / logarithm(self.max / self.min)
+            )
+        return round((value - self.min) * 100 / (self.max - self.min))
 
     def dial_to_spin(self, value: int) -> float:
+        if self.log:
+            return self.min * (self.max / self.min) ** (value / 100)
         return self.min + value * (self.max - self.min) / 100
 
 
