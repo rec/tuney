@@ -21,6 +21,8 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--dtype',
     '--headroom',
     '--max-voices',
+    '--type',
+    '--table',
     '--midi-enable',
     '--midi-output',
     '--midi-channel',
@@ -260,7 +262,7 @@ def test_cli_accepts_single_character_aliases() -> None:
             '442',
             '-W',
             '70',
-            'tuning.tuning:computed',
+            'tuning.computed:computed',
             '-v',
             '7',
             '-V',
@@ -286,9 +288,10 @@ def test_cli_accepts_single_character_aliases() -> None:
     assert tuney.mapper.range_limit == 12
     assert tuney.mapper.limiter.value == 'reflect'
     assert tuney.tuning.detune == 5
-    assert tuney.tuning.tuning.limit == 7
-    assert tuney.tuning.tuning.notes_per_octave == 19
-    assert tuney.tuning.tuning.octave_ratio == 3
+    assert tuney.tuning.computed is not None
+    assert tuney.tuning.computed.limit == 7
+    assert tuney.tuning.computed.notes_per_octave == 19
+    assert tuney.tuning.computed.octave_ratio == 3
     assert tuney.tuning.root_frequency == 442
     assert tuney.tuning.root_note == 70
 

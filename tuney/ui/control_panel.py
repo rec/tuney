@@ -35,7 +35,10 @@ from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..display import Beginner, Dial, Display, General, Hidden, Options
 from ..mapper.mapper import Mapper
+from ..scale import evaluate
+from ..scale.ratios import Ratios
 from ..scale.scale import Scale
+from ..scale.tuning import Tuning, Type
 from .tooltip import Tooltip
 
 if TYPE_CHECKING:
@@ -183,6 +186,10 @@ def _add_model_controls(
     if title:
         parent = _add_collapsible_section(parent, title)
 
+    if isinstance(data, Tuning):
+        _add_tuning_controls(parent, data, option_controls, advanced)
+        return
+
     controls = _visible_control_names(data, advanced)
     children = [
         name
@@ -202,6 +209,42 @@ def _add_model_controls(
             _add_model_controls(parent, child, option_controls, advanced=advanced)
             continue
         _add_model_controls(parent, child, option_controls, name, advanced)
+
+
+def _add_tuning_controls(
+    parent: QWidget,
+    data: Tuning,
+    option_controls: list[_OptionControl],
+    advanced: bool,
+) -> None:
+    controls = [
+        name
+        for name in ['type', 'detune', 'root_frequency', 'root_note']
+        if advanced or _is_beginner_field(data, name)
+    ]
+    _add_control_grid(parent, data, controls, option_controls, advanced)
+
+    stack = QStackedWidget(parent)
+    stack.setObjectName('tuning_form_stack')
+    for tuning_type in Type:
+        page = QWidget(stack)
+        page.setObjectName(f'tuning_form_{tuning_type.value}')
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        match tuning_type:
+            case Type.computed:
+                if data.computed is not None:
+                    _add_model_controls(
+                        page, data.computed, option_controls, advanced=advanced
+                    )
+            case Type.table:
+                _add_control_group_grid(page, [(data, 'table')], option_controls)
+            case Type.ratios:
+                _add_control_group_grid(page, [(data, 'ratios')], option_controls)
+        stack.addWidget(page)
+    _parent_layout(parent).addWidget(stack)
+    _set_tuning_form(stack, data)
 
 
 def _add_general_controls(
@@ -505,6 +548,13 @@ def _field_help(model: type[BaseModel], name: str) -> str | None:
 
 
 def _visible_control_names(data: BaseModel, advanced: bool = True) -> list[str]:
+    if isinstance(data, Tuning):
+        return [
+            name
+            for name in _visible_tuning_control_names(data)
+            if advanced or _is_beginner_field(data, name)
+        ]
+
     return [
         name
         for name in _visible_field_names(data)
@@ -514,6 +564,15 @@ def _visible_control_names(data: BaseModel, advanced: bool = True) -> list[str]:
 
 
 def _visible_child_names(data: BaseModel, advanced: bool = True) -> list[str]:
+    if isinstance(data, Tuning):
+        return (
+            ['computed']
+            if _active_tuning_type(data) is Type.computed
+            and data.computed is not None
+            and _has_visible_fields(data.computed, advanced)
+            else []
+        )
+
     return [
         name
         for name in _visible_field_names(data)
@@ -530,6 +589,20 @@ def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
             for name in _visible_child_names(data, advanced)
         )
     )
+
+
+def _visible_tuning_control_names(data: Tuning) -> list[str]:
+    names = ['type', 'detune', 'root_frequency', 'root_note']
+    match _active_tuning_type(data):
+        case Type.table:
+            names.append('table')
+        case Type.ratios:
+            names.append('ratios')
+    return names
+
+
+def _active_tuning_type(data: Tuning) -> Type:
+    return data.type or Type.computed
 
 
 def _is_beginner_field(data: BaseModel, name: str) -> bool:
@@ -765,6 +838,8 @@ def _add_entry_control(
         value = data.alphabet_
     if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
         text = ''.join(str(i) for i in value)
+    elif isinstance(data, Tuning) and name in {'table', 'ratios'}:
+        text = _tuning_expression_text(value)
     elif value is None:
         text = ''
     elif isinstance(value, list | dict):
@@ -882,6 +957,8 @@ def _add_enum_control(
 
     def command(member: enum.Enum) -> None:
         _set_model_value(data, name, member, parent)
+        if isinstance(data, Tuning) and name == 'type':
+            _set_tuning_type_form(parent, data)
         _rebuild_note_grid_if_mapping_changed(parent, data)
 
     for i, member in enumerate(members):
@@ -894,6 +971,20 @@ def _add_enum_control(
         )
         layout.addWidget(radio)
     _parent_layout(parent).addWidget(frame)
+
+
+def _set_tuning_type_form(parent: QWidget, data: Tuning) -> None:
+    widget: QWidget | None = parent
+    while widget is not None:
+        if (stack := widget.findChild(QStackedWidget, 'tuning_form_stack')) is not None:
+            _set_tuning_form(stack, data)
+            return
+        parent_widget = widget.parent()
+        widget = parent_widget if isinstance(parent_widget, QWidget) else None
+
+
+def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
+    stack.setCurrentIndex(list(Type).index(_active_tuning_type(data)))
 
 
 def _set_model_value(
@@ -977,11 +1068,32 @@ def _parse_entry_value(
 ) -> object:
     if raw == '':
         return None
+    if isinstance(old_value, Ratios):
+        return Ratios(
+            ratios=evaluate.evaluate_all(_split_expression_list(raw)),
+            name=old_value.name,
+            desc=old_value.desc,
+        )
+    if name in {'table', 'ratios'}:
+        values = evaluate.evaluate_all(_split_expression_list(raw))
+        return Ratios(ratios=values) if name == 'ratios' else [float(i) for i in values]
     if name == 'intervals' and isinstance(old_value, list):
         return raw
     if isinstance(old_value, list | dict) or _expects_json(annotation):
         return json.loads(raw)
     return raw
+
+
+def _tuning_expression_text(value: object) -> str:
+    if value is None:
+        return ''
+    values = value.ratios if isinstance(value, Ratios) else value
+    assert isinstance(values, list | tuple)
+    return '; '.join(str(i) for i in values)
+
+
+def _split_expression_list(raw: str) -> list[str]:
+    return [s for i in raw.split(';') if (s := i.strip())]
 
 
 def _entry_width(

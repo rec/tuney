@@ -25,11 +25,12 @@ accidentals = "whole"
 offset = 0
 
 [tuning]
+type = "computed"
 detune = 0
 root_frequency = 440
 root_note = 69
 
-[tuning.tuning]
+[tuning.computed]
 limit = 0
 notes_per_octave = 12
 octave_ratio = 2

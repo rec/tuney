@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
 from tuney.scale.ratios import Ratios
-from tuney.scale.tuning import Computed
+from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
@@ -279,7 +279,7 @@ def test_app_imports_and_exports_tuning() -> None:
         MainWindow.on_import_tuning(app)
 
     assert app.history.undo_stack
-    assert app.state.tuney.tuning.tuning == Ratios(
+    assert app.state.tuney.tuning.ratios == Ratios(
         ratios=[2], name='input.scl', desc='one step'
     )
     assert app.ui.rebuild_control_panel_count == 1
@@ -302,7 +302,9 @@ def test_app_imports_and_exports_tuning() -> None:
     object.__setattr__(
         app.state.tuney,
         'tuning',
-        app.state.tuney.tuning.model_copy(update={'tuning': Computed(octave_ratio=4)}),
+        app.state.tuney.tuning.model_copy(
+            update={'type': Type.computed, 'computed': Computed(octave_ratio=4)}
+        ),
     )
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -336,7 +338,7 @@ def test_app_imports_and_exports_tuning() -> None:
     object.__setattr__(
         app.state.tuney,
         'tuning',
-        app.state.tuney.tuning.model_copy(update={'tuning': [440]}),
+        app.state.tuney.tuning.model_copy(update={'type': Type.table, 'table': [440]}),
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled

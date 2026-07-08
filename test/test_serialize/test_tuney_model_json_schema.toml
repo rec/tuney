@@ -482,24 +482,44 @@ description = "A generalization of equal temperament, where the default values\n
 title = "Tuning"
 type = "object"
 
-["$defs".Tuning.properties.tuning]
-title = "Tuning"
-[["$defs".Tuning.properties.tuning.anyOf]]
+["$defs".Tuning.properties.type]
+default = "computed"
+[["$defs".Tuning.properties.type.anyOf]]
+"$ref" = "#/$defs/Type"
+
+[["$defs".Tuning.properties.type.anyOf]]
+type = "null"
+
+[["$defs".Tuning.properties.computed.anyOf]]
 "$ref" = "#/$defs/Computed"
 
-[["$defs".Tuning.properties.tuning.anyOf]]
-"$ref" = "#/$defs/Ratios"
+[["$defs".Tuning.properties.computed.anyOf]]
+type = "null"
 
-[["$defs".Tuning.properties.tuning.anyOf]]
-type = "array"
-
-["$defs".Tuning.properties.tuning.anyOf.items]
-"$ref" = "#/$defs/Frequency"
-
-["$defs".Tuning.properties.tuning.default]
+["$defs".Tuning.properties.computed.default]
 limit = 0
 notes_per_octave = 12
 octave_ratio = 2.0
+
+["$defs".Tuning.properties.table]
+default = "<null>"
+title = "Table"
+[["$defs".Tuning.properties.table.anyOf]]
+type = "array"
+
+["$defs".Tuning.properties.table.anyOf.items]
+"$ref" = "#/$defs/Frequency"
+
+[["$defs".Tuning.properties.table.anyOf]]
+type = "null"
+
+["$defs".Tuning.properties.ratios]
+default = "<null>"
+[["$defs".Tuning.properties.ratios.anyOf]]
+"$ref" = "#/$defs/Ratios"
+
+[["$defs".Tuning.properties.ratios.anyOf]]
+type = "null"
 
 ["$defs".Tuning.properties.detune]
 default = 0
@@ -514,6 +534,11 @@ type = "number"
 ["$defs".Tuning.properties.root_note]
 "$ref" = "#/$defs/NoteNumber"
 default = 69
+
+["$defs".Type]
+enum = ["computed", "table", "ratios"]
+title = "Type"
+type = "string"
 
 ["$defs".Waveform]
 enum = ["sine", "square", "triangle"]
@@ -540,11 +565,14 @@ offset = 0
 "$ref" = "#/$defs/Tuning"
 
 [properties.tuning.default]
+type = "computed"
+table = "<null>"
+ratios = "<null>"
 detune = 0.0
 root_frequency = 440.0
 root_note = 69
 
-[properties.tuning.default.tuning]
+[properties.tuning.default.computed]
 limit = 0
 notes_per_octave = 12
 octave_ratio = 2.0

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from enum import StrEnum, auto
 from fractions import Fraction
 from functools import cached_property
 from typing import Annotated
@@ -13,6 +14,12 @@ from . import NoteNumber, Number, cents
 from .ratios import Ratios
 
 type Frequency = float  # Must be non-negative
+
+
+class Type(StrEnum):
+    computed = auto()
+    table = auto()
+    ratios = auto()
 
 
 class Computed(BaseModel, frozen=True):
@@ -47,10 +54,26 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     can be customized.
     """
 
-    tuning: Computed | Ratios | list[Frequency] = Computed()
+    #: Which tuning source to use
+    type: Annotated[Type | None, tyro_option(), Beginner, Display(column=0, row=0)] = (
+        Type.computed
+    )
+
+    #: Computed tuning parameters
+    computed: Annotated[Computed | None, Beginner] = Computed()
+
+    #: Absolute frequencies, indexed by note number
+    table: Annotated[
+        list[Frequency] | None, tyro_option(), Beginner, Display(row=1, width=24)
+    ] = None
+
+    #: Ratio expressions, relative to root_frequency
+    ratios: Annotated[
+        Ratios | None, tyro_option(), Beginner, Display(row=1, width=24)
+    ] = None
 
     #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro_option('-T'), Beginner, Display(row=0)] = 0
+    detune: Annotated[float, tyro_option('-T'), Beginner, Display(column=1, row=0)] = 0
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
@@ -71,17 +94,55 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     @model_validator(mode='before')
     @classmethod
     def _normalize_source(cls, data: object) -> object:
-        return dict(data) if isinstance(data, Mapping) else data
+        if not isinstance(data, Mapping):
+            return data
+
+        values = dict(data)
+        if 'tuning' not in values:
+            return values
+
+        tuning = values.pop('tuning')
+        if 'computed' in values or 'table' in values or 'ratios' in values:
+            return values
+
+        match tuning:
+            case list():
+                values['type'] = Type.table
+                values['table'] = tuning
+            case dict() if 'ratios' in tuning:
+                values['type'] = Type.ratios
+                values['ratios'] = tuning
+            case _:
+                values['type'] = Type.computed
+                values['computed'] = tuning
+        return values
 
     @cached_property
     def detune_ratio(self) -> float:
         return cents(self.detune)
 
+    @property
+    def active(self) -> Computed | Ratios | list[Frequency]:
+        match self.type:
+            case Type.computed | None:
+                if self.computed is None:
+                    raise ValueError('No computed tuning configured')
+                return self.computed
+            case Type.table:
+                if self.table is None:
+                    raise ValueError('No frequency table configured')
+                return self.table
+            case Type.ratios:
+                if self.ratios is None:
+                    raise ValueError('No ratios configured')
+                return self.ratios
+
     def __call__(self, note_number: NoteNumber) -> Number:
         """Return the frequency in this tuning for a NoteNumber"""
         note_delta = note_number - self.root_note
-        if isinstance(self.tuning, list):
-            freq = self.tuning[note_delta % len(self.tuning)]
+        tuning = self.active
+        if isinstance(tuning, list):
+            freq = tuning[note_delta % len(tuning)]
         else:
-            freq = self.tuning(note_delta) * self.root_frequency
+            freq = tuning(note_delta) * self.root_frequency
         return freq * self.detune_ratio

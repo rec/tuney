@@ -26,7 +26,8 @@
     "offset": 0
   },
   "tuning": {
-    "tuning": {
+    "type": "computed",
+    "computed": {
       "limit": 0,
       "notes_per_octave": 12,
       "octave_ratio": 2

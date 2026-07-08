@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 
 from ..platform_info import log_path
 from ..scale.ratios import Ratios
-from ..scale.tuning import Computed
+from ..scale.tuning import Computed, Type
 from ..time.char_press import CharPress
 from . import Action, StateChange
 from .help import show_help
@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_export_tuning(self, *_: object) -> None:
-        if isinstance(self.state.tuney.tuning.tuning, list):
+        if isinstance(self.state.tuney.tuning.active, list):
             return
 
         self._is_saving = True
@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
                 self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
             )
             if filename := result[0]:
-                tuning = self.state.tuney.tuning.tuning
+                tuning = self.state.tuney.tuning.active
                 ratios = tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
                 ratios.write_scala_file(Path(filename))
         finally:
@@ -266,15 +266,24 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def _set_tuning(self, tuning: Computed | Ratios | list[float]) -> None:
-        validated = type(self.state.tuney.tuning).model_validate(
-            self.state.tuney.tuning.model_dump() | {'tuning': tuning}
-        )
-        object.__setattr__(self.state.tuney.tuning, 'tuning', validated.tuning)
+        data = self.state.tuney.tuning.model_dump()
+        match tuning:
+            case Computed():
+                data |= {'type': Type.computed, 'computed': tuning}
+            case Ratios():
+                data |= {'type': Type.ratios, 'ratios': tuning}
+            case list():
+                data |= {'type': Type.table, 'table': tuning}
+        validated = type(self.state.tuney.tuning).model_validate(data)
+        for field in type(self.state.tuney.tuning).model_fields:
+            object.__setattr__(
+                self.state.tuney.tuning, field, getattr(validated, field)
+            )
         self.ui.rebuild_control_panel()
 
     def _update_export_tuning_action(self) -> None:
         self.export_tuning_action.setEnabled(
-            not isinstance(self.state.tuney.tuning.tuning, list)
+            not isinstance(self.state.tuney.tuning.active, list)
         )
 
     def on_transport_state(self, change: StateChange) -> bool:

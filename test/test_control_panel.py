@@ -15,7 +15,7 @@ from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale
-from tuney.scale.tuning import Tuning
+from tuney.scale.tuning import Tuning, Type
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui import control_panel
@@ -285,10 +285,10 @@ def test_control_rows_use_compact_model_layouts(
                 tuney.scale, _control_fields(tuney.scale)
             ),
             'tuning': control_panel._control_rows(
-                tuney.tuning, _control_fields(tuney.tuning)
+                tuney.tuning, control_panel._visible_control_names(tuney.tuning)
             ),
             'computed': control_panel._control_rows(
-                tuney.tuning.tuning, _control_fields(tuney.tuning.tuning)
+                tuney.tuning.computed, _control_fields(tuney.tuning.computed)
             ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)
@@ -522,12 +522,78 @@ def test_ratio_fractions_are_serialized_for_text_entry() -> None:
     from PySide6.QtWidgets import QLineEdit, QWidget
 
     _qt_app()
-    tuney = Tuney(tuning=Tuning(tuning=Ratios(ratios=[Fraction(3, 2)])))
+    tuney = Tuney(
+        tuning=Tuning(type=Type.ratios, ratios=Ratios(ratios=[Fraction(3, 2)]))
+    )
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, tuney)
 
     assert any(
-        entry.text() == '["3/2"]'
+        entry.text() == '3/2'
         for entry in panel.findChildren(QLineEdit)
         if entry.objectName() == 'control_editor'
     )
+
+
+def test_tuning_expression_fields_use_semicolon_separated_expressions() -> None:
+    assert control_panel._parse_entry_value(
+        '3 / 2; cents(100)', object, None, 'ratios'
+    ) == Ratios.from_strings(['3 / 2', 'cents(100)'])
+    assert control_panel._parse_entry_value('440; 880 / 2', object, None, 'table') == [
+        440,
+        440,
+    ]
+
+
+def test_tuning_type_selects_visible_control_form() -> None:
+    assert control_panel._visible_child_names(Tuning(), advanced=True) == ['computed']
+    assert control_panel._visible_control_names(
+        Tuning(type=Type.table, table=[440]), advanced=True
+    ) == [
+        'type',
+        'detune',
+        'root_frequency',
+        'root_note',
+        'table',
+    ]
+    assert control_panel._visible_control_names(
+        Tuning(type=Type.ratios, ratios=Ratios(ratios=[2])), advanced=True
+    ) == [
+        'type',
+        'detune',
+        'root_frequency',
+        'root_note',
+        'ratios',
+    ]
+
+
+def test_tuning_type_switches_stacked_form_without_rebuild(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    from PySide6.QtWidgets import QRadioButton, QStackedWidget, QWidget
+
+    def rebuild_parent_control_panel(parent: QWidget) -> None:
+        raise AssertionError('tuning type changed by rebuilding the control panel')
+
+    monkeypatch.setattr(
+        control_panel, '_rebuild_parent_control_panel', rebuild_parent_control_panel
+    )
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuning())
+    stack = next(
+        stack
+        for stack in panel.findChildren(QStackedWidget)
+        if stack.objectName() == 'tuning_form_stack'
+    )
+    table = next(
+        radio for radio in panel.findChildren(QRadioButton) if radio.text() == 'table'
+    )
+
+    assert stack.currentWidget() is panel.findChild(QWidget, 'tuning_form_computed')
+
+    table.click()
+
+    assert stack.currentWidget() is panel.findChild(QWidget, 'tuning_form_table')
+    assert panel.pages[True] is panel.content.currentWidget()

@@ -1,4 +1,4 @@
-usage: tuney [-h] [OPTIONS] [{tuning.tuning:computed,tuning.tuning:ratios,tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')}]
+usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [RATIOS]
 
 Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
 
@@ -80,6 +80,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
+  --type {None,computed,table,ratios}
+        Which tuning source to use (default: computed)
+  --table {None}|{[FLOAT [FLOAT ...]]}
+        Absolute frequencies, indexed by note number (default: None)
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
   -U FLOAT, --root-frequency FLOAT
@@ -179,7 +183,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
 
  subcommands
  ----------------------------------------------------------------------------------------------------------------------
-  (default: tuning.tuning:computed)
-    - tuning.tuning:computed
-    - tuning.tuning:ratios
-    - tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')
+  Computed tuning parameters (default: tuning.computed:computed)
+    - tuning.computed:computed
+    - tuning.computed:none
+  ----------------------------------------------------------------------------------------------------------------------
+  Ratio expressions, relative to root_frequency (default: ratios:none)
+    - ratios:ratios
+    - ratios:none
