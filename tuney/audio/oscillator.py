@@ -10,6 +10,7 @@ from ..named_enum import NamedEnum
 from ..scale import NoteNumber
 from ..tyro_option import tyro_option
 from .scipy import sawtooth
+from .scipy import square as scipy_square
 
 
 def sine(out: np.ndarray, duty_cycle: float) -> np.ndarray:
@@ -21,8 +22,14 @@ def triangle(out: np.ndarray, duty_cycle: float) -> np.ndarray:
     return out
 
 
+def square(out: np.ndarray, duty_cycle: float) -> np.ndarray:
+    out[:] = scipy_square(out, duty_cycle)
+    return out
+
+
 class Waveform(NamedEnum):
     sine = (sine,)
+    square = (square,)
     triangle = (triangle,)
 
 

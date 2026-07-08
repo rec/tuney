@@ -113,7 +113,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Synthesizer oscillator settings
   ----------------------------------------------------------------------------------------------------------------------
-  -w {sine,triangle}, --waveform {sine,triangle}
+  -w {sine,square,triangle}, --waveform {sine,square,triangle}
         Waveform used to synthesize notes (default: triangle)
   -e FLOAT, --period FLOAT
         Number of waveform cycles per note period (default: 1.0)

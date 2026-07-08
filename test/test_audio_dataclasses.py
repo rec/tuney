@@ -101,6 +101,14 @@ def test_oscillator_default_period_matches_previous_phase_scaling():
     np.testing.assert_allclose(actual, expected)
 
 
+def test_oscillator_square_uses_duty_cycle() -> None:
+    actual = Oscillator(waveform=Waveform.square, duty_cycle=0.25)(
+        start=0, length=8, period=8
+    )
+
+    np.testing.assert_allclose(actual, [1, 1, -1, -1, -1, -1, -1, -1])
+
+
 def test_oscillator_key_scale_changes_gain_by_octave() -> None:
     oscillator = Oscillator(key_scale_note=64, key_scale=1)
 
