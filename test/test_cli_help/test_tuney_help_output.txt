@@ -180,6 +180,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  subcommands
  ----------------------------------------------------------------------------------------------------------------------
   (default: tuning.tuning:computed)
-    • tuning.tuning:computed
-    • tuning.tuning:ratios
-    • tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')
+    - tuning.tuning:computed
+    - tuning.tuning:ratios
+    - tuning.tuning:list-annotated-float-tyro-type-alias-bread-crumb(name='-frequency')

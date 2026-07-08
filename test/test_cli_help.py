@@ -88,7 +88,11 @@ def test_tuney_help_output(
 
 
 def _strip_line_end_padding(text: str) -> str:
-    return '\n'.join(line.rstrip() for line in text.splitlines())
+    return '\n'.join(_normalize_help_line(line).rstrip() for line in text.splitlines())
+
+
+def _normalize_help_line(line: str) -> str:
+    return line.replace('    \u2022 ', '    - ').replace('    \ufffd ', '    - ')
 
 
 def test_cli_help_uses_flat_unique_names(

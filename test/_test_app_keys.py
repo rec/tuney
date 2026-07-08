@@ -248,7 +248,7 @@ def test_app_activate_and_history() -> None:
         object.__setattr__(app.state.tuney, 'config_file', config_file)
         MainWindow.on_open_config_folder(app)
 
-        assert opened == [str(config_file.parent.resolve())]
+        assert [Path(i).resolve() for i in opened] == [config_file.parent.resolve()]
         assert config_file.parent.is_dir()
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -258,7 +258,7 @@ def test_app_activate_and_history() -> None:
         object.__setattr__(app.state.tuney, 'autosave_file', autosave_file)
         MainWindow.on_open_config_folder(app)
 
-        assert opened == [str(autosave_file.parent.resolve())]
+        assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]
         assert autosave_file.parent.is_dir()
 
 
