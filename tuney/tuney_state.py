@@ -152,12 +152,15 @@ class TuneyState:
             self.key_recorder.backspace_repeat_after_id = None
 
     def clear(self) -> None:
-        if self.tuney.gui and self.char_presses:
-            self.main_window.history.checkpoint_undo()
+        main_window = self.__dict__.get('main_window')
+        if main_window is None and self.tuney.gui:
+            main_window = self.main_window
+        if main_window is not None and self.char_presses:
+            main_window.history.checkpoint_undo()
         self.char_presses.clear()
         self.key_recorder.clear()
-        if self.tuney.gui:
-            self.main_window.ui.set_text('')
+        if main_window is not None:
+            main_window.ui.set_text('')
 
     def randomize_timing(self) -> None:
         if not (text := self.display_text):

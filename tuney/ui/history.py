@@ -97,7 +97,7 @@ class History:
     def clear_settings(self) -> None:
         self.checkpoint_undo()
         data = type(self.main_window.state.tuney)().model_dump()
-        data['gui'] = True
+        data['gui'] = self.main_window.state.tuney.gui
         self.restore(HistoryState(tuney=data))
 
     def state(self) -> HistoryState:

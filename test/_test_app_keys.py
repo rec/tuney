@@ -158,6 +158,17 @@ def test_application_uses_cross_platform_style() -> None:
 
         assert app.applicationName() == 'Tuney'
         assert app.style().objectName().lower() == 'fusion'
+        menu_actions: dict[str, list[str]] = {}
+        for action in window.menuBar().actions():
+            if (menu := action.menu()) is not None:
+                menu_actions[action.text()] = [i.text() for i in menu.actions()]
+        edit_actions = menu_actions['Edit']
+        file_actions = menu_actions['File']
+
+        assert 'Clear' in edit_actions
+        assert 'Clear Text' in edit_actions
+        assert 'Clear' not in file_actions
+        assert 'Clear Text' not in file_actions
         window.close()
 
 
@@ -206,12 +217,46 @@ def test_app_activate_and_history() -> None:
 
     assert app.state.tuney.max_gap == Tuney().max_gap
     assert app.state.char_presses == []
-    assert app.state.tuney.gui
+    assert not app.state.tuney.gui
     assert not app.history.loop_replay
     assert app.history.loop_before == 0.0
     assert app.history.loop_after == 0.0
     assert app.history.loop_tempo == 1.0
     assert not app.history.randomize_on_each_loop
+    app.history.undo()
+
+    assert app.state.tuney.max_gap == 3.0
+    assert app.state.display_text == 'a'
+
+    app = HistoryApp()
+    app.state.__dict__['main_window'] = app
+    object.__setattr__(app.state.tuney, 'gui', True)
+    object.__setattr__(app.state.tuney, 'max_gap', 3.0)
+    object.__setattr__(app.state.tuney, 'text', [CharPress('a', time=0.0)])
+    app.state.__dict__.pop('char_presses', None)
+
+    MainWindow.on_clear(app)
+
+    data = Tuney().model_dump()
+    data['gui'] = True
+    assert app.state.tuney.model_dump() == data
+    assert app.state.char_presses == []
+    assert app.ui.text == ''
+    app.history.undo()
+
+    assert app.state.tuney.max_gap == 3.0
+    assert app.state.display_text == 'a'
+
+    object.__setattr__(app.state.tuney, 'max_gap', 4.0)
+    MainWindow.on_clear_text(app)
+
+    assert app.state.tuney.max_gap == 4.0
+    assert app.state.char_presses == []
+    assert app.ui.text == ''
+    app.history.undo()
+
+    assert app.state.tuney.max_gap == 4.0
+    assert app.state.display_text == 'a'
 
     with tempfile.TemporaryDirectory() as tmp:
         os.environ['XDG_STATE_HOME'] = tmp
@@ -353,12 +398,14 @@ class FakeLoop:
 
 
 class FakeLayout:
-    loop = FakeLoop()
-    randomize_on_each_loop = FakeLoop()
-    rebuild_control_panel_count = 0
+    def __init__(self) -> None:
+        self.loop = FakeLoop()
+        self.randomize_on_each_loop = FakeLoop()
+        self.rebuild_control_panel_count = 0
+        self.text = None
 
     def set_text(self, text: object) -> None:
-        pass
+        self.text = text
 
     def rebuild_control_panel(self) -> None:
         self.rebuild_control_panel_count += 1

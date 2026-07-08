@@ -192,6 +192,9 @@ class MainWindow(QMainWindow):
             self.key_queue.put(c)
 
     def on_clear(self, *_: object) -> None:
+        self.history.clear_settings()
+
+    def on_clear_text(self, *_: object) -> None:
         self.state.clear()
 
     def on_open_text_file(self, *_: object) -> None:
@@ -208,17 +211,6 @@ class MainWindow(QMainWindow):
         finally:
             self._is_saving = False
             self._has_focus = False
-
-    def on_clear_settings(self, *_: object) -> None:
-        response = QMessageBox.question(
-            self,
-            'Clear settings',
-            'Clear all settings and text?',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if response == QMessageBox.StandardButton.Yes:
-            self.history.clear_settings()
 
     def on_save(self, *_: object) -> None:
         self._is_saving = True
@@ -438,6 +430,8 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
+        _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
+        _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
         _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
         _add_action(file_menu, 'Import tuning...', None, self.on_import_tuning)
         self.export_tuning_action = _add_action(
@@ -454,8 +448,6 @@ class MainWindow(QMainWindow):
         )
         _add_action(file_menu, 'Copy from state', None, self.on_copy_from_state)
         _add_action(file_menu, 'Paste into state', None, self.on_paste_into_state)
-        _add_action(file_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
-        _add_action(file_menu, 'Clear settings...', None, self.on_clear_settings)
         _add_action(
             file_menu,
             'Refresh Devices',
