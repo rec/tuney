@@ -11,8 +11,8 @@ from tuney.audio.oscillator import Oscillator
 from tuney.audio.sound import Sound
 from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
+from tuney.scale.root import Root
 from tuney.scale.scale import Scale
-from tuney.scale.tuning import Root
 from tuney.time.text_timings import TextTimings
 from tuney.tuney import Tuney
 from tuney.ui import control_panel
