@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
 from enum import Enum
+from fractions import Fraction
 
 import tomlkit
 from pydantic import BaseModel
@@ -12,6 +13,7 @@ from tuney.audio.oscillator import Oscillator
 from tuney.audio.sound import Sound
 from tuney.display import Dial
 from tuney.mapper.mapper import Mapper
+from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
 from tuney.time.text_timings import TextTimings
@@ -483,6 +485,21 @@ def test_large_seed_uses_text_entry_instead_of_spinbox() -> None:
     assert not panel.findChildren(QSpinBox)
     assert any(
         entry.text() == '2615033043'
+        for entry in panel.findChildren(QLineEdit)
+        if entry.objectName() == 'control_editor'
+    )
+
+
+def test_ratio_fractions_are_serialized_for_text_entry() -> None:
+    from PySide6.QtWidgets import QLineEdit, QWidget
+
+    _qt_app()
+    tuney = Tuney(tuning=Tuning(tuning=Ratios(ratios=[Fraction(3, 2)])))
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, tuney)
+
+    assert any(
+        entry.text() == '["3/2"]'
         for entry in panel.findChildren(QLineEdit)
         if entry.objectName() == 'control_editor'
     )

@@ -6,7 +6,7 @@ import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, Qt, QTimer
 from PySide6.QtWidgets import (
     QBoxLayout,
@@ -749,7 +749,7 @@ def _add_entry_control(
     elif value is None:
         text = ''
     elif isinstance(value, list | dict):
-        text = json.dumps(value)
+        text = json.dumps(TypeAdapter(annotation).dump_python(value, mode='json'))
     else:
         text = str(value)
 
