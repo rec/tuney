@@ -37,7 +37,6 @@
       "octave_ratio": 2,
       "pitch_to_frequency": "power"
     },
-    "table": [],
     "table_blend": true
   },
   "device": {},

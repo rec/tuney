@@ -290,6 +290,9 @@ def test_control_rows_use_compact_model_layouts(
             'computed': control_panel._control_rows(
                 tuney.tuning.computed, _control_fields(tuney.tuning.computed)
             ),
+            'ratios': control_panel._control_rows(
+                tuney.tuning.ratios, _control_fields(tuney.tuning.ratios)
+            ),
             'midi': control_panel._control_rows(
                 tuney.midi, _control_fields(tuney.midi)
             ),

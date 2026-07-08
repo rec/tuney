@@ -4,18 +4,34 @@ from collections.abc import Iterable, Sequence
 from fractions import Fraction
 from functools import cache, cached_property
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ..display import Display
 from ..platform_info import report_error
 from ..text_file import read_text_file
-from . import evaluate, uncents
+from ..tyro_option import tyro_option
+from . import NoteNumber, evaluate, uncents
+from .root import Root
 
 
 class Ratios(BaseModel, frozen=True):
-    ratios: Sequence[float | Fraction] = ()
-    name: str = ''
-    desc: str = ''
+    #: Frequency ratios for each step in the scale
+    ratios: Annotated[
+        Sequence[float | Fraction],
+        tyro_option(),
+        Display(row=0, width=24),
+    ] = Field(default_factory=list)
+
+    #: Name of this ratio scale
+    name: Annotated[str, tyro_option(), Display(row=1, column=0)] = ''
+
+    #: Description of this ratio scale
+    desc: Annotated[str, tyro_option(), Display(row=1, column=1, width=24)] = ''
+
+    def __call__(self, note_number: NoteNumber, root: Root) -> float | Fraction:
+        return self[note_number - root.note]
 
     @cache  # noqa: B019
     def __getitem__(self, steps: int) -> float | Fraction:

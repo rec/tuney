@@ -82,8 +82,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
-  --table {[FLOAT [FLOAT ...]]}|{[INT FLOAT [INT FLOAT ...]]}
-        A table, either a Sequence or a dict, mapping note number to frequency. (default: )
+  --table {None}|{[FLOAT [FLOAT ...]]}
+        A table, either a Sequence or a dict, mapping note number to frequency. (default: None)
   --table-blend, --no-table-blend
         If table_blend is True, then notes that aren't found in the table are then looked up with the default algorithm.
         (default: True)

@@ -8,5 +8,6 @@ scale = [["root", "begin", "end", "offset"], ["notes", "intervals", "accidentals
 tuning = [["detune", "table_blend"], ["table"]]
 root = [["frequency", "note"]]
 computed = [["limit", "notes_per_octave", "octave_ratio"], ["pitch_to_frequency"]]
+ratios = [["ratios"], ["name", "desc"]]
 midi = [["enable", "output", "channel", "velocity", "note_offset"]]
 text_timings = [["space", "dot", "comma", "colon", "semicolon", "blank_line"], ["overlap", "seed", "alpha_only", "strip_accents", "scale"], ["other", "timings"]]

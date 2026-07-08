@@ -134,7 +134,7 @@ class Scale(BaseModel, frozen=True):
         raise ValueError(f'Bad number {s=}')
 
     def frequency(self, tuning: TuningP, note_number: NoteNumber) -> float:
-        return tuning(self.tuning_number(note_number))
+        return float(tuning(self.tuning_number(note_number)))
 
     @cached_property
     def names(self) -> str:

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from fractions import Fraction
 from functools import cached_property
-from typing import Annotated, Protocol, runtime_checkable
+from typing import Annotated, Protocol, Self, runtime_checkable
 
-from pydantic import BaseModel, Field
+import tyro
+from pydantic import BaseModel, Field, model_validator
 
 from ..display import Beginner, Display
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
 from . import NoteNumber, cents
+from .ratios import Ratios
 from .root import Root
 
 type Frequency = float  # Must be non-negative
@@ -19,7 +22,7 @@ type Frequency = float  # Must be non-negative
 
 @runtime_checkable
 class TuningP(Protocol):
-    def __call__(self, note_number: NoteNumber) -> Frequency: ...
+    def __call__(self, note_number: NoteNumber) -> Frequency | Fraction: ...
 
 
 @runtime_checkable
@@ -67,13 +70,13 @@ class Computed(BaseModel, frozen=True):
         PitchToFrequency.power
     )
 
-    def __call__(self, note_number: NoteNumber, root: Root) -> float:
+    def __call__(self, note_number: NoteNumber, root: Root) -> float | Fraction:
         divisions = note_number - root.note
         octaves = divisions / self.notes_per_octave
 
         f = self.pitch_to_frequency(root.frequency, self.octave_ratio, octaves)
         if self.limit:
-            return float(Fraction(f).limit_denominator(self.limit))
+            return Fraction(f).limit_denominator(self.limit)
         return f
 
 
@@ -89,32 +92,53 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     root: Root = Root()
     computed: Computed = Computed()
+    ratios: Annotated[
+        tyro.conf.Suppress[Ratios],
+        Display(),
+    ] = Field(default_factory=Ratios, exclude_if=lambda ratios: not ratios.ratios)
 
     #: A table, either a Sequence or a dict, mapping note number to frequency.
     table: Annotated[
-        list[Frequency] | dict[NoteNumber, Frequency],
+        list[Frequency] | None,
         tyro_option(),
         Display(row=1),
-    ] = Field(default_factory=list)
+    ] = None
 
     #: If table_blend is True, then notes that aren't found in the table are then
     #: looked up with the default algorithm.
     table_blend: Annotated[bool, tyro_option(), Display(column=6, row=0)] = True
 
+    @model_validator(mode='before')
+    @classmethod
+    def _normalize_source(cls, data: object) -> object:
+        if not isinstance(data, Mapping):
+            return data
+
+        values = dict(data)
+        if values.get('table') == []:
+            values['table'] = None
+        return values
+
+    @model_validator(mode='after')
+    def _validate_source(self) -> Self:
+        if self.table is not None and self.ratios.ratios:
+            raise ValueError('only one explicit tuning source is allowed')
+        return self
+
     @cached_property
     def detune_ratio(self) -> float:
         return cents(self.detune)
 
-    def __call__(self, note_number: NoteNumber) -> float:
+    def __call__(self, note_number: NoteNumber) -> float | Fraction:
         """Return the frequency in this tuning for a NoteNumber"""
-        if isinstance(self.table, dict) or note_number >= 0:
-            try:
-                return self.table[note_number] * self.detune_ratio
-            except (KeyError, IndexError):
-                if not self.table_blend:
-                    raise
-
-        return self.computed(note_number, self.root) * self.detune_ratio
+        r = None
+        if self.table is not None:
+            r = self.table[note_number]
+        elif self.ratios.ratios:
+            r = self.ratios(note_number, self.root)
+        else:
+            r = self.computed(note_number, self.root)
+        return r * self.detune_ratio
 
 
 assert isinstance(Tuning(), TuningP)

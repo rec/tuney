@@ -26,7 +26,6 @@ offset = 0
 
 [tuning]
 detune = 0
-table = []
 table_blend = true
 
 [tuning.root]

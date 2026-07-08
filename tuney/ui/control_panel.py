@@ -587,6 +587,8 @@ def _is_wide_field(data: BaseModel, name: str) -> bool:
 
 
 def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
+    if _has_metadata(cls, name, Display):
+        return False
     annotation = cls.__annotations__.get(name, '')
     return str(annotation).startswith('tyro.conf.Suppress') or 'Suppress' in {
         str(i) for i in get_args(annotation)
