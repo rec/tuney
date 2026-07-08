@@ -1,10 +1,10 @@
-from .tuning import TuningP
+from .tuning import Tuning
 
 EPSILON = 1e-6
 
 
 def nearest_note(
-    tuning: TuningP, frequency: float, epsilon: float = EPSILON
+    tuning: Tuning, frequency: float, epsilon: float = EPSILON
 ) -> int | tuple[int, int]:
     below = above = 0
     while tuning(below) > frequency:

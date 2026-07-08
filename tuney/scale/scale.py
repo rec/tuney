@@ -14,7 +14,7 @@ from ..display import Beginner, Display
 from ..tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
-from .tuning import TuningP
+from .tuning import Tuning
 
 INTERVALS = [int(i) for i in '2212221']
 
@@ -64,18 +64,12 @@ class Scale(BaseModel, frozen=True):
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
     begin: Annotated[
-        str,
-        tyro_option('-j'),
-        Beginner,
-        Display(column=1, row=0, width=1),
+        str, tyro_option('-j'), Beginner, Display(column=1, row=0, width=1)
     ] = 'A'
 
     #: The Last note from the alphabet
     end: Annotated[
-        str,
-        tyro_option('-E'),
-        Beginner,
-        Display(column=2, row=0, width=1),
+        str, tyro_option('-E'), Beginner, Display(column=2, row=0, width=1)
     ] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
@@ -109,10 +103,8 @@ class Scale(BaseModel, frozen=True):
         fields = 'begin', 'root', 'end'
         if missing := [f for f in fields if getattr(self, f) not in self.note_names]:
             raise ValueError(', '.join(missing) + ' must be present in note_names')
-        begin = self.note_names.index(self.begin)
-        root = self.note_names.index(self.root)
-        end = self.note_names.index(self.end)
-        if not begin <= root <= end:
+        b, r, e = (self.note_names.index(i) for i in (self.begin, self.root, self.end))
+        if not b <= r <= e:
             raise ValueError('begin, root, and end must be ordered in note_names')
         return self
 
@@ -133,7 +125,7 @@ class Scale(BaseModel, frozen=True):
 
         raise ValueError(f'Bad number {s=}')
 
-    def frequency(self, tuning: TuningP, note_number: NoteNumber) -> float:
+    def frequency(self, tuning: Tuning, note_number: NoteNumber) -> float:
         return float(tuning(self.tuning_number(note_number)))
 
     @cached_property
@@ -155,21 +147,19 @@ class Scale(BaseModel, frozen=True):
         return self.note_numbers[offset] + self.octave_length * octave + self.offset
 
     def _note_interval_number(self) -> Iterator[tuple[str, int, int]]:
-        assert self.intervals
-        L = len(self.intervals)
+        assert not self.names or self.intervals
         semitone = 0
         for i, note in enumerate(self.names):
-            interval = self.intervals[i % L]
+            interval = self.intervals[i % len(self.intervals)]
             yield note, interval, semitone
             semitone += interval
 
     @cached_property
     def _note_re(self) -> re.Pattern:
-        if not self.accidental_names.symbols:
-            return re.compile(rf'([{self.names}])')
-        return re.compile(
-            rf'([{self.names}][{re.escape(self.accidental_names.symbols)}]*)'
-        )
+        pat = rf'[{self.names}]'
+        if self.accidental_names.symbols:
+            pat += rf'[{re.escape(self.accidental_names.symbols)}]*'
+        return re.compile(rf'({pat})')
 
     def _to_notes(self, s: str) -> tuple[list[str], list[str]]:
         split = self._note_re.split(self.accidental_names.canonical(s)) + ['']

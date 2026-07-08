@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from fractions import Fraction
 from functools import cached_property
-from typing import Annotated, Protocol, runtime_checkable
+from typing import Annotated
 
 from pydantic import BaseModel, model_validator
 
@@ -13,18 +13,6 @@ from . import NoteNumber, Number, cents
 from .ratios import Ratios
 
 type Frequency = float  # Must be non-negative
-
-
-@runtime_checkable
-class TuningP(Protocol):
-    def __call__(self, note_number: NoteNumber) -> Number: ...
-
-
-@runtime_checkable
-class ToFrequency(Protocol):
-    def __call__(
-        self, root_frequency: float, octave_ratio: float, octaves: float
-    ) -> Number: ...
 
 
 class Computed(BaseModel, frozen=True):
@@ -97,6 +85,3 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         else:
             freq = self.tuning(note_delta) * self.root_frequency
         return freq * self.detune_ratio
-
-
-assert isinstance(Tuning(), TuningP)
