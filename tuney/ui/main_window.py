@@ -33,6 +33,8 @@ from PySide6.QtWidgets import (
 )
 
 from ..platform_info import log_path
+from ..scale.ratios import Ratios
+from ..scale.tuning import Computed
 from ..time.char_press import CharPress
 from . import Action, StateChange
 from .help import show_help
@@ -230,6 +232,51 @@ class MainWindow(QMainWindow):
             self._is_saving = False
             self._has_focus = False
 
+    def on_import_tuning(self, *_: object) -> None:
+        self._is_saving = True
+        try:
+            result = QFileDialog.getOpenFileName(
+                self, 'Import tuning', '', 'Scala (*.scl);;All files (*)'
+            )
+            if filename := result[0]:
+                try:
+                    self.history.checkpoint_undo()
+                    self._set_tuning(Ratios.read_scala_file(Path(filename)))
+                except ValueError as error:
+                    QMessageBox.critical(self, 'Import tuning', str(error))
+        finally:
+            self._is_saving = False
+            self._has_focus = False
+
+    def on_export_tuning(self, *_: object) -> None:
+        if isinstance(self.state.tuney.tuning.tuning, list):
+            return
+
+        self._is_saving = True
+        try:
+            result = QFileDialog.getSaveFileName(
+                self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
+            )
+            if filename := result[0]:
+                tuning = self.state.tuney.tuning.tuning
+                ratios = tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
+                ratios.write_scala_file(Path(filename))
+        finally:
+            self._is_saving = False
+            self._has_focus = False
+
+    def _set_tuning(self, tuning: Computed | Ratios | list[float]) -> None:
+        validated = type(self.state.tuney.tuning).model_validate(
+            self.state.tuney.tuning.model_dump() | {'tuning': tuning}
+        )
+        object.__setattr__(self.state.tuney.tuning, 'tuning', validated.tuning)
+        self.ui.rebuild_control_panel()
+
+    def _update_export_tuning_action(self) -> None:
+        self.export_tuning_action.setEnabled(
+            not isinstance(self.state.tuney.tuning.tuning, list)
+        )
+
     def on_transport_state(self, change: StateChange) -> bool:
         filename = ''
         if change.action == Action.save:
@@ -383,6 +430,12 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
+        _add_action(file_menu, 'Import tuning...', None, self.on_import_tuning)
+        self.export_tuning_action = _add_action(
+            file_menu, 'Export tuning...', None, self.on_export_tuning
+        )
+        file_menu.aboutToShow.connect(self._update_export_tuning_action)
+        self._update_export_tuning_action()
         _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
         _add_action(
             file_menu,
@@ -468,7 +521,7 @@ def _add_action(
     text: str,
     shortcut: str | QKeySequence.StandardKey | None,
     callback: Callable[..., object],
-) -> None:
+) -> QAction:
     action = QAction(text, menu)
     if isinstance(shortcut, QKeySequence.StandardKey):
         action.setShortcuts(shortcut)
@@ -476,6 +529,7 @@ def _add_action(
         action.setShortcut(shortcut)
     action.triggered.connect(callback)
     menu.addAction(action)
+    return action
 
 
 def _float_or_none(text: str) -> float | None:

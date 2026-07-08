@@ -48,6 +48,9 @@ class Computed(BaseModel, frozen=True):
         r = self.octave_ratio ** (note_delta / self.notes_per_octave)
         return Fraction(r).limit_denominator(self.limit) if self.limit else r
 
+    def as_ratios(self) -> Ratios:
+        return Ratios(ratios=[self(i + 1) for i in range(self.notes_per_octave)])
+
 
 class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """

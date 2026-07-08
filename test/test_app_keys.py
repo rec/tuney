@@ -39,3 +39,8 @@ def test_application_uses_cross_platform_style() -> None:
 @_in_subprocess
 def test_app_activate_and_history() -> None:
     pass
+
+
+@_in_subprocess
+def test_app_imports_and_exports_tuning() -> None:
+    pass

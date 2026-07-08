@@ -6,6 +6,8 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
+from tuney.scale.ratios import Ratios
+from tuney.scale.tuning import Computed
 from tuney.time.char_press import CharPress
 from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
@@ -260,6 +262,86 @@ def test_app_activate_and_history() -> None:
         assert autosave_file.parent.is_dir()
 
 
+def test_app_imports_and_exports_tuning() -> None:
+    app = HistoryApp()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'input.scl'
+        Ratios(ratios=[2], name='input.scl', desc='one step').write_scala_file(path)
+
+        class FakeOpenDialog:
+            @staticmethod
+            def getOpenFileName(*_: object) -> tuple[str, str]:
+                return str(path), ''
+
+        main_window_module.QFileDialog = FakeOpenDialog
+
+        MainWindow.on_import_tuning(app)
+
+    assert app.history.undo_stack
+    assert app.state.tuney.tuning.tuning == Ratios(
+        ratios=[2], name='input.scl', desc='one step'
+    )
+    assert app.ui.rebuild_control_panel_count == 1
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'output.scl'
+
+        class FakeSaveDialog:
+            @staticmethod
+            def getSaveFileName(*_: object) -> tuple[str, str]:
+                return str(path), ''
+
+        main_window_module.QFileDialog = FakeSaveDialog
+
+        MainWindow.on_export_tuning(app)
+
+        assert Ratios.read_scala_file(path).ratios == [2]
+
+    app = HistoryApp()
+    object.__setattr__(
+        app.state.tuney,
+        'tuning',
+        app.state.tuney.tuning.model_copy(update={'tuning': Computed(octave_ratio=4)}),
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'computed.scl'
+
+        class FakeComputedSaveDialog:
+            @staticmethod
+            def getSaveFileName(*_: object) -> tuple[str, str]:
+                return str(path), ''
+
+        main_window_module.QFileDialog = FakeComputedSaveDialog
+
+        MainWindow.on_export_tuning(app)
+
+        assert (
+            Ratios.read_scala_file(path).ratios
+            == Computed(octave_ratio=4).as_ratios().ratios
+        )
+
+    class FakeAction:
+        def __init__(self) -> None:
+            self.enabled = True
+
+        def setEnabled(self, enabled: bool) -> None:
+            self.enabled = enabled
+
+    app.export_tuning_action = FakeAction()
+    MainWindow._update_export_tuning_action(app)
+    assert app.export_tuning_action.enabled
+
+    object.__setattr__(
+        app.state.tuney,
+        'tuning',
+        app.state.tuney.tuning.model_copy(update={'tuning': [440]}),
+    )
+    MainWindow._update_export_tuning_action(app)
+    assert not app.export_tuning_action.enabled
+
+
 class FakeLoop:
     def select(self) -> None:
         pass
@@ -271,12 +353,13 @@ class FakeLoop:
 class FakeLayout:
     loop = FakeLoop()
     randomize_on_each_loop = FakeLoop()
+    rebuild_control_panel_count = 0
 
     def set_text(self, text: object) -> None:
         pass
 
     def rebuild_control_panel(self) -> None:
-        pass
+        self.rebuild_control_panel_count += 1
 
     def rebuild_note_grid(self) -> None:
         pass
@@ -302,3 +385,5 @@ class HistoryApp:
         self.state = TuneyState(Tuney(max_gap=1.0))
         self.ui = FakeLayout()
         self.history = History(self)
+
+    _set_tuning = MainWindow._set_tuning
