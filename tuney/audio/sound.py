@@ -39,3 +39,6 @@ class Sound(BaseModel, frozen=True):
     minimum_note_time: Annotated[float, tyro_option('-N'), Beginner, Display(row=0)] = (
         Field(0.5, ge=0)
     )
+
+    def note_gain(self, note_number: NoteNumber) -> float:
+        return self.gain * self.oscillator.gain(note_number)

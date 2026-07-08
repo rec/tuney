@@ -51,7 +51,7 @@ class Player(BaseModel, frozen=True):
         frequency = self.scale.frequency(self.tuning, scaled_note_number)
         return Voice(
             frequency=frequency,
-            gain=self.sound.gain * self.sound.oscillator.gain(scaled_note_number),
+            gain=self.sound.note_gain(scaled_note_number),
             minimum_note_time=self.sound.minimum_note_time,
             oscillator=self.sound.oscillator,
             sample_rate=sample_rate or self.device.sample_rate or 48_000,
