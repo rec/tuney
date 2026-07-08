@@ -6,7 +6,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
-from ..display import Beginner, Display, Options
+from ..display import Beginner, Display, Numeric, Options
 from ..tyro_option import tyro_option
 
 
@@ -47,7 +47,7 @@ def dtype_names() -> list[str]:
 class Device(BaseModel, frozen=True):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
-        int | None, tyro_option(), Beginner, Display(row=0, width=6)
+        int | None, tyro_option(), Beginner, Display(row=0, width=6), Numeric()
     ] = None
 
     # Audio output device name or index
@@ -56,6 +56,7 @@ class Device(BaseModel, frozen=True):
         tyro_option('-d', name='audio-device'),
         Beginner,
         Display(column=1, row=0),
+        Numeric(),
         Options(device_names),
     ] = None
 
@@ -64,9 +65,9 @@ class Device(BaseModel, frozen=True):
         DType | None, tyro_option(), Display(column=2, row=0), Options(dtype_names)
     ] = None
 
-    blocksize: tyro.conf.Suppress[int | None] = None
-    channels: tyro.conf.Suppress[int | None] = None
-    latency: tyro.conf.Suppress[int | None] = None
+    blocksize: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
+    channels: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
+    latency: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
     extra_settings: tyro.conf.Suppress[str | None] = None
     clip_off: tyro.conf.Suppress[bool | None] = None
     dither_off: tyro.conf.Suppress[bool | None] = None

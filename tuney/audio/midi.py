@@ -7,7 +7,7 @@ from typing import Annotated, Any
 import mido
 from pydantic import BaseModel
 
-from ..display import Beginner, Display, Options
+from ..display import Beginner, Display, Numeric, Options
 from ..tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
@@ -58,17 +58,17 @@ class MIDI(BaseModel, frozen=True):
 
     # MIDI channel, from 0 to 15
     channel: Annotated[
-        int, tyro_option(name='midi-channel'), Display(column=2, row=0)
+        int, tyro_option(name='midi-channel'), Display(column=2, row=0), Numeric()
     ] = 0
 
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
-        int, tyro_option(name='midi-velocity'), Display(column=3, row=0)
+        int, tyro_option(name='midi-velocity'), Display(column=3, row=0), Numeric()
     ] = 0x40
 
     # Offset added to MIDI note numbers
     note_offset: Annotated[
-        int, tyro_option(name='midi-note-offset'), Display(column=4, row=0)
+        int, tyro_option(name='midi-note-offset'), Display(column=4, row=0), Numeric()
     ] = 0
 
     @cached_property

@@ -8,7 +8,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, model_validator
 
-from ..display import Beginner, Display
+from ..display import Beginner, Display, Numeric
 from ..tyro_option import tyro_option
 from . import NoteNumber, Number, cents
 from .ratios import Ratios
@@ -24,11 +24,11 @@ class Type(StrEnum):
 
 class Computed(BaseModel, frozen=True):
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0)] = 0
+    limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0), Numeric()] = 0
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option('-V'), Beginner, Display(column=2, row=0)
+        int, tyro_option('-V'), Beginner, Display(column=2, row=0), Numeric()
     ] = 12
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -36,7 +36,7 @@ class Computed(BaseModel, frozen=True):
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option('-J'), Beginner, Display(column=3, row=0)
+        float, tyro_option('-J'), Beginner, Display(column=3, row=0), Numeric()
     ] = 2
 
     def __call__(self, note_delta: NoteNumber) -> Number:
@@ -73,7 +73,9 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     ] = None
 
     #: Detune everything, in cents of an octave division
-    detune: Annotated[float, tyro_option('-T'), Beginner, Display(column=1, row=0)] = 0
+    detune: Annotated[
+        float, tyro_option('-T'), Beginner, Display(column=1, row=0), Numeric()
+    ] = 0
 
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
@@ -81,6 +83,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         tyro_option('-U'),
         Beginner,
         Display(column=4, row=0),
+        Numeric(),
     ] = 440
 
     #: The note number of the reference note
@@ -89,6 +92,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         tyro_option('-W'),
         Beginner,
         Display(column=5, row=0),
+        Numeric(),
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     @model_validator(mode='before')

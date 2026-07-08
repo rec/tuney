@@ -1,6 +1,7 @@
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from fractions import Fraction
+from typing import get_origin
 
 import pytest
 import tomlkit
@@ -60,6 +61,25 @@ def _entry_width(cls: type[BaseModel], name: str) -> int | None:
         control_panel._control_metadata(cls, name),
         control_panel._numeric_metadata(cls, name),
     )
+
+
+def _is_scalar_numeric_field(cls: type[BaseModel], name: str) -> bool:
+    annotation = cls.model_fields[name].annotation
+    if get_origin(annotation) in {list, dict}:
+        return False
+    types = set(control_panel._annotation_types(annotation))
+    if list in types or dict in types or bool in types:
+        return False
+    return bool(types & {int, float})
+
+
+def _model_classes(data: BaseModel) -> list[type[BaseModel]]:
+    classes = [type(data)]
+    for name in type(data).model_fields:
+        value = getattr(data, name)
+        if isinstance(value, BaseModel):
+            classes.extend(_model_classes(value))
+    return classes
 
 
 def _qt_app() -> object:
@@ -363,6 +383,21 @@ def test_dials_are_limited_to_explicit_analog_controls(
             ).dial,
         },
     )
+
+
+def test_numeric_fields_have_numeric_metadata() -> None:
+    missing = [
+        f'{cls.__name__}.{name}'
+        for cls in _model_classes(Tuney())
+        for name in cls.model_fields
+        if _is_scalar_numeric_field(cls, name)
+        and not any(
+            isinstance(metadata, Numeric)
+            for metadata in cls.model_fields[name].metadata
+        )
+    ]
+
+    assert missing == []
 
 
 def test_numeric_dial_values_use_dial_range() -> None:

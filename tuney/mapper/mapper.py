@@ -9,7 +9,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel
 
-from ..display import Beginner, Display
+from ..display import Beginner, Display, Numeric
 from ..named_enum import NamedEnum
 from ..tyro_option import tyro_option
 
@@ -85,7 +85,7 @@ class Mapper(BaseModel, frozen=True):
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet
-    length: Annotated[int, tyro_option('-l'), Beginner, Display(row=1)] = 0
+    length: Annotated[int, tyro_option('-l'), Beginner, Display(row=1), Numeric()] = 0
 
     # Treat uppercase and lowercase characters as distinct
     case_sensitive: Annotated[bool, tyro_option('-C'), Display(column=4, row=1)] = True
@@ -99,11 +99,12 @@ class Mapper(BaseModel, frozen=True):
         tyro_option('-O', name='mapper-offset'),
         Beginner,
         Display(column=1, row=1),
+        Numeric(),
     ] = 0
 
     # Limit pitch range to this many notes
     range_limit: Annotated[
-        int, tyro_option('-r'), Beginner, Display(column=2, row=1)
+        int, tyro_option('-r'), Beginner, Display(column=2, row=1), Numeric()
     ] = 60
 
     # What to do when mapped notes are outside the pitch range

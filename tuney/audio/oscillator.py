@@ -50,11 +50,13 @@ class Oscillator(BaseModel, frozen=True):
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
-        NoteNumber, tyro_option('-K'), Display(column=2, row=0)
+        NoteNumber, tyro_option('-K'), Display(column=2, row=0), Numeric()
     ] = 64
 
     # Gain decibels added per keyboard octave above key_scale_note
-    key_scale: Annotated[float, tyro_option('-k'), Display(column=3, row=0)] = 0.0
+    key_scale: Annotated[
+        float, tyro_option('-k'), Display(column=3, row=0), Numeric()
+    ] = 0.0
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:
         # TODO: add intensity to compensate for different energies

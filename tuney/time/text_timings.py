@@ -19,40 +19,52 @@ MAX_GENERATED_SEED = 9999
 
 class TextTimings(BaseModel, frozen=True):
     # Base duration for a space, in milliseconds
-    space: Annotated[Milliseconds, tyro_option(), Beginner, Display(row=0, width=5)] = (
-        100
-    )
+    space: Annotated[
+        Milliseconds, tyro_option(), Beginner, Display(row=0, width=5), Numeric()
+    ] = 100
 
     # Base duration for a dot, in milliseconds
     dot: Annotated[
-        Milliseconds, tyro_option(), Beginner, Display(column=1, row=0, width=5)
+        Milliseconds,
+        tyro_option(),
+        Beginner,
+        Display(column=1, row=0, width=5),
+        Numeric(),
     ] = 300
 
     # Base duration for a comma, in milliseconds
     comma: Annotated[
-        Milliseconds, tyro_option(), Beginner, Display(column=2, row=0, width=5)
+        Milliseconds,
+        tyro_option(),
+        Beginner,
+        Display(column=2, row=0, width=5),
+        Numeric(),
     ] = 200
 
     # Base duration for a colon, in milliseconds
-    colon: Annotated[Milliseconds, tyro_option(), Display(column=3, row=0, width=5)] = (
-        400
-    )
+    colon: Annotated[
+        Milliseconds, tyro_option(), Display(column=3, row=0, width=5), Numeric()
+    ] = 400
 
     # Base duration for a semicolon, in milliseconds
     semicolon: Annotated[
-        Milliseconds, tyro_option(), Display(column=4, row=0, width=5)
+        Milliseconds, tyro_option(), Display(column=4, row=0, width=5), Numeric()
     ] = 400
 
     # Base duration for a blank line, in milliseconds
     blank_line: Annotated[
-        Milliseconds, tyro_option(), Display(column=5, row=0, width=5)
+        Milliseconds, tyro_option(), Display(column=5, row=0, width=5), Numeric()
     ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[Milliseconds, tyro_option(), Beginner, Display(row=1)] = 20
+    overlap: Annotated[
+        Milliseconds, tyro_option(), Beginner, Display(row=1), Numeric()
+    ] = 20
 
     # Seed for randomized character timings, or a random seed if empty
-    seed: Annotated[int | None, tyro_option(), Display(column=1, row=1)] = None
+    seed: Annotated[int | None, tyro_option(), Display(column=1, row=1), Numeric()] = (
+        None
+    )
 
     # Ignore characters without an explicit timing unless they are alphabetic
     alpha_only: Annotated[bool, tyro_option(), Display(column=2, row=1)] = True

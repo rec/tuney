@@ -30,14 +30,15 @@ class Sound(BaseModel, frozen=True):
         tyro_option('-n', name='audio-note-offset'),
         General,
         Beginner,
+        Numeric(),
     ] = 44
 
     polyphony: Polyphony = Polyphony()
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: Annotated[float, tyro_option('-N'), Beginner, Display(row=0)] = (
-        Field(0.5, ge=0)
-    )
+    minimum_note_time: Annotated[
+        float, tyro_option('-N'), Beginner, Display(row=0), Numeric()
+    ] = Field(0.5, ge=0)
 
     def note_gain(self, note_number: NoteNumber) -> float:
         return self.gain * self.oscillator.gain(note_number)

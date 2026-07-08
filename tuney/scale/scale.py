@@ -10,7 +10,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
-from ..display import Beginner, Display
+from ..display import Beginner, Display, Numeric
 from ..tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
@@ -95,7 +95,7 @@ class Scale(BaseModel, frozen=True):
 
     #: Offset all note numbers by this
     offset: Annotated[
-        int, tyro_option('-Y', name='scale-offset'), Display(column=3, row=0)
+        int, tyro_option('-Y', name='scale-offset'), Display(column=3, row=0), Numeric()
     ] = 0
 
     @model_validator(mode='after')

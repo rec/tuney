@@ -55,13 +55,13 @@ class Tuney(BaseModel):
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds
-    hover_time: Annotated[float, General] = 1.0
+    hover_time: Annotated[float, General, Numeric()] = 1.0
 
     # Time to hold backspace before it starts repeating, in seconds
-    backspace_repeat_delay: Annotated[float, Hidden] = 2.0
+    backspace_repeat_delay: Annotated[float, Hidden, Numeric()] = 2.0
 
     # Backspace repeats per second after backspace_repeat_delay
-    backspace_repeat_rate: Annotated[float, Hidden] = 4.0
+    backspace_repeat_rate: Annotated[float, Hidden, Numeric()] = 4.0
 
     # Open the graphical interface
     gui: Annotated[bool, tyro_option('-g'), Hidden] = False
