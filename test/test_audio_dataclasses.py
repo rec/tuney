@@ -2,6 +2,7 @@ import subprocess
 from typing import Any
 
 import numpy as np
+import pytest
 
 from tuney.audio import device as device_module
 from tuney.audio import midi as midi_module
@@ -110,11 +111,11 @@ def test_oscillator_square_uses_duty_cycle() -> None:
 
 
 def test_oscillator_key_scale_changes_gain_by_octave() -> None:
-    oscillator = Oscillator(key_scale_note=64, key_scale=1)
+    oscillator = Oscillator(key_scale_note=64, key_scale=6)
 
     assert oscillator.gain(64) == 1
-    assert oscillator.gain(76) == 2
-    assert oscillator.gain(52) == 0.5
+    assert oscillator.gain(76) == pytest.approx(10 ** (6 / 20))
+    assert oscillator.gain(52) == pytest.approx(10 ** (-6 / 20))
 
 
 def completed_process(

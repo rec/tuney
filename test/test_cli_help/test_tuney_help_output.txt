@@ -122,7 +122,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -K INT, --key-scale-note INT
         Note number with no keyboard gain adjustment (default: 64)
   -k FLOAT, --key-scale FLOAT
-        Gain octaves added per keyboard octave above key_scale_note (default: 0.0)
+        Gain decibels added per keyboard octave above key_scale_note (default: 0.0)
 
  sound.polyphony options
  ----------------------------------------------------------------------------------------------------------------------

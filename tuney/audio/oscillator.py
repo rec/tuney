@@ -62,7 +62,7 @@ class Oscillator(BaseModel, frozen=True):
         NoteNumber, tyro_option('-K'), Display(column=3, row=0)
     ] = 64
 
-    # Gain octaves added per keyboard octave above key_scale_note
+    # Gain decibels added per keyboard octave above key_scale_note
     key_scale: Annotated[float, tyro_option('-k'), Display(column=4, row=0)] = 0.0
 
     def __call__(self, start: float, length: int, period: float) -> np.ndarray:
@@ -73,4 +73,4 @@ class Oscillator(BaseModel, frozen=True):
         return self.waveform.value[0](wave, self.duty_cycle)
 
     def gain(self, note_number: NoteNumber) -> float:
-        return 2 ** (self.key_scale * (note_number - self.key_scale_note) / 12)
+        return 10 ** (self.key_scale * (note_number - self.key_scale_note) / 12 / 20)

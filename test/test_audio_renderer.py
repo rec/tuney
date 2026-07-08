@@ -291,11 +291,11 @@ def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
         sound=Sound(
             note_offset=0,
             gain=0.25,
-            oscillator=Oscillator(key_scale_note=12, key_scale=1),
+            oscillator=Oscillator(key_scale_note=12, key_scale=6),
         )
     )
 
-    assert player.voice_maker(24).gain == 0.5
+    assert player.voice_maker(24).gain == pytest.approx(0.25 * 10 ** (6 / 20))
 
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
