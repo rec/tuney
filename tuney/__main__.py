@@ -1,9 +1,4 @@
-from tuney.app import cli
-
-
-def main() -> None:
-    cli.cli()
-
+from tuney.main import main
 
 if __name__ == '__main__':
     main()
