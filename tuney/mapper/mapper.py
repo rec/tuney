@@ -9,9 +9,9 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel
 
-from ..display import Beginner, Display, Numeric
-from ..named_enum import NamedEnum
-from ..tyro_option import tyro_option
+from ..cfg.display import Beginner, Display, Numeric
+from ..cfg.named_enum import NamedEnum
+from ..cfg.tyro_option import tyro_option
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44

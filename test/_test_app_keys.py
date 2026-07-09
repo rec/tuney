@@ -6,10 +6,10 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
+from tuney.cfg.tuney import Tuney
 from tuney.scale.ratios import Ratios
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
-from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 from tuney.ui import main_window as main_window_module
 from tuney.ui.history import History

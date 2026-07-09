@@ -12,13 +12,13 @@ from pytest_regressions.file_regression import FileRegressionFixture
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.sound import Sound
-from tuney.display import Numeric
+from tuney.cfg.display import Numeric
+from tuney.cfg.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning, Type
 from tuney.time.text_timings import TextTimings
-from tuney.tuney import Tuney
 from tuney.ui import control_panel
 
 

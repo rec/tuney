@@ -7,8 +7,8 @@ from typing import Annotated, Any
 import mido
 from pydantic import BaseModel
 
-from ..display import Beginner, Display, Numeric, Options
-from ..tyro_option import tyro_option
+from ..cfg.display import Beginner, Display, Numeric, Options
+from ..cfg.tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
 INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'

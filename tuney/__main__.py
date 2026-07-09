@@ -1,5 +1,5 @@
 from tuney import cli
-from tuney.tuney import Tuney
+from tuney.cfg.tuney import Tuney
 
 
 def main() -> None:

@@ -33,7 +33,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..display import Beginner, Display, General, Hidden, Numeric, Options
+from ..cfg.display import Beginner, Display, General, Hidden, Numeric, Options
 from ..mapper.mapper import Mapper
 from ..scale import evaluate
 from ..scale.ratios import Ratios

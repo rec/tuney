@@ -6,9 +6,9 @@ import tyro
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.__main__ import main
+from tuney.cfg.tuney import Tuney
 from tuney.cli import cli
 from tuney.time.char_press import CharPress
-from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 
 LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')

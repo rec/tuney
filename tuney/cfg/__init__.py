@@ -1,0 +1,1 @@
+"""Configuration data model helpers."""

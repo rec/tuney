@@ -8,10 +8,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..display import Display
+from ..cfg.display import Display
+from ..cfg.text_file import read_text_file
+from ..cfg.tyro_option import tyro_option
 from ..platform_info import report_error
-from ..text_file import read_text_file
-from ..tyro_option import tyro_option
 from . import Number, evaluate, uncents
 
 

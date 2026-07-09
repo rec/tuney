@@ -6,8 +6,8 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
-from ..display import Beginner, Display, Numeric, Options
-from ..tyro_option import tyro_option
+from ..cfg.display import Beginner, Display, Numeric, Options
+from ..cfg.tyro_option import tyro_option
 
 
 class _SoundDevice:

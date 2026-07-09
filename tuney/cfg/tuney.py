@@ -6,17 +6,17 @@ from typing import Annotated, final
 import tyro
 from pydantic import BaseModel, Field, field_validator
 
-from .audio.device import Device
-from .audio.midi import MIDI
-from .audio.sound import Sound
+from ..audio.device import Device
+from ..audio.midi import MIDI
+from ..audio.sound import Sound
+from ..mapper.mapper import Mapper
+from ..presets import preset_names
+from ..scale.scale import Scale
+from ..scale.tuning import Tuning
+from ..time.char_press import CharPress
+from ..time.sequencer import Sequencer
+from ..time.text_timings import TextTimings
 from .display import Beginner, General, Hidden, Numeric, Options
-from .mapper.mapper import Mapper
-from .presets import preset_names
-from .scale.scale import Scale
-from .scale.tuning import Tuning
-from .time.char_press import CharPress
-from .time.sequencer import Sequencer
-from .time.text_timings import TextTimings
 from .tyro_option import tyro_option
 
 

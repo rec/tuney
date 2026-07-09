@@ -10,10 +10,10 @@ import pytest
 
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.cfg.tuney import Tuney
 from tuney.platform_info import exit_with_message, report_error
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 from tuney.ui import Action, State, StateChange
 
@@ -58,7 +58,7 @@ def test_model_import_does_not_load_pyside() -> None:
         [
             sys.executable,
             '-c',
-            'import sys; import tuney.tuney; print("PySide6" in sys.modules)',
+            'import sys; import tuney.cfg.tuney; print("PySide6" in sys.modules)',
         ],
         check=True,
         capture_output=True,

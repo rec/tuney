@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
+from tuney.cfg.tuney import Tuney
 from tuney.presets import preset_names, read_preset
 from tuney.time.char_press import CharPress
-from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 
 

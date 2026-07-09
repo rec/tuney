@@ -5,10 +5,10 @@ from typing import Annotated
 import numpy as np
 from pydantic import BaseModel
 
-from ..display import Beginner, Display, Numeric
-from ..named_enum import NamedEnum
+from ..cfg.display import Beginner, Display, Numeric
+from ..cfg.named_enum import NamedEnum
+from ..cfg.tyro_option import tyro_option
 from ..scale import NoteNumber
-from ..tyro_option import tyro_option
 from .scipy import sawtooth
 from .scipy import square as scipy_square
 

@@ -6,10 +6,10 @@ import pytest
 import tomlkit
 from pydantic.json_schema import PydanticJsonSchemaWarning
 
-from tuney.serialize import serialize
+from tuney.cfg.serialize import serialize
+from tuney.cfg.tuney import Tuney
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.tuney import Tuney
 from tuney.tuney_state import TuneyState
 
 

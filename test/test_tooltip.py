@@ -7,9 +7,9 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from pydantic import BaseModel
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
+from tuney.cfg.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
-from tuney.tuney import Tuney
 from tuney.ui.control_panel import (
     _field_help,
     _field_hover_text,
