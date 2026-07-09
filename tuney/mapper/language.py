@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import locale
-import os
-
 from pydantic import BaseModel
 
 
@@ -23,7 +20,6 @@ def known_language(language: str) -> bool:
 
 
 def _language_tag(language: str | None) -> str | None:
-    language = language or _system_language()
     if not language:
         return None
     return _normalized_language_tag(language)
@@ -34,15 +30,6 @@ def _normalized_language_tag(language: str) -> str | None:
     if tag in {'c', 'posix'}:
         return None
     return tag
-
-
-def _system_language() -> str | None:
-    if (language := locale.getlocale(locale.LC_CTYPE)[0]) is not None:
-        return language
-    for name in 'LC_ALL', 'LC_CTYPE', 'LANG', 'LANGUAGE':
-        if (language := os.environ.get(name)) and language not in {'C', 'POSIX'}:
-            return language.split(':', 1)[0]
-    return None
 
 
 class Alphabet(BaseModel, frozen=True):

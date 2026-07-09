@@ -3,7 +3,6 @@ from string import ascii_lowercase, ascii_uppercase
 import pytest
 
 from tuney.audio.sound import Sound
-from tuney.mapper import language
 from tuney.mapper.mapper import Mapper
 
 
@@ -43,38 +42,13 @@ def test_mapper_uses_language_alphabet() -> None:
     assert 'ç' in mapper.alphabet
 
 
-def test_mapper_uses_system_language_when_language_is_empty(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        language.locale,
-        'getlocale',
-        lambda category: ('tr_TR', 'UTF-8'),
-    )
-
-    mapper = Mapper()
-
-    assert mapper.alphabet is not None
-    assert mapper.alphabet.startswith('ABCÇ')
-    assert 'İ' in mapper.alphabet
-    assert 'ı' in mapper.alphabet
+def test_mapper_uses_default_alphabet_when_language_is_empty() -> None:
+    assert Mapper().alphabet == ascii_uppercase + ascii_lowercase
 
 
 def test_mapper_rejects_unknown_language() -> None:
     with pytest.raises(ValueError, match='Unknown language: xx'):
         Mapper(language='xx')
-
-
-def test_mapper_falls_back_to_default_alphabet_for_unknown_system_language(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        language.locale,
-        'getlocale',
-        lambda category: ('zh_CN', 'UTF-8'),
-    )
-
-    assert Mapper().alphabet == ascii_uppercase + ascii_lowercase
 
 
 def test_mapper_language_respects_case_sensitive() -> None:
