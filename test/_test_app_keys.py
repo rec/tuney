@@ -11,7 +11,7 @@ from tuney.app.app import App
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
-from tuney.scale.tuning import Computed, Type
+from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import main_window as main_window_module
 from tuney.ui.history import History
@@ -485,6 +485,14 @@ def test_app_imports_and_exports_tuning() -> None:
         app.app.tuning.model_copy(
             update={'type': Type.table, 'table': Table(text='440')}
         ),
+    )
+    MainWindow._update_export_tuning_action(app)
+    assert not app.export_tuning_action.enabled
+
+    object.__setattr__(
+        app.app,
+        'tuning',
+        Tuning(type=Type.table, table=None, computed=None, ratios=None),
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled

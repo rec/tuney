@@ -56,7 +56,7 @@ from ..app.platform_info import log_path
 from ..presets import delete_presets, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
-from ..scale.tuning import Computed, Type
+from ..scale.tuning import Computed, Tuning, Type
 from ..time.char_press import CharPress
 from . import Action, StateChange
 from .help import show_help
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_export_tuning(self, *_: object) -> None:
-        if isinstance(self.app.tuning.active, Table):
+        if (tuning := _export_tuning_source(self.app.tuning)) is None:
             return
 
         self._is_saving = True
@@ -292,7 +292,6 @@ class MainWindow(QMainWindow):
                 self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
             )
             if filename := result[0]:
-                tuning = self.app.tuning.active
                 ratios = tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
                 ratios.write_scala_file(Path(filename))
         finally:
@@ -315,7 +314,7 @@ class MainWindow(QMainWindow):
 
     def _update_export_tuning_action(self) -> None:
         self.export_tuning_action.setEnabled(
-            not isinstance(self.app.tuning.active, Table)
+            _export_tuning_source(self.app.tuning) is not None
         )
 
     def on_transport_state(self, change: StateChange) -> bool:
@@ -614,6 +613,16 @@ def _selected_preset_names(parent: QWidget) -> list[str]:
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return []
     return [i.text() for i in presets.selectedItems()]
+
+
+def _export_tuning_source(tuning: Tuning) -> Computed | Ratios | None:
+    match tuning.type:
+        case Type.computed:
+            return tuning.computed
+        case Type.ratios:
+            return tuning.ratios
+        case Type.table | None:
+            return None
 
 
 def _float_or_none(text: str) -> float | None:
