@@ -1,4 +1,4 @@
-from string import ascii_letters
+from string import ascii_lowercase, ascii_uppercase
 
 import pytest
 
@@ -74,8 +74,7 @@ def test_mapper_falls_back_to_default_alphabet_for_unknown_system_language(
         lambda category: ('zh_CN', 'UTF-8'),
     )
 
-    assert Mapper().alphabet is None
-    assert Mapper().alphabet_ == ascii_letters
+    assert Mapper().alphabet == ascii_uppercase + ascii_lowercase
 
 
 def test_mapper_language_respects_case_sensitive() -> None:

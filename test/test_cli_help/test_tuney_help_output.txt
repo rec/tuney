@@ -184,7 +184,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
 
  subcommands
  ----------------------------------------------------------------------------------------------------------------------
-  Computed tuning parameters (default: tuning.computed:none)
+  Computed tuning parameters (default: tuning.computed:computed)
     - tuning.computed:computed
     - tuning.computed:none
   ----------------------------------------------------------------------------------------------------------------------

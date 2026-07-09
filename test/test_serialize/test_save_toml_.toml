@@ -31,6 +31,11 @@ detune = 0
 root_frequency = 440
 root_note = 69
 
+[tuning.computed]
+limit = 0
+notes_per_octave = 12
+octave_ratio = 2
+
 [device]
 
 [sound]

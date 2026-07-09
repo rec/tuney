@@ -29,13 +29,6 @@ def test_tuning_keeps_inactive_values() -> None:
     assert tuning.ratios == Ratios(ratios=[3, 2])
 
 
-def test_tuning_reads_legacy_tuning_field() -> None:
-    assert Tuning.model_validate({'tuning': [440]}).table == [440]
-    assert Tuning.model_validate({'tuning': {'ratios': [2]}}).ratios == Ratios(
-        ratios=[2]
-    )
-
-
 def test_computed_exports_one_octave_of_ratios() -> None:
     assert Computed(notes_per_octave=3, octave_ratio=8).as_ratios().ratios == (
         pytest.approx([2, 4, 8])

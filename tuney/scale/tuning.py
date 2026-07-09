@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from enum import StrEnum, auto
 from fractions import Fraction
 from functools import cached_property
 from typing import Annotated
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field
 
 from ..cfg.display import Beginner, Display, Numeric
 from ..cfg.tyro_option import tyro_option
@@ -60,7 +59,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     )
 
     #: Computed tuning parameters
-    computed: Annotated[Computed | None, Beginner] = None
+    computed: Annotated[Computed | None, Beginner] = Field(default_factory=Computed)
 
     #: Absolute frequencies, indexed by note number
     table: Annotated[
@@ -95,32 +94,6 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         Numeric(),
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
-    @model_validator(mode='before')
-    @classmethod
-    def _normalize_source(cls, data: object) -> object:
-        if not isinstance(data, Mapping):
-            return data
-
-        values = dict(data)
-        if 'tuning' not in values:
-            return values
-
-        tuning = values.pop('tuning')
-        if 'computed' in values or 'table' in values or 'ratios' in values:
-            return values
-
-        match tuning:
-            case list():
-                values['type'] = Type.table
-                values['table'] = tuning
-            case dict() if 'ratios' in tuning:
-                values['type'] = Type.ratios
-                values['ratios'] = tuning
-            case _:
-                values['type'] = Type.computed
-                values['computed'] = tuning
-        return values
-
     @cached_property
     def detune_ratio(self) -> float:
         return cents(self.detune)
@@ -130,9 +103,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         default = getattr(self, self.type.name if self.type else '')
         if p := default or self.table or self.ratios or self.computed:
             return p
-        p = Computed()
-        object.__setattr__('computed', p)
-        return p
+        return Computed()
 
     def __call__(self, note_number: NoteNumber) -> Number:
         """Return the frequency in this tuning for a NoteNumber"""

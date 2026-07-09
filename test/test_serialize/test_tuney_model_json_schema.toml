@@ -494,8 +494,6 @@ default = "computed"
 [["$defs".Tuning.properties.type.anyOf]]
 type = "null"
 
-["$defs".Tuning.properties.computed]
-default = "<null>"
 [["$defs".Tuning.properties.computed.anyOf]]
 "$ref" = "#/$defs/Computed"
 
@@ -567,12 +565,16 @@ offset = 0
 
 [properties.tuning.default]
 type = "computed"
-computed = "<null>"
 table = "<null>"
 ratios = "<null>"
 detune = 0.0
 root_frequency = 440.0
 root_note = 69
+
+[properties.tuning.default.computed]
+limit = 0
+notes_per_octave = 12
+octave_ratio = 2.0
 
 [properties.device]
 "$ref" = "#/$defs/Device"

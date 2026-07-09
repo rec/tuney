@@ -801,7 +801,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 
     run(app)
 
-    assert events == [(-6, True), (-6, False)]
+    assert events == [(20, True), (20, False)]
     assert lifecycle == ['stop_all', 'wait', 'close']
     assert 'main_window' not in app.__dict__
     assert 'listener' not in app.__dict__

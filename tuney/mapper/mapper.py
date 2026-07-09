@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from enum import StrEnum, auto
 from functools import cached_property
 from math import floor
-from string import ascii_letters, ascii_lowercase
+from string import ascii_lowercase, ascii_uppercase
 from typing import Annotated
 
 import tyro
@@ -18,6 +18,7 @@ from .language import alphabet_for_language, known_language
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44
 MAPPER_CENTER: float = MIDDLE_NOTE - DEFAULT_PLAYER_NOTE_OFFSET
+DEFAULT_ALPHABET: str = ascii_uppercase + ascii_lowercase
 
 
 def centered_note_number(index: int, span: int, offset: int) -> int:
@@ -123,16 +124,20 @@ class Mapper(BaseModel, frozen=True):
         if not isinstance(data, Mapping):
             return data
         values: dict[str, object] = {str(k): v for k, v in data.items()}
-        if values.get('alphabet') is not None:
-            return data
         language = values.get('language')
         case_sensitive = values.get('case_sensitive', True)
         if language is not None and not isinstance(language, str):
             return data
         if not isinstance(case_sensitive, bool):
             return data
-        if (alphabet := alphabet_for_language(language, case_sensitive)) is None:
+        fallback = DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
+        if values.get('alphabet') is not None and not (
+            language is not None and values['alphabet'] == fallback
+        ):
             return data
+        alphabet = alphabet_for_language(language, case_sensitive) or (
+            DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
+        )
         return values | {'alphabet': alphabet}
 
     @field_validator('language')
@@ -147,7 +152,7 @@ class Mapper(BaseModel, frozen=True):
         return (
             self.alphabet
             or alphabet_for_language(self.language, self.case_sensitive)
-            or (ascii_letters if self.case_sensitive else ascii_lowercase)
+            or (DEFAULT_ALPHABET if self.case_sensitive else ascii_lowercase)
         )
 
     def __call__(self, k: str) -> int | None:
