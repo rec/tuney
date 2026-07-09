@@ -11,8 +11,7 @@ from ..cfg.display import Beginner, Display, Numeric
 from ..cfg.tyro_option import tyro_option
 from . import NoteNumber, Number, cents
 from .ratios import Ratios
-
-type Frequency = float  # Must be non-negative
+from .table import Table
 
 
 class Type(StrEnum):
@@ -43,7 +42,9 @@ class Computed(BaseModel, frozen=True):
         return Fraction(r).limit_denominator(self.limit) if self.limit else r
 
     def as_ratios(self) -> Ratios:
-        return Ratios(ratios=[self(i + 1) for i in range(self.notes_per_octave)])
+        return Ratios.from_strings(
+            str(self(i + 1)) for i in range(self.notes_per_octave)
+        )
 
 
 class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
@@ -63,7 +64,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     #: Absolute frequencies, indexed by note number
     table: Annotated[
-        list[Frequency] | None, tyro_option(), Beginner, Display(row=1, width=24)
+        Table | None, tyro_option(), Beginner, Display(row=1, width=24)
     ] = None
 
     #: Ratio expressions, relative to root_frequency
@@ -99,7 +100,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         return cents(self.detune)
 
     @property
-    def active(self) -> Computed | Ratios | list[Frequency]:
+    def active(self) -> Computed | Ratios | Table:
         default = getattr(self, self.type.name if self.type else '')
         if p := default or self.table or self.ratios or self.computed:
             return p
@@ -109,8 +110,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         """Return the frequency in this tuning for a NoteNumber"""
         note_delta = note_number - self.root_note
         tuning = self.active
-        if isinstance(tuning, list):
-            freq = tuning[note_delta % len(tuning)]
-        else:
-            freq = tuning(note_delta) * self.root_frequency
+        freq = tuning(note_delta)
+        if not isinstance(tuning, Table):
+            freq *= self.root_frequency
         return freq * self.detune_ratio

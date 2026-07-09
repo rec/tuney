@@ -36,9 +36,9 @@ from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..cfg.display import Beginner, Display, General, Hidden, Numeric, Options
 from ..mapper.mapper import Mapper
-from ..scale import evaluate
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
+from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
 from .tooltip import Tooltip
 
@@ -1089,14 +1089,11 @@ def _parse_entry_value(
     if raw == '':
         return None
     if isinstance(old_value, Ratios):
-        return Ratios(
-            ratios=evaluate.evaluate_all(_split_expression_list(raw)),
-            name=old_value.name,
-            desc=old_value.desc,
-        )
+        return Ratios(text=raw, name=old_value.name, desc=old_value.desc)
+    if isinstance(old_value, Table):
+        return Table(text=raw)
     if name in {'table', 'ratios'}:
-        values = evaluate.evaluate_all(_split_expression_list(raw))
-        return Ratios(ratios=values) if name == 'ratios' else [float(i) for i in values]
+        return Ratios(text=raw) if name == 'ratios' else Table(text=raw)
     if name == 'intervals' and isinstance(old_value, list):
         return raw
     if isinstance(old_value, list | dict) or _expects_json(annotation):
@@ -1107,13 +1104,10 @@ def _parse_entry_value(
 def _tuning_expression_text(value: object) -> str:
     if value is None:
         return ''
-    values = value.ratios if isinstance(value, Ratios) else value
-    assert isinstance(values, list | tuple)
-    return '; '.join(str(i) for i in values)
-
-
-def _split_expression_list(raw: str) -> list[str]:
-    return [s for i in raw.split(';') if (s := i.strip())]
+    if isinstance(value, Ratios | Table):
+        return value.text
+    assert isinstance(value, list | tuple)
+    return '; '.join(str(i) for i in value)
 
 
 def _entry_width(

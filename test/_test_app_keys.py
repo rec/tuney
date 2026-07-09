@@ -9,6 +9,7 @@ from PySide6.QtGui import QKeyEvent
 from tuney.app.app import App
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
+from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import main_window as main_window_module
@@ -409,7 +410,7 @@ def test_app_imports_and_exports_tuning() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / 'input.scl'
-        Ratios(ratios=[2], name='input.scl', desc='one step').write_scala_file(path)
+        Ratios(text='2', name='input.scl', desc='one step').write_scala_file(path)
 
         class FakeOpenDialog:
             @staticmethod
@@ -421,9 +422,7 @@ def test_app_imports_and_exports_tuning() -> None:
         MainWindow.on_import_tuning(app)
 
     assert app.history.undo_stack
-    assert app.app.tuning.ratios == Ratios(
-        ratios=[2], name='input.scl', desc='one step'
-    )
+    assert app.app.tuning.ratios == Ratios(text='2', name='input.scl', desc='one step')
     assert app.ui.rebuild_control_panel_count == 1
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -480,7 +479,9 @@ def test_app_imports_and_exports_tuning() -> None:
     object.__setattr__(
         app.app,
         'tuning',
-        app.app.tuning.model_copy(update={'type': Type.table, 'table': [440]}),
+        app.app.tuning.model_copy(
+            update={'type': Type.table, 'table': Table(text='440')}
+        ),
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled

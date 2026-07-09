@@ -153,9 +153,6 @@ type = "boolean"
 [["$defs".Device.properties.prime_output_buffers_using_stream_callback.anyOf]]
 type = "null"
 
-["$defs".Frequency]
-type = "number"
-
 ["$defs".Limiter]
 enum = ["wrap", "reflect", "reflect_repeat"]
 title = "Limiter"
@@ -300,18 +297,9 @@ type = "integer"
 title = "Ratios"
 type = "object"
 
-["$defs".Ratios.properties.ratios]
-title = "Ratios"
-type = "array"
-
-[["$defs".Ratios.properties.ratios.items.anyOf]]
-type = "number"
-
-[["$defs".Ratios.properties.ratios.items.anyOf]]
-type = "integer"
-
-[["$defs".Ratios.properties.ratios.items.anyOf]]
-format = "fraction"
+["$defs".Ratios.properties.text]
+default = ""
+title = "Text"
 type = "string"
 
 ["$defs".Ratios.properties.name]
@@ -405,6 +393,15 @@ default = 0.5
 minimum = 0
 title = "Minimum Note Time"
 type = "number"
+
+["$defs".Table]
+title = "Table"
+type = "object"
+
+["$defs".Table.properties.text]
+default = ""
+title = "Text"
+type = "string"
 
 ["$defs".TextTimings]
 title = "TextTimings"
@@ -502,12 +499,8 @@ type = "null"
 
 ["$defs".Tuning.properties.table]
 default = "<null>"
-title = "Table"
 [["$defs".Tuning.properties.table.anyOf]]
-type = "array"
-
-["$defs".Tuning.properties.table.anyOf.items]
-"$ref" = "#/$defs/Frequency"
+"$ref" = "#/$defs/Table"
 
 [["$defs".Tuning.properties.table.anyOf]]
 type = "null"

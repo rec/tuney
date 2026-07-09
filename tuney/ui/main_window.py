@@ -45,6 +45,7 @@ from ..app.app import (
 )
 from ..app.platform_info import log_path
 from ..scale.ratios import Ratios
+from ..scale.table import Table
 from ..scale.tuning import Computed, Type
 from ..time.char_press import CharPress
 from . import Action, StateChange
@@ -251,7 +252,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_export_tuning(self, *_: object) -> None:
-        if isinstance(self.app.tuning.active, list):
+        if isinstance(self.app.tuning.active, Table):
             return
 
         self._is_saving = True
@@ -267,14 +268,14 @@ class MainWindow(QMainWindow):
             self._is_saving = False
             self._has_focus = False
 
-    def _set_tuning(self, tuning: Computed | Ratios | list[float]) -> None:
+    def _set_tuning(self, tuning: Computed | Ratios | Table) -> None:
         data = self.app.tuning.model_dump()
         match tuning:
             case Computed():
                 data |= {'type': Type.computed, 'computed': tuning}
             case Ratios():
                 data |= {'type': Type.ratios, 'ratios': tuning}
-            case list():
+            case Table():
                 data |= {'type': Type.table, 'table': tuning}
         validated = type(self.app.tuning).model_validate(data)
         for field in type(self.app.tuning).model_fields:
@@ -283,7 +284,7 @@ class MainWindow(QMainWindow):
 
     def _update_export_tuning_action(self) -> None:
         self.export_tuning_action.setEnabled(
-            not isinstance(self.app.tuning.active, list)
+            not isinstance(self.app.tuning.active, Table)
         )
 
     def on_transport_state(self, change: StateChange) -> bool:

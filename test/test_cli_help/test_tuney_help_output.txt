@@ -1,4 +1,4 @@
-usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [RATIOS]
+usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [TABLE] [RATIOS]
 
 Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
 
@@ -85,8 +85,6 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --type {None,computed,table,ratios}
         Which tuning source to use (default: computed)
-  --table {None}|{[FLOAT [FLOAT ...]]}
-        Absolute frequencies, indexed by note number (default: None)
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
   -U FLOAT, --root-frequency FLOAT
@@ -187,6 +185,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   Computed tuning parameters (default: tuning.computed:computed)
     - tuning.computed:computed
     - tuning.computed:none
+  ----------------------------------------------------------------------------------------------------------------------
+  Absolute frequencies, indexed by note number (default: table:none)
+    - table:table
+    - table:none
   ----------------------------------------------------------------------------------------------------------------------
   Ratio expressions, relative to root_frequency (default: ratios:none)
     - ratios:ratios
