@@ -60,7 +60,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     )
 
     #: Computed tuning parameters
-    computed: Annotated[Computed | None, Beginner] = Computed()
+    computed: Annotated[Computed | None, Beginner] = None
 
     #: Absolute frequencies, indexed by note number
     table: Annotated[
@@ -127,19 +127,12 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
 
     @property
     def active(self) -> Computed | Ratios | list[Frequency]:
-        match self.type:
-            case Type.computed | None:
-                if self.computed is None:
-                    raise ValueError('No computed tuning configured')
-                return self.computed
-            case Type.table:
-                if self.table is None:
-                    raise ValueError('No frequency table configured')
-                return self.table
-            case Type.ratios:
-                if self.ratios is None:
-                    raise ValueError('No ratios configured')
-                return self.ratios
+        default = getattr(self, self.type.name if self.type else '')
+        if p := default or self.table or self.ratios or self.computed:
+            return p
+        p = Computed()
+        object.__setattr__('computed', p)
+        return p
 
     def __call__(self, note_number: NoteNumber) -> Number:
         """Return the frequency in this tuning for a NoteNumber"""
