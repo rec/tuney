@@ -23,17 +23,26 @@ from PySide6.QtGui import (
     QKeySequence,
 )
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QInputDialog,
+    QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ..app.app import (
     clear,
+    dump_data,
     dump_toml,
     load_text_file,
     on_char,
@@ -44,6 +53,7 @@ from ..app.app import (
     save,
 )
 from ..app.platform_info import log_path
+from ..presets import delete_presets, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
 from ..scale.tuning import Computed, Type
@@ -234,6 +244,27 @@ class MainWindow(QMainWindow):
         finally:
             self._is_saving = False
             self._has_focus = False
+
+    def on_save_preset(self, *_: object) -> None:
+        if (name := _preset_name(self)) is None:
+            return
+        try:
+            write_preset(name, dump_data(self.app))
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, 'Save preset', str(error))
+            return
+        self.ui.rebuild_control_panel()
+
+    def on_delete_presets(self, *_: object) -> None:
+        if not (names := _selected_preset_names(self)):
+            return
+        try:
+            self.history.checkpoint_undo()
+            delete_presets(names)
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, 'Delete presets', str(error))
+            return
+        self.ui.rebuild_control_panel()
 
     def on_import_tuning(self, *_: object) -> None:
         self._is_saving = True
@@ -448,6 +479,8 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
         _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
+        _add_action(file_menu, 'Save preset...', None, self.on_save_preset)
+        _add_action(file_menu, 'Delete presets...', None, self.on_delete_presets)
         _add_action(file_menu, 'Import tuning...', None, self.on_import_tuning)
         self.export_tuning_action = _add_action(
             file_menu, 'Export tuning...', None, self.on_export_tuning
@@ -546,6 +579,41 @@ def _add_action(
     action.triggered.connect(callback)
     menu.addAction(action)
     return action
+
+
+def _preset_name(parent: QWidget) -> str | None:
+    name, accepted = QInputDialog.getText(parent, 'Save preset', 'Preset name:')
+    name = name.strip()
+    return name if accepted and name else None
+
+
+def _selected_preset_names(parent: QWidget) -> list[str]:
+    names = user_preset_names()
+    if not names:
+        QMessageBox.information(parent, 'Delete presets', 'There are no user presets.')
+        return []
+
+    dialog = QDialog(parent)
+    dialog.setWindowTitle('Delete presets')
+    layout = QVBoxLayout(dialog)
+    layout.addWidget(QLabel('Select presets to delete:', dialog))
+
+    presets = QListWidget(dialog)
+    presets.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+    presets.addItems(names)
+    layout.addWidget(presets)
+
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+        dialog,
+    )
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+    layout.addWidget(buttons)
+
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+        return []
+    return [i.text() for i in presets.selectedItems()]
 
 
 def _float_or_none(text: str) -> float | None:

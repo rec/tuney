@@ -6,6 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
+from tuney import presets as presets_module
 from tuney.app.app import App
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
@@ -257,6 +258,8 @@ def test_application_uses_cross_platform_style() -> None:
         edit_actions = menu_actions['Edit']
         file_actions = menu_actions['File']
 
+        assert 'Save preset...' in file_actions
+        assert 'Delete presets...' in file_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions
@@ -485,6 +488,48 @@ def test_app_imports_and_exports_tuning() -> None:
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
+
+
+def test_app_saves_and_deletes_presets() -> None:
+    app = HistoryApp()
+    old_user_presets = presets_module.USER_PRESETS
+    old_input_dialog = main_window_module.QInputDialog
+    old_selected_preset_names = main_window_module._selected_preset_names
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            presets_module.USER_PRESETS = Path(tmp)
+
+            class FakeInputDialog:
+                @staticmethod
+                def getText(*_: object) -> tuple[str, bool]:
+                    return 'mine', True
+
+            main_window_module.QInputDialog = FakeInputDialog
+            object.__setattr__(app.app, 'max_gap', 2.0)
+
+            MainWindow.on_save_preset(app)
+
+            path = Path(tmp) / 'mine.toml'
+            assert path.exists()
+            assert presets_module.read_preset('mine')['max_gap'] == 2.0
+
+            main_window_module._selected_preset_names = lambda _: ['mine']
+
+            MainWindow.on_delete_presets(app)
+
+            assert not path.exists()
+
+            app.history.undo()
+
+            assert path.exists()
+
+            app.history.redo()
+
+            assert not path.exists()
+    finally:
+        presets_module.USER_PRESETS = old_user_presets
+        main_window_module.QInputDialog = old_input_dialog
+        main_window_module._selected_preset_names = old_selected_preset_names
 
 
 class FakeLoop:

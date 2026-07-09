@@ -3,7 +3,14 @@ from pathlib import Path
 import pytest
 
 from tuney.app.app import App, apply_preset
-from tuney.presets import preset_names, read_preset
+from tuney.presets import (
+    delete_presets,
+    preset_names,
+    read_preset,
+    restore_user_preset_snapshot,
+    user_preset_snapshot,
+    write_preset,
+)
 from tuney.time.char_press import CharPress
 
 
@@ -22,6 +29,22 @@ def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match='must not contain text'):
         read_preset('bad')
+
+
+def test_user_presets_can_be_written_deleted_and_restored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
+
+    write_preset('mine', {'max_gap': 2.0, 'text': 'not a preset'})
+    snapshot = user_preset_snapshot()
+    delete_presets(['mine'])
+
+    assert not (tmp_path / 'mine.toml').exists()
+
+    restore_user_preset_snapshot(snapshot)
+
+    assert read_preset('mine') == {'max_gap': 2.0}
 
 
 def test_tuney_applies_preset_without_clearing_recorded_text() -> None:

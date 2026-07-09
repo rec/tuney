@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from ..app.app import dump_data, restore_data
+from ..presets import restore_user_preset_snapshot, user_preset_snapshot
 from ..recorders.key_recorder import KeyRecorder
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ class HistoryState(BaseModel, frozen=True):
     tuney: dict[str, object]
     key_recorder: KeyRecorder = Field(default_factory=KeyRecorder)
     loop: LoopState = Field(default_factory=LoopState)
+    user_presets: dict[str, bytes] = Field(default_factory=user_preset_snapshot)
 
 
 class History:
@@ -107,10 +109,12 @@ class History:
             tuney=deepcopy(dump_data(self.main_window.app)),
             key_recorder=self.main_window.app.key_recorder.model_copy(deep=True),
             loop=self.loop_state,
+            user_presets=user_preset_snapshot(),
         )
 
     def restore(self, state: HistoryState) -> None:
         window = self.main_window
+        restore_user_preset_snapshot(state.user_presets)
         restore_data(window.app, state.tuney)
         window.app.key_recorder.start_time = state.key_recorder.start_time
         window.app.key_recorder.time_offset = state.key_recorder.time_offset
