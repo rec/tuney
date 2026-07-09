@@ -93,7 +93,7 @@ def _qt_app() -> object:
 def test_set_model_value_validates_and_clears_cached_values(
     file_regression: FileRegressionFixture,
 ) -> None:
-    mapper = Mapper()
+    mapper = Mapper(alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
     before = mapper.char_to_number['b']
 
     control_panel._set_model_value(mapper, 'length', '1')

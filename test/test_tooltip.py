@@ -99,8 +99,8 @@ def test_transport_button_tooltips_cover_all_buttons() -> None:
 
 def test_replay_bar_tooltips_cover_all_widgets() -> None:
     assert REPLAY_TOOLTIPS == {
-        'replay': 'Replay recorded text, or stop replaying',
-        'randomize': 'Randomize the recorded text timing',
+        'replay': 'Play recorded text, or stop playback',
+        'randomize': 'Randomize time for the recorded text',
         'loop': 'Repeat replay until stopped',
         'help': 'Help',
     }

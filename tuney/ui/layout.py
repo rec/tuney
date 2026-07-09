@@ -36,8 +36,8 @@ FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
 COMMAND_KEY = command_key(sys.platform)
 REPLAY_TOOLTIPS = {
-    'replay': 'Replay recorded text, or stop replaying',
-    'randomize': 'Randomize the recorded text timing',
+    'replay': 'Play recorded text, or stop playback',
+    'randomize': 'Randomize time for the recorded text',
     'loop': 'Repeat replay until stopped',
     'help': 'Help',
 }
@@ -137,7 +137,7 @@ class Layout(QWidget):
         self.loop.setChecked(loop_replay)
 
     def set_replay_state(self, is_replaying: bool) -> None:
-        self.replay.setText('Stop' if is_replaying else 'Replay')
+        self.replay.setText('Stop' if is_replaying else 'Play')
         self.replay.setStyleSheet(
             'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
         )
@@ -188,9 +188,9 @@ class Layout(QWidget):
         def hover_time() -> float:
             return self.main_window.app.hover_time
 
-        self.replay = QPushButton('Replay', frame)
-        self.replay.setFixedSize(156, 36)
-        self.replay.setFont(QFont(FONT_FAMILY, 16))
+        self.replay = QPushButton('Play', frame)
+        self.replay.setFixedSize(96, 34)
+        self.replay.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         self.replay.clicked.connect(self.main_window.on_replay)
         Tooltip(self.replay, REPLAY_TOOLTIPS['replay'], hover_time)
         layout.addWidget(self.replay, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -198,8 +198,8 @@ class Layout(QWidget):
         right_layout = QHBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(6)
-        self.randomize = QPushButton('Randomize', frame)
-        self.randomize.setFixedWidth(96)
+        self.randomize = QPushButton('Randomize time', frame)
+        self.randomize.setFixedWidth(124)
         self.randomize.clicked.connect(self.main_window.on_randomize_timing)
         Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
         right_layout.addWidget(self.randomize)
