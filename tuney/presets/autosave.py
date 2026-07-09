@@ -30,6 +30,7 @@ class Autosave(BaseModel, frozen=True):
         save(self.path)
 
     def restore(self, state: App) -> None:
+        language = state.mapper.language
         if not (
             state.gui
             and not state.skip_startup_files
@@ -44,9 +45,17 @@ class Autosave(BaseModel, frozen=True):
             return
         while True:
             try:
-                from ..app.app import restore_data
+                from ..app.app import clear_cached_values, restore_data
 
                 restore_data(state, data)
+                if language is not None:
+                    mapper_data = state.mapper.model_dump()
+                    mapper_data['alphabet'] = None
+                    mapper_data['language'] = language
+                    object.__setattr__(
+                        state, 'mapper', type(state.mapper).model_validate(mapper_data)
+                    )
+                    clear_cached_values(state)
                 return
             except ValidationError as error:
                 report_error(f'Could not restore fields from {self.path}: {error}')

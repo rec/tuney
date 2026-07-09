@@ -532,6 +532,20 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
         assert app.autosave_file == path
 
 
+def test_restore_autosave_preserves_explicit_startup_language() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        saved = App(gui=True, autosave_file=path)
+        saved._autosave.save(lambda path: save(saved, path))
+        app = App(gui=True, autosave_file=path, mapper={'language': 'fr'})
+
+        app._autosave.restore(app)
+
+        assert app.mapper.language == 'fr'
+        assert app.mapper.alphabet is not None
+        assert 'É' in app.mapper.alphabet
+
+
 def test_restore_autosave_skips_startup_files() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
