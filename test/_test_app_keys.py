@@ -51,6 +51,97 @@ def test_qt_key_events() -> None:
     ]
 
 
+def test_macos_option_composed_characters() -> None:
+    chars = []
+    app = type('KeyApp', (), {})()
+    app._key_chars = {}
+    app.app = object()
+    main_window_module.on_char = lambda _, c: chars.append(c)
+    main_window_module.time.time = iter([100.0, 100.25]).__next__
+    platform = main_window_module.sys.platform
+    main_window_module.sys.platform = 'darwin'
+
+    try:
+        assert MainWindow._on_key_event(
+            app,
+            QKeyEvent(
+                QKeyEvent.Type.KeyPress,
+                Qt.Key.Key_E,
+                Qt.KeyboardModifier.AltModifier,
+                'é',
+            ),
+            True,
+        )
+        assert MainWindow._on_key_event(
+            app,
+            QKeyEvent(
+                QKeyEvent.Type.KeyRelease,
+                Qt.Key.Key_E,
+                Qt.KeyboardModifier.NoModifier,
+            ),
+            False,
+        )
+    finally:
+        main_window_module.sys.platform = platform
+
+    assert chars == [
+        CharPress('é', time=100.0),
+        CharPress('é', False, time=100.25),
+    ]
+
+
+def test_macos_option_special_keys_remain_ignored() -> None:
+    chars = []
+    app = type('KeyApp', (), {})()
+    app._key_chars = {}
+    app.app = object()
+    main_window_module.on_char = lambda _, c: chars.append(c)
+    platform = main_window_module.sys.platform
+    main_window_module.sys.platform = 'darwin'
+
+    try:
+        assert not MainWindow._on_key_event(
+            app,
+            QKeyEvent(
+                QKeyEvent.Type.KeyPress,
+                Qt.Key.Key_Backspace,
+                Qt.KeyboardModifier.AltModifier,
+                '',
+            ),
+            True,
+        )
+    finally:
+        main_window_module.sys.platform = platform
+
+    assert chars == []
+
+
+def test_non_macos_alt_characters_remain_ignored() -> None:
+    chars = []
+    app = type('KeyApp', (), {})()
+    app._key_chars = {}
+    app.app = object()
+    main_window_module.on_char = lambda _, c: chars.append(c)
+    platform = main_window_module.sys.platform
+    main_window_module.sys.platform = 'linux'
+
+    try:
+        assert not MainWindow._on_key_event(
+            app,
+            QKeyEvent(
+                QKeyEvent.Type.KeyPress,
+                Qt.Key.Key_E,
+                Qt.KeyboardModifier.AltModifier,
+                'é',
+            ),
+            True,
+        )
+    finally:
+        main_window_module.sys.platform = platform
+
+    assert chars == []
+
+
 def test_app_event_filter() -> None:
     def key_event(key: Qt.Key, text: str = '') -> QKeyEvent:
         return QKeyEvent(

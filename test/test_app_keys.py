@@ -22,6 +22,21 @@ def test_qt_key_events() -> None:
 
 
 @_in_subprocess
+def test_macos_option_composed_characters() -> None:
+    pass
+
+
+@_in_subprocess
+def test_macos_option_special_keys_remain_ignored() -> None:
+    pass
+
+
+@_in_subprocess
+def test_non_macos_alt_characters_remain_ignored() -> None:
+    pass
+
+
+@_in_subprocess
 def test_app_event_filter() -> None:
     pass
 

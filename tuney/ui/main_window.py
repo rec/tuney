@@ -65,10 +65,9 @@ REDO_ACCELERATOR = 'Ctrl+Y'
 HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
 COMMAND_MODIFIERS = (
-    Qt.KeyboardModifier.AltModifier
-    | Qt.KeyboardModifier.ControlModifier
-    | Qt.KeyboardModifier.MetaModifier
+    Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
 )
+OPTION_MODIFIER = Qt.KeyboardModifier.AltModifier
 KEY_TEXT = {
     Qt.Key.Key_Backspace: '\b',
     Qt.Key.Key_Enter: '\n',
@@ -412,9 +411,15 @@ class MainWindow(QMainWindow):
             return False
         key = event.key()
         if is_press:
-            if event.modifiers() & COMMAND_MODIFIERS:
+            modifiers = event.modifiers()
+            if modifiers & COMMAND_MODIFIERS or (
+                modifiers & OPTION_MODIFIER and sys.platform != 'darwin'
+            ):
                 c = ''
-            elif (key_value := Qt.Key(key)) in KEY_TEXT:
+            elif (
+                not modifiers & OPTION_MODIFIER
+                and (key_value := Qt.Key(key)) in KEY_TEXT
+            ):
                 c = KEY_TEXT[key_value]
             else:
                 c = text if len(text := event.text()) == 1 else ''
