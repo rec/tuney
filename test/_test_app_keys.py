@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
 from tuney.app.app import App
+from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
@@ -295,6 +296,7 @@ def test_app_activate_and_history() -> None:
     assert app.history.loop_before == 0.5
 
     object.__setattr__(app.app, 'max_gap', 3.0)
+    object.__setattr__(app.app, 'mapper', Mapper(alphabet='abc', language='tr'))
     object.__setattr__(app.app, 'text', [CharPress('a', time=0.0)])
     app.app.__dict__.pop('char_presses', None)
     app.history.loop_replay = True
@@ -306,6 +308,11 @@ def test_app_activate_and_history() -> None:
     app.history.clear_settings()
 
     assert app.app.max_gap == App().max_gap
+    assert (
+        app.app.mapper.alphabet
+        == 'ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZabcçdefgğhıijklmnoöprsştuüvyz'
+    )
+    assert app.app.mapper.language == 'tr'
     assert app.app.char_presses == []
     assert not app.app.gui
     assert not app.history.loop_replay

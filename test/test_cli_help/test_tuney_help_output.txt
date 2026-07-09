@@ -38,7 +38,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   Convert letters to scale indexes
   ----------------------------------------------------------------------------------------------------------------------
   -a {None}|STR, --alphabet {None}|STR
-        Characters mapped to note numbers, or the default alphabet if empty (default: None)
+        Characters mapped to note numbers, or the default alphabet if empty (default:
+        ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz)
+  --language {None}|STR
+        Language tag whose alphabet is used when alphabet is empty (default: None)
   -l INT, --length INT
         Number of note numbers to cycle through; zero uses the full alphabet (default: 0)
   -C, --case-sensitive, --no-case-sensitive
