@@ -4,9 +4,9 @@ from pathlib import Path
 import tyro
 from pydantic import BaseModel, ValidationError
 
-from .app.app import App, run
-from .app.platform_info import exit_with_message
-from .presets import merged_data, read_file, read_preset
+from ..presets import merged_data, read_file, read_preset
+from .app import App, run
+from .platform_info import exit_with_message
 
 
 def main() -> None:
@@ -44,6 +44,6 @@ def main() -> None:
 def _startup_files_should_be_skipped(f: object) -> bool:
     if not getattr(f, 'gui', False):
         return False
-    from .ui.startup import startup_modifier_held
+    from ..ui.startup import startup_modifier_held
 
     return startup_modifier_held()

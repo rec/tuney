@@ -55,7 +55,7 @@ root = ["."]
 extra-paths = ["type_stubs"]
 
 [project.scripts]
-tuney = "tuney.main:main"
+tuney = "tuney.app.main:main"
 
 [build-system]
 requires = ["hatchling"]

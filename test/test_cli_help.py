@@ -6,7 +6,7 @@ import tyro
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.app.app import App
-from tuney.main import main
+from tuney.app.main import main
 from tuney.time.char_press import CharPress
 
 LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
@@ -369,7 +369,7 @@ def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     def call(app: App) -> None:
         captured.append(app)
 
-    monkeypatch.setattr('tuney.main.run', call)
+    monkeypatch.setattr('tuney.app.main.run', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -389,8 +389,10 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     def call(app: App) -> None:
         captured.append(app)
 
-    monkeypatch.setattr('tuney.main.run', call)
-    monkeypatch.setattr('tuney.main._startup_files_should_be_skipped', lambda _: True)
+    monkeypatch.setattr('tuney.app.main.run', call)
+    monkeypatch.setattr(
+        'tuney.app.main._startup_files_should_be_skipped', lambda _: True
+    )
     monkeypatch.setattr(
         'sys.argv',
         [
@@ -414,6 +416,6 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
 
 
 def test_startup_file_skip_check_ignores_cli_mode() -> None:
-    from tuney.main import _startup_files_should_be_skipped
+    from tuney.app.main import _startup_files_should_be_skipped
 
     assert not _startup_files_should_be_skipped(App())
