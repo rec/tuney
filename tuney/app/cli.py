@@ -5,14 +5,14 @@ import tyro
 from pydantic import BaseModel, ValidationError
 
 from ..presets import merged_data, read_file, read_preset
-from .app import App
+from .app import App, run
 from .platform_info import exit_with_message
 
 
-def cli(cls, prog: str):
+def cli() -> None:
     data = {}
     try:
-        f = tyro.cli(cls, prog=prog)
+        f = tyro.cli(App, prog='tuney')
         assert hasattr(f, 'config_file')
         assert hasattr(f, 'preset')
         if _startup_files_should_be_skipped(f):
@@ -30,10 +30,8 @@ def cli(cls, prog: str):
             if f.config_file:
                 assert isinstance(f.config_file, Path)
                 data = merged_data(data, read_file(f.config_file))
-            default = cls(**data)
-            f = tyro.cli(cls, prog=prog, default=default)
-        app = App(f)
-        result = app()
+            f = tyro.cli(App, prog='tuney', default=App(**data))
+        result = run(f)
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):
             raise

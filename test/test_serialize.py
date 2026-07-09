@@ -6,7 +6,7 @@ import pytest
 import tomlkit
 from pydantic.json_schema import PydanticJsonSchemaWarning
 
-from tuney.app.app import App
+from tuney.app.app import App, dump_data, dump_toml, restore_text, save
 from tuney.cfg.serialize import serialize
 from tuney.cfg.tuney import Tuney
 from tuney.time.char_press import CharPress
@@ -14,12 +14,11 @@ from tuney.time.text_timings import TextTimings
 
 
 def test_tuney_dump_data_uses_recorded_char_presses():
-    tuney = Tuney()
-    state = App(tuney)
-    state.char_presses.append(CharPress('a', time=0.0))
-    state.char_presses.append(CharPress('a', False, 250.0))
+    app = App()
+    app.char_presses.append(CharPress('a', time=0.0))
+    app.char_presses.append(CharPress('a', False, 250.0))
 
-    actual = tomllib.loads(tomlkit.dumps(serialize(state.dump_data())))
+    actual = tomllib.loads(tomlkit.dumps(serialize(dump_data(app))))
 
     assert actual['text'] == [
         {'char': 'a', 'is_press': True, 'time': 0.0},
@@ -45,10 +44,9 @@ def test_tuney_model_json_schema(file_regression) -> None:
 def test_tuney_dump_data_excludes_text_file(tmp_path) -> None:
     path = tmp_path / 'input.txt'
     path.write_text('a')
-    tuney = Tuney(text_file=path, text_timings=TextTimings(overlap=0, timings=[250]))
-    state = App(tuney)
+    app = App(text_file=path, text_timings=TextTimings(overlap=0, timings=[250]))
 
-    actual = tomllib.loads(tomlkit.dumps(serialize(state.dump_data())))
+    actual = tomllib.loads(tomlkit.dumps(serialize(dump_data(app))))
 
     assert 'text_file' not in actual
     assert actual['text'] == [
@@ -61,7 +59,7 @@ def test_tuney_dump_data_excludes_text_file(tmp_path) -> None:
 def test_save(tmp_path, file_regression, format_name) -> None:
     suffix = f'.{format_name}'
     path = tmp_path / f'tuney{suffix}'
-    App(Tuney()).save(path)
+    save(App(), path)
     text = path.read_text()
 
     file_regression.check(text, extension=suffix)
@@ -71,13 +69,13 @@ def test_save_rejects_unknown_suffix(tmp_path):
     path = tmp_path / 'tuney.txt'
 
     with pytest.raises(ValueError, match='Do not understand file'):
-        App(Tuney()).save(path)
+        save(App(), path)
 
 
 def test_dump_toml_uses_serialized_state() -> None:
-    state = App(Tuney(max_gap=2.0))
+    app = App(max_gap=2.0)
 
-    actual = tomllib.loads(state.dump_toml())
+    actual = tomllib.loads(dump_toml(app))
 
     assert actual['max_gap'] == 2.0
 
@@ -90,11 +88,10 @@ def test_dump_toml_uses_serialized_state() -> None:
     ],
 )
 def test_restore_text_accepts_toml_and_json(text: str) -> None:
-    tuney = Tuney(max_gap=1.0)
+    app = App(max_gap=1.0)
+    restore_text(app, text)
 
-    App(tuney).restore_text(text)
-
-    assert tuney.max_gap == 2.0
+    assert app.max_gap == 2.0
 
 
 def _toml_schema_value(value: object) -> object:

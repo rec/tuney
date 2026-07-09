@@ -1,9 +1,8 @@
 from tuney.app import cli
-from tuney.cfg.tuney import Tuney
 
 
 def main() -> None:
-    cli.cli(Tuney, 'tuney')
+    cli.cli()
 
 
 if __name__ == '__main__':

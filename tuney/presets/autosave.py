@@ -30,12 +30,11 @@ class Autosave(BaseModel, frozen=True):
         save(self.path)
 
     def restore(self, state: App) -> None:
-        tuney = state.tuney
         if not (
-            tuney.gui
-            and not tuney.skip_startup_files
+            state.gui
+            and not state.skip_startup_files
             and self.path.exists()
-            and not (tuney.config_file or tuney.preset or tuney.text or tuney.text_args)
+            and not (state.config_file or state.preset or state.text or state.text_args)
         ):
             return
         try:
@@ -45,7 +44,9 @@ class Autosave(BaseModel, frozen=True):
             return
         while True:
             try:
-                state.restore_data(data)
+                from ..app.app import restore_data
+
+                restore_data(state, data)
                 return
             except ValidationError as error:
                 report_error(f'Could not restore fields from {self.path}: {error}')

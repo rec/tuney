@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, final
+from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field, field_validator
@@ -20,7 +20,6 @@ from .display import Beginner, General, Hidden, Numeric, Options
 from .tyro_option import tyro_option
 
 
-@final
 class Tuney(BaseModel):
     """Turn text into music.
 

@@ -8,7 +8,6 @@ from pytest_regressions.file_regression import FileRegressionFixture
 from tuney.__main__ import main
 from tuney.app.app import App
 from tuney.app.cli import cli
-from tuney.cfg.tuney import Tuney
 from tuney.time.char_press import CharPress
 
 LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
@@ -174,8 +173,8 @@ def _has_option(line: str, options: set[str]) -> bool:
 
 
 def test_cli_accepts_flat_long_options() -> None:
-    tuney = tyro.cli(
-        Tuney,
+    app = tyro.cli(
+        App,
         args=[
             '--alphabet=abc',
             '--midi-output=Port',
@@ -202,34 +201,34 @@ def test_cli_accepts_flat_long_options() -> None:
         ],
     )
 
-    assert tuney.mapper.alphabet == 'abc'
-    assert tuney.midi.output == 'Port'
-    assert tuney.midi.channel == 3
-    assert tuney.midi.velocity == 80
-    assert tuney.midi.note_offset == 12
-    assert tuney.text_timings.dot == 301
-    assert tuney.text_timings.scale == 4
-    assert tuney.text_timings.space == 101
-    assert tuney.text_timings.comma == 201
-    assert tuney.text_timings.colon == 401
-    assert tuney.text_timings.semicolon == 402
-    assert tuney.text_timings.blank_line == 1001
-    assert tuney.text_timings.overlap == 19
-    assert tuney.text_timings.seed == 42
-    assert tuney.text_timings.alpha_only
-    assert tuney.text_timings.strip_accents
-    assert tuney.text_timings.other == {'!': 500}
-    assert tuney.text_timings.timings == [10, 20]
+    assert app.mapper.alphabet == 'abc'
+    assert app.midi.output == 'Port'
+    assert app.midi.channel == 3
+    assert app.midi.velocity == 80
+    assert app.midi.note_offset == 12
+    assert app.text_timings.dot == 301
+    assert app.text_timings.scale == 4
+    assert app.text_timings.space == 101
+    assert app.text_timings.comma == 201
+    assert app.text_timings.colon == 401
+    assert app.text_timings.semicolon == 402
+    assert app.text_timings.blank_line == 1001
+    assert app.text_timings.overlap == 19
+    assert app.text_timings.seed == 42
+    assert app.text_timings.alpha_only
+    assert app.text_timings.strip_accents
+    assert app.text_timings.other == {'!': 500}
+    assert app.text_timings.timings == [10, 20]
 
 
 def test_cli_rejects_old_nested_options() -> None:
     with pytest.raises(SystemExit):
-        tyro.cli(Tuney, args=['--player.oscillator.period=2'])
+        tyro.cli(App, args=['--player.oscillator.period=2'])
 
 
 def test_cli_accepts_single_character_aliases() -> None:
-    tuney = tyro.cli(
-        Tuney,
+    app = tyro.cli(
+        App,
         args=[
             '-p',
             'white-notes',
@@ -272,101 +271,101 @@ def test_cli_accepts_single_character_aliases() -> None:
         ],
     )
 
-    assert tuney.preset == 'white-notes'
-    assert tuney.config_file == Path('config.toml')
-    assert tuney.text == 'text'
-    assert tuney.max_gap == 3
-    assert not tuney.gui
-    assert tuney.silent
-    assert tuney.output == Path('out.wav')
-    assert tuney.run_in_background
-    assert tuney.mapper.alphabet == 'abc'
-    assert tuney.mapper.length == 3
-    assert tuney.mapper.case_sensitive
-    assert tuney.mapper.invert
-    assert tuney.mapper.offset == 1
-    assert tuney.mapper.range_limit == 12
-    assert tuney.mapper.limiter.value == 'reflect'
-    assert tuney.tuning.detune == 5
-    assert tuney.tuning.computed is not None
-    assert tuney.tuning.computed.limit == 7
-    assert tuney.tuning.computed.notes_per_octave == 19
-    assert tuney.tuning.computed.octave_ratio == 3
-    assert tuney.tuning.root_frequency == 442
-    assert tuney.tuning.root_note == 70
+    assert app.preset == 'white-notes'
+    assert app.config_file == Path('config.toml')
+    assert app.text == 'text'
+    assert app.max_gap == 3
+    assert not app.gui
+    assert app.silent
+    assert app.output == Path('out.wav')
+    assert app.run_in_background
+    assert app.mapper.alphabet == 'abc'
+    assert app.mapper.length == 3
+    assert app.mapper.case_sensitive
+    assert app.mapper.invert
+    assert app.mapper.offset == 1
+    assert app.mapper.range_limit == 12
+    assert app.mapper.limiter.value == 'reflect'
+    assert app.tuning.detune == 5
+    assert app.tuning.computed is not None
+    assert app.tuning.computed.limit == 7
+    assert app.tuning.computed.notes_per_octave == 19
+    assert app.tuning.computed.octave_ratio == 3
+    assert app.tuning.root_frequency == 442
+    assert app.tuning.root_note == 70
 
 
 def test_removed_single_character_aliases_are_not_options() -> None:
     with pytest.raises(SystemExit):
-        tyro.cli(Tuney, args=['-H', '0.5'])
+        tyro.cli(App, args=['-H', '0.5'])
 
 
 def test_cli_accepts_text_option() -> None:
-    tuney = tyro.cli(Tuney, args=['--text=Now is the time'])
+    app = tyro.cli(App, args=['--text=Now is the time'])
 
-    assert not tuney.gui
-    assert tuney.text == 'Now is the time'
+    assert not app.gui
+    assert app.text == 'Now is the time'
 
 
 def test_cli_uses_positional_arguments_as_text() -> None:
-    tuney = tyro.cli(Tuney, args=['Now', 'is', 'the', 'time'])
+    app = tyro.cli(App, args=['Now', 'is', 'the', 'time'])
 
-    assert tuney.text == 'Now is the time'
+    assert app.text == 'Now is the time'
 
 
 def test_cli_treats_positional_config_file_as_text() -> None:
-    tuney = tyro.cli(Tuney, args=['config.toml'])
+    app = tyro.cli(App, args=['config.toml'])
 
-    assert tuney.config_file is None
-    assert tuney.text == 'config.toml'
+    assert app.config_file is None
+    assert app.text == 'config.toml'
 
 
 def test_cli_preserves_char_presses_from_config_default() -> None:
     text = [CharPress('a', time=0)]
 
-    tuney = tyro.cli(Tuney, args=[], default=Tuney(text=text))
+    app = tyro.cli(App, args=[], default=App(text=text))
 
-    assert tuney.text == text
+    assert app.text == text
 
 
 def test_cli_positional_text_replaces_default_char_presses() -> None:
-    default = Tuney(text=[CharPress('a', time=0), CharPress('a', False, 100)])
+    default = App(text=[CharPress('a', time=0), CharPress('a', False, 100)])
 
-    tuney = tyro.cli(Tuney, args=['new', 'text'], default=default)
+    app = tyro.cli(App, args=['new', 'text'], default=default)
 
-    assert tuney.text == 'new text'
-    assert App(tuney).char_presses != App(default).char_presses
+    assert app.text == 'new text'
+    assert app.char_presses != default.char_presses
 
 
 def test_output_option_forces_cli_mode() -> None:
-    tuney = tyro.cli(Tuney, args=['--output=out.wav', '--text=a'])
+    app = tyro.cli(App, args=['--output=out.wav', '--text=a'])
 
-    assert tuney.output == Path('out.wav')
-    assert not tuney.gui
+    assert app.output == Path('out.wav')
+    assert not app.gui
 
 
 def test_gui_option_opens_gui_mode() -> None:
-    tuney = tyro.cli(Tuney, args=['--gui'])
+    app = tyro.cli(App, args=['--gui'])
 
-    assert tuney.gui
+    assert app.gui
 
 
 def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[App] = []
 
-    def call(state: App) -> None:
-        captured.append(state)
+    def call(app: App) -> None:
+        captured.append(app)
 
-    monkeypatch.setattr(App, '__call__', call)
+    monkeypatch.setattr('tuney.app.cli.run', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
 
     with pytest.raises(SystemExit) as exc_info:
-        cli(Tuney, prog='tuney')
+        cli()
 
     assert exc_info.value.code is None
-    assert captured[0].tuney.preset == 'white-notes'
-    assert captured[0].tuney.scale.notes == 'ABCDEFG'
-    assert captured[0].tuney.text == 'abc'
+    assert captured[0].preset == 'white-notes'
+    assert captured[0].scale.notes == 'ABCDEFG'
+    assert captured[0].text == 'abc'
 
 
 def test_cli_skips_startup_files_when_gui_starts_with_modifier(
@@ -374,10 +373,10 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
 ) -> None:
     captured: list[App] = []
 
-    def call(state: App) -> None:
-        captured.append(state)
+    def call(app: App) -> None:
+        captured.append(app)
 
-    monkeypatch.setattr(App, '__call__', call)
+    monkeypatch.setattr('tuney.app.cli.run', call)
     monkeypatch.setattr(
         'tuney.app.cli._startup_files_should_be_skipped', lambda _: True
     )
@@ -393,17 +392,17 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     )
 
     with pytest.raises(SystemExit) as exc_info:
-        cli(Tuney, prog='tuney')
+        cli()
 
     assert exc_info.value.code is None
-    assert captured[0].tuney.preset is None
-    assert captured[0].tuney.config_file is None
-    assert captured[0].tuney.skip_startup_files
-    assert captured[0].tuney.scale.notes != 'ABCDEFG'
-    assert captured[0].tuney.text == 'abc'
+    assert captured[0].preset is None
+    assert captured[0].config_file is None
+    assert captured[0].skip_startup_files
+    assert captured[0].scale.notes != 'ABCDEFG'
+    assert captured[0].text == 'abc'
 
 
 def test_startup_file_skip_check_ignores_cli_mode() -> None:
     from tuney.app.cli import _startup_files_should_be_skipped
 
-    assert not _startup_files_should_be_skipped(Tuney())
+    assert not _startup_files_should_be_skipped(App())

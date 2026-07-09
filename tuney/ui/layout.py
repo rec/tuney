@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..app.app import on_char
 from . import constants
 from .control_panel import ControlPanel
 from .main_window import MainWindow
@@ -101,7 +102,7 @@ class Layout(QWidget):
     def control_panel(self) -> ControlPanel:
         panel = ControlPanel(
             self,
-            self.main_window.app.tuney,
+            self.main_window.app,
             CONTROL_PANEL_HEIGHT,
             self.main_window.app,
         )
@@ -180,12 +181,12 @@ class Layout(QWidget):
         self.transport = Transport(
             frame,
             self.main_window.on_transport_state,
-            lambda: self.main_window.app.tuney.hover_time,
+            lambda: self.main_window.app.hover_time,
         )
         layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
 
         def hover_time() -> float:
-            return self.main_window.app.tuney.hover_time
+            return self.main_window.app.hover_time
 
         self.replay = QPushButton('Replay', frame)
         self.replay.setFixedSize(156, 36)
@@ -275,7 +276,7 @@ class Layout(QWidget):
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
         try:
-            has_note_buttons = self.main_window.app.tuney.scale.note_count > 0
+            has_note_buttons = self.main_window.app.scale.note_count > 0
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
         if has_note_buttons:
@@ -289,7 +290,7 @@ class Layout(QWidget):
             column,
             char,
             text,
-            self.main_window.app.on_char,
+            lambda c: on_char(self.main_window.app, c),
         )
 
 

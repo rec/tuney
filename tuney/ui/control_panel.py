@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 from tyro._fields import field_list_from_type_or_callable
 
+from ..app.app import apply_preset
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
@@ -765,7 +766,7 @@ def _add_option_control(
             _checkpoint_undo(parent)
             state = _control_panel(parent).app
             assert state is not None
-            state.apply_preset(raw)
+            apply_preset(state, raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
         else:

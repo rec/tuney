@@ -68,6 +68,8 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: App) -> None:
+        from ..app.app import play_char, replay_char_presses
+
         state.player.stop_all()
 
         sequencer, self.sequencer = self.sequencer, None
@@ -85,12 +87,12 @@ class KeyRecorder(BaseModel):
                         state.main_window.after(
                             0, state.main_window.ui.set_text, self.replay_text
                         )
-                    state._on_char(char_press)
+                    play_char(state, char_press)
                 elif state.main_window.is_replaying and self.sequencer is not None:
                     state.main_window.after(0, self.finish_replay, state)
 
             self.sequencer = Sequencer(
-                char_presses=state._replay_char_presses(),
+                char_presses=replay_char_presses(state),
                 callback=callback,
             )
             self.sequencer.start()
@@ -98,11 +100,13 @@ class KeyRecorder(BaseModel):
             state.main_window.ui.set_text(state.display_text)
 
     def finish_replay(self, state: App) -> None:
-        if state.main_window.history.loop_replay and state._replay_char_presses():
-            state.on_replay()
+        from ..app.app import on_replay, replay_char_presses, stop_replaying
+
+        if state.main_window.history.loop_replay and replay_char_presses(state):
+            on_replay(state)
             return
         state.player.stop_all()
-        state._stop_replaying()
+        stop_replaying(state)
 
     def clear(self) -> None:
         self.start_time = None
