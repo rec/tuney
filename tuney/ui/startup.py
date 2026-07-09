@@ -13,4 +13,4 @@ STARTUP_FILE_SKIP_MODIFIERS = (
 
 def startup_modifier_held() -> bool:
     _ = QApplication.instance() or QApplication([])
-    return bool(QApplication.keyboardModifiers() & STARTUP_FILE_SKIP_MODIFIERS)
+    return bool(QApplication.queryKeyboardModifiers() & STARTUP_FILE_SKIP_MODIFIERS)
