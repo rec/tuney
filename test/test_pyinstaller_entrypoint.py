@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from install.pyinstaller_entrypoint import app_args, main
-from tuney import platform_info
+from tuney.app import platform_info
 from tuney.audio import midi as midi_module
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [

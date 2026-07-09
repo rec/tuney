@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
+from tuney.app.app import App
+from tuney.app.platform_info import exit_with_message, report_error
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.cfg.tuney import Tuney
-from tuney.platform_info import exit_with_message, report_error
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.tuney_state import TuneyState
 from tuney.ui import Action, State, StateChange
 
 
@@ -24,9 +24,9 @@ def temporary_path() -> Iterator[Path]:
         yield Path(directory)
 
 
-def state_for(tuney: Tuney) -> TuneyState:
+def state_for(tuney: Tuney) -> App:
     if (state := tuney.__dict__.get('_test_state')) is None:
-        state = TuneyState(tuney)
+        state = App(tuney)
         tuney.__dict__['_test_state'] = state
     return state
 
@@ -38,11 +38,11 @@ def on_transport_state(
     action: Action,
     path: Path | None = None,
 ) -> bool:
-    tuney_state = state_for(tuney)
-    return tuney_state.audio_recorder.on_transport_state(
+    app = state_for(tuney)
+    return app.audio_recorder.on_transport_state(
         StateChange(old_state=old_state, state=state, action=action),
-        tuney_state.player,
-        tuney_state._output_comment,
+        app.player,
+        app._output_comment,
         path,
     )
 
@@ -455,7 +455,7 @@ def test_autosave_path_uses_xdg_state_home(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        assert TuneyState(Tuney())._autosave.path == tmp_path / 'tuney' / 'state.toml'
+        assert App(Tuney())._autosave.path == tmp_path / 'tuney' / 'state.toml'
 
 
 def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
@@ -624,7 +624,7 @@ def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
     app.is_replaying = True
     app.loop_replay = True
     state_for(tuney).__dict__['main_window'] = app
-    monkeypatch.setattr(TuneyState, 'on_replay', lambda self: calls.append('replay'))
+    monkeypatch.setattr(App, 'on_replay', lambda self: calls.append('replay'))
 
     state_for(tuney).key_recorder.finish_replay(state_for(tuney))
 
@@ -864,7 +864,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
 
 def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc_info:
-        TuneyState(Tuney())()
+        App(Tuney())()
 
     error = capsys.readouterr().err
     assert exc_info.value.code == 2
@@ -939,9 +939,7 @@ def test_live_cli_output_records_during_playback(monkeypatch) -> None:
         lambda self: lifecycle.append('stop_recording'),
     )
     monkeypatch.setattr(Player, 'close', lambda self: lifecycle.append('close'))
-    monkeypatch.setattr(
-        TuneyState, '_play_cli', lambda self: lifecycle.append('play_cli')
-    )
+    monkeypatch.setattr(App, '_play_cli', lambda self: lifecycle.append('play_cli'))
     tuney = Tuney(
         output=path,
         text=[

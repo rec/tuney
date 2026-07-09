@@ -8,11 +8,11 @@ if not getattr(sys, 'frozen', False) and str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from tuney.__main__ import main as tuney_main  # noqa: E402
-from tuney.audio.midi import INTERNAL_LIST_MIDI_OUTPUTS, output_names_json  # noqa: E402
-from tuney.platform_info import (  # noqa: E402
+from tuney.app.platform_info import (  # noqa: E402
     handle_frozen_exception,
     install_frozen_excepthook,
 )
+from tuney.audio.midi import INTERNAL_LIST_MIDI_OUTPUTS, output_names_json  # noqa: E402
 
 
 def app_args(argv: list[str], *, frozen: bool) -> list[str]:

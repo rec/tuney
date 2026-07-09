@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
-from ..platform_info import app_state_dir, report_error
+from ..app.platform_info import app_state_dir, report_error
 from . import read_file
 
 if TYPE_CHECKING:
-    from ..tuney_state import TuneyState
+    from ..app.app import App
 
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
@@ -29,7 +29,7 @@ class Autosave(BaseModel, frozen=True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         save(self.path)
 
-    def restore(self, state: TuneyState) -> None:
+    def restore(self, state: App) -> None:
         tuney = state.tuney
         if not (
             tuney.gui

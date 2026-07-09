@@ -6,11 +6,11 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent
 
+from tuney.app.app import App
 from tuney.cfg.tuney import Tuney
 from tuney.scale.ratios import Ratios
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
-from tuney.tuney_state import TuneyState
 from tuney.ui import main_window as main_window_module
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
@@ -28,7 +28,7 @@ def test_qt_key_events() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.state = type('TuneyState', (), {'on_char': chars.append})()
+    app.app = type('App', (), {'on_char': chars.append})()
     main_window_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
 
     assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
@@ -64,7 +64,7 @@ def test_app_event_filter() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.focus_in_control_panel = False
-    app.state = type('TuneyState', (), {'on_char': chars.append})()
+    app.app = type('App', (), {'on_char': chars.append})()
     app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
         app, event, is_press
     )
@@ -151,9 +151,7 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_application_uses_cross_platform_style() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
-        window = MainWindow(
-            TuneyState(Tuney(gui=True, silent=True, autosave_file=path))
-        )
+        window = MainWindow(App(Tuney(gui=True, silent=True, autosave_file=path)))
         app = window.qt_app
 
         assert app.applicationName() == 'Tuney'
@@ -192,21 +190,21 @@ def test_app_activate_and_history() -> None:
 
     app = HistoryApp()
     app.history.checkpoint_undo()
-    object.__setattr__(app.state.tuney, 'max_gap', 2.0)
+    object.__setattr__(app.app.tuney, 'max_gap', 2.0)
     app.history.loop_before = 0.5
     app.history.undo()
 
-    assert app.state.tuney.max_gap == 1.0
+    assert app.app.tuney.max_gap == 1.0
     assert app.history.loop_before == 0.0
 
     app.history.redo()
 
-    assert app.state.tuney.max_gap == 2.0
+    assert app.app.tuney.max_gap == 2.0
     assert app.history.loop_before == 0.5
 
-    object.__setattr__(app.state.tuney, 'max_gap', 3.0)
-    object.__setattr__(app.state.tuney, 'text', [CharPress('a', time=0.0)])
-    app.state.__dict__.pop('char_presses', None)
+    object.__setattr__(app.app.tuney, 'max_gap', 3.0)
+    object.__setattr__(app.app.tuney, 'text', [CharPress('a', time=0.0)])
+    app.app.__dict__.pop('char_presses', None)
     app.history.loop_replay = True
     app.history.loop_before = 0.25
     app.history.loop_after = 0.5
@@ -215,9 +213,9 @@ def test_app_activate_and_history() -> None:
 
     app.history.clear_settings()
 
-    assert app.state.tuney.max_gap == Tuney().max_gap
-    assert app.state.char_presses == []
-    assert not app.state.tuney.gui
+    assert app.app.tuney.max_gap == Tuney().max_gap
+    assert app.app.char_presses == []
+    assert not app.app.tuney.gui
     assert not app.history.loop_replay
     assert app.history.loop_before == 0.0
     assert app.history.loop_after == 0.0
@@ -225,38 +223,38 @@ def test_app_activate_and_history() -> None:
     assert not app.history.randomize_on_each_loop
     app.history.undo()
 
-    assert app.state.tuney.max_gap == 3.0
-    assert app.state.display_text == 'a'
+    assert app.app.tuney.max_gap == 3.0
+    assert app.app.display_text == 'a'
 
     app = HistoryApp()
-    app.state.__dict__['main_window'] = app
-    object.__setattr__(app.state.tuney, 'gui', True)
-    object.__setattr__(app.state.tuney, 'max_gap', 3.0)
-    object.__setattr__(app.state.tuney, 'text', [CharPress('a', time=0.0)])
-    app.state.__dict__.pop('char_presses', None)
+    app.app.__dict__['main_window'] = app
+    object.__setattr__(app.app.tuney, 'gui', True)
+    object.__setattr__(app.app.tuney, 'max_gap', 3.0)
+    object.__setattr__(app.app.tuney, 'text', [CharPress('a', time=0.0)])
+    app.app.__dict__.pop('char_presses', None)
 
     MainWindow.on_clear(app)
 
     data = Tuney().model_dump()
     data['gui'] = True
-    assert app.state.tuney.model_dump() == data
-    assert app.state.char_presses == []
+    assert app.app.tuney.model_dump() == data
+    assert app.app.char_presses == []
     assert app.ui.text == ''
     app.history.undo()
 
-    assert app.state.tuney.max_gap == 3.0
-    assert app.state.display_text == 'a'
+    assert app.app.tuney.max_gap == 3.0
+    assert app.app.display_text == 'a'
 
-    object.__setattr__(app.state.tuney, 'max_gap', 4.0)
+    object.__setattr__(app.app.tuney, 'max_gap', 4.0)
     MainWindow.on_clear_text(app)
 
-    assert app.state.tuney.max_gap == 4.0
-    assert app.state.char_presses == []
+    assert app.app.tuney.max_gap == 4.0
+    assert app.app.char_presses == []
     assert app.ui.text == ''
     app.history.undo()
 
-    assert app.state.tuney.max_gap == 4.0
-    assert app.state.display_text == 'a'
+    assert app.app.tuney.max_gap == 4.0
+    assert app.app.display_text == 'a'
 
     with tempfile.TemporaryDirectory() as tmp:
         os.environ['XDG_STATE_HOME'] = tmp
@@ -290,7 +288,7 @@ def test_app_activate_and_history() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
-        object.__setattr__(app.state.tuney, 'config_file', config_file)
+        object.__setattr__(app.app.tuney, 'config_file', config_file)
         MainWindow.on_open_config_folder(app)
 
         assert [Path(i).resolve() for i in opened] == [config_file.parent.resolve()]
@@ -300,7 +298,7 @@ def test_app_activate_and_history() -> None:
         opened.clear()
         autosave_file = Path(tmp) / 'state' / 'state.toml'
         app = HistoryApp()
-        object.__setattr__(app.state.tuney, 'autosave_file', autosave_file)
+        object.__setattr__(app.app.tuney, 'autosave_file', autosave_file)
         MainWindow.on_open_config_folder(app)
 
         assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]
@@ -324,7 +322,7 @@ def test_app_imports_and_exports_tuning() -> None:
         MainWindow.on_import_tuning(app)
 
     assert app.history.undo_stack
-    assert app.state.tuney.tuning.ratios == Ratios(
+    assert app.app.tuney.tuning.ratios == Ratios(
         ratios=[2], name='input.scl', desc='one step'
     )
     assert app.ui.rebuild_control_panel_count == 1
@@ -345,9 +343,9 @@ def test_app_imports_and_exports_tuning() -> None:
 
     app = HistoryApp()
     object.__setattr__(
-        app.state.tuney,
+        app.app.tuney,
         'tuning',
-        app.state.tuney.tuning.model_copy(
+        app.app.tuney.tuning.model_copy(
             update={'type': Type.computed, 'computed': Computed(octave_ratio=4)}
         ),
     )
@@ -381,9 +379,9 @@ def test_app_imports_and_exports_tuning() -> None:
     assert app.export_tuning_action.enabled
 
     object.__setattr__(
-        app.state.tuney,
+        app.app.tuney,
         'tuning',
-        app.state.tuney.tuning.model_copy(update={'type': Type.table, 'table': [440]}),
+        app.app.tuney.tuning.model_copy(update={'type': Type.table, 'table': [440]}),
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
@@ -431,7 +429,7 @@ class FakeLayout:
 
 class HistoryApp:
     def __init__(self) -> None:
-        self.state = TuneyState(Tuney(max_gap=1.0))
+        self.app = App(Tuney(max_gap=1.0))
         self.ui = FakeLayout()
         self.history = History(self)
 

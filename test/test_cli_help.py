@@ -6,10 +6,10 @@ import tyro
 from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.__main__ import main
+from tuney.app.app import App
+from tuney.app.cli import cli
 from tuney.cfg.tuney import Tuney
-from tuney.cli import cli
 from tuney.time.char_press import CharPress
-from tuney.tuney_state import TuneyState
 
 LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
 SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
@@ -335,7 +335,7 @@ def test_cli_positional_text_replaces_default_char_presses() -> None:
     tuney = tyro.cli(Tuney, args=['new', 'text'], default=default)
 
     assert tuney.text == 'new text'
-    assert TuneyState(tuney).char_presses != TuneyState(default).char_presses
+    assert App(tuney).char_presses != App(default).char_presses
 
 
 def test_output_option_forces_cli_mode() -> None:
@@ -352,12 +352,12 @@ def test_gui_option_opens_gui_mode() -> None:
 
 
 def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: list[TuneyState] = []
+    captured: list[App] = []
 
-    def call(state: TuneyState) -> None:
+    def call(state: App) -> None:
         captured.append(state)
 
-    monkeypatch.setattr(TuneyState, '__call__', call)
+    monkeypatch.setattr(App, '__call__', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -372,13 +372,15 @@ def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    captured: list[TuneyState] = []
+    captured: list[App] = []
 
-    def call(state: TuneyState) -> None:
+    def call(state: App) -> None:
         captured.append(state)
 
-    monkeypatch.setattr(TuneyState, '__call__', call)
-    monkeypatch.setattr('tuney.cli._startup_files_should_be_skipped', lambda _: True)
+    monkeypatch.setattr(App, '__call__', call)
+    monkeypatch.setattr(
+        'tuney.app.cli._startup_files_should_be_skipped', lambda _: True
+    )
     monkeypatch.setattr(
         'sys.argv',
         [
@@ -402,6 +404,6 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
 
 
 def test_startup_file_skip_check_ignores_cli_mode() -> None:
-    from tuney.cli import _startup_files_should_be_skipped
+    from tuney.app.cli import _startup_files_should_be_skipped
 
     assert not _startup_files_should_be_skipped(Tuney())

@@ -7,7 +7,7 @@ from typing import Annotated, Any, override
 
 from pydantic import AfterValidator, BaseModel
 
-from ..runnable import Runnable
+from ..app.runnable import Runnable
 from . import Milliseconds, Seconds, to_ms, to_seconds
 from .char_press import CharPress
 

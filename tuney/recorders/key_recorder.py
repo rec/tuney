@@ -9,7 +9,7 @@ from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 
 if TYPE_CHECKING:
-    from ..tuney_state import TuneyState
+    from ..app.app import App
 
 
 class KeyRecorder(BaseModel):
@@ -67,7 +67,7 @@ class KeyRecorder(BaseModel):
         if deleted_time is not None:
             self.insert_time = deleted_time
 
-    def on_replay(self, state: TuneyState) -> None:
+    def on_replay(self, state: App) -> None:
         state.player.stop_all()
 
         sequencer, self.sequencer = self.sequencer, None
@@ -97,7 +97,7 @@ class KeyRecorder(BaseModel):
         else:
             state.main_window.ui.set_text(state.display_text)
 
-    def finish_replay(self, state: TuneyState) -> None:
+    def finish_replay(self, state: App) -> None:
         if state.main_window.history.loop_replay and state._replay_char_presses():
             state.on_replay()
             return

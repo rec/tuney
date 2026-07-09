@@ -4,9 +4,9 @@ from pathlib import Path
 import tyro
 from pydantic import BaseModel, ValidationError
 
+from ..presets import merged_data, read_file, read_preset
+from .app import App
 from .platform_info import exit_with_message
-from .presets import merged_data, read_file, read_preset
-from .tuney_state import TuneyState
 
 
 def cli(cls, prog: str):
@@ -32,8 +32,8 @@ def cli(cls, prog: str):
                 data = merged_data(data, read_file(f.config_file))
             default = cls(**data)
             f = tyro.cli(cls, prog=prog, default=default)
-        state = TuneyState(f)
-        result = state()
+        app = App(f)
+        result = app()
     except (ValidationError, FileExistsError) as e:
         if getattr(locals().get('f'), 'verbose', False):
             raise
@@ -46,6 +46,6 @@ def cli(cls, prog: str):
 def _startup_files_should_be_skipped(f: object) -> bool:
     if not getattr(f, 'gui', False):
         return False
-    from .ui.startup import startup_modifier_held
+    from ..ui.startup import startup_modifier_held
 
     return startup_modifier_held()

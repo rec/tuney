@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
+from tuney.app.app import App
 from tuney.cfg.tuney import Tuney
 from tuney.presets import preset_names, read_preset
 from tuney.time.char_press import CharPress
-from tuney.tuney_state import TuneyState
 
 
 def test_bundled_presets_are_listed() -> None:
@@ -27,7 +27,7 @@ def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
 
 def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     tuney = Tuney()
-    state = TuneyState(tuney)
+    state = App(tuney)
     state.char_presses.append(CharPress('a', time=0))
 
     state.apply_preset('white-notes')
@@ -39,7 +39,7 @@ def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
 
 def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     tuney = Tuney(gui=True)
-    state = TuneyState(tuney)
+    state = App(tuney)
     app = object()
     listener = object()
     state.__dict__['main_window'] = app

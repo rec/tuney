@@ -10,33 +10,33 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from .audio.mixer import NotePress
-from .audio.player import Player
-from .cfg.serialize import serialize
-from .cfg.text_file import read_text_file
-from .keyboard.listener import KeyboardListener
+from ..audio.mixer import NotePress
+from ..audio.player import Player
+from ..cfg.serialize import serialize
+from ..cfg.text_file import read_text_file
+from ..keyboard.listener import KeyboardListener
+from ..presets import is_str_dict, merged_data, read_preset
+from ..presets.autosave import Autosave
+from ..recorders.audio_recorder import AudioRecorder
+from ..recorders.key_recorder import KeyRecorder
+from ..time import to_ms
+from ..time.char_press import CharPress
+from ..time.sequencer import Sequencer
 from .platform_info import exit_with_message, report_error
-from .presets import is_str_dict, merged_data, read_preset
-from .presets.autosave import Autosave
-from .recorders.audio_recorder import AudioRecorder
-from .recorders.key_recorder import KeyRecorder
-from .time import to_ms
-from .time.char_press import CharPress
-from .time.sequencer import Sequencer
 
 if TYPE_CHECKING:
-    from .cfg.tuney import Tuney
-    from .ui.main_window import MainWindow
+    from ..cfg.tuney import Tuney
+    from ..ui.main_window import MainWindow
 
 
-class TuneyState:
+class App:
     def __init__(self, tuney: Tuney) -> None:
         self.tuney = tuney
 
     @cached_property
     def main_window(self) -> MainWindow:
         assert self.tuney.gui
-        from .ui.main_window import MainWindow
+        from ..ui.main_window import MainWindow
 
         return MainWindow(self)
 

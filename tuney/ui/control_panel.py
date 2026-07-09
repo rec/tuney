@@ -42,7 +42,7 @@ from ..scale.tuning import Tuning, Type
 from .tooltip import Tooltip
 
 if TYPE_CHECKING:
-    from ..tuney_state import TuneyState
+    from ..app.app import App
 
 Scalar: TypeAlias = bool | float | int | str | None
 
@@ -117,11 +117,11 @@ class ControlPanel(QScrollArea):
         parent: QWidget,
         data: BaseModel,
         height: int = 200,
-        state: TuneyState | None = None,
+        app: App | None = None,
     ) -> None:
         super().__init__(parent)
         self.data = data
-        self.state = state
+        self.app = app
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
         self.pages: dict[bool, QWidget] = {}
@@ -763,7 +763,7 @@ def _add_option_control(
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
             _checkpoint_undo(parent)
-            state = _control_panel(parent).state
+            state = _control_panel(parent).app
             assert state is not None
             state.apply_preset(raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
@@ -806,7 +806,7 @@ def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
 
 
 def _rebuild_note_grid(parent: Any) -> None:
-    state = _control_panel(parent).state
+    state = _control_panel(parent).app
     assert state is not None
     state.main_window.ui.rebuild_note_grid()
 
@@ -1023,8 +1023,8 @@ def _set_model_value(
 def _checkpoint_undo(parent: Any) -> None:
     control_panel = _control_panel(parent)
     if type(control_panel.data).__name__ == 'Tuney':
-        assert control_panel.state is not None
-        control_panel.state.main_window.history.checkpoint_undo()
+        assert control_panel.app is not None
+        control_panel.app.main_window.history.checkpoint_undo()
 
 
 def _clear_cached_values(data: BaseModel) -> None:

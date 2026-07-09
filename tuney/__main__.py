@@ -1,4 +1,4 @@
-from tuney import cli
+from tuney.app import cli
 from tuney.cfg.tuney import Tuney
 
 

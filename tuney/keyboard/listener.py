@@ -5,7 +5,7 @@ from collections.abc import Callable
 from functools import cached_property, wraps
 from typing import Any, Literal
 
-from ..runnable import Runnable
+from ..app.runnable import Runnable
 from ..time.char_press import CharPress
 from .modifiers import Modifiers
 

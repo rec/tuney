@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..platform_info import log_path
+from ..app.platform_info import log_path
 from ..scale.ratios import Ratios
 from ..scale.tuning import Computed, Type
 from ..time.char_press import CharPress
@@ -41,7 +41,7 @@ from .help import show_help
 from .history import History
 
 if TYPE_CHECKING:
-    from ..tuney_state import TuneyState
+    from ..app.app import App
 
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
@@ -72,7 +72,7 @@ class _AfterDispatcher(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, state: TuneyState) -> None:
+    def __init__(self, app: App) -> None:
         if (instance := QApplication.instance()) is None:
             self.qt_app = QApplication(sys.argv[:1])
         else:
@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APP_NAME)
         if ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(ICON_PATH)))
-        self.state = state
+        self.app = app
         self.queue = Queue[CharPress]()
         self.key_queue = Queue[CharPress]()
         self._key_chars: dict[int, str] = {}
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self._after_dispatcher = _AfterDispatcher(self)
         self._after_dispatcher.schedule.connect(self._schedule_after)
         self._after_dispatcher.cancel.connect(self._cancel_after)
-        n = len(state.note_labels)
+        n = len(app.note_labels)
         c = int(math.ceil(n**0.5))
         r = n // c
         r += n > (r * c)
@@ -174,8 +174,8 @@ class MainWindow(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        self.state._autosave.save(self.state.save)
-        self.state.player.close()
+        self.app._autosave.save(self.app.save)
+        self.app.player.close()
         super().closeEvent(event)
 
     def destroy(
@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
         self.history.clear_settings()
 
     def on_clear_text(self, *_: object) -> None:
-        self.state.clear()
+        self.app.clear()
 
     def on_open_text_file(self, *_: object) -> None:
         self._is_saving = True
@@ -205,7 +205,7 @@ class MainWindow(QMainWindow):
             )
             if filename := result[0]:
                 try:
-                    self.state.load_text_file(Path(filename))
+                    self.app.load_text_file(Path(filename))
                 except ValueError as error:
                     QMessageBox.critical(self, 'Open Text File', str(error))
         finally:
@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
                 self, 'Save', '', 'TOML (*.toml);;JSON (*.json)'
             )
             if filename := result[0]:
-                self.state.save(Path(filename))
+                self.app.save(Path(filename))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -241,7 +241,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_export_tuning(self, *_: object) -> None:
-        if isinstance(self.state.tuney.tuning.active, list):
+        if isinstance(self.app.tuney.tuning.active, list):
             return
 
         self._is_saving = True
@@ -250,7 +250,7 @@ class MainWindow(QMainWindow):
                 self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
             )
             if filename := result[0]:
-                tuning = self.state.tuney.tuning.active
+                tuning = self.app.tuney.tuning.active
                 ratios = tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
                 ratios.write_scala_file(Path(filename))
         finally:
@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def _set_tuning(self, tuning: Computed | Ratios | list[float]) -> None:
-        data = self.state.tuney.tuning.model_dump()
+        data = self.app.tuney.tuning.model_dump()
         match tuning:
             case Computed():
                 data |= {'type': Type.computed, 'computed': tuning}
@@ -266,16 +266,14 @@ class MainWindow(QMainWindow):
                 data |= {'type': Type.ratios, 'ratios': tuning}
             case list():
                 data |= {'type': Type.table, 'table': tuning}
-        validated = type(self.state.tuney.tuning).model_validate(data)
-        for field in type(self.state.tuney.tuning).model_fields:
-            object.__setattr__(
-                self.state.tuney.tuning, field, getattr(validated, field)
-            )
+        validated = type(self.app.tuney.tuning).model_validate(data)
+        for field in type(self.app.tuney.tuning).model_fields:
+            object.__setattr__(self.app.tuney.tuning, field, getattr(validated, field))
         self.ui.rebuild_control_panel()
 
     def _update_export_tuning_action(self) -> None:
         self.export_tuning_action.setEnabled(
-            not isinstance(self.state.tuney.tuning.active, list)
+            not isinstance(self.app.tuney.tuning.active, list)
         )
 
     def on_transport_state(self, change: StateChange) -> bool:
@@ -294,10 +292,10 @@ class MainWindow(QMainWindow):
                 self._is_saving = False
                 self._has_focus = False
         path = Path(filename) if filename else None
-        return self.state.audio_recorder.on_transport_state(
+        return self.app.audio_recorder.on_transport_state(
             change,
-            self.state.player,
-            self.state._output_comment,
+            self.app.player,
+            self.app._output_comment,
             path,
         )
 
@@ -305,7 +303,7 @@ class MainWindow(QMainWindow):
         self.ui.refresh_devices()
 
     def on_randomize_timing(self, *_: object) -> None:
-        self.state.randomize_timing()
+        self.app.randomize_timing()
 
     def on_help(self, *_: object) -> None:
         show_help(self)
@@ -318,7 +316,7 @@ class MainWindow(QMainWindow):
         )
 
     def on_open_config_folder(self, *_: object) -> None:
-        path = self.state.tuney.config_file or self.state._autosave.path
+        path = self.app.tuney.config_file or self.app._autosave.path
         folder = path.expanduser().parent.resolve()
         try:
             folder.mkdir(parents=True, exist_ok=True)
@@ -337,18 +335,18 @@ class MainWindow(QMainWindow):
             )
 
     def on_copy_from_state(self, *_: object) -> None:
-        self.qt_app.clipboard().setText(self.state.dump_toml())
+        self.qt_app.clipboard().setText(self.app.dump_toml())
 
     def on_paste_into_state(self, *_: object) -> None:
         try:
             self.history.checkpoint_undo()
-            self.state.restore_text(self.qt_app.clipboard().text())
+            self.app.restore_text(self.qt_app.clipboard().text())
         except (ValueError, ValidationError) as error:
             QMessageBox.critical(self, 'Paste into state', str(error))
             return
         self.ui.rebuild_control_panel()
         self.ui.rebuild_note_grid()
-        self.ui.set_text(self.state.display_text)
+        self.ui.set_text(self.app.display_text)
 
     @property
     def is_saving(self) -> bool:
@@ -414,7 +412,7 @@ class MainWindow(QMainWindow):
         else:
             c = self._key_chars.pop(key, '')
         if c:
-            self.state.on_char(CharPress(c, is_press, time=time.time()))
+            self.app.on_char(CharPress(c, is_press, time=time.time()))
             event.accept()
             return True
         else:
@@ -467,7 +465,7 @@ class MainWindow(QMainWindow):
         if self._is_replaying != is_replaying:
             self._is_replaying = is_replaying
             self.ui.set_replay_state(is_replaying)
-            self.state.on_replay()
+            self.app.on_replay()
 
     def on_replay(self, *_: object) -> None:
         self.is_replaying = not self.is_replaying
@@ -505,10 +503,10 @@ class MainWindow(QMainWindow):
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():
-            self.state.on_char(self.key_queue.get())
+            self.app.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
-        if engine := self.state.player.__dict__.get('engine'):
+        if engine := self.app.player.__dict__.get('engine'):
             for error in engine.diagnostics.take_errors():
                 QMessageBox.critical(self, 'Audio error', error)
 
