@@ -24,6 +24,7 @@ from tuney.app.app import (
     save,
     start,
 )
+from tuney.app.global_config import GlobalConfig
 from tuney.app.platform_info import exit_with_message, report_error
 from tuney.app.runnable import start_thread
 from tuney.audio.mixer import NotePress
@@ -510,6 +511,18 @@ def test_autosave_path_uses_xdg_state_home(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
         assert App()._autosave.path == tmp_path / 'tuney' / 'state.toml'
+
+
+def test_global_config_persists_dialog_directories() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'global.toml'
+        config = GlobalConfig(file=path)
+
+        config.remember_directory('Open Text File', str(tmp_path / 'texts' / 'a.txt'))
+
+        assert GlobalConfig.read(path).directories == {
+            'Open Text File': str(tmp_path / 'texts')
+        }
 
 
 def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:

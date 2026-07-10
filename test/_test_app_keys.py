@@ -8,6 +8,7 @@ from PySide6.QtGui import QKeyEvent
 
 from tuney import presets as presets_module
 from tuney.app.app import App
+from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
@@ -432,6 +433,7 @@ def test_app_imports_and_exports_tuning() -> None:
     app = HistoryApp()
 
     with tempfile.TemporaryDirectory() as tmp:
+        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'input.scl'
         Ratios(text='2', name='input.scl', desc='one step').write_scala_file(path)
 
@@ -449,6 +451,7 @@ def test_app_imports_and_exports_tuning() -> None:
     assert app.ui.rebuild_control_panel_count == 1
 
     with tempfile.TemporaryDirectory() as tmp:
+        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'output.scl'
 
         class FakeSaveDialog:
@@ -472,6 +475,7 @@ def test_app_imports_and_exports_tuning() -> None:
     )
 
     with tempfile.TemporaryDirectory() as tmp:
+        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'computed.scl'
 
         class FakeComputedSaveDialog:
@@ -516,6 +520,36 @@ def test_app_imports_and_exports_tuning() -> None:
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
+
+
+def test_file_dialogs_remember_last_directories() -> None:
+    app = HistoryApp()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        first = Path(tmp) / 'first' / 'input.txt'
+        second = Path(tmp) / 'second' / 'output.toml'
+        calls: list[str] = []
+        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
+
+        class FakeDialog:
+            @staticmethod
+            def getOpenFileName(*args: object) -> tuple[str, str]:
+                calls.append(str(args[2]))
+                return str(first), ''
+
+            @staticmethod
+            def getSaveFileName(*args: object) -> tuple[str, str]:
+                calls.append(str(args[2]))
+                return str(second), ''
+
+        main_window_module.QFileDialog = FakeDialog
+
+        MainWindow._get_open_file_name(app, 'Open Text File', 'Open Text File', '*')
+        MainWindow._get_save_file_name(app, 'Save', 'Save', '*')
+        MainWindow._get_open_file_name(app, 'Open Text File', 'Open Text File', '*')
+        MainWindow._get_save_file_name(app, 'Save', 'Save', '*')
+
+    assert calls == ['', '', str(first.parent), str(second.parent)]
 
 
 def test_app_saves_and_deletes_presets() -> None:
@@ -607,3 +641,5 @@ class HistoryApp:
         self.history = History(self)
 
     _set_tuning = MainWindow._set_tuning
+    _get_open_file_name = MainWindow._get_open_file_name
+    _get_save_file_name = MainWindow._get_save_file_name

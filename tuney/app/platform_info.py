@@ -9,8 +9,17 @@ from types import TracebackType
 from typing import NoReturn
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
+XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
 APP_STATE_DIR = Path('tuney')
 LOG_FILE = 'tuney.txt'
+
+
+def app_config_dir() -> Path:
+    if (config_home := os.environ.get(XDG_CONFIG_HOME)) and Path(
+        config_home
+    ).is_absolute():
+        return Path(config_home) / APP_STATE_DIR
+    return Path.home() / '.config' / APP_STATE_DIR
 
 
 def app_state_dir() -> Path:

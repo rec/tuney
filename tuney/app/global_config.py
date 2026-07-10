@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import tomllib
+from functools import cached_property
+from pathlib import Path
+
+import tomlkit
+from pydantic import BaseModel, Field
+
+from .platform_info import app_config_dir, report_error
+
+GLOBAL_CONFIG_FILE = 'global.toml'
+
+
+class GlobalConfig(BaseModel):
+    directories: dict[str, str] = Field(default_factory=dict)
+    file: Path | None = Field(default=None, exclude=True)
+
+    @cached_property
+    def path(self) -> Path:
+        return self.file or app_config_dir() / GLOBAL_CONFIG_FILE
+
+    @classmethod
+    def read(cls, path: Path | None = None) -> GlobalConfig:
+        file = path or app_config_dir() / GLOBAL_CONFIG_FILE
+        if not file.exists():
+            return cls(file=file)
+        try:
+            return cls.model_validate(tomllib.loads(file.read_text()) | {'file': file})
+        except (OSError, ValueError) as error:
+            report_error(f'Could not read global config {file}: {error}')
+            return cls(file=file)
+
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(tomlkit.dumps({'directories': self.directories}))
+
+    def directory(self, name: str) -> str:
+        return self.directories.get(name, '')
+
+    def remember_directory(self, name: str, filename: str) -> None:
+        if not filename:
+            return
+        self.directories[name] = str(Path(filename).parent)
+        try:
+            self.save()
+        except OSError as error:
+            report_error(f'Could not save global config {self.path}: {error}')

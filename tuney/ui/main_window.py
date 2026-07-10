@@ -52,6 +52,7 @@ from ..app.app import (
     restore_text,
     save,
 )
+from ..app.global_config import GlobalConfig
 from ..app.platform_info import log_exception, log_path
 from ..presets import delete_presets, user_preset_names, write_preset
 from ..scale.ratios import Ratios
@@ -75,6 +76,11 @@ UNDO_ACCELERATOR = 'Ctrl+Z'
 REDO_ACCELERATOR = 'Ctrl+Y'
 HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
+OPEN_TEXT_FILE_COMMAND = 'Open Text File'
+SAVE_COMMAND = 'Save'
+IMPORT_TUNING_COMMAND = 'Import tuning...'
+EXPORT_TUNING_COMMAND = 'Export tuning...'
+SAVE_AUDIO_COMMAND = 'Save audio'
 COMMAND_MODIFIERS = (
     Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
 )
@@ -131,6 +137,28 @@ class MainWindow(QMainWindow):
         self.ui = Layout(self)
         self.setCentralWidget(self.ui)
         self.qt_app.installEventFilter(self)
+
+    @cached_property
+    def global_config(self) -> GlobalConfig:
+        return GlobalConfig.read()
+
+    def _get_open_file_name(
+        self, command: str, title: str, filter_: str
+    ) -> tuple[str, str]:
+        result = QFileDialog.getOpenFileName(
+            self, title, self.global_config.directory(command), filter_
+        )
+        self.global_config.remember_directory(command, result[0])
+        return result
+
+    def _get_save_file_name(
+        self, command: str, title: str, filter_: str
+    ) -> tuple[str, str]:
+        result = QFileDialog.getSaveFileName(
+            self, title, self.global_config.directory(command), filter_
+        )
+        self.global_config.remember_directory(command, result[0])
+        return result
 
     def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:
         after_id = f'after-{self._after_count}'
@@ -224,8 +252,10 @@ class MainWindow(QMainWindow):
     def on_open_text_file(self, *_: object) -> None:
         self._is_saving = True
         try:
-            result = QFileDialog.getOpenFileName(
-                self, 'Open Text File', '', 'Text (*.txt);;All files (*)'
+            result = self._get_open_file_name(
+                OPEN_TEXT_FILE_COMMAND,
+                OPEN_TEXT_FILE_COMMAND,
+                'Text (*.txt);;All files (*)',
             )
             if filename := result[0]:
                 try:
@@ -239,8 +269,8 @@ class MainWindow(QMainWindow):
     def on_save(self, *_: object) -> None:
         self._is_saving = True
         try:
-            result = QFileDialog.getSaveFileName(
-                self, 'Save', '', 'TOML (*.toml);;JSON (*.json)'
+            result = self._get_save_file_name(
+                SAVE_COMMAND, SAVE_COMMAND, 'TOML (*.toml);;JSON (*.json)'
             )
             if filename := result[0]:
                 try:
@@ -275,8 +305,10 @@ class MainWindow(QMainWindow):
     def on_import_tuning(self, *_: object) -> None:
         self._is_saving = True
         try:
-            result = QFileDialog.getOpenFileName(
-                self, 'Import tuning', '', 'Scala (*.scl);;All files (*)'
+            result = self._get_open_file_name(
+                IMPORT_TUNING_COMMAND,
+                'Import tuning',
+                'Scala (*.scl);;All files (*)',
             )
             if filename := result[0]:
                 try:
@@ -294,8 +326,10 @@ class MainWindow(QMainWindow):
 
         self._is_saving = True
         try:
-            result = QFileDialog.getSaveFileName(
-                self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
+            result = self._get_save_file_name(
+                EXPORT_TUNING_COMMAND,
+                'Export tuning',
+                'Scala (*.scl);;All files (*)',
             )
             if filename := result[0]:
                 try:
@@ -333,10 +367,9 @@ class MainWindow(QMainWindow):
         if change.action == Action.save:
             self._is_saving = True
             try:
-                result = QFileDialog.getSaveFileName(
-                    self,
-                    'Save audio',
-                    '',
+                result = self._get_save_file_name(
+                    SAVE_AUDIO_COMMAND,
+                    SAVE_AUDIO_COMMAND,
                     'WAV (*.wav)',
                 )
                 filename = result[0]
@@ -505,16 +538,16 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
-        _add_action(file_menu, 'Open Text File', None, self.on_open_text_file)
+        _add_action(file_menu, OPEN_TEXT_FILE_COMMAND, None, self.on_open_text_file)
         _add_action(file_menu, 'Save preset...', None, self.on_save_preset)
         _add_action(file_menu, 'Delete presets...', None, self.on_delete_presets)
-        _add_action(file_menu, 'Import tuning...', None, self.on_import_tuning)
+        _add_action(file_menu, IMPORT_TUNING_COMMAND, None, self.on_import_tuning)
         self.export_tuning_action = _add_action(
-            file_menu, 'Export tuning...', None, self.on_export_tuning
+            file_menu, EXPORT_TUNING_COMMAND, None, self.on_export_tuning
         )
         file_menu.aboutToShow.connect(self._update_export_tuning_action)
         self._update_export_tuning_action()
-        _add_action(file_menu, 'Save', SAVE_ACCELERATOR, self.on_save)
+        _add_action(file_menu, SAVE_COMMAND, SAVE_ACCELERATOR, self.on_save)
         _add_action(
             file_menu,
             'Open enclosing folder for config file',

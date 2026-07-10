@@ -64,3 +64,8 @@ def test_app_activate_and_history() -> None:
 @_in_subprocess
 def test_app_imports_and_exports_tuning() -> None:
     pass
+
+
+@_in_subprocess
+def test_file_dialogs_remember_last_directories() -> None:
+    pass
