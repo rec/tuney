@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..app.app import on_char
+from ..audio.device import device_names
 from . import constants
 from .control_panel import ControlPanel
 from .main_window import MainWindow
@@ -119,6 +120,7 @@ class Layout(QWidget):
         return frame
 
     def refresh_devices(self) -> None:
+        device_names.cache_clear()
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 

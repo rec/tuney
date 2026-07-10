@@ -9,6 +9,7 @@ from tuney.audio import midi as midi_module
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Sound
+from tuney.ui.layout import Layout
 
 
 def test_sample_data_reports_channels_and_cuts_from_center():
@@ -35,8 +36,34 @@ def test_output_device_names_lists_unique_output_devices(monkeypatch):
             {'name': 'headphones', 'max_output_channels': 2},
         ],
     )
+    device_module.device_names.cache_clear()
 
     assert device_module.device_names() == ['speaker', 'headphones']
+
+
+def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
+    devices = [[{'name': 'first', 'max_output_channels': 2}]]
+    monkeypatch.setattr(device_module.sounddevice, 'query_devices', lambda: devices[-1])
+    device_module.device_names.cache_clear()
+
+    class OptionControl:
+        names: list[str] = []
+
+        def refresh(self) -> None:
+            self.names = device_module.device_names()
+
+    option = OptionControl()
+    layout = type(
+        'FakeLayout',
+        (),
+        {'control_panel': type('Panel', (), {'option_controls': [option]})()},
+    )()
+    assert device_module.device_names() == ['first']
+    devices.append([{'name': 'second', 'max_output_channels': 2}])
+
+    Layout.refresh_devices(layout)
+
+    assert option.names == ['second']
 
 
 def test_midi_output_names_uses_subprocess(monkeypatch):

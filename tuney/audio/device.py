@@ -6,6 +6,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, PrivateAttr
 
+from ..app.platform_info import report_error
 from ..cfg.display import Beginner, Display, Numeric, Options
 from ..cfg.tyro_option import tyro_option
 
@@ -22,7 +23,11 @@ sounddevice = _SoundDevice()
 
 @cache
 def device_names() -> list[str]:
-    devices = sounddevice.query_devices()
+    try:
+        devices = sounddevice.query_devices()
+    except (OSError, RuntimeError) as error:
+        report_error(f'Could not list audio devices: {error}')
+        return []
     names: list[str] = []
     for device in devices:
         name = device.get('name')
