@@ -115,6 +115,7 @@ class _EngineStream(Stream):
         self.active = False
         self.closed = False
         self.samplerate = 44_100
+        self.channels = 1
         self.options = _
         self.instances.append(self)
 
@@ -175,6 +176,33 @@ def test_player_rolls_back_failed_stream_open(monkeypatch) -> None:
     assert not player.pressed_notes
     assert player.engine.diagnostics.stream_errors == ['cannot open device']
     assert 'stream' not in player.engine.__dict__
+
+
+def test_player_recording_uses_integer_stream_sample_rate(
+    monkeypatch, tmp_path
+) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    sample_rates: list[int] = []
+
+    class Writer:
+        def __init__(
+            self,
+            path: object,
+            sample_rate: int,
+            channels: int,
+            comment: Callable[[], str] | None,
+            append: bool,
+        ) -> None:
+            sample_rates.append(sample_rate)
+
+    monkeypatch.setattr('tuney.audio.player.AudioFileWriter', Writer)
+    player = Player()
+    player.engine.stream.samplerate = 44_100.0
+
+    player.start_recording(tmp_path / 'out.wav')
+
+    assert sample_rates == [44_100]
 
 
 def test_callback_failure_is_recorded() -> None:
@@ -443,6 +471,17 @@ def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
     thread.join(timeout=1)
 
     assert not thread.is_alive()
+    assert not engine.stream.active
+
+
+def test_engine_wait_ignores_inactive_stream(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+
+    _ = engine.stream
+    engine.wait()
+
     assert not engine.stream.active
 
 

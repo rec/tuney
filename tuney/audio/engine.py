@@ -21,7 +21,7 @@ from .voice import Voice
 @runtime_checkable
 class Stream(Protocol):
     active: bool
-    samplerate: int
+    samplerate: float | int
     channels: int
 
     def start(self) -> None: ...
@@ -104,8 +104,9 @@ class AudioEngine(BaseModel):
 
     def wait(self) -> None:
         if (stream := self.__dict__.get('stream')) is not None:
-            self.playback_complete.wait()
-            stream.stop()
+            if stream.active:
+                self.playback_complete.wait()
+                stream.stop()
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: Any, status: Any

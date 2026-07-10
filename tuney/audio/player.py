@@ -86,7 +86,7 @@ class Player(BaseModel, frozen=True):
     ) -> None:
         stream = self.engine.stream
         self.engine.recorder = AudioFileWriter(
-            path, stream.samplerate, stream.channels, comment, append
+            path, int(stream.samplerate), stream.channels, comment, append
         )
 
     def stop_recording(self) -> None:
