@@ -525,6 +525,27 @@ def test_numeric_spinbox_uses_numeric_range() -> None:
     assert editors
 
 
+def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
+    from PySide6.QtWidgets import QSpinBox, QWidget
+
+    _qt_app()
+    mapper = Mapper()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, mapper)
+    panel.show_mode(False)
+    editors = [
+        widget
+        for widget in panel.findChildren(QSpinBox)
+        if control_panel.CONTROL_BINDINGS.get(widget, (None,))[0] is mapper
+        and control_panel.CONTROL_BINDINGS[widget][1] == 'offset'
+    ]
+
+    assert len(editors) == 2
+    control_panel._set_model_value(mapper, 'offset', 2, editors[0])
+
+    assert [editor.value() for editor in editors] == [2, 2]
+
+
 def test_float_spinboxes_use_config_decimal_separator() -> None:
     from PySide6.QtCore import QLocale
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget

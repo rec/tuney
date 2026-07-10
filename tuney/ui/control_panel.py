@@ -5,9 +5,10 @@ import json
 import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
+from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
-from PySide6.QtCore import QLocale, Qt, QTimer
+from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QBoxLayout,
     QButtonGroup,
@@ -50,8 +51,12 @@ Scalar: TypeAlias = bool | float | int | str | None
 INLINE_CHILDREN = (Polyphony,)
 ENTRY_CHAR_WIDTH = 10
 
-CONTROL_FIELD_NAMES: dict[int, str] = {}
-INVALID_SCALE_WIDGET_TEXT_COLORS: dict[int, tuple[QLineEdit, str]] = {}
+CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
+    WeakKeyDictionary()
+)
+INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QLineEdit, str] = (
+    WeakKeyDictionary()
+)
 NUMERIC_LOCALE = QLocale.c()
 GENERAL_COLUMNS = 4
 LABEL_PADDING = 8
@@ -494,7 +499,8 @@ def _add_control_cell(
 
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
-    CONTROL_FIELD_NAMES[id(cell)] = name
+    cell.setProperty('control_field_name', name)
+    _bind_control(cell, data, name)
     if isinstance(data, MIDI) and not data.enable:
         _set_widget_state(cell, False)
 
@@ -760,6 +766,7 @@ def _add_option_control(
     _configure_editor(menu, width)
     menu.addItems(['', *values()])
     menu.setCurrentText('' if value is None else str(value))
+    _bind_control(menu, data, name)
 
     def command(raw: str) -> None:
         if type(data).__name__ == 'Tuney' and name == 'preset' and raw:
@@ -817,6 +824,7 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
     check.setMinimumWidth(check.sizeHint().width())
     check.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
     check.setChecked(value)
+    _bind_control(check, data, name)
 
     def command(checked: bool) -> None:
         _set_model_value(data, name, checked, parent)
@@ -829,12 +837,11 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
 
 
 def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
-    if (row_frame := parent.parent()) is None:
-        return
-    for cell in row_frame.findChildren(
-        QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly
-    ):
-        if cell.parent() is row_frame and CONTROL_FIELD_NAMES.get(id(cell)) != 'enable':
+    data = CONTROL_BINDINGS[parent][0]
+    for cell in _control_panel(parent).findChildren(QWidget):
+        field = cell.property('control_field_name')
+        binding = CONTROL_BINDINGS.get(cell)
+        if binding and binding[0] is data and field and field != 'enable':
             _set_widget_state(cell, enabled)
 
 
@@ -853,19 +860,11 @@ def _add_entry_control(
         return
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
         value = data.alphabet_
-    if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
-        text = ''.join(str(i) for i in value)
-    elif isinstance(data, Tuning) and name in {'table', 'ratios'}:
-        text = _tuning_expression_text(value)
-    elif value is None:
-        text = ''
-    elif isinstance(value, list | dict):
-        text = json.dumps(TypeAdapter(annotation).dump_python(value, mode='json'))
-    else:
-        text = str(value)
+    text = _entry_text(data, name, value, annotation)
 
     frame, layout, _ = _add_labeled_control_frame(parent, name)
     entry = QLineEdit(text, frame)
+    _bind_control(entry, data, name)
     width = _entry_width(name, annotation, _control_metadata(type(data), name))
     _configure_editor(entry, width)
     text_color = entry.palette().text().color().name()
@@ -909,6 +908,7 @@ def _add_spin_control(
         if numeric.inc is not None:
             spin.setSingleStep(max(1, round(numeric.inc)))
         spin.setValue(value)
+        _bind_control(spin, data, name)
 
         def update() -> None:
             _set_model_value(data, name, spin.value(), parent)
@@ -927,6 +927,7 @@ def _add_spin_control(
         )
         spin.setSingleStep(numeric.increment)
         spin.setValue(float(value))
+        _bind_control(spin, data, name)
 
         def update() -> None:
             _set_model_value(data, name, spin.value(), parent)
@@ -941,6 +942,7 @@ def _add_spin_control(
             dial.setWrapping(False)
             dial.setRange(0, 100)
             dial.setValue(numeric.spin_to_dial(spin.value()))
+            _bind_control(dial, data, name)
             dial.valueChanged.connect(
                 lambda value: spin.setValue(numeric.dial_to_spin(value))
             )
@@ -991,6 +993,7 @@ def _add_enum_control(
         radio.setMinimumWidth(radio.sizeHint().width())
         radio.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         radio.setChecked(i == index)
+        _bind_control(radio, data, name, member)
         radio.toggled.connect(
             lambda checked, member=member: checked and command(member)
         )
@@ -999,13 +1002,10 @@ def _add_enum_control(
 
 
 def _set_tuning_type_form(parent: QWidget, data: Tuning) -> None:
-    widget: QWidget | None = parent
-    while widget is not None:
-        if (stack := widget.findChild(QStackedWidget, 'tuning_form_stack')) is not None:
-            _set_tuning_form(stack, data)
-            return
-        parent_widget = widget.parent()
-        widget = parent_widget if isinstance(parent_widget, QWidget) else None
+    for stack in _control_panel(parent).findChildren(
+        QStackedWidget, 'tuning_form_stack'
+    ):
+        _set_tuning_form(stack, data)
 
 
 def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
@@ -1018,12 +1018,15 @@ def _set_model_value(
     values = data.model_dump()
     values[name] = value
     validated = type(data).model_validate(values)
+    validated_value = getattr(validated, name)
     if parent is not None and getattr(data, name) != getattr(validated, name):
         _checkpoint_undo(parent)
-    object.__setattr__(data, name, getattr(validated, name))
+    object.__setattr__(data, name, validated_value)
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
+    if parent is not None:
+        _sync_model_controls(parent, data, name)
 
 
 def _checkpoint_undo(parent: Any) -> None:
@@ -1078,14 +1081,14 @@ def _scale_has_note_buttons(scale: Scale) -> bool:
 
 
 def _set_invalid_scale_widget(widget: QLineEdit, text_color: str) -> None:
-    INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(id(widget), (widget, text_color))
+    INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(widget, text_color)
     widget.setStyleSheet('color: red;')
 
 
 def _clear_invalid_scale_widgets() -> None:
-    for widget_id, (widget, _) in tuple(INVALID_SCALE_WIDGET_TEXT_COLORS.items()):
+    for widget in tuple(INVALID_SCALE_WIDGET_TEXT_COLORS):
         widget.setStyleSheet('')
-        INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget_id, None)
+        INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget, None)
 
 
 def _parse_entry_value(
@@ -1113,6 +1116,53 @@ def _tuning_expression_text(value: object) -> str:
         return value.text
     assert isinstance(value, list | tuple)
     return '; '.join(str(i) for i in value)
+
+
+def _entry_text(data: BaseModel, name: str, value: object, annotation: Any) -> str:
+    if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
+        return ''.join(str(i) for i in value)
+    if isinstance(data, Tuning) and name in {'table', 'ratios'}:
+        return _tuning_expression_text(value)
+    if value is None:
+        return ''
+    if isinstance(value, list | dict):
+        return json.dumps(TypeAdapter(annotation).dump_python(value, mode='json'))
+    return str(value)
+
+
+def _bind_control(
+    widget: QWidget,
+    data: BaseModel,
+    name: str,
+    choice: object | None = None,
+) -> None:
+    CONTROL_BINDINGS[widget] = data, name, choice
+
+
+def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
+    value = getattr(data, name)
+    annotation = type(data).model_fields[name].annotation
+    numeric = _numeric_metadata(type(data), name)
+    for widget in _control_panel(parent).findChildren(QWidget):
+        binding = CONTROL_BINDINGS.get(widget)
+        if not binding or binding[0] is not data or binding[1] != name:
+            continue
+        blocker = QSignalBlocker(widget)
+        if isinstance(widget, QRadioButton):
+            widget.setChecked(value == binding[2])
+        elif isinstance(widget, QComboBox):
+            widget.setCurrentText('' if value is None else str(value))
+        elif isinstance(widget, QCheckBox):
+            widget.setChecked(bool(value))
+        elif isinstance(widget, QDial) and isinstance(value, int | float):
+            widget.setValue(numeric.spin_to_dial(float(value)))
+        elif isinstance(widget, QSpinBox) and isinstance(value, int):
+            widget.setValue(value)
+        elif isinstance(widget, QDoubleSpinBox) and isinstance(value, int | float):
+            widget.setValue(float(value))
+        elif isinstance(widget, QLineEdit):
+            widget.setText(_entry_text(data, name, value, annotation))
+        del blocker
 
 
 def _entry_width(
