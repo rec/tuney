@@ -30,16 +30,19 @@ type = "object"
 
 ["$defs".Computed.properties.limit]
 default = 0
+minimum = 0
 title = "Limit"
 type = "integer"
 
 ["$defs".Computed.properties.notes_per_octave]
 default = 12
+exclusiveMinimum = 0
 title = "Notes Per Octave"
 type = "integer"
 
 ["$defs".Computed.properties.octave_ratio]
 default = 2
+exclusiveMinimum = 0
 title = "Octave Ratio"
 type = "number"
 
@@ -520,6 +523,7 @@ type = "number"
 
 ["$defs".Tuning.properties.root_frequency]
 default = 440
+exclusiveMinimum = 0
 title = "Root Frequency"
 type = "number"
 

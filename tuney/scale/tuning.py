@@ -22,20 +22,26 @@ class Type(StrEnum):
 
 class Computed(BaseModel, frozen=True):
     #: If limit is greater than zero, use rounded N-limit just intonation
-    limit: Annotated[int, tyro_option('-v'), Display(column=1, row=0), Numeric()] = 0
+    limit: Annotated[
+        int, tyro_option('-v'), Display(column=1, row=0), Numeric(min=0)
+    ] = Field(0, ge=0)
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
-        int, tyro_option('-V'), Beginner, Display(column=2, row=0), Numeric()
-    ] = 12
+        int, tyro_option('-V'), Beginner, Display(column=2, row=0), Numeric(min=1)
+    ] = Field(12, gt=0)
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
     #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
     #: last; for "linear", it's a difference, so if it's 100, each octave would be
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
-        float, tyro_option('-J'), Beginner, Display(column=3, row=0), Numeric()
-    ] = 2
+        float,
+        tyro_option('-J'),
+        Beginner,
+        Display(column=3, row=0),
+        Numeric(min=0.001),
+    ] = Field(2, gt=0)
 
     def __call__(self, note_delta: NoteNumber) -> Number:
         r = self.octave_ratio ** (note_delta / self.notes_per_octave)
@@ -83,8 +89,8 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
         tyro_option('-U'),
         Beginner,
         Display(column=4, row=0),
-        Numeric(),
-    ] = 440
+        Numeric(min=0.001),
+    ] = Field(440, gt=0)
 
     #: The note number of the reference note
     root_note: Annotated[

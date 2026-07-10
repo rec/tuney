@@ -17,11 +17,16 @@ class Table(BaseModel, frozen=True):
     text: Annotated[str, tyro_option(), Display(row=0, width=24)] = ''
 
     def __call__(self, note_delta: int) -> Frequency:
-        return self.values[note_delta % len(self.values)]
+        if not (values := self.values):
+            raise ValueError('No frequency table configured')
+        return values[note_delta % len(values)]
 
     @cached_property
     def values(self) -> list[Frequency]:
-        return [float(i) for i in _evaluate_text(self.text)]
+        values = [float(i) for i in _evaluate_text(self.text)]
+        if any(i <= 0 for i in values):
+            raise ValueError('Frequency table values must be positive')
+        return values
 
 
 def _evaluate_text(text: str) -> list[Number]:

@@ -26,8 +26,10 @@ class Ratios(BaseModel, frozen=True):
 
     def __call__(self, note_delta: int) -> Number:
         # Returns a frequency ratio
-        d, m = divmod(note_delta, self.length)
-        return self.ratios[-1] ** d * (self.ratios[m - 1] if m else 1)
+        if not (ratios := self.ratios):
+            raise ValueError('No tuning ratios configured')
+        d, m = divmod(note_delta, len(ratios))
+        return ratios[-1] ** d * (ratios[m - 1] if m else 1)
 
     @cached_property
     def length(self) -> int:
@@ -35,7 +37,10 @@ class Ratios(BaseModel, frozen=True):
 
     @cached_property
     def ratios(self) -> list[Number]:
-        return evaluate.evaluate_all(_split_expression_text(self.text))
+        ratios = evaluate.evaluate_all(_split_expression_text(self.text))
+        if any(i <= 0 for i in ratios):
+            raise ValueError('Tuning ratios must be positive')
+        return ratios
 
     @staticmethod
     def read_scala_file(path: Path, name: str = '') -> Ratios:
