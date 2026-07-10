@@ -130,9 +130,15 @@ class Mapper(BaseModel, frozen=True):
             return data
         if not isinstance(case_sensitive, bool):
             return data
-        fallback = DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
-        if values.get('alphabet') is not None and not (
-            language is not None and values['alphabet'] == fallback
+        generated_alphabets = {
+            DEFAULT_ALPHABET,
+            ascii_lowercase,
+            alphabet_for_language(language, True) or DEFAULT_ALPHABET,
+            alphabet_for_language(language, False) or ascii_lowercase,
+        }
+        if (
+            values.get('alphabet') is not None
+            and values['alphabet'] not in generated_alphabets
         ):
             return data
         alphabet = alphabet_for_language(language, case_sensitive) or (

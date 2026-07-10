@@ -57,6 +57,16 @@ def test_mapper_language_respects_case_sensitive() -> None:
     assert mapper.alphabet_ == 'abcçdefgğhıijklmnoöprsştuüvyz'
 
 
+def test_mapper_regenerates_default_alphabet_when_case_sensitivity_changes() -> None:
+    data = Mapper().model_dump()
+    data['case_sensitive'] = False
+
+    mapper = Mapper.model_validate(data)
+
+    assert mapper.alphabet == ascii_lowercase
+    assert mapper('a') == Mapper(case_sensitive=False)('a')
+
+
 def test_mapper_wraps_notes_outside_range_limit() -> None:
     mapper = Mapper(alphabet=''.join(chr(i) for i in range(70)))
     values = list(mapper.char_to_number.values())
