@@ -672,21 +672,6 @@ type = "string"
 [[properties.config_file.anyOf]]
 type = "null"
 
-[properties.autosave_file]
-default = "<null>"
-title = "Autosave File"
-[[properties.autosave_file.anyOf]]
-format = "path"
-type = "string"
-
-[[properties.autosave_file.anyOf]]
-type = "null"
-
-[properties.skip_startup_files]
-default = false
-title = "Skip Startup Files"
-type = "boolean"
-
 [properties.text]
 default = "<null>"
 title = "Text"

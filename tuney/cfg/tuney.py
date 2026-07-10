@@ -5,6 +5,7 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field, field_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from ..audio.device import Device
 from ..audio.midi import MIDI
@@ -87,10 +88,14 @@ class Tuney(BaseModel):
     config_file: Annotated[Path | None, tyro_option('-c'), Hidden] = None
 
     # Path to the automatically saved GUI state
-    autosave_file: tyro.conf.Suppress[Path | None] = Field(default=None, exclude=True)
+    autosave_file: Annotated[
+        tyro.conf.Suppress[SkipJsonSchema[Path | None]], Hidden
+    ] = Field(default=None, exclude=True)
 
     # Skip preset, config, and autosave loading during GUI startup
-    skip_startup_files: tyro.conf.Suppress[bool] = Field(default=False, exclude=True)
+    skip_startup_files: Annotated[tyro.conf.Suppress[SkipJsonSchema[bool]], Hidden] = (
+        Field(default=False, exclude=True)
+    )
 
     # Text to start the program with
     text: Annotated[

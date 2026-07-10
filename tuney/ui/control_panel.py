@@ -11,7 +11,6 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtWidgets import (
     QBoxLayout,
-    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDial,
@@ -150,6 +149,8 @@ class ControlPanel(QScrollArea):
         self.show_mode(self.show_advanced)
 
     def show_mode(self, advanced: bool) -> None:
+        if advanced == self.show_advanced and advanced in self.pages:
+            return
         self.show_advanced = advanced
         if advanced not in self.pages:
             self.pages[advanced] = self._build_page(advanced)
@@ -162,7 +163,6 @@ class ControlPanel(QScrollArea):
         layout.setSpacing(8)
         self.content.addWidget(page)
         if type(self.data).__name__ == 'Tuney':
-            _add_mode_switch(self, page, layout)
             _add_general_controls(
                 page,
                 self.data,
@@ -171,27 +171,6 @@ class ControlPanel(QScrollArea):
             )
         _add_model_controls(page, self.data, self.option_controls, advanced=advanced)
         return page
-
-
-def _add_mode_switch(
-    control_panel: ControlPanel, page: QWidget, page_layout: QBoxLayout
-) -> None:
-    frame = QWidget(page)
-    layout = QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    group = QButtonGroup(frame)
-    for label, advanced in [('Beginner', False), ('Advanced', True)]:
-        radio = QRadioButton(label, frame)
-        radio.setChecked(control_panel.show_advanced == advanced)
-        radio.toggled.connect(
-            lambda checked, advanced=advanced: checked
-            and _set_control_panel_mode(control_panel, advanced)
-        )
-        group.addButton(radio)
-        layout.addWidget(radio)
-    layout.addStretch()
-    page_layout.addWidget(frame)
 
 
 def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None:

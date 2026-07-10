@@ -261,10 +261,17 @@ def test_application_uses_cross_platform_style() -> None:
 
         assert 'Save preset...' in file_actions
         assert 'Delete presets...' in file_actions
+        assert 'Advanced' in edit_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions
         assert 'Clear Text' not in file_actions
+        assert window.advanced_action.isCheckable()
+        assert window.advanced_action.isChecked()
+
+        window.advanced_action.trigger()
+
+        assert not window.ui.control_panel.show_advanced
         window.close()
 
 

@@ -249,6 +249,9 @@ class MainWindow(QMainWindow):
     def on_clear_text(self, *_: object) -> None:
         clear(self.app)
 
+    def on_advanced(self, checked: bool) -> None:
+        self.ui.control_panel.show_mode(checked)
+
     def on_open_text_file(self, *_: object) -> None:
         self._is_saving = True
         try:
@@ -538,6 +541,11 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
+        self.advanced_action = _add_action(
+            edit_menu, 'Advanced', None, self.on_advanced
+        )
+        self.advanced_action.setCheckable(True)
+        self.advanced_action.setChecked(True)
         _add_action(file_menu, OPEN_TEXT_FILE_COMMAND, None, self.on_open_text_file)
         _add_action(file_menu, 'Save preset...', None, self.on_save_preset)
         _add_action(file_menu, 'Delete presets...', None, self.on_delete_presets)
