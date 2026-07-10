@@ -903,7 +903,9 @@ def _add_spin_control(
         assert isinstance(value, int)
         spin = QSpinBox(frame)
         spin.setLocale(NUMERIC_LOCALE)
-        spin.setRange(SPIN_MINIMUM, SPIN_MAXIMUM)
+        minimum = math.ceil(numeric.min) if numeric.min is not None else SPIN_MINIMUM
+        maximum = math.floor(numeric.max) if numeric.max is not None else SPIN_MAXIMUM
+        spin.setRange(minimum, maximum)
         if numeric.inc is not None:
             spin.setSingleStep(max(1, round(numeric.inc)))
         spin.setValue(value)
@@ -919,7 +921,10 @@ def _add_spin_control(
         spin = _NumericDoubleSpinBox(frame, numeric)
         spin.setLocale(NUMERIC_LOCALE)
         spin.setDecimals(numeric.displayed_decimals)
-        spin.setRange(float(SPIN_MINIMUM), float(SPIN_MAXIMUM))
+        spin.setRange(
+            numeric.min if numeric.min is not None else float(SPIN_MINIMUM),
+            numeric.max if numeric.max is not None else float(SPIN_MAXIMUM),
+        )
         spin.setSingleStep(numeric.increment)
         spin.setValue(float(value))
 

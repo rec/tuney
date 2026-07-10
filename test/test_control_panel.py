@@ -507,6 +507,24 @@ def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
         assert editor.minimumWidth() >= control_panel.MIN_EDITOR_WIDTH
 
 
+def test_numeric_spinbox_uses_numeric_range() -> None:
+    from PySide6.QtWidgets import QDoubleSpinBox, QWidget
+
+    _qt_app()
+    tuney = Tuney()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, tuney)
+    editors = [
+        widget
+        for widget in panel.findChildren(QDoubleSpinBox)
+        if widget.objectName() == 'control_editor'
+        and widget.minimum() == 0
+        and widget.maximum() == 4
+    ]
+
+    assert editors
+
+
 def test_float_spinboxes_use_config_decimal_separator() -> None:
     from PySide6.QtCore import QLocale
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget
