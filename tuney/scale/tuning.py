@@ -38,7 +38,6 @@ class Computed(BaseModel, frozen=True):
     octave_ratio: Annotated[
         float,
         tyro_option('-J'),
-        Beginner,
         Display(column=3, row=0),
         Numeric(min=0.001),
     ] = Field(2, gt=0)
@@ -61,7 +60,7 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     """
 
     #: Which tuning source to use
-    type: Annotated[Type | None, tyro_option(), Beginner, Display(column=0, row=0)] = (
+    type: Annotated[Type | None, tyro_option(), Display(column=0, row=0)] = (
         Type.computed
     )
 
@@ -69,14 +68,10 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     computed: Annotated[Computed | None, Beginner] = Field(default_factory=Computed)
 
     #: Absolute frequencies, indexed by note number
-    table: Annotated[
-        Table | None, tyro_option(), Beginner, Display(row=1, width=24)
-    ] = None
+    table: Annotated[Table | None, tyro_option(), Display(row=1, width=24)] = None
 
     #: Ratio expressions, relative to root_frequency
-    ratios: Annotated[
-        Ratios | None, tyro_option(), Beginner, Display(row=1, width=24)
-    ] = None
+    ratios: Annotated[Ratios | None, tyro_option(), Display(row=1, width=24)] = None
 
     #: Detune everything, in cents of an octave division
     detune: Annotated[
@@ -96,7 +91,6 @@ class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
     root_note: Annotated[
         NoteNumber,
         tyro_option('-W'),
-        Beginner,
         Display(column=5, row=0),
         Numeric(),
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units

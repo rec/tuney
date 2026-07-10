@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
-from ..cfg.display import Beginner, Display, Numeric
+from ..cfg.display import Display, Numeric
 from ..cfg.tyro_option import tyro_option
 from . import Milliseconds
 from .char_press import CharPress
@@ -20,14 +20,13 @@ MAX_GENERATED_SEED = 9999
 class TextTimings(BaseModel, frozen=True):
     # Base duration for a space, in milliseconds
     space: Annotated[
-        Milliseconds, tyro_option(), Beginner, Display(row=0, width=5), Numeric()
+        Milliseconds, tyro_option(), Display(row=0, width=5), Numeric()
     ] = 100
 
     # Base duration for a dot, in milliseconds
     dot: Annotated[
         Milliseconds,
         tyro_option(),
-        Beginner,
         Display(column=1, row=0, width=5),
         Numeric(),
     ] = 300
@@ -36,7 +35,6 @@ class TextTimings(BaseModel, frozen=True):
     comma: Annotated[
         Milliseconds,
         tyro_option(),
-        Beginner,
         Display(column=2, row=0, width=5),
         Numeric(),
     ] = 200
@@ -57,9 +55,7 @@ class TextTimings(BaseModel, frozen=True):
     ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[
-        Milliseconds, tyro_option(), Beginner, Display(row=1), Numeric()
-    ] = 20
+    overlap: Annotated[Milliseconds, tyro_option(), Display(row=1), Numeric()] = 20
 
     # Seed for randomized character timings, or a random seed if empty
     seed: Annotated[int | None, tyro_option(), Display(column=1, row=1), Numeric()] = (
@@ -76,7 +72,6 @@ class TextTimings(BaseModel, frozen=True):
     scale: Annotated[
         float,
         tyro_option(),
-        Beginner,
         Display(column=4, row=1),
         Numeric(min=0, max=4, inc=0.01),
     ] = 1.0

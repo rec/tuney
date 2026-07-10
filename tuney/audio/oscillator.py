@@ -43,7 +43,6 @@ class Oscillator(BaseModel, frozen=True):
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Beginner,
         Display(column=1, row=0),
         Numeric(min=0, max=1.0, dial=True),
     ] = 0.5

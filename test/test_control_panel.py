@@ -537,13 +537,13 @@ def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
         widget
         for widget in panel.findChildren(QSpinBox)
         if control_panel.CONTROL_BINDINGS.get(widget, (None,))[0] is mapper
-        and control_panel.CONTROL_BINDINGS[widget][1] == 'offset'
+        and control_panel.CONTROL_BINDINGS[widget][1] == 'range_limit'
     ]
 
     assert len(editors) == 2
-    control_panel._set_model_value(mapper, 'offset', 2, editors[0])
+    control_panel._set_model_value(mapper, 'range_limit', 24, editors[0])
 
-    assert [editor.value() for editor in editors] == [2, 2]
+    assert [editor.value() for editor in editors] == [24, 24]
 
 
 def test_control_panel_rejects_empty_and_invalid_tunings() -> None:
