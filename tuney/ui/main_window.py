@@ -547,9 +547,10 @@ class MainWindow(QMainWindow):
     def on_replay(self, *_: object) -> None:
         self.is_replaying = not self.is_replaying
 
-    def on_loop_replay(self, *_: object) -> None:
-        self.history.checkpoint_undo()
-        self.history.loop_replay = not self.history.loop_replay
+    def on_loop_replay(self, checked: bool) -> None:
+        if checked != self.history.loop_replay:
+            self.history.checkpoint_undo()
+            self.history.loop_replay = checked
 
     def on_loop_tempo(self, tempo: str) -> None:
         try:
@@ -574,9 +575,10 @@ class MainWindow(QMainWindow):
             self.history.checkpoint_undo()
             self.history.loop_after = value
 
-    def on_randomize_on_each_loop(self, *_: object) -> None:
-        self.history.checkpoint_undo()
-        self.history.randomize_on_each_loop = not self.history.randomize_on_each_loop
+    def on_randomize_on_each_loop(self, checked: bool) -> None:
+        if checked != self.history.randomize_on_each_loop:
+            self.history.checkpoint_undo()
+            self.history.randomize_on_each_loop = checked
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():

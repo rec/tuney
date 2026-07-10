@@ -52,6 +52,11 @@ def test_application_uses_cross_platform_style() -> None:
 
 
 @_in_subprocess
+def test_loop_state_restoration_does_not_retoggle_checkboxes() -> None:
+    pass
+
+
+@_in_subprocess
 def test_app_activate_and_history() -> None:
     pass
 

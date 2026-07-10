@@ -14,7 +14,7 @@ from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import main_window as main_window_module
-from tuney.ui.history import History
+from tuney.ui.history import History, LoopState
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
 
@@ -264,6 +264,26 @@ def test_application_uses_cross_platform_style() -> None:
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions
         assert 'Clear Text' not in file_actions
+        window.close()
+
+
+def test_loop_state_restoration_does_not_retoggle_checkboxes() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'state.toml'
+        window = MainWindow(App(gui=True, silent=True, autosave_file=path))
+        window.history.loop_state = LoopState(
+            replay=True,
+            randomize_on_each_loop=True,
+        )
+        window.ui.set_loop_state(True)
+        window.ui.set_randomize_on_each_loop_state(True)
+        window.history.loop_state = LoopState()
+
+        window.ui.set_loop_state(False)
+        window.ui.set_randomize_on_each_loop_state(False)
+
+        assert not window.history.loop_replay
+        assert not window.history.randomize_on_each_loop
         window.close()
 
 

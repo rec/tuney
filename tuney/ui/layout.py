@@ -206,7 +206,7 @@ class Layout(QWidget):
         Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
         right_layout.addWidget(self.randomize)
         self.loop = QCheckBox('Loop', frame)
-        self.loop.toggled.connect(lambda _: self.main_window.on_loop_replay())
+        self.loop.toggled.connect(self.main_window.on_loop_replay)
         Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
         right_layout.addWidget(self.loop)
         self.help = QPushButton('?', frame)
@@ -249,7 +249,7 @@ class Layout(QWidget):
         )
         self.randomize_on_each_loop = QCheckBox('Randomize each loop', frame)
         self.randomize_on_each_loop.toggled.connect(
-            lambda _: self.main_window.on_randomize_on_each_loop()
+            self.main_window.on_randomize_on_each_loop
         )
         layout.addWidget(self.randomize_on_each_loop)
         layout.addStretch()
