@@ -4,6 +4,7 @@ import pytest
 
 from tuney.scale.ratios import Ratios
 
+SCALE_DIR = Path('test/scales')
 SCALA_FILES = (
     'partch-barstow.scl',
     'pelog1.scl',
@@ -13,7 +14,7 @@ SCALA_FILES = (
 
 @pytest.mark.parametrize('filename', SCALA_FILES)
 def test_scala_files_round_trip(filename: str, tmp_path: Path) -> None:
-    ratios = Ratios.read_scala_file(Path('test') / filename)
+    ratios = Ratios.read_scala_file(SCALE_DIR / filename)
     path = tmp_path / filename
 
     ratios.write_scala_file(path)
