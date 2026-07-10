@@ -11,6 +11,7 @@ class State(StrEnum):
 
 class Action(StrEnum):
     record = auto()
+    stop = auto()
     save = auto()
     clear = auto()
 

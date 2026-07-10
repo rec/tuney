@@ -67,7 +67,7 @@ class Transport(QWidget):
         self._set_state(_record_state(self.state), Action.record)
 
     def _on_stop(self) -> None:
-        self._set_state(_ready_state(self.state), Action.save)
+        self._set_state(State.paused, Action.stop)
 
     def _on_save(self) -> None:
         self._set_state(_ready_state(self.state), Action.save)
@@ -91,9 +91,10 @@ class Transport(QWidget):
             self._stop_flashing()
             self.record.setIcon(self.record_icon)
 
+        recording = self.state == State.recording
+        self.stop.setIcon(self.stop_icon if recording else self.disabled_stop_icon)
+        self.stop.setEnabled(recording)
         ready = self.state == State.ready
-        self.stop.setIcon(self.disabled_stop_icon if ready else self.stop_icon)
-        self.stop.setEnabled(not ready)
         self.save.setIcon(self.disabled_save_icon if ready else self.save_icon)
         self.save.setEnabled(not ready)
         self.clear.setIcon(self.disabled_clear_icon if ready else self.clear_icon)

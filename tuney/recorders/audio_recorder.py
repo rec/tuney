@@ -33,6 +33,9 @@ class AudioRecorder(BaseModel):
             if change.old_state == State.recording:
                 self.stop(player)
             self.clear()
+        elif change.action == Action.stop:
+            if change.old_state == State.recording:
+                self.stop(player)
         elif change.state == State.paused:
             self.stop(player)
         else:
