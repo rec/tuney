@@ -4,6 +4,7 @@ import tempfile
 import uuid
 from collections.abc import Callable
 from pathlib import Path
+from shutil import move
 
 from pydantic import BaseModel
 
@@ -63,7 +64,7 @@ class AudioRecorder(BaseModel):
     def save(self, path: Path) -> None:
         if self.path is None:
             return
-        self.path.replace(path)
+        move(self.path, path)
         self._forget()
 
     def clear(self) -> None:
