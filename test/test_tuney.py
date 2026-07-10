@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import tuney.app.app as app_module
 from tuney.app.app import (
     App,
     append_char_press,
@@ -69,6 +70,33 @@ def test_model_import_does_not_load_pyside() -> None:
     )
 
     assert result.stdout == 'False\n'
+
+
+def test_run_continues_after_autosave_restore_error(monkeypatch) -> None:
+    class FailingAutosave:
+        @staticmethod
+        def restore(_: App) -> None:
+            raise RuntimeError('broken saved state')
+
+    class FakeWindow:
+        error: BaseException | None = None
+
+        def show_restore_error(self, error: BaseException) -> None:
+            self.error = error
+
+        @staticmethod
+        def mainloop() -> None:
+            pass
+
+    app = App(gui=True)
+    window = FakeWindow()
+    app.__dict__['main_window'] = window
+    app.__dict__['_autosave'] = FailingAutosave()
+    monkeypatch.setattr(app_module, 'start', lambda _: None)
+
+    run(app)
+
+    assert isinstance(window.error, RuntimeError)
 
 
 class FakeApp:

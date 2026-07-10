@@ -52,7 +52,7 @@ from ..app.app import (
     restore_text,
     save,
 )
-from ..app.platform_info import log_path
+from ..app.platform_info import log_exception, log_path
 from ..presets import delete_presets, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
@@ -355,6 +355,23 @@ class MainWindow(QMainWindow):
             'Tuney log',
             f'Log file:\n\n{log_path()}',
         )
+
+    def show_restore_error(self, error: BaseException) -> None:
+        path = log_exception(error)
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Icon.Critical)
+        dialog.setWindowTitle('Could not restore saved state')
+        dialog.setTextFormat(Qt.TextFormat.RichText)
+        url = QUrl.fromLocalFile(str(path)).toString()
+        dialog.setText(
+            'Tuney could not restore its saved state and will continue with '
+            'defaults.<br><br>'
+            f'<a href="{url}">Open the log file</a>'
+        )
+        if label := dialog.findChild(QLabel):
+            label.setOpenExternalLinks(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        dialog.exec()
 
     def on_open_config_folder(self, *_: object) -> None:
         path = self.app.config_file or self.app._autosave.path

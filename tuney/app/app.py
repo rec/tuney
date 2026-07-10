@@ -108,7 +108,11 @@ class App(Tuney):
 
 def run(app: App) -> None:
     if app.gui:
-        app._autosave.restore(app)
+        main_window = app.main_window
+        try:
+            app._autosave.restore(app)
+        except Exception as error:
+            main_window.show_restore_error(error)
         start(app)
         app.main_window.mainloop()
     else:
