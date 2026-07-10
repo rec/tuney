@@ -30,6 +30,9 @@ class First(BaseModel, frozen=True):
     a: Annotated[int, Field(gt=0)] = 1
     b: Annotated[str, Hidden] = 'hide'
     c: float
+    f: int = Field(32, gt=0)
+    _private: int = 3
+    removed: str = 'drop'
 
     @property
     def prop(self) -> int:
@@ -57,10 +60,15 @@ class Second(First):
 """
     )
 
-    file_regression.check(simplify_data_class(path), extension='.py.out')
+    file_regression.check(
+        simplify_data_class([path], remove={'removed'}), extension='.py.out'
+    )
 
 
 def test_simplify_tuney(file_regression: FileRegressionFixture) -> None:
     file_regression.check(
-        simplify_data_class(Path('tuney/cfg/tuney.py')), extension='.py.out'
+        simplify_data_class(
+            [Path('tuney/cfg/tuney.py'), Path('tuney/scale/tuning.py')]
+        ),
+        extension='.py.out',
     )

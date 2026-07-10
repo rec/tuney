@@ -1,17 +1,10 @@
-from functools import cached_property
-from typing import Annotated
-from pydantic import BaseModel, Field
-from tuney.cfg.display import Hidden
-
-class Plain:
-    x: int = 1
-
-    def method(self) -> int:
-        return self.x
-
-class First(BaseModel, frozen=True):
+class First:
     a: int = 1
-    c: float = float()
 
-class Second(First):
+    c: float
+
+    f: int = 32
+
+
+class Second:
     e: str = 'keep'

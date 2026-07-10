@@ -1,16 +1,104 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Container, Iterable
 from pathlib import Path
 
 
-def simplify_data_class(path: Path | str) -> str:
-    tree = ast.parse(Path(path).read_text())
-    base_model_classes = _base_model_classes(tree)
-    simplified = _SimplifyDataClasses(base_model_classes).visit(tree)
-    assert isinstance(simplified, ast.Module)
+def simplify_data_class(
+    paths: Iterable[Path | str], remove: Container[str] = ()
+) -> str:
+    classes: list[ast.stmt] = []
+    for path in paths:
+        text = Path(path).read_text()
+        tree = ast.parse(text)
+        base_model_classes = _base_model_classes(tree)
+        comments = _member_comments(text.splitlines())
+        for s in tree.body:
+            if isinstance(s, ast.ClassDef) and s.name in base_model_classes:
+                classes.append(_simplify_class(s, comments, remove))
+
+    simplified = ast.Module(body=classes, type_ignores=[])
     ast.fix_missing_locations(simplified)
-    return ast.unparse(simplified) + '\n'
+    text = _restore_comments(ast.unparse(simplified))
+    return _space_members(_space_classes(text)) + '\n'
+
+
+def _space_classes(text: str) -> str:
+    lines: list[str] = []
+    for line in text.splitlines():
+        if line.startswith('class ') and lines and not lines[-1]:
+            lines.append('')
+        lines.append(line)
+    return '\n'.join(lines)
+
+
+def _space_members(text: str) -> str:
+    lines: list[str] = []
+    previous_member = False
+    pending_comment = False
+    for line in text.splitlines():
+        if pending_comment and not line:
+            continue
+        if _is_member_start(line) and previous_member:
+            lines.append('')
+        lines.append(line)
+        pending_comment = line.strip().startswith('#')
+        previous_member = _is_member_line(line)
+    return '\n'.join(lines)
+
+
+def _is_member_start(line: str) -> bool:
+    stripped = line.strip()
+    return line.startswith('    ') and (
+        stripped.startswith('#') or _is_member_line(line)
+    )
+
+
+def _is_member_line(line: str) -> bool:
+    stripped = line.strip()
+    return line.startswith('    ') and ':' in stripped and not stripped.startswith('#')
+
+
+def _restore_comments(text: str) -> str:
+    lines: list[str] = []
+    for line in text.splitlines():
+        if (comment := _comment(line)) is not None:
+            indent = line[: len(line) - len(line.lstrip())]
+            lines.append(indent + comment)
+        else:
+            lines.append(line)
+    return '\n'.join(lines)
+
+
+def _comment(line: str) -> str | None:
+    try:
+        value = ast.literal_eval(line.strip())
+    except (SyntaxError, ValueError):
+        return None
+    if isinstance(value, str) and value.startswith(_COMMENT_PREFIX):
+        return value[len(_COMMENT_PREFIX) :]
+    return None
+
+
+def _member_comments(lines: list[str]) -> dict[int, list[str]]:
+    comments: dict[int, list[str]] = {}
+    for n, line in enumerate(lines, start=1):
+        if not line[:1].isspace() or ':' not in line:
+            continue
+        member_comments = _preceding_comments(lines, n)
+        if member_comments:
+            comments[n] = member_comments
+    return comments
+
+
+def _preceding_comments(lines: list[str], line_number: int) -> list[str]:
+    comments: list[str] = []
+    index = line_number - 2
+    while index >= 0 and lines[index].lstrip().startswith('#'):
+        comments.append(lines[index].strip())
+        index -= 1
+    return list(reversed(comments))
 
 
 def _base_model_classes(tree: ast.Module) -> set[str]:
@@ -29,9 +117,8 @@ def _base_model_classes(tree: ast.Module) -> set[str]:
 
 
 def _extends_base_model(node: ast.ClassDef, base_model_classes: set[str]) -> bool:
-    return any(
-        _base_name(base) in {*base_model_classes, 'BaseModel'} for base in node.bases
-    )
+    models = {*base_model_classes, 'BaseModel'}
+    return any(_base_name(b) in models for b in node.bases)
 
 
 def _base_name(node: ast.expr) -> str | None:
@@ -44,26 +131,38 @@ def _base_name(node: ast.expr) -> str | None:
     return None
 
 
-class _SimplifyDataClasses(ast.NodeTransformer):
-    def __init__(self, base_model_classes: set[str]) -> None:
-        self.base_model_classes = base_model_classes
+def _simplify_class(
+    node: ast.ClassDef, comments: dict[int, list[str]], remove: Container[str]
+) -> ast.ClassDef:
+    node.bases = []
+    node.keywords = []
+    body: list[ast.stmt] = []
+    for s in node.body:
+        if _remove_statement(s, remove):
+            continue
+        if isinstance(s, ast.AnnAssign):
+            body.extend(_comment_nodes(comments.get(s.lineno, [])))
+        body.append(_simplify_field(s))
+    node.body = body
+    if not node.body:
+        node.body = [ast.Pass()]
+    return node
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
-        if node.name not in self.base_model_classes:
-            return node
-        node.body = [
-            statement for statement in node.body if not _remove_statement(statement)
-        ]
-        node.body = [_simplify_field(statement) for statement in node.body]
-        if not node.body:
-            node.body = [ast.Pass()]
-        return node
+
+def _comment_nodes(comments: list[str]) -> list[ast.Expr]:
+    return [ast.Expr(value=ast.Constant(value=_COMMENT_PREFIX + c)) for c in comments]
 
 
-def _remove_statement(statement: ast.stmt) -> bool:
+def _remove_statement(statement: ast.stmt, remove: Container[str]) -> bool:
     if isinstance(statement, ast.FunctionDef | ast.AsyncFunctionDef):
         return True
-    return isinstance(statement, ast.AnnAssign) and _has_hidden(statement.annotation)
+    return isinstance(statement, ast.AnnAssign) and (
+        _remove_member(statement.target, remove) or _has_hidden(statement.annotation)
+    )
+
+
+def _remove_member(node: ast.expr, remove: Container[str]) -> bool:
+    return isinstance(node, ast.Name) and (node.id.startswith('_') or node.id in remove)
 
 
 def _simplify_field(statement: ast.stmt) -> ast.stmt:
@@ -73,25 +172,23 @@ def _simplify_field(statement: ast.stmt) -> ast.stmt:
     return ast.AnnAssign(
         target=statement.target,
         annotation=annotation,
-        value=(
-            _constructor_value(annotation)
-            if _replace_value(statement.value)
-            else statement.value
-        ),
+        value=_simplify_value(annotation, statement.value),
         simple=statement.simple,
     )
 
 
-def _replace_value(node: ast.expr | None) -> bool:
-    return node is None or (
-        isinstance(node, ast.Call) and _base_name(node.func) == 'Field'
-    )
+def _simplify_value(annotation: ast.expr, node: ast.expr | None) -> ast.expr | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Call) and _base_name(node.func) == 'Field':
+        return node.args[0] if node.args else None
+    if _empty_constructor(node):
+        return None
+    return node
 
 
-def _constructor_value(annotation: ast.expr) -> ast.expr:
-    if isinstance(annotation, ast.Name | ast.Attribute):
-        return ast.Call(func=annotation, args=[], keywords=[])
-    return ast.Constant(value=None)
+def _empty_constructor(node: ast.expr) -> bool:
+    return isinstance(node, ast.Call) and not node.args and not node.keywords
 
 
 def _simplify_annotation(node: ast.expr) -> ast.expr:
@@ -118,3 +215,4 @@ def _hidden_node(node: ast.AST) -> bool:
 
 
 _ANNOTATION_WRAPPERS = {'Annotated', 'SkipJsonSchema', 'Suppress'}
+_COMMENT_PREFIX = '__COMMENT__'

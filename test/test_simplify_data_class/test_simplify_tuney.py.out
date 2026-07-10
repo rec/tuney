@@ -1,37 +1,83 @@
-from __future__ import annotations
-from pathlib import Path
-from typing import Annotated
-import tyro
-from pydantic import BaseModel, Field, field_validator
-from pydantic.json_schema import SkipJsonSchema
-from ..audio.device import Device
-from ..audio.midi import MIDI
-from ..audio.sound import Sound
-from ..mapper.mapper import Mapper
-from ..presets import preset_names
-from ..scale.scale import Scale
-from ..scale.tuning import Tuning
-from ..time.char_press import CharPress
-from ..time.sequencer import Sequencer
-from ..time.text_timings import TextTimings
-from .display import Beginner, General, Hidden, Numeric, Options
-from .tyro_option import tyro_option
-
-class Tuney(BaseModel):
+class Tuney:
     """Turn text into music.
 
     Use positional `TEXT` to play characters as notes, then tune the scale,
     audio, MIDI, and timing from the same config model.
     """
-    mapper: Mapper = Mapper()
-    scale: Scale = Scale()
-    tuning: Tuning = Tuning()
-    device: Device = Device()
-    sound: Sound = Sound()
-    midi: MIDI = MIDI()
-    text_timings: TextTimings = TextTimings()
+    # Convert letters to scale indexes
+    mapper: Mapper
+
+    # Convert scale indexes to note names and note numbers
+    scale: Scale
+
+    # Convert note numbers into frequencies
+    tuning: Tuning
+
+    # Audio output device settings
+    device: Device
+
+    # Synthesizer sound settings
+    sound: Sound
+
+    # Where to send MIDI output
+    midi: MIDI
+
+    # Timings for playing back texts
+    text_timings: TextTimings
+
+    # Maximum silent gap to keep in recordings, in seconds
     max_gap: float = 4.0
+
+    # Time to hover over a widget before showing help, in seconds
     hover_time: float = 1.0
+
+    # Disable synthesized audio output
     silent: bool = False
+
+    # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
+
+    # Named performance preset to load
     preset: str | None = None
+
+
+class Computed:
+    #: If limit is greater than zero, use rounded N-limit just intonation
+    limit: int = 0
+
+    #: Number of divisions of an octave
+    notes_per_octave: int = 12
+
+    #: Frequency change between octaves. For the default "power" pitch_to_frequency
+    #: the change is a ratio, so if it's 2, each octave is twice the frequency of the
+    #: last; for "linear", it's a difference, so if it's 100, each octave would be
+    #: 100Hz greater in frequency than the previous.
+    octave_ratio: float = 2
+
+
+class Tuning:
+    """
+    A generalization of equal temperament, where the default values
+    are the same as classic twelve-tone equal temperament (12-tet) but
+    can be customized.
+    """
+    #: Which tuning source to use
+    type: Type | None = Type.computed
+
+    #: Computed tuning parameters
+    computed: Computed | None
+
+    #: Absolute frequencies, indexed by note number
+    table: Table | None = None
+
+    #: Ratio expressions, relative to root_frequency
+    ratios: Ratios | None = None
+
+    #: Detune everything, in cents of an octave division
+    detune: float = 0
+
+    #: The frequency of the reference `root_note`
+    root_frequency: float = 440
+
+    #: The note number of the reference note
+    root_note: NoteNumber = 69
