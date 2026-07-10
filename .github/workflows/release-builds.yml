@@ -120,7 +120,7 @@ jobs:
 
       - name: Build Windows application
         if: runner.os == 'Windows'
-        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --name Tuney --icon icon.png --version-file windows-version-info.txt --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._win32 --hidden-import pynput._util.win32 --hidden-import pynput._util.win32_vks --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md install/pyinstaller_entrypoint.py
+        run: uv run --with pyinstaller --with pillow pyinstaller --windowed --disable-windowed-traceback --contents-directory . --name Tuney --icon icon.png --version-file windows-version-info.txt --hidden-import mido.backends.rtmidi --hidden-import pynput.keyboard._win32 --hidden-import pynput._util.win32 --hidden-import pynput._util.win32_vks --hidden-import _sounddevice --hidden-import _soundfile --collect-binaries _sounddevice_data --collect-binaries _soundfile_data --add-data tuney:tuney --add-data README.md:README.md install/pyinstaller_entrypoint.py
 
       - name: Ad-hoc sign macOS app
         if: runner.os == 'macOS'

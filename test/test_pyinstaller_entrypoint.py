@@ -82,6 +82,20 @@ def test_macos_release_artifact_archives_one_source() -> None:
     assert 'ditto -c -k macos-package "$ARTIFACT_NAME"' in release_workflow
 
 
+def test_windows_release_uses_flat_onedir_layout_for_pyside() -> None:
+    release_workflow = Path('.github/workflows/release-builds.yml').read_text()
+    command = next(
+        i.strip()
+        for i in release_workflow.splitlines()
+        if i.strip().startswith(
+            'run: uv run --with pyinstaller --with pillow pyinstaller'
+        )
+        and '--version-file windows-version-info.txt' in i
+    )
+
+    assert '--contents-directory .' in command
+
+
 def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr('sys.frozen', True, raising=False)
     monkeypatch.setattr('sys.argv', ['Tuney'])
