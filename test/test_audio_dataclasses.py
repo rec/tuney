@@ -70,7 +70,7 @@ def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
     monkeypatch.setattr(midi_module.mido, 'get_output_names', get_output_names)
 
     assert midi_module._output_names() == []
-    assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().out
+    assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
 
 
 def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
@@ -80,7 +80,7 @@ def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, caps
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
 
     assert midi_module.output_names() == []
-    assert 'Could not list MIDI outputs:' in capsys.readouterr().out
+    assert 'Could not list MIDI outputs:' in capsys.readouterr().err
 
 
 def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
@@ -92,7 +92,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     assert midi_module.output_names() == []
     assert (
         'Could not list MIDI outputs: expected list, got dict'
-        in capsys.readouterr().out
+        in capsys.readouterr().err
     )
 
 

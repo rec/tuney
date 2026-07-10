@@ -7,6 +7,7 @@ from typing import Annotated, Any
 import mido
 from pydantic import BaseModel
 
+from ..app.platform_info import report_error
 from ..cfg.display import Beginner, Display, Numeric, Options
 from ..cfg.tyro_option import tyro_option
 
@@ -33,10 +34,12 @@ def output_names() -> list[str]:
         )
         names = json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        print(f'Could not list MIDI outputs: {error}')
+        report_error(f'Could not list MIDI outputs: {error}')
         return []
     if not isinstance(names, list):
-        print(f'Could not list MIDI outputs: expected list, got {type(names).__name__}')
+        report_error(
+            f'Could not list MIDI outputs: expected list, got {type(names).__name__}'
+        )
         return []
     return [name for name in names if isinstance(name, str)]
 
@@ -91,7 +94,7 @@ def _output_names() -> list[str]:
     try:
         names = mido.get_output_names()
     except (OSError, RuntimeError) as error:
-        print(f'Could not list MIDI outputs: {error}')
+        report_error(f'Could not list MIDI outputs: {error}')
         return []
     return [name for name in names if isinstance(name, str)]
 
