@@ -11,9 +11,9 @@ from .oscillator import Oscillator
 from .polyphony import Polyphony
 
 
-class Sound(BaseModel, frozen=True):
+class Sound(BaseModel):
     # Synthesizer oscillator settings
-    oscillator: Oscillator = Oscillator()
+    oscillator: Oscillator = Field(default_factory=Oscillator)
 
     # Audio output gain
     gain: Annotated[
@@ -33,7 +33,7 @@ class Sound(BaseModel, frozen=True):
         Numeric(),
     ] = 44
 
-    polyphony: Polyphony = Polyphony()
+    polyphony: Polyphony = Field(default_factory=Polyphony)
 
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[

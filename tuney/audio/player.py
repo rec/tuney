@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import cached_property, partial
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..scale import NoteNumber
 from ..scale.scale import Scale
@@ -18,10 +18,10 @@ from .voice import Voice
 
 
 class Player(BaseModel, frozen=True):
-    device: Device = Device()
-    sound: Sound = Sound()
-    scale: Scale = Scale()
-    tuning: Tuning = Tuning()
+    device: Device = Field(default_factory=Device)
+    sound: Sound = Field(default_factory=Sound)
+    scale: Scale = Field(default_factory=Scale)
+    tuning: Tuning = Field(default_factory=Tuning)
 
     @cached_property
     def pressed_notes(self) -> list[NoteNumber]:

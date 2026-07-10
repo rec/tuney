@@ -8,7 +8,7 @@ from ..cfg.display import Display, Numeric
 from ..cfg.tyro_option import tyro_option
 
 
-class Polyphony(BaseModel, frozen=True):
+class Polyphony(BaseModel):
     # Divisor applied to mixed voices to provide polyphonic headroom
     headroom: Annotated[float, tyro_option(), Display(column=1, row=0), Numeric()] = (
         Field(4, gt=0)

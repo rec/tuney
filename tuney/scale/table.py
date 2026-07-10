@@ -12,7 +12,7 @@ from . import Number, evaluate
 type Frequency = float  # Must be non-negative
 
 
-class Table(BaseModel, frozen=True):
+class Table(BaseModel):
     #: Absolute frequency expressions, indexed by note number
     text: Annotated[str, tyro_option(), Display(row=0, width=24)] = ''
 

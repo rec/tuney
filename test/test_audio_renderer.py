@@ -305,7 +305,7 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
     player.start(0)
     first = _EngineStream.instances[0]
 
-    object.__setattr__(player.device, 'device', 'speaker')
+    player.device.device = 'speaker'
     player.device.notify_change()
 
     second = _EngineStream.instances[1]
@@ -315,7 +315,7 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
     assert not player.pressed_notes
     assert not player.engine.mixer.voices
 
-    object.__setattr__(player.device, 'device', 'headphones')
+    player.device.device = 'headphones'
     player.device.notify_change()
 
     assert second.closed

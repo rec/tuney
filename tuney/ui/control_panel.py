@@ -1004,7 +1004,7 @@ def _set_model_value(
         raise ValueError('No tuning ratios configured')
     if parent is not None and getattr(data, name) != getattr(validated, name):
         _checkpoint_undo(parent)
-    object.__setattr__(data, name, validated_value)
+    setattr(data, name, validated_value)
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()

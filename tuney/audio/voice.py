@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..time import Seconds
 from .oscillator import Oscillator
@@ -17,7 +17,7 @@ class Voice(BaseModel, frozen=True):
     fade_in: Seconds = DEFAULT_FADE
     fade_out: Seconds = DEFAULT_FADE
     minimum_note_time: Seconds = 0.5
-    oscillator: Oscillator = Oscillator()
+    oscillator: Oscillator = Field(default_factory=Oscillator)
     sample_rate: int = 48_000
 
     @cached_property

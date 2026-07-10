@@ -1,0 +1,37 @@
+from __future__ import annotations
+from pathlib import Path
+from typing import Annotated
+import tyro
+from pydantic import BaseModel, Field, field_validator
+from pydantic.json_schema import SkipJsonSchema
+from ..audio.device import Device
+from ..audio.midi import MIDI
+from ..audio.sound import Sound
+from ..mapper.mapper import Mapper
+from ..presets import preset_names
+from ..scale.scale import Scale
+from ..scale.tuning import Tuning
+from ..time.char_press import CharPress
+from ..time.sequencer import Sequencer
+from ..time.text_timings import TextTimings
+from .display import Beginner, General, Hidden, Numeric, Options
+from .tyro_option import tyro_option
+
+class Tuney(BaseModel):
+    """Turn text into music.
+
+    Use positional `TEXT` to play characters as notes, then tune the scale,
+    audio, MIDI, and timing from the same config model.
+    """
+    mapper = Field(default_factory=Mapper)
+    scale = Field(default_factory=Scale)
+    tuning = Field(default_factory=Tuning)
+    device = Field(default_factory=Device)
+    sound = Field(default_factory=Sound)
+    midi = Field(default_factory=MIDI)
+    text_timings = Field(default_factory=lambda: TextTimings(scale=3.0))
+    max_gap = 4.0
+    hover_time = 1.0
+    silent = False
+    run_in_background = False
+    preset = None

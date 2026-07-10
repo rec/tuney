@@ -56,9 +56,7 @@ class Autosave(BaseModel, frozen=True):
                     mapper_data = state.mapper.model_dump()
                     mapper_data['alphabet'] = None
                     mapper_data['language'] = language
-                    object.__setattr__(
-                        state, 'mapper', type(state.mapper).model_validate(mapper_data)
-                    )
+                    state.mapper = type(state.mapper).model_validate(mapper_data)
                     clear_cached_values(state)
                 if restore_error is None:
                     return None

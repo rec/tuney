@@ -29,25 +29,25 @@ class Tuney(BaseModel):
     """
 
     # Convert letters to scale indexes
-    mapper: Mapper = Mapper()
+    mapper: Mapper = Field(default_factory=Mapper)
 
     # Convert scale indexes to note names and note numbers
-    scale: Scale = Scale()
+    scale: Scale = Field(default_factory=Scale)
 
     # Convert note numbers into frequencies
-    tuning: Tuning = Tuning()
+    tuning: Tuning = Field(default_factory=Tuning)
 
     # Audio output device settings
     device: Device = Field(default_factory=Device)
 
     # Synthesizer sound settings
-    sound: Sound = Sound()
+    sound: Sound = Field(default_factory=Sound)
 
     # Where to send MIDI output
-    midi: MIDI = MIDI()
+    midi: MIDI = Field(default_factory=MIDI)
 
     # Timings for playing back texts
-    text_timings: TextTimings = TextTimings(scale=3.0)
+    text_timings: TextTimings = Field(default_factory=lambda: TextTimings(scale=3.0))
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
@@ -134,6 +134,6 @@ class Tuney(BaseModel):
 
     def model_post_init(self, __context: object) -> None:
         if self.text_args:
-            object.__setattr__(self, 'text', ' '.join(self.text_args))
+            self.text = ' '.join(self.text_args)
         if self.output:
-            object.__setattr__(self, 'gui', False)
+            self.gui = False

@@ -76,7 +76,7 @@ class Limiter(StrEnum):
                 )
 
 
-class Mapper(BaseModel, frozen=True):
+class Mapper(BaseModel):
     map: tyro.conf.Suppress[Map] = Map.linear
 
     # Characters mapped to note numbers, or the default alphabet if empty

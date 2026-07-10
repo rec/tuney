@@ -387,10 +387,6 @@ default = 44
 ["$defs".Sound.properties.polyphony]
 "$ref" = "#/$defs/Polyphony"
 
-["$defs".Sound.properties.polyphony.default]
-headroom = 4.0
-max_voices = 32
-
 ["$defs".Sound.properties.minimum_note_time]
 default = 0.5
 minimum = 0
@@ -547,31 +543,8 @@ type = "string"
 [properties.scale]
 "$ref" = "#/$defs/Scale"
 
-[properties.scale.default]
-note_names = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-root = "C"
-begin = "A"
-end = "G"
-notes = "<null>"
-intervals = [2, 2, 1, 2, 2, 2, 1]
-accidentals = "whole"
-offset = 0
-
 [properties.tuning]
 "$ref" = "#/$defs/Tuning"
-
-[properties.tuning.default]
-type = "computed"
-table = "<null>"
-ratios = "<null>"
-detune = 0.0
-root_frequency = 440.0
-root_note = 69
-
-[properties.tuning.default.computed]
-limit = 0
-notes_per_octave = 12
-octave_ratio = 2.0
 
 [properties.device]
 "$ref" = "#/$defs/Device"
@@ -582,31 +555,8 @@ octave_ratio = 2.0
 [properties.midi]
 "$ref" = "#/$defs/MIDI"
 
-[properties.midi.default]
-enable = false
-output = "<null>"
-channel = 0
-velocity = 64
-note_offset = 0
-
 [properties.text_timings]
 "$ref" = "#/$defs/TextTimings"
-
-[properties.text_timings.default]
-space = 100.0
-dot = 300.0
-comma = 200.0
-colon = 400.0
-semicolon = 400.0
-blank_line = 1000.0
-overlap = 20.0
-seed = "<null>"
-alpha_only = true
-strip_accents = true
-scale = 3.0
-timings = "<null>"
-
-[properties.text_timings.default.other]
 
 [properties.max_gap]
 default = 4.0

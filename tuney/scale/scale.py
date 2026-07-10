@@ -41,7 +41,7 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     return intervals
 
 
-class Scale(BaseModel, frozen=True):
+class Scale(BaseModel):
     """A generalized musical Scale, where the default is "regular tuning".
 
     The common Western scale has

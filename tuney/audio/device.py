@@ -49,7 +49,7 @@ def dtype_names() -> list[str]:
     return [dtype.value for dtype in DType]
 
 
-class Device(BaseModel, frozen=True):
+class Device(BaseModel):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
         int | None, tyro_option(), Beginner, Display(row=0, width=6), Numeric()

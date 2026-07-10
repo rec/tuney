@@ -22,7 +22,7 @@ class NotePress(BaseModel, frozen=True):
 class Mixer(BaseModel):
     voice_maker: Callable[[NoteNumber], Voice]
     channels: int = 1
-    polyphony: Polyphony = Polyphony()
+    polyphony: Polyphony = Field(default_factory=Polyphony)
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 

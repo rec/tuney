@@ -44,7 +44,7 @@ def output_names() -> list[str]:
     return [name for name in names if isinstance(name, str)]
 
 
-class MIDI(BaseModel, frozen=True):
+class MIDI(BaseModel):
     # Enable MIDI output
     enable: Annotated[
         bool, tyro_option(name='midi-enable'), Beginner, Display(row=0)

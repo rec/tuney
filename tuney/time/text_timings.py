@@ -17,7 +17,7 @@ from .sequencer import Sequencer
 MAX_GENERATED_SEED = 9999
 
 
-class TextTimings(BaseModel, frozen=True):
+class TextTimings(BaseModel):
     # Base duration for a space, in milliseconds
     space: Annotated[
         Milliseconds, tyro_option(), Display(row=0, width=5), Numeric()
@@ -98,7 +98,7 @@ class TextTimings(BaseModel, frozen=True):
     def random(self) -> Random:
         if (seed := self.seed) is None:
             seed = random.randint(0, MAX_GENERATED_SEED)
-            object.__setattr__(self, 'seed', seed)
+            self.seed = seed
         return random.Random(seed)
 
     @cached_property

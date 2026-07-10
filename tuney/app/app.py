@@ -247,7 +247,7 @@ def apply_preset(app: App, name: str) -> None:
     if isinstance(player := app.__dict__.get('player'), Player):
         player.close()
     for field in type(app).model_fields:
-        object.__setattr__(app, field, getattr(validated, field))
+        setattr(app, field, getattr(validated, field))
     clear_cached_values(app)
     if char_presses is not None:
         app.__dict__['char_presses'] = char_presses
@@ -259,9 +259,9 @@ def restore_data(app: App, data: dict[str, object]) -> None:
     if isinstance(player := app.__dict__.get('player'), Player):
         player.close()
     for field in type(app).model_fields:
-        object.__setattr__(app, field, getattr(validated, field))
+        setattr(app, field, getattr(validated, field))
     if 'autosave_file' not in data:
-        object.__setattr__(app, 'autosave_file', autosave_file)
+        app.autosave_file = autosave_file
     clear_cached_values(app)
 
 

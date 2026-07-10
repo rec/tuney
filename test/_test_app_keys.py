@@ -315,7 +315,7 @@ def test_app_activate_and_history() -> None:
 
     app = HistoryApp()
     app.history.checkpoint_undo()
-    object.__setattr__(app.app, 'max_gap', 2.0)
+    app.app.max_gap = 2.0
     app.history.loop_before = 0.5
     app.history.undo()
 
@@ -327,9 +327,9 @@ def test_app_activate_and_history() -> None:
     assert app.app.max_gap == 2.0
     assert app.history.loop_before == 0.5
 
-    object.__setattr__(app.app, 'max_gap', 3.0)
-    object.__setattr__(app.app, 'mapper', Mapper(alphabet='abc', language='tr'))
-    object.__setattr__(app.app, 'text', [CharPress('a', time=0.0)])
+    app.app.max_gap = 3.0
+    app.app.mapper = Mapper(alphabet='abc', language='tr')
+    app.app.text = [CharPress('a', time=0.0)]
     app.app.__dict__.pop('char_presses', None)
     app.history.loop_replay = True
     app.history.loop_before = 0.25
@@ -359,9 +359,9 @@ def test_app_activate_and_history() -> None:
 
     app = HistoryApp()
     app.app.__dict__['main_window'] = app
-    object.__setattr__(app.app, 'gui', True)
-    object.__setattr__(app.app, 'max_gap', 3.0)
-    object.__setattr__(app.app, 'text', [CharPress('a', time=0.0)])
+    app.app.gui = True
+    app.app.max_gap = 3.0
+    app.app.text = [CharPress('a', time=0.0)]
     app.app.__dict__.pop('char_presses', None)
 
     MainWindow.on_clear(app)
@@ -376,7 +376,7 @@ def test_app_activate_and_history() -> None:
     assert app.app.max_gap == 3.0
     assert app.app.display_text == 'a'
 
-    object.__setattr__(app.app, 'max_gap', 4.0)
+    app.app.max_gap = 4.0
     MainWindow.on_clear_text(app)
 
     assert app.app.max_gap == 4.0
@@ -419,7 +419,7 @@ def test_app_activate_and_history() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
-        object.__setattr__(app.app, 'config_file', config_file)
+        app.app.config_file = config_file
         MainWindow.on_open_config_folder(app)
 
         assert [Path(i).resolve() for i in opened] == [config_file.parent.resolve()]
@@ -429,7 +429,7 @@ def test_app_activate_and_history() -> None:
         opened.clear()
         autosave_file = Path(tmp) / 'state' / 'state.toml'
         app = HistoryApp()
-        object.__setattr__(app.app, 'autosave_file', autosave_file)
+        app.app.autosave_file = autosave_file
         MainWindow.on_open_config_folder(app)
 
         assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]
@@ -473,12 +473,8 @@ def test_app_imports_and_exports_tuning() -> None:
         assert Ratios.read_scala_file(path).ratios == [2]
 
     app = HistoryApp()
-    object.__setattr__(
-        app.app,
-        'tuning',
-        app.app.tuning.model_copy(
-            update={'type': Type.computed, 'computed': Computed(octave_ratio=4)}
-        ),
+    app.app.tuning = app.app.tuning.model_copy(
+        update={'type': Type.computed, 'computed': Computed(octave_ratio=4)}
     )
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -510,21 +506,13 @@ def test_app_imports_and_exports_tuning() -> None:
     MainWindow._update_export_tuning_action(app)
     assert app.export_tuning_action.enabled
 
-    object.__setattr__(
-        app.app,
-        'tuning',
-        app.app.tuning.model_copy(
-            update={'type': Type.table, 'table': Table(text='440')}
-        ),
+    app.app.tuning = app.app.tuning.model_copy(
+        update={'type': Type.table, 'table': Table(text='440')}
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
 
-    object.__setattr__(
-        app.app,
-        'tuning',
-        Tuning(type=Type.table, table=None, computed=None, ratios=None),
-    )
+    app.app.tuning = Tuning(type=Type.table, table=None, computed=None, ratios=None)
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
 
@@ -574,7 +562,7 @@ def test_app_saves_and_deletes_presets() -> None:
                     return 'mine', True
 
             main_window_module.QInputDialog = FakeInputDialog
-            object.__setattr__(app.app, 'max_gap', 2.0)
+            app.app.max_gap = 2.0
 
             MainWindow.on_save_preset(app)
 

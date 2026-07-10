@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from . import Seconds
 
 
-class CharPress(BaseModel, frozen=True):
+class CharPress(BaseModel):
     char: str
     is_press: bool = True
     time: Seconds

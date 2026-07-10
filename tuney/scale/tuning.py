@@ -20,7 +20,7 @@ class Type(StrEnum):
     ratios = auto()
 
 
-class Computed(BaseModel, frozen=True):
+class Computed(BaseModel):
     #: If limit is greater than zero, use rounded N-limit just intonation
     limit: Annotated[
         int, tyro_option('-v'), Display(column=1, row=0), Numeric(min=0)
@@ -52,7 +52,7 @@ class Computed(BaseModel, frozen=True):
         )
 
 
-class Tuning(BaseModel, frozen=True, arbitrary_types_allowed=True):
+class Tuning(BaseModel, arbitrary_types_allowed=True):
     """
     A generalization of equal temperament, where the default values
     are the same as classic twelve-tone equal temperament (12-tet) but

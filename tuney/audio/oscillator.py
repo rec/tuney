@@ -33,7 +33,7 @@ class Waveform(NamedEnum):
     triangle = (triangle,)
 
 
-class Oscillator(BaseModel, frozen=True):
+class Oscillator(BaseModel):
     # Waveform used to synthesize notes
     waveform: Annotated[Waveform, tyro_option('-w'), Beginner, Display(row=0)] = (
         Waveform.triangle

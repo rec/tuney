@@ -14,7 +14,7 @@ from ..cfg.tyro_option import tyro_option
 from . import Number, evaluate, uncents
 
 
-class Ratios(BaseModel, frozen=True):
+class Ratios(BaseModel):
     #: Ratio expressions for each step in the scale
     text: Annotated[str, tyro_option(), Display(row=0, width=24)] = ''
 

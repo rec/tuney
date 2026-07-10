@@ -357,7 +357,7 @@ class MainWindow(QMainWindow):
                 data |= {'type': Type.table, 'table': tuning}
         validated = type(self.app.tuning).model_validate(data)
         for field in type(self.app.tuning).model_fields:
-            object.__setattr__(self.app.tuning, field, getattr(validated, field))
+            setattr(self.app.tuning, field, getattr(validated, field))
         self.ui.rebuild_control_panel()
 
     def _update_export_tuning_action(self) -> None:
