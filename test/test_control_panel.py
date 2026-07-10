@@ -546,6 +546,15 @@ def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
     assert [editor.value() for editor in editors] == [2, 2]
 
 
+def test_control_panel_rejects_empty_and_invalid_tunings() -> None:
+    tuning = Tuning()
+
+    with pytest.raises(ValueError, match='No frequency table configured'):
+        control_panel._set_model_value(tuning, 'table', Table())
+    with pytest.raises(ValueError, match='Bad expressions'):
+        control_panel._set_model_value(tuning, 'ratios', Ratios(text='bad'))
+
+
 def test_float_spinboxes_use_config_decimal_separator() -> None:
     from PySide6.QtCore import QLocale
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget

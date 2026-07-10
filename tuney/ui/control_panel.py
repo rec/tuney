@@ -1019,6 +1019,10 @@ def _set_model_value(
     values[name] = value
     validated = type(data).model_validate(values)
     validated_value = getattr(validated, name)
+    if isinstance(validated_value, Table) and not validated_value.values:
+        raise ValueError('No frequency table configured')
+    if isinstance(validated_value, Ratios) and not validated_value.ratios:
+        raise ValueError('No tuning ratios configured')
     if parent is not None and getattr(data, name) != getattr(validated, name):
         _checkpoint_undo(parent)
     object.__setattr__(data, name, validated_value)
