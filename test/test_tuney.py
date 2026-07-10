@@ -492,6 +492,18 @@ def test_restore_data_restores_char_presses_and_model_values() -> None:
     assert app.char_presses == [CharPress('b', time=0)]
 
 
+def test_restore_data_closes_cached_player(monkeypatch) -> None:
+    app = App()
+    player = app.player
+    closed: list[Player] = []
+    monkeypatch.setattr(Player, 'close', lambda self: closed.append(self))
+
+    restore_data(app, {'max_gap': 2.0})
+
+    assert closed == [player]
+    assert 'player' not in app.__dict__
+
+
 def test_autosave_path_uses_xdg_state_home(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))

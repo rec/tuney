@@ -244,6 +244,8 @@ def apply_preset(app: App, name: str) -> None:
     char_presses = app.__dict__.get('char_presses')
     data = merged_data(app.model_dump(), read_preset(name), {'preset': name})
     validated = type(app).model_validate(data)
+    if isinstance(player := app.__dict__.get('player'), Player):
+        player.close()
     for field in type(app).model_fields:
         object.__setattr__(app, field, getattr(validated, field))
     clear_cached_values(app)
@@ -254,6 +256,8 @@ def apply_preset(app: App, name: str) -> None:
 def restore_data(app: App, data: dict[str, object]) -> None:
     autosave_file = app.autosave_file
     validated = type(app).model_validate(data)
+    if isinstance(player := app.__dict__.get('player'), Player):
+        player.close()
     for field in type(app).model_fields:
         object.__setattr__(app, field, getattr(validated, field))
     if 'autosave_file' not in data:
