@@ -375,8 +375,8 @@ class MainWindow(QMainWindow):
         dialog.setTextFormat(Qt.TextFormat.RichText)
         url = QUrl.fromLocalFile(str(path)).toString()
         dialog.setText(
-            'Tuney could not restore its saved state and will continue with '
-            'defaults.<br><br>'
+            'Tuney could not fully restore its saved state and will continue with '
+            'the available settings.<br><br>'
             f'<a href="{url}">Open the log file</a>'
         )
         if label := dialog.findChild(QLabel):
