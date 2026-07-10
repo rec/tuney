@@ -195,7 +195,10 @@ class MainWindow(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        self.app._autosave.save(lambda path: save(self.app, path))
+        try:
+            self.app._autosave.save(lambda path: save(self.app, path))
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.player.close()
         super().closeEvent(event)
 
@@ -227,7 +230,7 @@ class MainWindow(QMainWindow):
             if filename := result[0]:
                 try:
                     load_text_file(self.app, Path(filename))
-                except ValueError as error:
+                except (OSError, ValueError) as error:
                     QMessageBox.critical(self, 'Open Text File', str(error))
         finally:
             self._is_saving = False
@@ -240,7 +243,10 @@ class MainWindow(QMainWindow):
                 self, 'Save', '', 'TOML (*.toml);;JSON (*.json)'
             )
             if filename := result[0]:
-                save(self.app, Path(filename))
+                try:
+                    save(self.app, Path(filename))
+                except (OSError, ValueError) as error:
+                    QMessageBox.critical(self, 'Save', str(error))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -276,7 +282,7 @@ class MainWindow(QMainWindow):
                 try:
                     self.history.checkpoint_undo()
                     self._set_tuning(Ratios.read_scala_file(Path(filename)))
-                except ValueError as error:
+                except (OSError, ValueError) as error:
                     QMessageBox.critical(self, 'Import tuning', str(error))
         finally:
             self._is_saving = False
@@ -292,8 +298,13 @@ class MainWindow(QMainWindow):
                 self, 'Export tuning', '', 'Scala (*.scl);;All files (*)'
             )
             if filename := result[0]:
-                ratios = tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
-                ratios.write_scala_file(Path(filename))
+                try:
+                    ratios = (
+                        tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
+                    )
+                    ratios.write_scala_file(Path(filename))
+                except (OSError, ValueError) as error:
+                    QMessageBox.critical(self, 'Export tuning', str(error))
         finally:
             self._is_saving = False
             self._has_focus = False
