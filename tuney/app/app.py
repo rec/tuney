@@ -108,13 +108,16 @@ class App(Tuney):
 
 def run(app: App) -> None:
     if app.gui:
-        main_window = app.main_window
+        restore_error = None
         try:
-            app._autosave.restore(app)
+            restore_error = app._autosave.restore(app)
         except Exception as error:
-            main_window.show_restore_error(error)
+            restore_error = error
+        main_window = app.main_window
+        if restore_error is not None:
+            main_window.show_restore_error(restore_error)
         start(app)
-        app.main_window.mainloop()
+        main_window.mainloop()
     else:
         run_cli(app)
 

@@ -7,13 +7,17 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
-from ..app.platform_info import app_state_dir, report_error
+from ..app.platform_info import app_state_dir
 from . import read_file
 
 if TYPE_CHECKING:
     from ..app.app import App
 
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'
+
+
+class AutosaveRestoreError(ValueError):
+    pass
 
 
 class Autosave(BaseModel, frozen=True):
@@ -29,7 +33,7 @@ class Autosave(BaseModel, frozen=True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         save(self.path)
 
-    def restore(self, state: App) -> None:
+    def restore(self, state: App) -> Exception | None:
         language = state.mapper.language
         if not (
             state.gui
@@ -37,12 +41,12 @@ class Autosave(BaseModel, frozen=True):
             and self.path.exists()
             and not (state.config_file or state.preset or state.text or state.text_args)
         ):
-            return
+            return None
         try:
             data = read_file(self.path)
         except (OSError, ValueError) as error:
-            report_error(f'Could not restore {self.path}: {error}')
-            return
+            return AutosaveRestoreError(f'Could not restore {self.path}: {error}')
+        restore_error: ValidationError | None = None
         while True:
             try:
                 from ..app.app import clear_cached_values, restore_data
@@ -56,11 +60,18 @@ class Autosave(BaseModel, frozen=True):
                         state, 'mapper', type(state.mapper).model_validate(mapper_data)
                     )
                     clear_cached_values(state)
-                return
+                if restore_error is None:
+                    return None
+                return AutosaveRestoreError(
+                    f'Could not restore fields from {self.path}: {restore_error}'
+                )
             except ValidationError as error:
-                report_error(f'Could not restore fields from {self.path}: {error}')
+                if restore_error is None:
+                    restore_error = error
                 if not any(_delete_data_path(data, e['loc']) for e in error.errors()):
-                    return
+                    return AutosaveRestoreError(
+                        f'Could not restore fields from {self.path}: {error}'
+                    )
 
 
 def _delete_data_path(data: dict[str, object], loc: tuple[object, ...]) -> bool:

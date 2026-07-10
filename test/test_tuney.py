@@ -72,31 +72,46 @@ def test_model_import_does_not_load_pyside() -> None:
     assert result.stdout == 'False\n'
 
 
-def test_run_continues_after_autosave_restore_error(monkeypatch) -> None:
+def test_run_restores_autosave_before_constructing_window_and_continues(
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+
     class FailingAutosave:
         @staticmethod
-        def restore(_: App) -> None:
-            raise RuntimeError('broken saved state')
+        def restore(_: object) -> RuntimeError:
+            calls.append('restore')
+            return RuntimeError('broken saved state')
 
     class FakeWindow:
         error: BaseException | None = None
 
         def show_restore_error(self, error: BaseException) -> None:
+            calls.append('error')
             self.error = error
 
         @staticmethod
         def mainloop() -> None:
-            pass
+            calls.append('mainloop')
 
-    app = App(gui=True)
     window = FakeWindow()
-    app.__dict__['main_window'] = window
-    app.__dict__['_autosave'] = FailingAutosave()
+
+    class FakeApp:
+        gui = True
+        _autosave = FailingAutosave()
+
+        @property
+        def main_window(self) -> FakeWindow:
+            calls.append('window')
+            return window
+
+    app = FakeApp()
     monkeypatch.setattr(app_module, 'start', lambda _: None)
 
     run(app)
 
     assert isinstance(window.error, RuntimeError)
+    assert calls == ['restore', 'window', 'error', 'mainloop']
 
 
 class FakeApp:
@@ -586,40 +601,35 @@ def test_restore_autosave_skips_startup_files() -> None:
         assert app.max_gap == App().max_gap
 
 
-def test_restore_autosave_ignores_invalid_state_file(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_restore_autosave_ignores_invalid_state_file() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         path.write_text('max_gap =')
         app = App(gui=True, autosave_file=path)
 
-        app._autosave.restore(app)
+        error = app._autosave.restore(app)
 
         assert app.max_gap == App().max_gap
-    assert f'Could not restore {path}' in capsys.readouterr().err
+    assert error is not None
+    assert f'Could not restore {path}' in str(error)
 
 
-def test_restore_autosave_defaults_invalid_fields(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_restore_autosave_defaults_invalid_fields() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
         app = App(gui=True, autosave_file=path)
 
-        app._autosave.restore(app)
+        error = app._autosave.restore(app)
 
         assert app.max_gap == App().max_gap
         assert app.hover_time == 2.0
-    error = capsys.readouterr().err
-    assert f'Could not restore fields from {path}' in error
-    assert 'max_gap' in error
+    assert error is not None
+    assert f'Could not restore fields from {path}' in str(error)
+    assert 'max_gap' in str(error)
 
 
-def test_restore_autosave_defaults_invalid_nested_scale(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_restore_autosave_defaults_invalid_nested_scale() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         path.write_text(
@@ -636,13 +646,13 @@ def test_restore_autosave_defaults_invalid_nested_scale(
         )
         app = App(gui=True, autosave_file=path)
 
-        app._autosave.restore(app)
+        error = app._autosave.restore(app)
 
         assert app.hover_time == 2.0
         assert app.scale == App().scale
-    error = capsys.readouterr().err
-    assert f'Could not restore fields from {path}' in error
-    assert 'root must be present in note_names' in error
+    assert error is not None
+    assert f'Could not restore fields from {path}' in str(error)
+    assert 'root must be present in note_names' in str(error)
 
 
 def test_restore_autosave_does_not_override_explicit_text() -> None:
