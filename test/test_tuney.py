@@ -253,7 +253,7 @@ def test_text_char_presses_must_be_sorted() -> None:
 
 
 def test_append_char_press_sorts_late_char_press(
-    capsys: pytest.CaptureFixture[str],
+    capsys,
 ) -> None:
     app = App()
 
@@ -900,7 +900,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 
 
 def test_cli_mode_prints_characters_as_they_play(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
 ) -> None:
     printed: list[tuple[tuple[object, ...], dict[str, object]]] = []
     monkeypatch.setattr(Player, 'on_note', lambda *args: True)
@@ -927,7 +927,7 @@ def test_cli_mode_prints_characters_as_they_play(
 
 
 def test_cli_mode_prints_newline_before_keyboard_interrupt(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
 ) -> None:
     def interrupt(*args: object) -> bool:
         raise KeyboardInterrupt
@@ -952,7 +952,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
     ]
 
 
-def test_cli_mode_requires_text(capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_mode_requires_text(capsys) -> None:
     with pytest.raises(SystemExit) as exc_info:
         run(App())
 
@@ -973,7 +973,7 @@ def test_output_forces_cli_mode() -> None:
     assert not app.gui
 
 
-def test_silent_cli_mode_writes_audio_file(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_silent_cli_mode_writes_audio_file(monkeypatch) -> None:
     path = Path('out.wav')
     rendered: list[
         tuple[Path, list[tuple[int, NotePress]], Callable[[], str] | None]

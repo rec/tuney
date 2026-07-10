@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 import sounddevice
 import soundfile
-from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackAbort, PortAudioError
 
 from tuney.audio.engine import AudioEngine, StopAll, Stream
@@ -74,7 +73,7 @@ def _wav(audio: np.ndarray) -> bytes:
     'scenario',
     ['phase_continuity', 'envelope', 'overlap', 'stop_all'],
 )
-def test_audio_rendering(file_regression: FileRegressionFixture, scenario: str) -> None:
+def test_audio_rendering(file_regression, scenario: str) -> None:
     audio = _render_scenario(scenario)
 
     assert len(audio) == SAMPLE_COUNT
@@ -98,7 +97,7 @@ def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
 
 
 def test_callback_records_status_without_printing(
-    capsys: pytest.CaptureFixture[str],
+    capsys,
 ) -> None:
     engine = AudioEngine(mixer=_renderer().mixer)
 

@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 import tyro
-from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.app.app import App
 from tuney.app.main import main
@@ -73,9 +72,9 @@ REMOVED_SHORT_ALIASES = {
 
 
 def test_tuney_help_output(
-    capsys: pytest.CaptureFixture[str],
-    file_regression: FileRegressionFixture,
-    monkeypatch: pytest.MonkeyPatch,
+    capsys,
+    file_regression,
+    monkeypatch,
 ) -> None:
     monkeypatch.setenv('COLUMNS', '120')
     monkeypatch.setenv('NO_COLOR', '1')
@@ -97,8 +96,8 @@ def _normalize_help_line(line: str) -> str:
 
 
 def test_cli_help_uses_flat_unique_names(
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
+    capsys,
+    monkeypatch,
 ) -> None:
     monkeypatch.setenv('COLUMNS', '120')
     monkeypatch.setenv('NO_COLOR', '1')
@@ -122,8 +121,8 @@ def test_cli_help_uses_flat_unique_names(
 
 
 def test_cli_help_gives_expected_public_options_a_short_alias(
-    capsys: pytest.CaptureFixture[str],
-    monkeypatch: pytest.MonkeyPatch,
+    capsys,
+    monkeypatch,
 ) -> None:
     monkeypatch.setenv('COLUMNS', '120')
     monkeypatch.setenv('NO_COLOR', '1')
@@ -363,7 +362,7 @@ def test_gui_option_opens_gui_mode() -> None:
     assert app.gui
 
 
-def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_loads_preset_defaults(monkeypatch) -> None:
     captured: list[App] = []
 
     def call(app: App) -> None:
@@ -382,7 +381,7 @@ def test_cli_loads_preset_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_cli_skips_startup_files_when_gui_starts_with_modifier(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
 ) -> None:
     captured: list[App] = []
 

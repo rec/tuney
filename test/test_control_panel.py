@@ -5,8 +5,6 @@ from typing import get_origin
 import pytest
 import tomlkit
 from pydantic import BaseModel
-from pytest import MonkeyPatch
-from pytest_regressions.file_regression import FileRegressionFixture
 
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
@@ -22,9 +20,7 @@ from tuney.time.text_timings import TextTimings
 from tuney.ui import control_panel
 
 
-def _check_regression(
-    file_regression: FileRegressionFixture, actual: Mapping[str, object]
-) -> None:
+def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
     file_regression.check(tomlkit.dumps(_regression_data(actual)), extension='.toml')
 
 
@@ -91,7 +87,7 @@ def _qt_app() -> object:
 
 
 def test_set_model_value_validates_and_clears_cached_values(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     mapper = Mapper(alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
     before = mapper.char_to_number['b']
@@ -109,7 +105,7 @@ def test_set_model_value_validates_and_clears_cached_values(
 
 
 def test_set_model_value_converts_dtype_string(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     device = Device()
 
@@ -119,7 +115,7 @@ def test_set_model_value_converts_dtype_string(
 
 
 def test_set_model_value_notifies_device_change(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     device = Device()
     changes: list[bool] = []
@@ -131,7 +127,7 @@ def test_set_model_value_notifies_device_change(
 
 
 def test_scale_and_mapper_changes_schedule_note_grid_rebuild(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     scheduled: list[tuple[int, object, tuple[object, ...]]] = []
 
@@ -154,7 +150,7 @@ def test_scale_and_mapper_changes_schedule_note_grid_rebuild(
 
 
 def test_scale_note_errors_report_bad_notes_without_failing(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     _check_regression(
         file_regression,
@@ -166,7 +162,7 @@ def test_scale_note_errors_report_bad_notes_without_failing(
 
 
 def test_scale_has_note_buttons_rejects_non_positive_note_count(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     _check_regression(
         file_regression,
@@ -180,7 +176,7 @@ def test_scale_has_note_buttons_rejects_non_positive_note_count(
 
 
 def test_parse_entry_value_parses_optional_lists_as_json(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     annotation = TextTimings.model_fields['timings'].annotation
 
@@ -191,7 +187,7 @@ def test_parse_entry_value_parses_optional_lists_as_json(
 
 
 def test_parse_entry_value_keeps_intervals_as_text(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     annotation = Scale.model_fields['intervals'].annotation
 
@@ -206,7 +202,7 @@ def test_parse_entry_value_keeps_intervals_as_text(
 
 
 def test_parse_entry_value_keeps_text_as_text(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     annotation = Tuney.model_fields['text'].annotation
 
@@ -217,7 +213,7 @@ def test_parse_entry_value_keeps_text_as_text(
 
 
 def test_entry_width_uses_compact_numeric_widths(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     _check_regression(
         file_regression,
@@ -242,7 +238,7 @@ def test_display_labels_use_sentence_case() -> None:
 
 
 def test_control_rows_use_compact_model_layouts(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     tuney = Tuney()
 
@@ -285,7 +281,7 @@ def test_control_rows_use_compact_model_layouts(
 
 
 def test_beginner_mode_filters_advanced_controls(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     tuney = Tuney()
 
@@ -303,7 +299,7 @@ def test_beginner_mode_filters_advanced_controls(
     )
 
 
-def test_control_panel_reuses_mode_pages(monkeypatch: MonkeyPatch) -> None:
+def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
     from PySide6.QtWidgets import QWidget
 
     _qt_app()
@@ -369,7 +365,7 @@ def test_control_panel_sections_are_collapsible() -> None:
 
 
 def test_dials_are_limited_to_explicit_analog_controls(
-    file_regression: FileRegressionFixture,
+    file_regression,
 ) -> None:
     _check_regression(
         file_regression,
@@ -437,7 +433,7 @@ def test_numeric_increment_is_absolute_or_percentage() -> None:
     )
 
 
-def test_visible_field_names(file_regression: FileRegressionFixture) -> None:
+def test_visible_field_names(file_regression) -> None:
     tuney = Tuney()
 
     _check_regression(
@@ -640,7 +636,7 @@ def test_tuning_type_selects_visible_control_form() -> None:
 
 
 def test_tuning_type_switches_stacked_form_without_rebuild(
-    monkeypatch: MonkeyPatch,
+    monkeypatch,
 ) -> None:
     from PySide6.QtWidgets import QRadioButton, QStackedWidget, QWidget
 

@@ -1,12 +1,10 @@
 from pathlib import Path
 
-from pytest_regressions.file_regression import FileRegressionFixture
-
 from tuney.config.simplify_data_class import simplify_data_class
 
 
 def test_simplify_data_class_simplifies_pydantic_classes_only(
-    tmp_path: Path, file_regression: FileRegressionFixture
+    tmp_path, file_regression
 ) -> None:
     path = tmp_path / 'models.py'
     path.write_text(
@@ -65,7 +63,7 @@ class Second(First):
     )
 
 
-def test_simplify_tuney(file_regression: FileRegressionFixture) -> None:
+def test_simplify_tuney(file_regression) -> None:
     file_regression.check(
         simplify_data_class(
             [Path('tuney/config/tuney.py'), Path('tuney/scale/tuning.py')]

@@ -1,11 +1,10 @@
 from PySide6.QtCore import Qt
-from pytest import MonkeyPatch
 
 from tuney.ui import startup
 
 
 def test_startup_modifier_detects_shift(
-    monkeypatch: MonkeyPatch,
+    monkeypatch,
 ) -> None:
     monkeypatch.setattr(
         startup.QApplication,
@@ -17,7 +16,7 @@ def test_startup_modifier_detects_shift(
 
 
 def test_startup_modifier_ignores_no_modifier(
-    monkeypatch: MonkeyPatch,
+    monkeypatch,
 ) -> None:
     monkeypatch.setattr(
         startup.QApplication,

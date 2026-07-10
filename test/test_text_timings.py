@@ -1,7 +1,5 @@
 import random
 
-import pytest
-
 from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import MAX_GENERATED_SEED, TextTimings
 
@@ -17,7 +15,7 @@ def test_text_timings():
 
 
 def test_text_timings_generates_and_stores_seed(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
 ) -> None:
     def randint(start: int, end: int) -> int:
         assert start == 0

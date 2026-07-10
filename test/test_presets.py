@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from tuney.app.app import App, apply_preset
@@ -22,7 +20,7 @@ def test_bundled_preset_loads_partial_config() -> None:
     assert read_preset('white-notes') == {'scale': {'notes': 'ABCDEFG'}}
 
 
-def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
+def test_preset_rejects_text_data(monkeypatch, tmp_path) -> None:
     path = tmp_path / 'bad.toml'
     path.write_text('text = "not a preset"\n')
     monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
@@ -32,7 +30,7 @@ def test_preset_rejects_text_data(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_user_presets_can_be_written_deleted_and_restored(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch, tmp_path
 ) -> None:
     monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
 
