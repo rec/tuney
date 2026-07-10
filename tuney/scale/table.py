@@ -5,8 +5,8 @@ from typing import Annotated
 
 from pydantic import BaseModel
 
-from ..cfg.display import Display
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Display
+from ..config.tyro_option import tyro_option
 from . import Number, evaluate
 
 type Frequency = float  # Must be non-negative

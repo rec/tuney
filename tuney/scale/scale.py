@@ -10,8 +10,8 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
-from ..cfg.display import Beginner, Display, Numeric
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, Numeric
+from ..config.tyro_option import tyro_option
 from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
 from .tuning import Tuning

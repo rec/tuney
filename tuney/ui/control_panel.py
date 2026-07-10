@@ -34,7 +34,7 @@ from ..app.app import apply_preset
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..cfg.display import Beginner, Display, General, Hidden, Numeric, Options
+from ..config.display import Beginner, Display, General, Hidden, Numeric, Options
 from ..mapper.mapper import Mapper
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale

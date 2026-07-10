@@ -10,9 +10,9 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, field_validator, model_validator
 
-from ..cfg.display import Beginner, Display, Hidden, Numeric
-from ..cfg.named_enum import NamedEnum
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, Hidden, Numeric
+from ..config.named_enum import NamedEnum
+from ..config.tyro_option import tyro_option
 from .language import alphabet_for_language, known_language
 
 MIDDLE_NOTE: float = 63.5

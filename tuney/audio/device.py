@@ -7,8 +7,8 @@ import tyro
 from pydantic import BaseModel, PrivateAttr
 
 from ..app.platform_info import report_error
-from ..cfg.display import Beginner, Display, Numeric, Options
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, Numeric, Options
+from ..config.tyro_option import tyro_option
 
 
 class _SoundDevice:

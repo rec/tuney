@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from tuney.cfg.simplify_data_class import simplify_data_class
-from tuney.cfg.tuney import Tuney
+from tuney.config.simplify_data_class import simplify_data_class
+from tuney.config.tuney import Tuney
 
 MARKDOWN_PATH = Path('schema.md')
 OMIT = (

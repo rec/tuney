@@ -4,8 +4,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..cfg.display import Beginner, Display, General, Numeric
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, General, Numeric
+from ..config.tyro_option import tyro_option
 from ..scale import NoteNumber
 from .oscillator import Oscillator
 from .polyphony import Polyphony

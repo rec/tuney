@@ -8,8 +8,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field
 
-from ..cfg.display import Display, Numeric
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Display, Numeric
+from ..config.tyro_option import tyro_option
 from . import Milliseconds
 from .char_press import CharPress
 from .sequencer import Sequencer

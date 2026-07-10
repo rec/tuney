@@ -8,8 +8,8 @@ import mido
 from pydantic import BaseModel
 
 from ..app.platform_info import report_error
-from ..cfg.display import Beginner, Display, Numeric, Options
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, Numeric, Options
+from ..config.tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
 INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'

@@ -11,8 +11,8 @@ from pytest_regressions.file_regression import FileRegressionFixture
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.sound import Sound
-from tuney.cfg.display import Numeric
-from tuney.cfg.tuney import Tuney
+from tuney.config.display import Numeric
+from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale

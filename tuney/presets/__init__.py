@@ -6,7 +6,7 @@ from typing import Any
 import tomlkit
 from typing_extensions import TypeIs
 
-from ..cfg.serialize import serialize
+from ..config.serialize import serialize
 
 BUILTIN_PRESETS = Path(__file__).resolve().parent
 USER_PRESETS = Path.home() / '.config' / 'tuney' / 'presets'

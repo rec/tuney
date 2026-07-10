@@ -12,9 +12,9 @@ import tomlkit
 
 from ..audio.mixer import NotePress
 from ..audio.player import Player
-from ..cfg.serialize import serialize
-from ..cfg.text_file import read_text_file
-from ..cfg.tuney import Tuney
+from ..config.serialize import serialize
+from ..config.text_file import read_text_file
+from ..config.tuney import Tuney
 from ..keyboard.listener import KeyboardListener
 from ..presets import is_str_dict, merged_data, read_preset
 from ..presets.autosave import Autosave

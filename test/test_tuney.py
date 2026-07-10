@@ -64,7 +64,7 @@ def test_model_import_does_not_load_pyside() -> None:
         [
             sys.executable,
             '-c',
-            'import sys; import tuney.cfg.tuney; print("PySide6" in sys.modules)',
+            'import sys; import tuney.config.tuney; print("PySide6" in sys.modules)',
         ],
         check=True,
         capture_output=True,

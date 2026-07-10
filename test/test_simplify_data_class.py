@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pytest_regressions.file_regression import FileRegressionFixture
 
-from tuney.cfg.simplify_data_class import simplify_data_class
+from tuney.config.simplify_data_class import simplify_data_class
 
 
 def test_simplify_data_class_simplifies_pydantic_classes_only(
@@ -16,7 +16,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from tuney.cfg.display import Hidden
+from tuney.config.display import Hidden
 
 
 class Plain:
@@ -68,7 +68,7 @@ class Second(First):
 def test_simplify_tuney(file_regression: FileRegressionFixture) -> None:
     file_regression.check(
         simplify_data_class(
-            [Path('tuney/cfg/tuney.py'), Path('tuney/scale/tuning.py')]
+            [Path('tuney/config/tuney.py'), Path('tuney/scale/tuning.py')]
         ),
         extension='.py.out',
     )

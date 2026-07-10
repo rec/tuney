@@ -7,8 +7,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..cfg.display import Beginner, Display, Numeric
-from ..cfg.tyro_option import tyro_option
+from ..config.display import Beginner, Display, Numeric
+from ..config.tyro_option import tyro_option
 from . import NoteNumber, Number, cents
 from .ratios import Ratios
 from .table import Table
