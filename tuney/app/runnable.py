@@ -4,6 +4,8 @@ from collections.abc import Callable
 from threading import Thread
 from typing import Any
 
+from .platform_info import is_frozen, log_exception
+
 
 def start_thread(target: Callable[[], Any], daemon: bool = True) -> Thread:
     """Start a thread and return it"""
@@ -11,8 +13,11 @@ def start_thread(target: Callable[[], Any], daemon: bool = True) -> Thread:
     def catch_target() -> None:
         try:
             target()
-        except Exception:
-            traceback.print_exc()
+        except Exception as error:
+            if is_frozen():
+                log_exception(error)
+            else:
+                traceback.print_exc()
 
     t = Thread(target=catch_target, daemon=daemon)
     t.start()

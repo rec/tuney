@@ -25,6 +25,7 @@ from tuney.app.app import (
     start,
 )
 from tuney.app.platform_info import exit_with_message, report_error
+from tuney.app.runnable import start_thread
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.time.char_press import CharPress
@@ -533,6 +534,20 @@ def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:
         assert error.value.code == 1
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'fatal' in log.read_text()
+
+
+def test_frozen_thread_errors_append_to_app_state_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setattr(sys, 'frozen', True, raising=False)
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+
+        def fail() -> None:
+            raise RuntimeError('thread failed')
+
+        start_thread(fail).join()
+
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        assert 'RuntimeError: thread failed' in log.read_text()
 
 
 def test_autosave_writes_current_model_without_app_state() -> None:

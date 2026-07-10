@@ -69,6 +69,14 @@ def show_frozen_exception(error: BaseException, path: Path) -> None:
 
         ctypes.windll.user32.MessageBoxW(None, message, 'Tuney error', 0x10)
         return
+    try:
+        from PySide6.QtWidgets import QApplication, QMessageBox
+
+        _ = QApplication.instance() or QApplication([])
+        QMessageBox.critical(None, 'Tuney error', message)
+        return
+    except (ImportError, RuntimeError):
+        pass
     print(message, file=sys.stderr)
 
 
