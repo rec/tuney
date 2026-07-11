@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import os
+import platform
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import format_exception
 from types import TracebackType
 from typing import NoReturn
+from urllib.parse import urlencode
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
 APP_STATE_DIR = Path('tuney')
 LOG_FILE = 'tuney.txt'
+ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
+MAX_ISSUE_BODY = 6000
 
 
 def app_config_dir() -> Path:
@@ -68,24 +72,62 @@ def log_exception(error: BaseException) -> Path:
     return append_log(''.join(format_exception(error)).rstrip())
 
 
+def error_issue_url(error: BaseException, path: Path) -> str:
+    lines = str(error).splitlines()
+    title = f'{type(error).__name__}: {lines[0] if lines else "(no message)"}'
+    report = '\n'.join(
+        [
+            '## Error',
+            '',
+            f'{type(error).__name__}: {error}',
+            '',
+            '## Environment',
+            '',
+            f'- Platform: {platform.platform()}',
+            f'- Python: {platform.python_version()}',
+            f'- Frozen app: {is_frozen()}',
+            f'- Log file: {path}',
+            '',
+            '## Traceback',
+            '',
+            '```text',
+            ''.join(format_exception(error)).rstrip(),
+            '```',
+        ]
+    )
+    if len(report) > MAX_ISSUE_BODY:
+        report = f'{report[:MAX_ISSUE_BODY]}\n\n[truncated]'
+    return f'{ISSUE_URL}?{urlencode({"title": title[:120], "body": report})}'
+
+
 def show_frozen_exception(error: BaseException, path: Path) -> None:
     message = (
         f'Tuney encountered an error and wrote details to:\n\n{path}\n\n'
         f'{type(error).__name__}: {error}'
     )
+    try:
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtWidgets import QApplication, QMessageBox
+
+        _ = QApplication.instance() or QApplication([])
+        dialog = QMessageBox()
+        dialog.setIcon(QMessageBox.Icon.Critical)
+        dialog.setWindowTitle('Tuney error')
+        dialog.setText(message)
+        report = dialog.addButton('Report Issue', QMessageBox.ButtonRole.ActionRole)
+        dialog.addButton(QMessageBox.StandardButton.Ok)
+        dialog.exec()
+        if dialog.clickedButton() is report:
+            QDesktopServices.openUrl(QUrl(error_issue_url(error, path)))
+        return
+    except (ImportError, RuntimeError):
+        pass
     if sys.platform == 'win32':
         import ctypes
 
         ctypes.windll.user32.MessageBoxW(None, message, 'Tuney error', 0x10)
         return
-    try:
-        from PySide6.QtWidgets import QApplication, QMessageBox
-
-        _ = QApplication.instance() or QApplication([])
-        QMessageBox.critical(None, 'Tuney error', message)
-        return
-    except (ImportError, RuntimeError):
-        pass
     print(message, file=sys.stderr)
 
 

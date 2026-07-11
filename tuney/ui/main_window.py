@@ -53,7 +53,7 @@ from ..app.app import (
     save,
 )
 from ..app.global_config import GlobalConfig
-from ..app.platform_info import log_exception, log_path
+from ..app.platform_info import error_issue_url, log_exception, log_path
 from ..presets import delete_presets, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
@@ -419,7 +419,10 @@ class MainWindow(QMainWindow):
         if label := dialog.findChild(QLabel):
             label.setOpenExternalLinks(True)
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        report = dialog.addButton('Report Issue', QMessageBox.ButtonRole.ActionRole)
         dialog.exec()
+        if dialog.clickedButton() is report:
+            QDesktopServices.openUrl(QUrl(error_issue_url(error, path)))
 
     def on_open_config_folder(self, *_: object) -> None:
         path = self.app.config_file or self.app._autosave.path

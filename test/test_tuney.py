@@ -5,6 +5,7 @@ import tomllib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -25,7 +26,12 @@ from tuney.app.app import (
     start,
 )
 from tuney.app.global_config import GlobalConfig
-from tuney.app.platform_info import exit_with_message, report_error
+from tuney.app.platform_info import (
+    ISSUE_URL,
+    error_issue_url,
+    exit_with_message,
+    report_error,
+)
 from tuney.app.runnable import start_thread
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
@@ -76,6 +82,24 @@ def test_model_import_does_not_load_pyside() -> None:
     )
 
     assert result.stdout == 'False\n'
+
+
+def test_error_issue_url_includes_traceback() -> None:
+    path = Path('/tmp/tuney.txt')
+    try:
+        raise RuntimeError('broken saved state')
+    except RuntimeError as error:
+        url = error_issue_url(error, path)
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert query['title'] == ['RuntimeError: broken saved state']
+    body = query['body'][0]
+    assert 'RuntimeError: broken saved state' in body
+    assert 'Log file: /tmp/tuney.txt' in body
+    assert 'Traceback (most recent call last)' in body
 
 
 def test_run_restores_autosave_before_constructing_window_and_continues(
