@@ -15,6 +15,7 @@ from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import main_window as main_window_module
+from tuney.ui import startup
 from tuney.ui.history import History, LoopState
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
@@ -247,7 +248,8 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_application_uses_cross_platform_style() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
-        window = MainWindow(App(gui=True, silent=True, autosave_file=path))
+        startup.autosave_file = path
+        window = MainWindow(App(gui=True, silent=True))
         app = window.qt_app
 
         assert app.applicationName() == 'Tuney'
@@ -278,7 +280,8 @@ def test_application_uses_cross_platform_style() -> None:
 def test_loop_state_restoration_does_not_retoggle_checkboxes() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
-        window = MainWindow(App(gui=True, silent=True, autosave_file=path))
+        startup.autosave_file = path
+        window = MainWindow(App(gui=True, silent=True))
         window.history.loop_state = LoopState(
             replay=True,
             randomize_on_each_loop=True,
@@ -429,7 +432,7 @@ def test_app_activate_and_history() -> None:
         opened.clear()
         autosave_file = Path(tmp) / 'state' / 'state.toml'
         app = HistoryApp()
-        app.app.autosave_file = autosave_file
+        startup.autosave_file = autosave_file
         MainWindow.on_open_config_folder(app)
 
         assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 
 def startup_modifier_held() -> bool:
     return _MODIFIER_HELD
@@ -26,6 +28,7 @@ def set_gui(gui: bool) -> None:
     )
 
 
+autosave_file: Path | None = None
 _MODIFIER_HELD = False
 # The reason for this single, evil global is that we don't want to even try to
 # load anything to do with PySide6 if --gui is false: on a headless system

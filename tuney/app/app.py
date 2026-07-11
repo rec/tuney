@@ -23,6 +23,7 @@ from ..recorders.key_recorder import KeyRecorder
 from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
+from ..ui import startup
 from .platform_info import exit_with_message, report_error
 
 if TYPE_CHECKING:
@@ -91,7 +92,7 @@ class App(Tuney):
 
     @cached_property
     def _autosave(self) -> Autosave:
-        return Autosave(file=self.autosave_file)
+        return Autosave(file=startup.autosave_file)
 
     @property
     def _is_listening(self) -> bool:
@@ -251,14 +252,11 @@ def apply_preset(app: App, name: str) -> None:
 
 
 def restore_data(app: App, data: dict[str, object]) -> None:
-    autosave_file = app.autosave_file
     validated = type(app).model_validate(data)
     if isinstance(player := app.__dict__.get('player'), Player):
         player.close()
     for field in type(app).model_fields:
         setattr(app, field, getattr(validated, field))
-    if 'autosave_file' not in data:
-        app.autosave_file = autosave_file
     clear_cached_values(app)
 
 

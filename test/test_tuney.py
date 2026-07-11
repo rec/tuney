@@ -31,7 +31,7 @@ from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui import Action, State, StateChange
+from tuney.ui import Action, State, StateChange, startup
 
 
 @contextmanager
@@ -57,6 +57,10 @@ def on_transport_state(
 
 def recorded_char_press(app: App, c: CharPress) -> CharPress:
     return app.key_recorder.recorded_char_press(c, app.char_presses, app.max_gap)
+
+
+def set_autosave_file(monkeypatch: pytest.MonkeyPatch, path: Path) -> None:
+    monkeypatch.setattr(startup, 'autosave_file', path)
 
 
 def test_model_import_does_not_load_pyside() -> None:
@@ -563,13 +567,13 @@ def test_frozen_thread_errors_append_to_app_state_log(monkeypatch) -> None:
         assert 'RuntimeError: thread failed' in log.read_text()
 
 
-def test_autosave_writes_current_model_without_app_state() -> None:
+def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
         app = App(
             gui=True,
             max_gap=2.0,
-            autosave_file=path,
             text=[
                 CharPress('a', time=0),
                 CharPress('a', False, 100),
@@ -590,20 +594,22 @@ def test_autosave_writes_current_model_without_app_state() -> None:
     assert 'loop_replay' not in data
 
 
-def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> None:
+def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
+    monkeypatch,
+) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
         saved = App(
             gui=True,
             max_gap=2.0,
-            autosave_file=path,
             text=[
                 CharPress('a', time=0),
                 CharPress('a', False, 100),
             ],
         )
         saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, autosave_file=path)
+        app = App(gui=True)
 
         app._autosave.restore(app)
 
@@ -612,15 +618,15 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data() -> 
             CharPress('a', time=0),
             CharPress('a', False, 100),
         ]
-        assert app.autosave_file == path
 
 
-def test_restore_autosave_preserves_explicit_startup_language() -> None:
+def test_restore_autosave_preserves_explicit_startup_language(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
-        saved = App(gui=True, autosave_file=path)
+        set_autosave_file(monkeypatch, path)
+        saved = App(gui=True)
         saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, autosave_file=path, mapper={'language': 'fr'})
+        app = App(gui=True, mapper={'language': 'fr'})
 
         app._autosave.restore(app)
 
@@ -632,9 +638,10 @@ def test_restore_autosave_preserves_explicit_startup_language() -> None:
 def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
-        saved = App(gui=True, max_gap=2.0, autosave_file=path)
+        set_autosave_file(monkeypatch, path)
+        saved = App(gui=True, max_gap=2.0)
         saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, autosave_file=path)
+        app = App(gui=True)
         monkeypatch.setattr(
             'tuney.presets.autosave.startup_modifier_held', lambda: True
         )
@@ -644,11 +651,12 @@ def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> No
         assert app.max_gap == App().max_gap
 
 
-def test_restore_autosave_ignores_invalid_state_file() -> None:
+def test_restore_autosave_ignores_invalid_state_file(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
         path.write_text('max_gap =')
-        app = App(gui=True, autosave_file=path)
+        app = App(gui=True)
 
         error = app._autosave.restore(app)
 
@@ -657,11 +665,12 @@ def test_restore_autosave_ignores_invalid_state_file() -> None:
     assert f'Could not restore {path}' in str(error)
 
 
-def test_restore_autosave_defaults_invalid_fields() -> None:
+def test_restore_autosave_defaults_invalid_fields(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
         path.write_text('max_gap = "bad"\nhover_time = 2.0\n')
-        app = App(gui=True, autosave_file=path)
+        app = App(gui=True)
 
         error = app._autosave.restore(app)
 
@@ -672,9 +681,10 @@ def test_restore_autosave_defaults_invalid_fields() -> None:
     assert 'max_gap' in str(error)
 
 
-def test_restore_autosave_defaults_invalid_nested_scale() -> None:
+def test_restore_autosave_defaults_invalid_nested_scale(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
         path.write_text(
             '\n'.join(
                 [
@@ -687,7 +697,7 @@ def test_restore_autosave_defaults_invalid_nested_scale() -> None:
                 ]
             )
         )
-        app = App(gui=True, autosave_file=path)
+        app = App(gui=True)
 
         error = app._autosave.restore(app)
 
@@ -698,12 +708,13 @@ def test_restore_autosave_defaults_invalid_nested_scale() -> None:
     assert 'root must be present in note_names' in str(error)
 
 
-def test_restore_autosave_does_not_override_explicit_text() -> None:
+def test_restore_autosave_does_not_override_explicit_text(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
-        saved = App(gui=True, autosave_file=path, text=[CharPress('a', time=0)])
+        set_autosave_file(monkeypatch, path)
+        saved = App(gui=True, text=[CharPress('a', time=0)])
         saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, autosave_file=path, text='b')
+        app = App(gui=True, text='b')
 
         app._autosave.restore(app)
 

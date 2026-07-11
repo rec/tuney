@@ -14,7 +14,6 @@ PRESET_SUFFIXES = ['.toml', '.json']
 FORBIDDEN_PRESET_FIELDS = ['text', 'text_file', 'text_args']
 SKIPPED_PRESET_FIELDS = [
     *FORBIDDEN_PRESET_FIELDS,
-    'autosave_file',
     'config_file',
     'preset',
 ]
