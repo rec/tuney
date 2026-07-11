@@ -1,4 +1,4 @@
-description = "Turn text into music.\n\nUse positional `TEXT` to play characters as notes, then tune the scale,\naudio, MIDI, and timing from the same config model."
+description = "Tuney is the top-level data representation for the tuny program\n\nUse positional `TEXT` to play characters as notes, then tune the scale,\naudio, MIDI, and timing from the same config model."
 title = "Tuney"
 type = "object"
 

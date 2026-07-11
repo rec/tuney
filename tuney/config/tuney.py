@@ -21,7 +21,8 @@ from .tyro_option import tyro_option
 
 
 class Tuney(BaseModel):
-    """Turn text into music.
+    """
+    Tuney is the top-level data representation for the tuny program
 
     Use positional `TEXT` to play characters as notes, then tune the scale,
     audio, MIDI, and timing from the same config model.
