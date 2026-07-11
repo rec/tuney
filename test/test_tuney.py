@@ -98,7 +98,7 @@ def test_error_issue_url_includes_traceback() -> None:
     assert query['title'] == ['RuntimeError: broken saved state']
     body = query['body'][0]
     assert 'RuntimeError: broken saved state' in body
-    assert 'Log file: /tmp/tuney.txt' in body
+    assert f'Log file: {path}' in body
     assert 'Traceback (most recent call last)' in body
 
 
