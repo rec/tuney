@@ -92,11 +92,6 @@ class Tuney(BaseModel):
         tyro.conf.Suppress[SkipJsonSchema[Path | None]], Hidden
     ] = Field(default=None, exclude=True)
 
-    # Skip preset, config, and autosave loading during GUI startup
-    skip_startup_files: Annotated[tyro.conf.Suppress[SkipJsonSchema[bool]], Hidden] = (
-        Field(default=False, exclude=True)
-    )
-
     # Text to start the program with
     text: Annotated[
         str | list[CharPress] | None,

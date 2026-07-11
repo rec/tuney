@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ValidationError
 
 from ..app.platform_info import app_state_dir
+from ..ui.startup import startup_modifier_held
 from . import read_file
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ class Autosave(BaseModel, frozen=True):
         language = state.mapper.language
         if not (
             state.gui
-            and not state.skip_startup_files
+            and not startup_modifier_held()
             and self.path.exists()
             and not (state.config_file or state.preset or state.text or state.text_args)
         ):

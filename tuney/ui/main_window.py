@@ -59,7 +59,7 @@ from ..scale.ratios import Ratios
 from ..scale.table import Table
 from ..scale.tuning import Computed, Tuning, Type
 from ..time.char_press import CharPress
-from . import Action, StateChange
+from . import Action, StateChange, startup
 from .help import show_help
 from .history import History
 
@@ -100,6 +100,7 @@ class _AfterDispatcher(QObject):
 
 class MainWindow(QMainWindow):
     def __init__(self, app: App) -> None:
+        startup.set_gui(True)
         if (instance := QApplication.instance()) is None:
             self.qt_app = QApplication(sys.argv[:1])
         else:

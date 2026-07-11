@@ -629,12 +629,15 @@ def test_restore_autosave_preserves_explicit_startup_language() -> None:
         assert 'É' in app.mapper.alphabet
 
 
-def test_restore_autosave_skips_startup_files() -> None:
+def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         saved = App(gui=True, max_gap=2.0, autosave_file=path)
         saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, autosave_file=path, skip_startup_files=True)
+        app = App(gui=True, autosave_file=path)
+        monkeypatch.setattr(
+            'tuney.presets.autosave.startup_modifier_held', lambda: True
+        )
 
         app._autosave.restore(app)
 

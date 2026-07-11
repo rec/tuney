@@ -389,9 +389,8 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
         captured.append(app)
 
     monkeypatch.setattr('tuney.app.main.run', call)
-    monkeypatch.setattr(
-        'tuney.app.main._startup_files_should_be_skipped', lambda _: True
-    )
+    monkeypatch.setattr('tuney.ui.startup.set_gui', lambda _: None)
+    monkeypatch.setattr('tuney.ui.startup.startup_modifier_held', lambda: True)
     monkeypatch.setattr(
         'sys.argv',
         [
@@ -409,12 +408,5 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     assert exc_info.value.code is None
     assert captured[0].preset is None
     assert captured[0].config_file is None
-    assert captured[0].skip_startup_files
     assert captured[0].scale.notes != 'ABCDEFG'
     assert captured[0].text == 'abc'
-
-
-def test_startup_file_skip_check_ignores_cli_mode() -> None:
-    from tuney.app.main import _startup_files_should_be_skipped
-
-    assert not _startup_files_should_be_skipped(App())

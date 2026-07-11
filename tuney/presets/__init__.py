@@ -17,7 +17,6 @@ SKIPPED_PRESET_FIELDS = [
     'autosave_file',
     'config_file',
     'preset',
-    'skip_startup_files',
 ]
 
 

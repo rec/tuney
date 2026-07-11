@@ -52,10 +52,7 @@ class App(Tuney):
     @cached_property
     def player(self) -> Player:
         return Player(
-            device=self.device,
-            sound=self.sound,
-            scale=self.scale,
-            tuning=self.tuning,
+            device=self.device, sound=self.sound, scale=self.scale, tuning=self.tuning
         )
 
     @cached_property
