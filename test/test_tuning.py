@@ -23,6 +23,11 @@ def test_empty_frequency_table_reports_configuration_error() -> None:
         Tuning(type=Type.table, table=Table())(69)
 
 
+def test_empty_ratios_report_configuration_error() -> None:
+    with pytest.raises(ValueError, match='No tuning ratios configured'):
+        Ratios()
+
+
 @pytest.mark.parametrize(
     ('tuning', 'message'),
     [

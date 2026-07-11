@@ -732,6 +732,31 @@ def test_restore_autosave_defaults_invalid_nested_scale(monkeypatch) -> None:
     assert 'root must be present in note_names' in str(error)
 
 
+def test_restore_autosave_defaults_empty_ratios(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
+        path.write_text(
+            '\n'.join(
+                [
+                    '[tuning]',
+                    'type = "ratios"',
+                    '[tuning.ratios]',
+                    'text = ""',
+                ]
+            )
+        )
+        app = App(gui=True)
+
+        error = app._autosave.restore(app)
+
+        assert app.tuning.ratios is None
+        assert app.tuning(69) == 440
+    assert error is not None
+    assert f'Could not restore fields from {path}' in str(error)
+    assert 'No tuning ratios configured' in str(error)
+
+
 def test_restore_autosave_does_not_override_explicit_text(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'

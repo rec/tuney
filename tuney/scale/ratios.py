@@ -5,7 +5,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from ..app.platform_info import report_error
 from ..config.display import Display
@@ -24,10 +24,15 @@ class Ratios(BaseModel):
     #: Description of this ratio scale
     desc: Annotated[str, tyro_option(), Display(row=1, column=1, width=24)] = ''
 
+    @model_validator(mode='after')
+    def _validate_text(self) -> Ratios:
+        if not _split_expression_text(self.text):
+            raise ValueError('No tuning ratios configured')
+        return self
+
     def __call__(self, note_delta: int) -> Number:
         # Returns a frequency ratio
-        if not (ratios := self.ratios):
-            raise ValueError('No tuning ratios configured')
+        ratios = self.ratios
         d, m = divmod(note_delta, len(ratios))
         return ratios[-1] ** d * (ratios[m - 1] if m else 1)
 
