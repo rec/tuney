@@ -1,10 +1,11 @@
+from collections import Counter
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import cache
 from typing import Annotated
 
 import tyro
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, field_validator
 
 from ..app.platform_info import report_error
 from ..config.display import Beginner, Display, Numeric, Options
@@ -28,13 +29,14 @@ def device_names() -> list[str]:
     except (OSError, RuntimeError) as error:
         report_error(f'Could not list audio devices: {error}')
         return []
-    names: list[str] = []
-    for device in devices:
+    output_devices: list[tuple[int, str]] = []
+    for i, device in enumerate(devices):
         name = device.get('name')
         channels = device.get('max_output_channels', 0)
         if isinstance(name, str) and isinstance(channels, int) and channels > 0:
-            names.append(name)
-    return names
+            output_devices.append((i, name))
+    counts = Counter(name for _, name in output_devices)
+    return [f'[{i}] {name}' if counts[name] > 1 else name for i, name in output_devices]
 
 
 class DType(StrEnum):
@@ -80,6 +82,15 @@ class Device(BaseModel):
     prime_output_buffers_using_stream_callback: tyro.conf.Suppress[bool | None] = None
 
     _change_callback: Callable[[], None] | None = PrivateAttr(None)
+
+    @field_validator('device', mode='before')
+    @classmethod
+    def _validate_device(cls, value: object) -> object:
+        if isinstance(value, str) and value.startswith('['):
+            index, _, _ = value[1:].partition(']')
+            if index.isdecimal():
+                return int(index)
+        return value
 
     def set_change_callback(self, callback: Callable[[], None]) -> None:
         assert self.__pydantic_private__ is not None

@@ -93,11 +93,11 @@ class _OptionControl:
         self.values = values
 
     def refresh(self) -> None:
-        value1 = getattr(self.data, self.name)
-        value = '' if value1 is None else str(value1)
+        value = getattr(self.data, self.name)
+        choices = self.values()
         self.menu.clear()
-        self.menu.addItems(['', *self.values()])
-        self.menu.setCurrentText(value)
+        self.menu.addItems(['', *choices])
+        self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
 
 
 class _NumericDoubleSpinBox(QDoubleSpinBox):
@@ -743,8 +743,9 @@ def _add_option_control(
         _control_metadata(type(data), name),
     )
     _configure_editor(menu, width)
-    menu.addItems(['', *values()])
-    menu.setCurrentText('' if value is None else str(value))
+    choices = values()
+    menu.addItems(['', *choices])
+    menu.setCurrentText(_option_text(data, name, value, choices))
     _bind_control(menu, data, name)
 
     def command(raw: str) -> None:
@@ -1134,7 +1135,8 @@ def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
         if isinstance(widget, QRadioButton):
             widget.setChecked(value == binding[2])
         elif isinstance(widget, QComboBox):
-            widget.setCurrentText('' if value is None else str(value))
+            choices = [widget.itemText(i) for i in range(widget.count())]
+            widget.setCurrentText(_option_text(data, name, value, choices))
         elif isinstance(widget, QCheckBox):
             widget.setChecked(bool(value))
         elif isinstance(widget, QDial) and isinstance(value, int | float):
@@ -1146,6 +1148,16 @@ def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
         elif isinstance(widget, QLineEdit):
             widget.setText(_entry_text(data, name, value, annotation))
         del blocker
+
+
+def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) -> str:
+    if value is None:
+        return ''
+    if isinstance(data, Device) and name == 'device' and isinstance(value, int):
+        prefix = f'[{value}] '
+        if choice := next((i for i in choices if i.startswith(prefix)), ''):
+            return choice
+    return str(value)
 
 
 def _entry_width(

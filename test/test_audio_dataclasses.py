@@ -6,6 +6,7 @@ import pytest
 
 from tuney.audio import device as device_module
 from tuney.audio import midi as midi_module
+from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Sound
@@ -39,6 +40,26 @@ def test_output_device_names_lists_unique_output_devices(monkeypatch):
     device_module.device_names.cache_clear()
 
     assert device_module.device_names() == ['speaker', 'headphones']
+
+
+def test_output_device_names_include_index_when_names_are_duplicated(monkeypatch):
+    monkeypatch.setattr(
+        device_module.sounddevice,
+        'query_devices',
+        lambda: [
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'mic', 'max_output_channels': 0},
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'headphones', 'max_output_channels': 2},
+        ],
+    )
+    device_module.device_names.cache_clear()
+
+    assert device_module.device_names() == ['[0] speaker', '[2] speaker', 'headphones']
+
+
+def test_output_device_label_with_index_is_stored_as_index() -> None:
+    assert Device(device='[7] Speakers (Realtek(R) Audio)').device == 7
 
 
 def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:

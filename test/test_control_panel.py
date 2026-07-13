@@ -237,6 +237,18 @@ def test_display_labels_use_sentence_case() -> None:
     assert control_panel._display_label('sample_rate') == 'Sample rate'
 
 
+def test_indexed_output_device_option_displays_choice_text() -> None:
+    assert (
+        control_panel._option_text(
+            Device(device=7),
+            'device',
+            7,
+            ['[3] Speakers', '[7] Speakers'],
+        )
+        == '[7] Speakers'
+    )
+
+
 def test_control_rows_use_compact_model_layouts(
     file_regression,
 ) -> None:
