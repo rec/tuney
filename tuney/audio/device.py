@@ -60,10 +60,19 @@ def _output_channels(device: dict[str, object]) -> int:
 
 
 class DType(StrEnum):
+    # Eight-bit signed int
     int8 = auto()
+
+    # Eight-bit unsigned int
     uint8 = auto()
-    int32 = auto()
+
+    # Sixteen-bit signed int
     int16 = auto()
+
+    # Thirty-two bit signed int
+    int32 = auto()
+
+    # Thirty-two bit signed float
     float32 = auto()
 
 

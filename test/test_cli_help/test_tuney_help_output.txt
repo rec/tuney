@@ -97,7 +97,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Audio output sample rate, in frames per second (default: None)
   -d {None}|INT|STR, --audio-device {None}|INT|STR
         Audio output device name or index (default: None)
-  --dtype {None,int8,uint8,int32,int16,float32}
+  --dtype {None,int8,uint8,int16,int32,float32}
         Sample data type sent to the audio output device (default: None)
 
  sound options

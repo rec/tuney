@@ -28,8 +28,14 @@ def square(out: np.ndarray, duty_cycle: float) -> np.ndarray:
 
 
 class Waveform(NamedEnum):
+    # A pure sine wave, where the duty cycle does nothing
     sine = (sine,)
+
+    # A classic square wave.
     square = (square,)
+
+    # Triangle or sawtooth wave.
+    # Duty cycle 0 = sawtooth, 0.5 = triangle, 1.0 = reverse sawtooth
     triangle = (triangle,)
 
 

@@ -47,7 +47,7 @@ title = "Octave Ratio"
 type = "number"
 
 ["$defs".DType]
-enum = ["int8", "uint8", "int32", "int16", "float32"]
+enum = ["int8", "uint8", "int16", "int32", "float32"]
 title = "DType"
 type = "string"
 

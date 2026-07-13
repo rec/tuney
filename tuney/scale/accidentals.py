@@ -17,8 +17,17 @@ ACCIDENTAL_CANONICAL = {
 
 
 class Accidentals(StrEnum):
+    # No accidentals are allowed
     none = auto()
+
+    # Standard accidentals are allowed, with just # and -
     whole = auto()
+
+    # Extended accidentals are allowed:
+    # + means up one step
+    # # means up two steps
+    # - means down one step
+    # b means down two steps
     half = auto()
 
 

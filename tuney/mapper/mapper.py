@@ -43,8 +43,15 @@ class Map(NamedEnum):
 
 
 class Limiter(StrEnum):
+    # Notes wrap around from the start when they reach the edge
     wrap = auto()
+
+    # Notes reflect from the edge and start moving in the other direction.
+    # The edge note is only played once.
     reflect = auto()
+
+    # Notes reflect from the edge and start moving in the other direction.
+    # The edge note is played twice so that all the notes are equally played
     reflect_repeat = auto()
 
     def __call__(self, note_number: int, range_limit: int, offset: int) -> int:
