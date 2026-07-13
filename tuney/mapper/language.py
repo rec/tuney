@@ -11,6 +11,17 @@ def language_names() -> list[str]:
     return list(_LANGUAGE_TAGS)
 
 
+def language_menu_names() -> list[str]:
+    return [f'{_LANGUAGE_FLAGS[name]} {name}' for name in language_names()]
+
+
+def language_name_from_menu_name(name: str) -> str:
+    for language in language_names():
+        if name == f'{_LANGUAGE_FLAGS[language]} {language}':
+            return language
+    return name
+
+
 def alphabet_for_language(language: str | None, case_sensitive: bool) -> str | None:
     if (tag := _language_tag(language)) is None:
         return None
@@ -94,4 +105,27 @@ _LANGUAGE_TAGS = {
     'Slovak': 'sk',
     'Swedish': 'sv',
     'Turkish': 'tr',
+}
+
+_LANGUAGE_FLAGS = {
+    'Czech': '🇨🇿',
+    'Danish': '🇩🇰',
+    'German': '🇩🇪',
+    'Greek': '🇬🇷',
+    'English': '🇬🇧',
+    'Spanish': '🇪🇸',
+    'Finnish': '🇫🇮',
+    'French': '🇫🇷',
+    'Hungarian': '🇭🇺',
+    'Icelandic': '🇮🇸',
+    'Italian': '🇮🇹',
+    'Dutch': '🇳🇱',
+    'Norwegian': '🇳🇴',
+    'Polish': '🇵🇱',
+    'Portuguese': '🇵🇹',
+    'Romanian': '🇷🇴',
+    'Russian': '🇷🇺',
+    'Slovak': '🇸🇰',
+    'Swedish': '🇸🇪',
+    'Turkish': '🇹🇷',
 }

@@ -38,7 +38,11 @@ from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..config.display import Beginner, Display, General, Hidden, Numeric, Options
-from ..mapper.language import alphabet_for_language_name, language_names
+from ..mapper.language import (
+    alphabet_for_language_name,
+    language_menu_names,
+    language_name_from_menu_name,
+)
 from ..mapper.mapper import Mapper
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
@@ -926,7 +930,7 @@ def _add_alphabet_language_menu(
 ) -> None:
     menu = QComboBox(frame)
     menu.setObjectName('alphabet_language')
-    menu.addItems(['Language...', '(clear)', *language_names()])
+    menu.addItems(['Language...', '(clear)', *language_menu_names()])
     menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
     def command(name: str) -> None:
@@ -935,7 +939,9 @@ def _add_alphabet_language_menu(
         entry.setText(
             ''
             if name == '(clear)'
-            else alphabet_for_language_name(name, data.case_sensitive)
+            else alphabet_for_language_name(
+                language_name_from_menu_name(name), data.case_sensitive
+            )
         )
         update()
         menu.setCurrentIndex(0)

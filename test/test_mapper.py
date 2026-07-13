@@ -1,5 +1,9 @@
 from tuney.audio.sound import Sound
-from tuney.mapper.language import alphabet_for_language_name
+from tuney.mapper.language import (
+    alphabet_for_language_name,
+    language_menu_names,
+    language_name_from_menu_name,
+)
 from tuney.mapper.mapper import Mapper
 
 
@@ -37,6 +41,14 @@ def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:
     assert mapper.alphabet.startswith('ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂ')
     assert 'É' in mapper.alphabet
     assert 'ç' in mapper.alphabet
+
+
+def test_language_menu_names_include_flags() -> None:
+    names = language_menu_names()
+
+    assert '🇫🇷 French' in names
+    assert language_name_from_menu_name('🇫🇷 French') == 'French'
+    assert language_name_from_menu_name('French') == 'French'
 
 
 def test_mapper_uses_default_alphabet() -> None:

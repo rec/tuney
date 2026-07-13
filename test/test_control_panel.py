@@ -586,7 +586,10 @@ def test_control_panel_language_menu_sets_mapper_alphabet() -> None:
     ]
 
     assert len(menus) == 1
-    menus[0].setCurrentText('French')
+    assert menus[0].itemText(0) == 'Language...'
+    assert menus[0].itemText(1) == '(clear)'
+    assert menus[0].itemText(2).startswith('🇨🇿 ')
+    menus[0].setCurrentText('🇫🇷 French')
 
     assert mapper.alphabet is not None
     assert mapper.alphabet.startswith('ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂ')
