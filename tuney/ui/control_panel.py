@@ -10,6 +10,7 @@ from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, QPoint, QRect, QSignalBlocker, QSize, Qt, QTimer
+from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
     QLayout,
     QLayoutItem,
     QLineEdit,
+    QMessageBox,
     QRadioButton,
     QScrollArea,
     QSizePolicy,
@@ -46,6 +48,7 @@ from ..mapper.language import (
 from ..mapper.mapper import Mapper
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
+from ..scale.scala_browser import ScalaTrie, scala_trie
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
@@ -208,6 +211,71 @@ class _CurrentPageStackedWidget(QStackedWidget):
         return super().minimumSizeHint()
 
 
+class _ScalaBrowserEdit(QLineEdit):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.trie = scala_trie()
+        self.index = 0
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        key = event.key()
+        if event.text().isalnum() and len(event.text()) == 1:
+            self._type(event.text().casefold())
+        elif key == Qt.Key.Key_Left:
+            self.index = max(0, self.index - 1)
+        elif key == Qt.Key.Key_Right:
+            self.index = min(len(self.text()), self.index + 1)
+        elif key in {Qt.Key.Key_Up, Qt.Key.Key_Down}:
+            self._cycle(1 if key == Qt.Key.Key_Down else -1)
+        elif key in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
+            _load_scala_browser_tuning(self)
+        else:
+            super().keyPressEvent(event)
+            return
+        self._sync()
+        event.accept()
+
+    def current_prefix(self) -> str:
+        return self.text()[: self.index]
+
+    def selected_ratios(self) -> Ratios | None:
+        return self.trie.first(self.text())
+
+    def _type(self, c: str) -> None:
+        if c not in self.trie.choices(self.current_prefix()):
+            return
+        self._set_current(c)
+        self.index += 1
+
+    def _cycle(self, step: int) -> None:
+        choices = self.trie.choices(self.current_prefix())
+        if not choices:
+            return
+        text = self.text()
+        current = text[self.index] if self.index < len(text) else ''
+        index = choices.index(current) if current in choices else -1
+        self._set_current(choices[(index + step) % len(choices)])
+
+    def _set_current(self, c: str) -> None:
+        text = self.text()
+        suffix = text[self.index + 1 :] if self.index < len(text) else ''
+        candidate = text[: self.index] + c + suffix
+        self.setText(
+            candidate if self._path_exists(candidate) else text[: self.index] + c
+        )
+
+    def _path_exists(self, prefix: str) -> bool:
+        try:
+            self.trie.node(prefix)
+        except KeyError:
+            return False
+        return True
+
+    def _sync(self) -> None:
+        self.setCursorPosition(self.index)
+        self.setToolTip(_scala_browser_tooltip(self.trie, self.text()))
+
+
 class ControlPanel(QScrollArea):
     def __init__(
         self,
@@ -292,6 +360,8 @@ def _add_model_controls(
 
     if controls:
         _add_control_grid(parent, data, controls, option_controls, advanced)
+        if isinstance(data, Scale):
+            _add_scala_browser_control(parent, data)
 
     for name in children:
         child = getattr(data, name)
@@ -813,6 +883,48 @@ def _add_option_control(
     layout.addWidget(menu)
     _parent_layout(parent).addWidget(frame)
     option_controls.append(_OptionControl(menu, data, name, values))
+
+
+def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
+    frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
+    entry = _ScalaBrowserEdit(frame)
+    _configure_editor(entry, 12 * ENTRY_CHAR_WIDTH)
+    entry.setObjectName('scala_browser')
+    entry._sync()
+    layout.addWidget(entry)
+    _parent_layout(parent).addWidget(frame)
+
+
+def _scala_browser_tooltip(trie: ScalaTrie, prefix: str) -> str:
+    if ratios := trie.terminal(prefix):
+        return f'{ratios.name}\n\n{ratios.desc}'
+    return prefix
+
+
+def _load_scala_browser_tuning(entry: _ScalaBrowserEdit) -> None:
+    if (ratios := entry.selected_ratios()) is None:
+        return
+    parent = entry.parentWidget()
+    assert parent is not None
+    if (
+        QMessageBox.question(
+            parent,
+            'Load Scala tuning',
+            f'Load {ratios.name}?',
+        )
+        != QMessageBox.StandardButton.Yes
+    ):
+        return
+    control_panel = _control_panel(parent)
+    app = control_panel.app
+    assert app is not None
+    app.main_window.history.checkpoint_undo()
+    data = app.tuning.model_dump() | {'type': Type.ratios, 'ratios': ratios}
+    validated = type(app.tuning).model_validate(data)
+    for field in type(app.tuning).model_fields:
+        setattr(app.tuning, field, getattr(validated, field))
+    _clear_cached_values(app.tuning)
+    app.main_window.ui.rebuild_control_panel()
 
 
 def _control_panel(parent: Any) -> ControlPanel:

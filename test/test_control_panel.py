@@ -6,6 +6,7 @@ import pytest
 import tomlkit
 from pydantic import BaseModel
 
+from tuney.app.app import App
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
 from tuney.audio.oscillator import Oscillator
@@ -15,6 +16,7 @@ from tuney.config.display import Numeric
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
+from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
@@ -779,3 +781,108 @@ def test_tuning_type_switches_stacked_form_without_rebuild(
 
     assert stack.currentWidget() is panel.findChild(QWidget, 'tuning_form_table')
     assert panel.pages[True] is panel.content.currentWidget()
+
+
+def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QLineEdit, QWidget
+
+    ratios = {
+        'abc': Ratios(text='2', name='abc.scl', desc='first scale'),
+        'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
+    }
+    monkeypatch.setattr(control_panel, 'scala_trie', lambda: build_trie(ratios))
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+
+    _press(browser, Qt.Key.Key_A, 'a')
+    _press(browser, Qt.Key.Key_X, 'x')
+    _press(browser, Qt.Key.Key_B, 'b')
+    _press(browser, Qt.Key.Key_Down)
+
+    assert browser.text() == 'abc'
+    assert browser.cursorPosition() == 2
+    assert browser.toolTip() == 'abc.scl\n\nfirst scale'
+
+    _press(browser, Qt.Key.Key_Down)
+    assert browser.text() == 'abd'
+    assert browser.toolTip() == 'abd.scl\n\nsecond scale'
+
+    _press(browser, Qt.Key.Key_Left)
+    _press(browser, Qt.Key.Key_Up)
+    assert browser.text() == 'abd'
+    assert browser.cursorPosition() == 1
+
+
+def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QLineEdit, QMessageBox, QWidget
+
+    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
+    app = App(gui=True)
+    app.__dict__['main_window'] = _FakeMainWindow()
+    monkeypatch.setattr(
+        control_panel, 'scala_trie', lambda: build_trie({'abc': ratios})
+    )
+    monkeypatch.setattr(
+        control_panel.QMessageBox,
+        'question',
+        lambda *_: QMessageBox.StandardButton.Yes,
+    )
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+
+    _press(browser, Qt.Key.Key_A, 'a')
+    _press(browser, Qt.Key.Key_B, 'b')
+    _press(browser, Qt.Key.Key_C, 'c')
+    _press(browser, Qt.Key.Key_Return)
+
+    assert app.tuning.type == Type.ratios
+    assert app.tuning.ratios == ratios
+    assert app.main_window.history.undo_count == 1
+    assert app.main_window.ui.rebuild_count == 1
+
+
+def _press(widget, key: object, text: str = '') -> None:
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+
+    assert isinstance(key, Qt.Key)
+    widget.keyPressEvent(
+        QKeyEvent(
+            QEvent.Type.KeyPress,
+            key,
+            Qt.KeyboardModifier.NoModifier,
+            text,
+        )
+    )
+
+
+class _FakeHistory:
+    def __init__(self) -> None:
+        self.undo_count = 0
+
+    def checkpoint_undo(self) -> None:
+        self.undo_count += 1
+
+
+class _FakeUi:
+    def __init__(self) -> None:
+        self.rebuild_count = 0
+
+    def rebuild_control_panel(self) -> None:
+        self.rebuild_count += 1
+
+
+class _FakeMainWindow:
+    def __init__(self) -> None:
+        self.history = _FakeHistory()
+        self.ui = _FakeUi()

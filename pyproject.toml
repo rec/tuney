@@ -39,6 +39,12 @@ dev = [
 [tool.uv]
 package = true
 
+[tool.hatch.build.targets.wheel.force-include]
+"scala/scales.toml.zip" = "scala/scales.toml.zip"
+
+[tool.hatch.build.targets.sdist.force-include]
+"scala/scales.toml.zip" = "scala/scales.toml.zip"
+
 [tool.coverage]
 [tool.coverage.run]
 branch = true
