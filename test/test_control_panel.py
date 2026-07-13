@@ -607,6 +607,43 @@ def test_numeric_spinbox_uses_numeric_range() -> None:
     assert editors
 
 
+def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    parent = QWidget()
+    float_spin = control_panel._NumericDoubleSpinBox(parent, Numeric(inc=0.5))
+    float_spin.setRange(-100, 100)
+    float_spin.setValue(10)
+    int_spin = control_panel._NumericSpinBox(parent)
+    int_spin.setRange(-200, 200)
+    int_spin.setSingleStep(10)
+    int_spin.setValue(10)
+
+    monkeypatch.setattr(
+        control_panel.QApplication,
+        'keyboardModifiers',
+        lambda: Qt.KeyboardModifier.ShiftModifier,
+    )
+    float_spin.stepBy(1)
+    int_spin.stepBy(1)
+
+    assert float_spin.value() == 15
+    assert int_spin.value() == 110
+
+    monkeypatch.setattr(
+        control_panel.QApplication,
+        'keyboardModifiers',
+        lambda: Qt.KeyboardModifier.AltModifier,
+    )
+    float_spin.stepBy(-1)
+    int_spin.stepBy(-1)
+
+    assert float_spin.value() == pytest.approx(14.95)
+    assert int_spin.value() == 109
+
+
 def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
     from PySide6.QtWidgets import QSpinBox, QWidget
 

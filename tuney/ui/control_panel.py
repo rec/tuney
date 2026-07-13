@@ -12,6 +12,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, QPoint, QRect, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QBoxLayout,
     QCheckBox,
     QComboBox,
@@ -118,14 +119,29 @@ class _NumericDoubleSpinBox(QDoubleSpinBox):
         self.numeric = numeric
 
     def stepBy(self, steps: int) -> None:
+        modified_steps = _modified_steps(steps)
         if not self.numeric.log:
-            super().stepBy(steps)
+            self.setValue(self.numeric.step(self.value(), modified_steps))
             return
         value = self.value()
         if value <= 0:
             assert self.numeric.min is not None
             value = self.numeric.min
-        self.setValue(self.numeric.step(value, steps))
+        self.setValue(self.numeric.step(value, modified_steps))
+
+
+class _NumericSpinBox(QSpinBox):
+    def stepBy(self, steps: int) -> None:
+        self.setValue(round(self.value() + self.singleStep() * _modified_steps(steps)))
+
+
+def _modified_steps(steps: int) -> float:
+    modifiers = QApplication.keyboardModifiers()
+    if modifiers & Qt.KeyboardModifier.AltModifier:
+        return steps / 10
+    if modifiers & Qt.KeyboardModifier.ShiftModifier:
+        return steps * 10
+    return steps
 
 
 class _FlowLayout(QLayout):
@@ -1072,7 +1088,7 @@ def _add_spin_control(
 
     if _is_int_annotation(annotation):
         assert isinstance(value, int)
-        spin = QSpinBox(frame)
+        spin = _NumericSpinBox(frame)
         spin.setLocale(NUMERIC_LOCALE)
         minimum = math.ceil(numeric.min) if numeric.min is not None else SPIN_MINIMUM
         maximum = math.floor(numeric.max) if numeric.max is not None else SPIN_MAXIMUM

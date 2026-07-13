@@ -76,7 +76,7 @@ class Numeric(_Base, frozen=True):
     def increment(self) -> float:
         return 0.1 if self.inc is None else self.inc
 
-    def step(self, value: float, steps: int) -> float:
+    def step(self, value: float, steps: float) -> float:
         if not self.log:
             return value + steps * self.increment
         assert self.min is not None
