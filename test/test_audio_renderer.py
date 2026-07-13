@@ -9,6 +9,8 @@ import sounddevice
 import soundfile
 from sounddevice import CallbackAbort, PortAudioError
 
+from tuney.audio import device as device_module
+from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
@@ -366,6 +368,23 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
     assert second.closed
     assert _EngineStream.instances[2].active
     assert _EngineStream.instances[2].options['device'] == 'headphones'
+
+
+def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(
+        device_module.sounddevice,
+        'query_devices',
+        lambda: [
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'speaker', 'max_output_channels': 2},
+        ],
+    )
+
+    Player(device=Device(device='speaker')).start(0)
+
+    assert _EngineStream.instances[0].options['device'] == 0
 
 
 def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:

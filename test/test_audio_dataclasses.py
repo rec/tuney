@@ -62,6 +62,20 @@ def test_output_device_label_with_index_is_stored_as_index() -> None:
     assert Device(device='[7] Speakers (Realtek(R) Audio)').device == 7
 
 
+def test_output_device_resolves_duplicate_name_to_index(monkeypatch) -> None:
+    monkeypatch.setattr(
+        device_module.sounddevice,
+        'query_devices',
+        lambda: [
+            {'name': 'speaker', 'max_output_channels': 2},
+            {'name': 'mic', 'max_output_channels': 0},
+            {'name': 'speaker', 'max_output_channels': 2},
+        ],
+    )
+
+    assert device_module.output_device('speaker') == 0
+
+
 def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
     devices = [[{'name': 'first', 'max_output_channels': 2}]]
     monkeypatch.setattr(device_module.sounddevice, 'query_devices', lambda: devices[-1])

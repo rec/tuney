@@ -10,7 +10,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..scale import NoteNumber
-from .device import Device
+from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter
@@ -65,6 +65,7 @@ class AudioEngine(BaseModel):
 
         kwargs = self.device.model_dump()
         kwargs['samplerate'] = kwargs.pop('sample_rate')
+        kwargs['device'] = output_device(kwargs['device'])
         try:
             return sd.OutputStream(callback=self.callback, **kwargs)
         except sd.PortAudioError as error:

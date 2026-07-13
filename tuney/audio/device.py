@@ -39,6 +39,26 @@ def device_names() -> list[str]:
     return [f'[{i}] {name}' if counts[name] > 1 else name for i, name in output_devices]
 
 
+def output_device(device: int | str | None) -> int | str | None:
+    if not isinstance(device, str):
+        return device
+    try:
+        devices = sounddevice.query_devices()
+    except (OSError, RuntimeError):
+        return device
+    matches = [
+        i
+        for i, item in enumerate(devices)
+        if item.get('name') == device and _output_channels(item) > 0
+    ]
+    return matches[0] if len(matches) > 1 else device
+
+
+def _output_channels(device: dict[str, object]) -> int:
+    channels = device.get('max_output_channels', 0)
+    return channels if isinstance(channels, int) else 0
+
+
 class DType(StrEnum):
     int8 = auto()
     uint8 = auto()
