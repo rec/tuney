@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
-from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
+from PySide6.QtCore import QLocale, QPoint, QRect, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLayout,
+    QLayoutItem,
     QLineEdit,
     QRadioButton,
     QScrollArea,
@@ -60,7 +62,6 @@ INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QLineEdit, str] = (
     WeakKeyDictionary()
 )
 NUMERIC_LOCALE = QLocale.c()
-GENERAL_COLUMNS = 4
 LABEL_PADDING = 8
 MIN_EDITOR_WIDTH = 72
 MIN_TEXT_EDITOR_WIDTH = 160
@@ -117,6 +118,89 @@ class _NumericDoubleSpinBox(QDoubleSpinBox):
             assert self.numeric.min is not None
             value = self.numeric.min
         self.setValue(self.numeric.step(value, steps))
+
+
+class _FlowLayout(QLayout):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.items: list[QLayoutItem] = []
+        self.setSpacing(6)
+
+    def addItem(self, item: QLayoutItem) -> None:
+        self.items.append(item)
+
+    def count(self) -> int:
+        return len(self.items)
+
+    def itemAt(self, index: int) -> QLayoutItem | None:
+        return self.items[index] if 0 <= index < len(self.items) else None
+
+    def takeAt(self, index: int) -> QLayoutItem | None:
+        if 0 <= index < len(self.items):
+            return self.items.pop(index)
+        return None
+
+    def expandingDirections(self) -> Qt.Orientation:
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        return self._layout(QRect(0, 0, width, 0), test_only=True)
+
+    def setGeometry(self, rect: QRect) -> None:
+        super().setGeometry(rect)
+        self._layout(rect, test_only=False)
+
+    def sizeHint(self) -> QSize:
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:
+        size = QSize()
+        for item in self.items:
+            size = size.expandedTo(item.minimumSize())
+        margins = self.contentsMargins()
+        size += QSize(
+            margins.left() + margins.right(),
+            margins.top() + margins.bottom(),
+        )
+        return size
+
+    def _layout(self, rect: QRect, test_only: bool) -> int:
+        margins = self.contentsMargins()
+        effective = rect.adjusted(
+            margins.left(), margins.top(), -margins.right(), -margins.bottom()
+        )
+        x = effective.x()
+        y = effective.y()
+        line_height = 0
+        spacing = self.spacing()
+        for item in self.items:
+            hint = item.sizeHint()
+            next_x = x + hint.width() + spacing
+            if x > effective.x() and next_x - spacing > effective.right():
+                x = effective.x()
+                y += line_height + spacing
+                next_x = x + hint.width() + spacing
+                line_height = 0
+            if not test_only:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x = next_x
+            line_height = max(line_height, hint.height())
+        return y + line_height - rect.y() + margins.bottom()
+
+
+class _CurrentPageStackedWidget(QStackedWidget):
+    def sizeHint(self) -> QSize:
+        if current := self.currentWidget():
+            return current.sizeHint()
+        return super().sizeHint()
+
+    def minimumSizeHint(self) -> QSize:
+        if current := self.currentWidget():
+            return current.minimumSizeHint()
+        return super().minimumSizeHint()
 
 
 class ControlPanel(QScrollArea):
@@ -228,7 +312,7 @@ def _add_tuning_controls(
     ]
     _add_control_grid(parent, data, controls, option_controls, advanced)
 
-    stack = QStackedWidget(parent)
+    stack = _CurrentPageStackedWidget(parent)
     stack.setObjectName('tuning_form_stack')
     for tuning_type in Type:
         page = QWidget(stack)
@@ -377,26 +461,7 @@ def _add_control_group_grid(
     controls: list[tuple[BaseModel, str]],
     option_controls: list[_OptionControl],
 ) -> None:
-    frame = QWidget(parent)
-    layout = QVBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(3)
-    for row_controls in _control_groups(controls, GENERAL_COLUMNS):
-        row_frame = QWidget(frame)
-        row_layout = QHBoxLayout(row_frame)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(6)
-        for data, name in row_controls:
-            _add_control_cell(row_frame, data, name, option_controls)
-        row_layout.addStretch()
-        layout.addWidget(row_frame)
-    _parent_layout(parent).addWidget(frame)
-
-
-def _control_groups(
-    controls: list[tuple[BaseModel, str]], size: int
-) -> list[list[tuple[BaseModel, str]]]:
-    return [controls[i : i + size] for i in range(0, len(controls), size)]
+    _add_control_flow(parent, controls, option_controls)
 
 
 def _add_control_grid(
@@ -406,20 +471,19 @@ def _add_control_grid(
     option_controls: list[_OptionControl],
     advanced: bool,
 ) -> None:
-    frame = QWidget(parent)
-    layout = QVBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(3)
+    _add_control_flow(parent, _control_refs(data, fields, advanced), option_controls)
 
-    for row_fields in _control_ref_rows(_control_refs(data, fields, advanced)):
-        row_frame = QWidget(frame)
-        row_layout = QHBoxLayout(row_frame)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(6)
-        for control_data, name in row_fields:
-            _add_control_cell(row_frame, control_data, name, option_controls)
-        row_layout.addStretch()
-        layout.addWidget(row_frame)
+
+def _add_control_flow(
+    parent: QWidget,
+    controls: list[tuple[BaseModel, str]],
+    option_controls: list[_OptionControl],
+) -> None:
+    frame = QWidget(parent)
+    layout = _FlowLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    for control_data, name in controls:
+        _add_control_cell(frame, control_data, name, option_controls)
     _parent_layout(parent).addWidget(frame)
 
 
@@ -437,85 +501,6 @@ def _control_refs(
     return controls
 
 
-def _control_ref_rows(
-    controls: list[tuple[BaseModel, str]],
-) -> list[list[tuple[BaseModel, str]]]:
-    if not any(
-        _control_metadata(type(data), name).row is not None for data, name in controls
-    ):
-        return _control_groups(controls, max(1, math.ceil(len(controls) ** 0.5)))
-
-    rows: list[list[tuple[BaseModel, str]]] = []
-    row_numbers = sorted(
-        {
-            row
-            for data, name in controls
-            if (row := _control_metadata(type(data), name).row) is not None
-        }
-    )
-    for row_number in row_numbers:
-        row = [
-            (data, name)
-            for data, name in controls
-            if _control_metadata(type(data), name).row == row_number
-        ]
-        rows.append(
-            sorted(
-                row,
-                key=lambda control: _control_metadata(
-                    type(control[0]), control[1]
-                ).column,
-            )
-        )
-
-    extra_fields = [
-        control
-        for control in controls
-        if _control_metadata(type(control[0]), control[1]).row is None
-    ]
-    rows.extend(
-        _control_groups(extra_fields, max(1, math.ceil(len(extra_fields) ** 0.5)))
-    )
-    return rows
-
-
-def _control_rows(data: BaseModel, fields: list[str]) -> list[list[str]]:
-    if not any(_control_metadata(type(data), name).row is not None for name in fields):
-        return _grid_rows(fields)
-
-    rows: list[list[str]] = []
-    row_numbers = sorted(
-        {
-            row
-            for name in fields
-            if (row := _control_metadata(type(data), name).row) is not None
-        }
-    )
-    for row_number in row_numbers:
-        row = [
-            name
-            for name in fields
-            if _control_metadata(type(data), name).row == row_number
-        ]
-        rows.append(
-            sorted(
-                row,
-                key=lambda name: _control_metadata(type(data), name).column,
-            )
-        )
-
-    extra_fields = [
-        name for name in fields if _control_metadata(type(data), name).row is None
-    ]
-    rows.extend(_grid_rows(extra_fields))
-    return rows
-
-
-def _grid_rows(fields: list[str]) -> list[list[str]]:
-    columns = max(1, math.ceil(len(fields) ** 0.5))
-    return [fields[i : i + columns] for i in range(0, len(fields), columns)]
-
-
 def _add_control_cell(
     parent: QWidget,
     data: BaseModel,
@@ -528,14 +513,11 @@ def _add_control_cell(
     layout.setSpacing(0)
     if _is_wide_field(data, name):
         cell.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        layout = parent.layout()
-        assert isinstance(layout, QHBoxLayout)
-        layout.addWidget(cell, stretch=1)
     else:
         cell.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        layout = parent.layout()
-        assert isinstance(layout, QHBoxLayout)
-        layout.addWidget(cell)
+    parent_layout = parent.layout()
+    assert parent_layout is not None
+    parent_layout.addWidget(cell)
 
     _add_control(cell, data, name, option_controls)
     _add_field_tooltips(cell, type(data), name)
@@ -1076,6 +1058,7 @@ def _set_tuning_type_form(parent: QWidget, data: Tuning) -> None:
 
 def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
     stack.setCurrentIndex(list(Type).index(_active_tuning_type(data)))
+    stack.updateGeometry()
 
 
 def _set_model_value(

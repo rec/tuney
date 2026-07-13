@@ -42,14 +42,6 @@ def _regression_value(value: object) -> object:
     return str(value)
 
 
-def _control_fields(data: BaseModel) -> list[str]:
-    return [
-        name
-        for name in control_panel._visible_field_names(data)
-        if not isinstance(getattr(data, name), BaseModel)
-    ]
-
-
 def _entry_width(cls: type[BaseModel], name: str) -> int | None:
     return control_panel._entry_width(
         name,
@@ -249,47 +241,57 @@ def test_indexed_output_device_option_displays_choice_text() -> None:
     )
 
 
-def test_control_rows_use_compact_model_layouts(
-    file_regression,
-) -> None:
-    tuney = Tuney()
+def test_control_flow_layout_wraps_to_available_width() -> None:
+    from PySide6.QtCore import QRect
+    from PySide6.QtWidgets import QLabel, QWidget
 
-    _check_regression(
-        file_regression,
-        {
-            'tuney': control_panel._control_rows(tuney, _control_fields(tuney)),
-            'sound': control_panel._control_rows(
-                tuney.sound, _control_fields(tuney.sound)
-            ),
-            'polyphony': control_panel._control_rows(
-                tuney.sound.polyphony, _control_fields(tuney.sound.polyphony)
-            ),
-            'device': control_panel._control_rows(
-                tuney.device, _control_fields(tuney.device)
-            ),
-            'mapper': control_panel._control_rows(
-                tuney.mapper, _control_fields(tuney.mapper)
-            ),
-            'oscillator': control_panel._control_rows(
-                tuney.sound.oscillator, _control_fields(tuney.sound.oscillator)
-            ),
-            'scale': control_panel._control_rows(
-                tuney.scale, _control_fields(tuney.scale)
-            ),
-            'tuning': control_panel._control_rows(
-                tuney.tuning, control_panel._visible_control_names(tuney.tuning)
-            ),
-            'computed': control_panel._control_rows(
-                tuney.tuning.computed, _control_fields(tuney.tuning.computed)
-            ),
-            'midi': control_panel._control_rows(
-                tuney.midi, _control_fields(tuney.midi)
-            ),
-            'text_timings': control_panel._control_rows(
-                tuney.text_timings, _control_fields(tuney.text_timings)
-            ),
-        },
-    )
+    _qt_app()
+    parent = QWidget()
+    layout = control_panel._FlowLayout(parent)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(6)
+    labels = [QLabel(str(i), parent) for i in range(3)]
+    for label in labels:
+        label.setFixedSize(40, 10)
+        layout.addWidget(label)
+
+    layout.setGeometry(QRect(0, 0, 200, 100))
+
+    assert [(i.geometry().x(), i.geometry().y()) for i in labels] == [
+        (0, 0),
+        (46, 0),
+        (92, 0),
+    ]
+
+    layout.setGeometry(QRect(0, 0, 90, 100))
+
+    assert [(i.geometry().x(), i.geometry().y()) for i in labels] == [
+        (0, 0),
+        (46, 0),
+        (0, 16),
+    ]
+
+
+def test_tuning_stack_sizes_to_current_form() -> None:
+    from PySide6.QtWidgets import QLabel, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    stack = control_panel._CurrentPageStackedWidget(parent)
+    small = QLabel('small', stack)
+    small.setFixedSize(40, 10)
+    large = QLabel('large', stack)
+    large.setFixedSize(40, 80)
+    stack.addWidget(small)
+    stack.addWidget(large)
+
+    stack.setCurrentWidget(small)
+
+    assert stack.sizeHint().height() == small.sizeHint().height()
+
+    stack.setCurrentWidget(large)
+
+    assert stack.sizeHint().height() == large.sizeHint().height()
 
 
 def test_beginner_mode_filters_advanced_controls(
