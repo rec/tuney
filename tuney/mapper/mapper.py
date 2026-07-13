@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from enum import StrEnum, auto
 from functools import cached_property
 from math import floor
@@ -8,7 +7,7 @@ from string import ascii_lowercase, ascii_uppercase
 from typing import Annotated
 
 import tyro
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 from ..config.display import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
@@ -112,24 +111,6 @@ class Mapper(BaseModel):
     limiter: Annotated[Limiter, tyro_option('-L'), Display(column=3, row=1)] = (
         Limiter.wrap
     )
-
-    @model_validator(mode='before')
-    @classmethod
-    def _fill_default_alphabet(cls, data: object) -> object:
-        if not isinstance(data, Mapping):
-            return data
-        values: dict[str, object] = {str(k): v for k, v in data.items()}
-        case_sensitive = values.get('case_sensitive', True)
-        if not isinstance(case_sensitive, bool):
-            return data
-        generated_alphabets = {DEFAULT_ALPHABET, ascii_lowercase}
-        if (
-            values.get('alphabet') is not None
-            and values['alphabet'] not in generated_alphabets
-        ):
-            return data
-        alphabet = DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
-        return values | {'alphabet': alphabet}
 
     @cached_property
     def alphabet_(self) -> str:

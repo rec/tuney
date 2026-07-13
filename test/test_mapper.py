@@ -1,5 +1,3 @@
-from string import ascii_lowercase, ascii_uppercase
-
 from tuney.audio.sound import Sound
 from tuney.mapper.language import alphabet_for_language_name
 from tuney.mapper.mapper import Mapper
@@ -42,7 +40,8 @@ def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:
 
 
 def test_mapper_uses_default_alphabet() -> None:
-    assert Mapper().alphabet == ascii_uppercase + ascii_lowercase
+    assert Mapper().alphabet is None
+    assert Mapper().alphabet_ == 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
 
 def test_language_alphabet_respects_case_sensitive() -> None:
@@ -54,13 +53,14 @@ def test_language_alphabet_respects_case_sensitive() -> None:
     assert mapper.alphabet_ == 'abcçdefgğhıijklmnoöprsştuüvyz'
 
 
-def test_mapper_regenerates_default_alphabet_when_case_sensitivity_changes() -> None:
+def test_mapper_uses_lowercase_default_when_case_sensitive_is_false() -> None:
     data = Mapper().model_dump()
     data['case_sensitive'] = False
 
     mapper = Mapper.model_validate(data)
 
-    assert mapper.alphabet == ascii_lowercase
+    assert mapper.alphabet is None
+    assert mapper.alphabet_ == 'abcdefghijklmnopqrstuvwxyz'
     assert mapper('a') == Mapper(case_sensitive=False)('a')
 
 

@@ -1,7 +1,6 @@
 {
   "mapper": {
     "map": "linear",
-    "alphabet": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
     "length": 0,
     "case_sensitive": true,
     "invert": false,
