@@ -5,6 +5,7 @@ import re
 import sys
 from pathlib import Path
 
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QPushButton, QTextBrowser, QVBoxLayout, QWidget
 
 HELP_TITLE = 'Tuney Help'
@@ -13,8 +14,13 @@ LINK_RE = re.compile(r'\[([^]]+)]\(([^)]+)\)')
 
 
 def show_help(parent: QWidget) -> None:
+    _help_dialog(parent).exec()
+
+
+def _help_dialog(parent: QWidget) -> QDialog:
     dialog = QDialog(parent)
     dialog.setWindowTitle(HELP_TITLE)
+    QShortcut(QKeySequence.StandardKey.Close, dialog).activated.connect(dialog.close)
 
     text = QTextBrowser(dialog)
     text.setHtml(markdown_to_html(read_help_markdown()))
@@ -28,7 +34,7 @@ def show_help(parent: QWidget) -> None:
     layout.addWidget(close)
 
     dialog.resize(720, 520)
-    dialog.exec()
+    return dialog
 
 
 def read_help_markdown() -> str:
