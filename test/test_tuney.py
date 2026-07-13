@@ -166,6 +166,10 @@ class FakeApp:
         def set_text(_: str) -> None:
             pass
 
+        @staticmethod
+        def set_play_cursor(_: int | None) -> None:
+            pass
+
     ui = layout
 
     def checkpoint_undo(self) -> None:
@@ -795,6 +799,69 @@ def test_finished_empty_replay_stops_when_looping() -> None:
     app.key_recorder.finish_replay(app)
 
     assert not main_window.is_replaying
+
+
+def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
+    class FakePlayer:
+        @staticmethod
+        def stop_all() -> None:
+            pass
+
+    class FakeSequencer:
+        def __init__(
+            self,
+            char_presses: list[CharPress],
+            callback: Callable[[CharPress | None], object],
+        ) -> None:
+            self.char_presses = char_presses
+            self.callback = callback
+
+        def start(self) -> None:
+            for c in self.char_presses:
+                self.callback(c)
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+    class FakeUi:
+        def __init__(self) -> None:
+            self.text: list[str] = []
+            self.cursor: list[int | None] = []
+
+        def set_text(self, text: str) -> None:
+            self.text.append(text)
+
+        def set_play_cursor(self, index: int | None) -> None:
+            self.cursor.append(index)
+
+    class FakeReplayWindow(FakeApp):
+        def after(self, delay: int, callback: object, *args: object) -> str:
+            assert delay == 0
+            assert callable(callback)
+            callback(*args)
+            return 'after-0'
+
+    app = App(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+            CharPress('b', time=200),
+        ],
+    )
+    main_window = FakeReplayWindow()
+    main_window.is_replaying = True
+    main_window.ui = FakeUi()
+    app.__dict__['main_window'] = main_window
+    app.__dict__['player'] = FakePlayer()
+    monkeypatch.setattr('tuney.recorders.key_recorder.Sequencer', FakeSequencer)
+    monkeypatch.setattr('tuney.app.app.play_char', lambda *_: None)
+
+    app.key_recorder.on_replay(app)
+
+    assert main_window.ui.text == ['', 'a', 'ab']
+    assert main_window.ui.cursor == [0, 1, 2]
 
 
 def test_replay_char_presses_use_loop_tempo() -> None:

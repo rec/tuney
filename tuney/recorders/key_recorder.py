@@ -79,6 +79,7 @@ class KeyRecorder(BaseModel):
         self.replay_text = ''
         if state.main_window.is_replaying:
             state.main_window.ui.set_text(self.replay_text)
+            state.main_window.ui.set_play_cursor(0)
 
             def callback(char_press: CharPress | None) -> None:
                 if char_press:
@@ -86,6 +87,11 @@ class KeyRecorder(BaseModel):
                         self.replay_text += char_press.char
                         state.main_window.after(
                             0, state.main_window.ui.set_text, self.replay_text
+                        )
+                        state.main_window.after(
+                            0,
+                            state.main_window.ui.set_play_cursor,
+                            len(self.replay_text),
                         )
                     play_char(state, char_press)
                 elif state.main_window.is_replaying and self.sequencer is not None:
@@ -98,6 +104,7 @@ class KeyRecorder(BaseModel):
             self.sequencer.start()
         else:
             state.main_window.ui.set_text(state.display_text)
+            state.main_window.ui.set_play_cursor(None)
 
     def finish_replay(self, state: App) -> None:
         from ..app.app import on_replay, replay_char_presses, stop_replaying

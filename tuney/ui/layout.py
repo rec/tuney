@@ -87,6 +87,16 @@ class Layout(QWidget):
         self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
         self.count_label.setText(f'Chars: {len(s)}')
 
+    def set_play_cursor(self, index: int | None) -> None:
+        if index is None:
+            self.textbox.clearFocus()
+            return
+        cursor = self.textbox.textCursor()
+        cursor.setPosition(max(0, min(index, len(self.textbox.toPlainText()))))
+        self.textbox.setTextCursor(cursor)
+        self.textbox.ensureCursorVisible()
+        self.textbox.setFocus(Qt.FocusReason.OtherFocusReason)
+
     @cached_property
     def splitter(self) -> SpacedSplitter:
         splitter = SpacedSplitter(
@@ -166,6 +176,7 @@ class Layout(QWidget):
         textbox = QTextEdit(self.text_area)
         textbox.setMinimumHeight(40)
         textbox.setFont(QFont(FONT_FAMILY, FONT_SIZE))
+        textbox.setCursorWidth(2)
         textbox.setReadOnly(True)
         self.text_area_layout.addWidget(textbox, stretch=1)
         return textbox
