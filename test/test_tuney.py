@@ -688,6 +688,22 @@ def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> No
         assert app.max_gap == App().max_gap
 
 
+def test_restore_autosave_skips_when_saved_state_disables_autosave(
+    monkeypatch,
+) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
+        saved = App(gui=True, max_gap=2.0, load_autosave=False)
+        saved._autosave.save(lambda path: save(saved, path))
+        app = App(gui=True, max_gap=3.0)
+
+        app._autosave.restore(app)
+
+        assert app.max_gap == App().max_gap
+        assert not app.load_autosave
+
+
 def test_restore_autosave_ignores_invalid_state_file(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'

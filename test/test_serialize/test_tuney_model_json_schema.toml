@@ -578,6 +578,11 @@ default = 4.0
 title = "Backspace Repeat Rate"
 type = "number"
 
+[properties.load_autosave]
+default = true
+title = "Load Autosave"
+type = "boolean"
+
 [properties.gui]
 default = false
 title = "Gui"

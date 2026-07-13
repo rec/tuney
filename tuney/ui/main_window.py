@@ -49,12 +49,13 @@ from ..app.app import (
     on_replay,
     output_comment,
     randomize_timing,
+    restore_data,
     restore_text,
     save,
 )
 from ..app.global_config import GlobalConfig
 from ..app.platform_info import error_issue_url, log_exception, log_path
-from ..presets import delete_presets, user_preset_names, write_preset
+from ..presets import delete_presets, read_file, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
 from ..scale.tuning import Computed, Tuning, Type
@@ -457,6 +458,32 @@ class MainWindow(QMainWindow):
         self.ui.rebuild_note_grid()
         self.ui.set_text(self.app.display_text)
 
+    def on_load_autosave(self, checked: bool) -> None:
+        if checked == self.app.load_autosave:
+            return
+        self.history.checkpoint_undo()
+        self.app.load_autosave = checked
+
+    def on_swap_with_autosave(self, *_: object) -> None:
+        path = self.app._autosave.path
+        try:
+            data = read_file(path)
+            type(self.app).model_validate(data)
+        except (OSError, ValueError, ValidationError) as error:
+            QMessageBox.critical(self, 'Swap with autosave', str(error))
+            return
+        try:
+            self.history.checkpoint_undo()
+            self.app._autosave.save(lambda path: save(self.app, path))
+            restore_data(self.app, data)
+        except (OSError, ValueError, ValidationError) as error:
+            QMessageBox.critical(self, 'Swap with autosave', str(error))
+            return
+        self.load_autosave_action.setChecked(self.app.load_autosave)
+        self.ui.rebuild_control_panel()
+        self.ui.rebuild_note_grid()
+        self.ui.set_text(self.app.display_text)
+
     @property
     def is_saving(self) -> bool:
         return self._is_saving
@@ -568,6 +595,12 @@ class MainWindow(QMainWindow):
         )
         _add_action(file_menu, 'Copy from state', None, self.on_copy_from_state)
         _add_action(file_menu, 'Paste into state', None, self.on_paste_into_state)
+        self.load_autosave_action = _add_action(
+            file_menu, 'Load autosave on start', None, self.on_load_autosave
+        )
+        self.load_autosave_action.setCheckable(True)
+        self.load_autosave_action.setChecked(self.app.load_autosave)
+        _add_action(file_menu, 'Swap with autosave', None, self.on_swap_with_autosave)
         _add_action(
             file_menu,
             'Refresh Devices',

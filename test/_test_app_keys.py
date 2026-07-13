@@ -263,6 +263,8 @@ def test_application_uses_cross_platform_style() -> None:
 
         assert 'Save preset...' in file_actions
         assert 'Delete presets...' in file_actions
+        assert 'Load autosave on start' in file_actions
+        assert 'Swap with autosave' in file_actions
         assert 'Advanced' in edit_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
@@ -386,6 +388,33 @@ def test_app_activate_and_history() -> None:
 
     assert app.app.max_gap == 4.0
     assert app.app.display_text == 'a'
+
+    app.app.load_autosave = True
+    MainWindow.on_load_autosave(app, False)
+
+    assert not app.app.load_autosave
+    app.history.undo()
+
+    assert app.app.load_autosave
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'state.toml'
+        startup.autosave_file = path
+        app.app.__dict__.pop('_autosave', None)
+        autosaved = App(gui=False, max_gap=2.0, load_autosave=False)
+        autosaved._autosave.save(lambda path: main_window_module.save(autosaved, path))
+        app.app.max_gap = 3.0
+        app.app.load_autosave = True
+
+        MainWindow.on_swap_with_autosave(app)
+
+        assert app.app.max_gap == 2.0
+        assert not app.app.load_autosave
+        assert App.model_validate(presets_module.read_file(path)).max_gap == 3.0
+        app.history.undo()
+
+        assert app.app.max_gap == 3.0
+        assert app.app.load_autosave
 
     with tempfile.TemporaryDirectory() as tmp:
         os.environ['XDG_STATE_HOME'] = tmp
@@ -597,6 +626,14 @@ class FakeLoop:
         pass
 
 
+class FakeAction:
+    def __init__(self) -> None:
+        self.checked = False
+
+    def setChecked(self, checked: bool) -> None:
+        self.checked = checked
+
+
 class FakeLayout:
     def __init__(self) -> None:
         self.loop = FakeLoop()
@@ -634,6 +671,7 @@ class HistoryApp:
         self.app = App(max_gap=1.0)
         self.ui = FakeLayout()
         self.history = History(self)
+        self.load_autosave_action = FakeAction()
 
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name

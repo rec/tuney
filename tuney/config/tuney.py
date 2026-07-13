@@ -63,6 +63,9 @@ class Tuney(BaseModel):
     # Backspace repeats per second after backspace_repeat_delay
     backspace_repeat_rate: Annotated[float, Hidden, Numeric()] = 4.0
 
+    # Load autosaved settings on startup
+    load_autosave: Annotated[tyro.conf.Suppress[bool], Hidden] = True
+
     # Open the graphical interface
     gui: Annotated[bool, tyro_option('-g'), Hidden] = False
 

@@ -38,6 +38,7 @@ class Autosave(BaseModel, frozen=True):
         language = state.mapper.language
         if not (
             state.gui
+            and state.load_autosave
             and not startup_modifier_held()
             and self.path.exists()
             and not (state.config_file or state.preset or state.text or state.text_args)
@@ -47,6 +48,11 @@ class Autosave(BaseModel, frozen=True):
             data = read_file(self.path)
         except (OSError, ValueError) as error:
             return AutosaveRestoreError(f'Could not restore {self.path}: {error}')
+        if data.get('load_autosave') is False:
+            from ..app.app import restore_data
+
+            restore_data(state, {'gui': state.gui, 'load_autosave': False})
+            return None
         restore_error: ValidationError | None = None
         while True:
             try:

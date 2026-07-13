@@ -127,3 +127,5 @@ class History:
         window.ui.refresh_loop_controls()
         window.ui.set_loop_state(self.loop_replay)
         window.ui.set_randomize_on_each_loop_state(self.randomize_on_each_loop)
+        if hasattr(window, 'load_autosave_action'):
+            window.load_autosave_action.setChecked(window.app.load_autosave)

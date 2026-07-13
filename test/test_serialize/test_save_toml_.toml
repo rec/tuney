@@ -2,6 +2,7 @@ max_gap = 4.0
 hover_time = 1.0
 backspace_repeat_delay = 2.0
 backspace_repeat_rate = 4.0
+load_autosave = true
 gui = false
 silent = false
 run_in_background = false
