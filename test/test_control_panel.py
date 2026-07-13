@@ -593,6 +593,11 @@ def test_control_panel_language_menu_sets_mapper_alphabet() -> None:
     assert 'ç' in mapper.alphabet
     assert menus[0].currentText() == 'Language...'
 
+    menus[0].setCurrentText('(clear)')
+
+    assert mapper.alphabet is None
+    assert menus[0].currentText() == 'Language...'
+
 
 def test_control_panel_rejects_empty_and_invalid_tunings() -> None:
     tuning = Tuning()

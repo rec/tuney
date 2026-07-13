@@ -926,13 +926,17 @@ def _add_alphabet_language_menu(
 ) -> None:
     menu = QComboBox(frame)
     menu.setObjectName('alphabet_language')
-    menu.addItems(['Language...', *language_names()])
+    menu.addItems(['Language...', '(clear)', *language_names()])
     menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
     def command(name: str) -> None:
         if name == 'Language...':
             return
-        entry.setText(alphabet_for_language_name(name, data.case_sensitive))
+        entry.setText(
+            ''
+            if name == '(clear)'
+            else alphabet_for_language_name(name, data.case_sensitive)
+        )
         update()
         menu.setCurrentIndex(0)
 
