@@ -3,19 +3,22 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
-from PySide6.QtGui import QFont, QResizeEvent
-from PySide6.QtWidgets import QGridLayout, QPushButton
+from PySide6.QtGui import QFont, QFontMetrics
+from PySide6.QtWidgets import QGridLayout, QPushButton, QSizePolicy
 
 from ..time.char_press import CharPress
 from . import constants
 
 FONT_FAMILY = 'Arial'
-MIN_BUTTON_SIZE = 48
+MIN_BUTTON_WIDTH = 8
+MIN_BUTTON_HEIGHT = 30
 MAX_FONT_SIZE = 23
-MIN_FONT_SIZE = 10
-FONT_SCALING_THRESHOLD = 60
-PRESSED_STYLE = 'background: lightgreen; color: black; border-radius: 8px;'
-RELEASED_STYLE = 'background: #e5e5e5; color: black; border-radius: 8px;'
+MIN_FONT_SIZE = 4
+TEXT_PADDING = 4
+PRESSED_STYLE = (
+    'background: lightgreen; color: black; border-radius: 8px; padding: 0px;'
+)
+RELEASED_STYLE = 'background: #e5e5e5; color: black; border-radius: 8px; padding: 0px;'
 
 
 class NoteButton(QPushButton):
@@ -34,7 +37,8 @@ class NoteButton(QPushButton):
         self._font_size = MAX_FONT_SIZE
         self.note_name = text
         self.setFont(QFont(FONT_FAMILY, MAX_FONT_SIZE, QFont.Weight.Bold))
-        self.setMinimumSize(MIN_BUTTON_SIZE, MIN_BUTTON_SIZE)
+        self.setMinimumSize(MIN_BUTTON_WIDTH, MIN_BUTTON_HEIGHT)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.clicked.connect(self.toggle)
         layout.addWidget(self, row, column)
         layout.setContentsMargins(
@@ -58,16 +62,23 @@ class NoteButton(QPushButton):
         self.is_press = not self.is_press
         self._on_char(CharPress(self.char, self.is_press, time.time()))
 
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        super().resizeEvent(event)
-        if (
-            font_size := _note_font_size(self.width(), self.height())
-        ) != self._font_size:
+    def set_note_font_size(self, font_size: int) -> None:
+        if font_size != self._font_size:
             self._font_size = font_size
             self.setFont(QFont(FONT_FAMILY, font_size, QFont.Weight.Bold))
 
 
-def _note_font_size(width: int, height: int) -> int:
-    if (size := min(width, height)) >= FONT_SCALING_THRESHOLD:
-        return MAX_FONT_SIZE
-    return max(MIN_FONT_SIZE, MAX_FONT_SIZE * size // FONT_SCALING_THRESHOLD)
+def _note_font_size(width: int, height: int, text: str) -> int:
+    for size in range(MAX_FONT_SIZE, MIN_FONT_SIZE, -1):
+        if _font_fits(width, height, text, size):
+            return size
+    return MIN_FONT_SIZE
+
+
+def _font_fits(width: int, height: int, text: str, size: int) -> bool:
+    font = QFont(FONT_FAMILY, size, QFont.Weight.Bold)
+    metrics = QFontMetrics(font)
+    lines = text.splitlines() or ['']
+    return max(metrics.horizontalAdvance(i) for i in lines) <= max(
+        1, width - TEXT_PADDING
+    ) and metrics.lineSpacing() * len(lines) <= max(1, height - TEXT_PADDING)

@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from . import Action, State, StateChange
 from .tooltip import Tooltip
 
-IMAGE_SIZE = 24
-BUTTON_SIZE = 34
+IMAGE_SIZE = 22
+BUTTON_SIZE = 32
 FLASH_INTERVAL_MS = 1000
 RED = '#d02020'
 GREY = '#a0a0a0'

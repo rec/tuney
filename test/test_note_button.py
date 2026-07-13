@@ -1,29 +1,45 @@
+import os
+
 import pytest
 
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+from PySide6.QtWidgets import QApplication
+
 from tuney.ui.note_button import (
-    FONT_SCALING_THRESHOLD,
     MAX_FONT_SIZE,
-    MIN_BUTTON_SIZE,
+    MIN_BUTTON_HEIGHT,
+    MIN_BUTTON_WIDTH,
     MIN_FONT_SIZE,
     _note_font_size,
 )
 
+_ = QApplication.instance() or QApplication([])
+
 
 @pytest.mark.parametrize(
-    ('width', 'height', 'expected'),
+    ('width', 'height', 'text', 'expected'),
     [
-        (70, 80, MAX_FONT_SIZE),
-        (60, 60, MAX_FONT_SIZE),
-        (48, 80, MAX_FONT_SIZE * 48 // FONT_SCALING_THRESHOLD),
-        (80, 48, MAX_FONT_SIZE * 48 // FONT_SCALING_THRESHOLD),
-        (20, 20, MIN_FONT_SIZE),
+        (70, 80, 'C\n a', MAX_FONT_SIZE),
+        (1, 1, 'C\n a', MIN_FONT_SIZE),
     ],
 )
-def test_note_font_size_only_scales_below_threshold(
-    width: int, height: int, expected: int
+def test_note_font_size_uses_extremes(
+    width: int, height: int, text: str, expected: int
 ) -> None:
-    assert _note_font_size(width, height) == expected
+    assert _note_font_size(width, height, text) == expected
 
 
-def test_note_button_minimum_size_preserves_normal_button_size() -> None:
-    assert MIN_BUTTON_SIZE == 48
+def test_note_font_size_scales_down_for_small_buttons() -> None:
+    font_size = _note_font_size(20, 20, 'C\n a')
+
+    assert MIN_FONT_SIZE < font_size < MAX_FONT_SIZE
+
+
+def test_note_font_size_accounts_for_text_width() -> None:
+    assert _note_font_size(70, 80, 'Very long note\n a') < MAX_FONT_SIZE
+
+
+def test_note_button_minimum_size_allows_small_buttons() -> None:
+    assert MIN_BUTTON_WIDTH == 8
+    assert MIN_BUTTON_HEIGHT == 30

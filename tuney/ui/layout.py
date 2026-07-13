@@ -3,8 +3,8 @@ from __future__ import annotations
 import sys
 from functools import cached_property
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -26,7 +26,7 @@ from ..audio.device import device_names
 from . import constants
 from .control_panel import ControlPanel
 from .main_window import MainWindow
-from .note_button import NoteButton
+from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
 from .platform import command_key
 from .splitter import SpacedSplitter
 from .tooltip import Tooltip
@@ -85,6 +85,7 @@ class Layout(QWidget):
             ]
         )
         self.set_text(main_window.app.display_text)
+        QTimer.singleShot(0, self.refresh_note_button_fonts)
 
     def set_text(self, s: str) -> None:
         self.text_stack.setCurrentWidget(self.textbox)
@@ -124,6 +125,21 @@ class Layout(QWidget):
         self.textbox.setTextCursor(cursor)
         self.textbox.ensureCursorVisible()
         self.textbox.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self.refresh_note_button_fonts()
+
+    def refresh_note_button_fonts(self) -> None:
+        buttons = list(self.__dict__.get('note_buttons', {}).values())
+        if not buttons:
+            return
+        font_size = max(
+            MIN_FONT_SIZE,
+            min(_note_font_size(i.width(), i.height(), i.note_name) for i in buttons),
+        )
+        for button in buttons:
+            button.set_note_font_size(font_size)
 
     @cached_property
     def splitter(self) -> SpacedSplitter:
@@ -248,7 +264,7 @@ class Layout(QWidget):
             return self.main_window.app.hover_time
 
         self.replay = QPushButton('Play', frame)
-        self.replay.setFixedSize(96, 34)
+        self.replay.setFixedSize(90, 32)
         self.replay.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         self.replay.clicked.connect(self.main_window.on_replay)
         Tooltip(self.replay, REPLAY_TOOLTIPS['replay'], hover_time)
@@ -258,7 +274,7 @@ class Layout(QWidget):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(6)
         self.randomize = QPushButton('Randomize time', frame)
-        self.randomize.setFixedWidth(124)
+        self.randomize.setFixedWidth(116)
         self.randomize.clicked.connect(self.main_window.on_randomize_timing)
         Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
         right_layout.addWidget(self.randomize)
@@ -267,7 +283,7 @@ class Layout(QWidget):
         Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
         right_layout.addWidget(self.loop)
         self.help = QPushButton('?', frame)
-        self.help.setFixedSize(34, 34)
+        self.help.setFixedSize(32, 32)
         self.help.setFont(QFont(FONT_FAMILY, 18))
         Tooltip(self.help, REPLAY_TOOLTIPS['help'], hover_time)
         self.help.clicked.connect(self.main_window.on_help)
@@ -317,7 +333,7 @@ class Layout(QWidget):
     def note_grid_widget(self) -> QWidget:
         widget = QWidget(self)
         widget.setMinimumHeight(
-            max(NOTE_GRID_HEIGHT * self.main_window.rows, NOTE_GRID_HEIGHT)
+            max(MIN_BUTTON_HEIGHT * self.main_window.rows, MIN_BUTTON_HEIGHT)
         )
         self.note_grid = QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
@@ -340,6 +356,7 @@ class Layout(QWidget):
             has_note_buttons = False
         if has_note_buttons:
             _ = self.note_buttons
+        self.refresh_note_button_fonts()
 
     def _note_frame(self, i: int, char: str, text: str) -> NoteButton:
         row, column = divmod(i, self.main_window.columns)
