@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import os
+from enum import StrEnum, auto
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from pydantic import BaseModel
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
+from tuney.scale.tuning import Tuning
 from tuney.ui.control_panel import (
+    ControlPanel,
+    _enum_hover_text,
     _field_help,
     _field_hover_text,
     _field_widgets,
@@ -20,7 +23,15 @@ from tuney.ui.control_panel import (
     _visible_control_names,
 )
 from tuney.ui.layout import REPLAY_TOOLTIPS
+from tuney.ui.tooltip import Tooltip
 from tuney.ui.transport import TOOLTIPS
+
+
+class TooltipEnum(StrEnum):
+    # Alpha tooltip text
+    # with preserved line break
+    alpha = auto()
+    beta = auto()
 
 
 class _Widget:
@@ -42,6 +53,34 @@ def test_field_name_is_used_when_help_is_missing() -> None:
     assert _field_hover_text(Mapper, 'map') == 'map'
 
 
+def test_enum_hover_text_uses_member_comment_or_name() -> None:
+    assert _enum_hover_text(TooltipEnum.alpha) == (
+        'Alpha tooltip text\nwith preserved line break'
+    )
+    assert _enum_hover_text(TooltipEnum.beta) == 'beta'
+
+
+def test_enum_radio_buttons_have_member_tooltips() -> None:
+    from PySide6.QtWidgets import QApplication, QRadioButton, QWidget
+
+    _ = QApplication.instance() or QApplication([])
+    parent = QWidget()
+    panel = ControlPanel(parent, Tuning())
+    radios = panel.findChildren(QRadioButton)
+
+    assert {
+        radio.text(): [
+            tooltip.text for tooltip in radio.children() if isinstance(tooltip, Tooltip)
+        ]
+        for radio in radios
+        if radio.text() in {'computed', 'table', 'ratios'}
+    } == {
+        'computed': ['computed'],
+        'table': ['table'],
+        'ratios': ['ratios'],
+    }
+
+
 def test_hover_text_rewraps_lines_and_preserves_paragraphs() -> None:
     assert _rewrap_hover_text('first line\nsecond line\n\nnext paragraph') == (
         'first line second line\n\nnext paragraph'
@@ -57,6 +96,8 @@ def test_tooltips_bind_only_to_leaf_widgets() -> None:
 
 
 def test_field_widgets_walks_qt_leaf_widgets() -> None:
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+
     _ = QApplication.instance() or QApplication([])
     first, second = QWidget(), QWidget()
     root = QWidget()

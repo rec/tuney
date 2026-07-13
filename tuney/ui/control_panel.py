@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import inspect
 import json
 import math
 from collections.abc import Callable
@@ -541,7 +542,7 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
 def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> None:
     control_panel = _control_panel(parent)
     for widget in _field_widgets(parent):
-        if isinstance(widget, QWidget):
+        if isinstance(widget, QWidget) and not widget.property('skip_field_tooltip'):
             Tooltip(
                 widget,
                 _field_hover_text(model, name),
@@ -1041,12 +1042,53 @@ def _add_enum_control(
         radio.setMinimumWidth(radio.sizeHint().width())
         radio.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         radio.setChecked(i == index)
+        radio.setProperty('skip_field_tooltip', True)
+        Tooltip(
+            radio,
+            _enum_hover_text(member),
+            lambda: float(getattr(_control_panel(parent).data, 'hover_time', 1.0)),
+        )
         _bind_control(radio, data, name, member)
         radio.toggled.connect(
             lambda checked, member=member: checked and command(member)
         )
         layout.addWidget(radio)
     _parent_layout(parent).addWidget(frame)
+
+
+def _enum_hover_text(member: enum.Enum) -> str:
+    return _enum_member_comments(type(member)).get(member.name, member.name)
+
+
+def _enum_member_comments(enum_cls: type[enum.Enum]) -> dict[str, str]:
+    try:
+        lines, _ = inspect.getsourcelines(enum_cls)
+    except (OSError, TypeError):
+        return {}
+
+    comments: list[str] = []
+    result: dict[str, str] = {}
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            if comment := stripped.removeprefix('#').removeprefix(':').strip():
+                comments.append(comment)
+        elif not stripped:
+            comments.clear()
+        elif name := _enum_member_name(enum_cls, stripped):
+            if comments:
+                result[name] = '\n'.join(comments)
+            comments.clear()
+        else:
+            comments.clear()
+    return result
+
+
+def _enum_member_name(enum_cls: type[enum.Enum], line: str) -> str | None:
+    for name in enum_cls.__members__:
+        if line.startswith(f'{name} =') or line.startswith(f'{name}:'):
+            return name
+    return None
 
 
 def _set_tuning_type_form(parent: QWidget, data: Tuning) -> None:
