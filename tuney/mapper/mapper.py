@@ -8,12 +8,11 @@ from string import ascii_lowercase, ascii_uppercase
 from typing import Annotated
 
 import tyro
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 
-from ..config.display import Beginner, Display, Hidden, Numeric
+from ..config.display import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
 from ..config.tyro_option import tyro_option
-from .language import alphabet_for_language, known_language
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44
@@ -87,9 +86,6 @@ class Mapper(BaseModel):
         Display(row=0),
     ] = None
 
-    # Language tag whose alphabet is used when alphabet is empty
-    language: Annotated[str | None, tyro_option(), Hidden] = None
-
     # Number of note numbers to cycle through; zero uses the full alphabet
     length: Annotated[int, tyro_option('-l'), Display(row=1), Numeric()] = 0
 
@@ -119,45 +115,26 @@ class Mapper(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def _fill_alphabet_from_language(cls, data: object) -> object:
+    def _fill_default_alphabet(cls, data: object) -> object:
         if not isinstance(data, Mapping):
             return data
         values: dict[str, object] = {str(k): v for k, v in data.items()}
-        language = values.get('language')
         case_sensitive = values.get('case_sensitive', True)
-        if language is not None and not isinstance(language, str):
-            return data
         if not isinstance(case_sensitive, bool):
             return data
-        generated_alphabets = {
-            DEFAULT_ALPHABET,
-            ascii_lowercase,
-            alphabet_for_language(language, True) or DEFAULT_ALPHABET,
-            alphabet_for_language(language, False) or ascii_lowercase,
-        }
+        generated_alphabets = {DEFAULT_ALPHABET, ascii_lowercase}
         if (
             values.get('alphabet') is not None
             and values['alphabet'] not in generated_alphabets
         ):
             return data
-        alphabet = alphabet_for_language(language, case_sensitive) or (
-            DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
-        )
+        alphabet = DEFAULT_ALPHABET if case_sensitive else ascii_lowercase
         return values | {'alphabet': alphabet}
-
-    @field_validator('language')
-    @classmethod
-    def _validate_language(cls, language: str | None) -> str | None:
-        if language is not None and not known_language(language):
-            raise ValueError(f'Unknown language: {language}')
-        return language
 
     @cached_property
     def alphabet_(self) -> str:
-        return (
-            self.alphabet
-            or alphabet_for_language(self.language, self.case_sensitive)
-            or (DEFAULT_ALPHABET if self.case_sensitive else ascii_lowercase)
+        return self.alphabet or (
+            DEFAULT_ALPHABET if self.case_sensitive else ascii_lowercase
         )
 
     def __call__(self, k: str) -> int | None:

@@ -35,6 +35,7 @@ from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..config.display import Beginner, Display, General, Hidden, Numeric, Options
+from ..mapper.language import alphabet_for_language_name, language_names
 from ..mapper.mapper import Mapper
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
@@ -928,7 +929,32 @@ def _add_entry_control(
     entry.editingFinished.connect(update)
     layout.addWidget(entry)
     layout.setStretchFactor(entry, 1)
+    if isinstance(data, Mapper) and name == 'alphabet':
+        _add_alphabet_language_menu(frame, layout, data, entry, update)
     _parent_layout(parent).addWidget(frame)
+
+
+def _add_alphabet_language_menu(
+    frame: QWidget,
+    layout: QBoxLayout,
+    data: Mapper,
+    entry: QLineEdit,
+    update: Callable[[], None],
+) -> None:
+    menu = QComboBox(frame)
+    menu.setObjectName('alphabet_language')
+    menu.addItems(['Language...', *language_names()])
+    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+    def command(name: str) -> None:
+        if name == 'Language...':
+            return
+        entry.setText(alphabet_for_language_name(name, data.case_sensitive))
+        update()
+        menu.setCurrentIndex(0)
+
+    menu.currentTextChanged.connect(command)
+    layout.addWidget(menu)
 
 
 def _add_spin_control(

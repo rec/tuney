@@ -3,6 +3,14 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+def alphabet_for_language_name(name: str, case_sensitive: bool) -> str:
+    return alphabet_for_language(_LANGUAGE_TAGS[name], case_sensitive) or ''
+
+
+def language_names() -> list[str]:
+    return list(_LANGUAGE_TAGS)
+
+
 def alphabet_for_language(language: str | None, case_sensitive: bool) -> str | None:
     if (tag := _language_tag(language)) is None:
         return None
@@ -11,12 +19,6 @@ def alphabet_for_language(language: str | None, case_sensitive: bool) -> str | N
     if alphabet is None:
         return None
     return alphabet.both if case_sensitive else alphabet.lower
-
-
-def known_language(language: str) -> bool:
-    if (tag := _normalized_language_tag(language)) is None:
-        return False
-    return tag in ALPHABETS or tag.split('-', 1)[0] in ALPHABETS
 
 
 def _language_tag(language: str | None) -> str | None:
@@ -69,4 +71,27 @@ ALPHABETS = {
     'sk': _alphabet('AÁÄBCČDĎDZEÉFGHCHIÍJKLMNŇOÓÔPQRŔSŠTŤUÚVWXYÝZŽ'),
     'sv': _alphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'),
     'tr': _alphabet('ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ', 'abcçdefgğhıijklmnoöprsştuüvyz'),
+}
+
+_LANGUAGE_TAGS = {
+    'Czech': 'cs',
+    'Danish': 'da',
+    'German': 'de',
+    'Greek': 'el',
+    'English': 'en',
+    'Spanish': 'es',
+    'Finnish': 'fi',
+    'French': 'fr',
+    'Hungarian': 'hu',
+    'Icelandic': 'is',
+    'Italian': 'it',
+    'Dutch': 'nl',
+    'Norwegian': 'no',
+    'Polish': 'pl',
+    'Portuguese': 'pt',
+    'Romanian': 'ro',
+    'Russian': 'ru',
+    'Slovak': 'sk',
+    'Swedish': 'sv',
+    'Turkish': 'tr',
 }

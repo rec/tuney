@@ -333,7 +333,7 @@ def test_app_activate_and_history() -> None:
     assert app.history.loop_before == 0.5
 
     app.app.max_gap = 3.0
-    app.app.mapper = Mapper(alphabet='abc', language='tr')
+    app.app.mapper = Mapper(alphabet='abc')
     app.app.text = [CharPress('a', time=0.0)]
     app.app.__dict__.pop('char_presses', None)
     app.history.loop_replay = True
@@ -346,7 +346,6 @@ def test_app_activate_and_history() -> None:
 
     assert app.app.max_gap == App().max_gap
     assert app.app.mapper.alphabet == Mapper().alphabet
-    assert app.app.mapper.language == Mapper().language
     assert app.app.char_presses == []
     assert not app.app.gui
     assert not app.history.loop_replay

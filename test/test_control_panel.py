@@ -570,6 +570,28 @@ def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
     assert [editor.value() for editor in editors] == [24, 24]
 
 
+def test_control_panel_language_menu_sets_mapper_alphabet() -> None:
+    from PySide6.QtWidgets import QComboBox, QWidget
+
+    _qt_app()
+    mapper = Mapper()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, mapper)
+    menus = [
+        widget
+        for widget in panel.findChildren(QComboBox)
+        if widget.objectName() == 'alphabet_language'
+    ]
+
+    assert len(menus) == 1
+    menus[0].setCurrentText('French')
+
+    assert mapper.alphabet is not None
+    assert mapper.alphabet.startswith('ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂ')
+    assert 'ç' in mapper.alphabet
+    assert menus[0].currentText() == 'Language...'
+
+
 def test_control_panel_rejects_empty_and_invalid_tunings() -> None:
     tuning = Tuning()
 

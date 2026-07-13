@@ -1,8 +1,7 @@
 from string import ascii_lowercase, ascii_uppercase
 
-import pytest
-
 from tuney.audio.sound import Sound
+from tuney.mapper.language import alphabet_for_language_name
 from tuney.mapper.mapper import Mapper
 
 
@@ -33,8 +32,8 @@ def test_mapper_length_is_centered() -> None:
     assert [mapper(char) for char in 'abcdef'] == [19, 20, 21, 19, 20, 21]
 
 
-def test_mapper_uses_language_alphabet() -> None:
-    mapper = Mapper(language='fr-FR')
+def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:
+    mapper = Mapper(alphabet=alphabet_for_language_name('French', True))
 
     assert mapper.alphabet is not None
     assert mapper.alphabet.startswith('ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂ')
@@ -42,17 +41,15 @@ def test_mapper_uses_language_alphabet() -> None:
     assert 'ç' in mapper.alphabet
 
 
-def test_mapper_uses_default_alphabet_when_language_is_empty() -> None:
+def test_mapper_uses_default_alphabet() -> None:
     assert Mapper().alphabet == ascii_uppercase + ascii_lowercase
 
 
-def test_mapper_rejects_unknown_language() -> None:
-    with pytest.raises(ValueError, match='Unknown language: xx'):
-        Mapper(language='xx')
-
-
-def test_mapper_language_respects_case_sensitive() -> None:
-    mapper = Mapper(language='tr', case_sensitive=False)
+def test_language_alphabet_respects_case_sensitive() -> None:
+    mapper = Mapper(
+        alphabet=alphabet_for_language_name('Turkish', False),
+        case_sensitive=False,
+    )
 
     assert mapper.alphabet_ == 'abcçdefgğhıijklmnoöprsştuüvyz'
 

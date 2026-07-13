@@ -35,7 +35,6 @@ class Autosave(BaseModel, frozen=True):
         save(self.path)
 
     def restore(self, state: App) -> Exception | None:
-        language = state.mapper.language
         if not (
             state.gui
             and state.load_autosave
@@ -56,15 +55,9 @@ class Autosave(BaseModel, frozen=True):
         restore_error: ValidationError | None = None
         while True:
             try:
-                from ..app.app import clear_cached_values, restore_data
+                from ..app.app import restore_data
 
                 restore_data(state, data)
-                if language is not None:
-                    mapper_data = state.mapper.model_dump()
-                    mapper_data['alphabet'] = None
-                    mapper_data['language'] = language
-                    state.mapper = type(state.mapper).model_validate(mapper_data)
-                    clear_cached_values(state)
                 if restore_error is None:
                     return None
                 return AutosaveRestoreError(

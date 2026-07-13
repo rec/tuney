@@ -657,21 +657,6 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
         ]
 
 
-def test_restore_autosave_preserves_explicit_startup_language(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        path = tmp_path / 'state.toml'
-        set_autosave_file(monkeypatch, path)
-        saved = App(gui=True)
-        saved._autosave.save(lambda path: save(saved, path))
-        app = App(gui=True, mapper={'language': 'fr'})
-
-        app._autosave.restore(app)
-
-        assert app.mapper.language == 'fr'
-        assert app.mapper.alphabet is not None
-        assert 'É' in app.mapper.alphabet
-
-
 def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'

@@ -18,7 +18,6 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--dtype',
     '--headroom',
     '--max-voices',
-    '--language',
     '--type',
     '--table',
     '--midi-enable',
@@ -304,19 +303,6 @@ def test_cli_accepts_text_option() -> None:
 
     assert not app.gui
     assert app.text == 'Now is the time'
-
-
-def test_cli_accepts_language_option() -> None:
-    app = tyro.cli(App, args=['--language=fr'])
-
-    assert app.mapper.language == 'fr'
-    assert app.mapper.alphabet is not None
-    assert 'É' in app.mapper.alphabet
-
-
-def test_cli_rejects_unknown_language_option() -> None:
-    with pytest.raises(SystemExit):
-        tyro.cli(App, args=['--language=xx'])
 
 
 def test_cli_uses_positional_arguments_as_text() -> None:

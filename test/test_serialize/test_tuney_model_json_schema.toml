@@ -215,15 +215,6 @@ type = "string"
 [["$defs".Mapper.properties.alphabet.anyOf]]
 type = "null"
 
-["$defs".Mapper.properties.language]
-default = "<null>"
-title = "Language"
-[["$defs".Mapper.properties.language.anyOf]]
-type = "string"
-
-[["$defs".Mapper.properties.language.anyOf]]
-type = "null"
-
 ["$defs".Mapper.properties.length]
 default = 0
 title = "Length"
