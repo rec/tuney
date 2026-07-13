@@ -283,7 +283,7 @@ title = "Headroom"
 type = "number"
 
 ["$defs".Polyphony.properties.max_voices]
-default = 32
+default = 10
 exclusiveMinimum = 0
 title = "Max Voices"
 type = "integer"

@@ -20,7 +20,7 @@ MAX_GENERATED_SEED = 9999
 class TextTimings(BaseModel):
     # Base duration for a space, in milliseconds
     space: Annotated[
-        Milliseconds, tyro_option(), Display(row=0, width=5), Numeric()
+        Milliseconds, tyro_option(), Display(row=0, width=5), Numeric(decimals=0, inc=1)
     ] = 100
 
     # Base duration for a dot, in milliseconds
@@ -28,7 +28,7 @@ class TextTimings(BaseModel):
         Milliseconds,
         tyro_option(),
         Display(column=1, row=0, width=5),
-        Numeric(),
+        Numeric(decimals=0, inc=1),
     ] = 300
 
     # Base duration for a comma, in milliseconds
@@ -36,26 +36,37 @@ class TextTimings(BaseModel):
         Milliseconds,
         tyro_option(),
         Display(column=2, row=0, width=5),
-        Numeric(),
+        Numeric(decimals=0, inc=1),
     ] = 200
 
     # Base duration for a colon, in milliseconds
     colon: Annotated[
-        Milliseconds, tyro_option(), Display(column=3, row=0, width=5), Numeric()
+        Milliseconds,
+        tyro_option(),
+        Display(column=3, row=0, width=5),
+        Numeric(decimals=0, inc=1),
     ] = 400
 
     # Base duration for a semicolon, in milliseconds
     semicolon: Annotated[
-        Milliseconds, tyro_option(), Display(column=4, row=0, width=5), Numeric()
+        Milliseconds,
+        tyro_option(),
+        Display(column=4, row=0, width=5),
+        Numeric(decimals=0, inc=1),
     ] = 400
 
     # Base duration for a blank line, in milliseconds
     blank_line: Annotated[
-        Milliseconds, tyro_option(), Display(column=5, row=0, width=5), Numeric()
+        Milliseconds,
+        tyro_option(),
+        Display(column=5, row=0, width=5),
+        Numeric(decimals=0, inc=1),
     ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[Milliseconds, tyro_option(), Display(row=1), Numeric()] = 20
+    overlap: Annotated[
+        Milliseconds, tyro_option(), Display(row=1), Numeric(decimals=0, inc=1)
+    ] = 20
 
     # Seed for randomized character timings, or a random seed if empty
     seed: Annotated[int | None, tyro_option(), Display(column=1, row=1), Numeric()] = (

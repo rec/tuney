@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDI
+from tuney.audio.oscillator import Oscillator
+from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Sound
 from tuney.config.display import Numeric
 from tuney.config.tuney import Tuney
@@ -15,7 +17,7 @@ from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
 from tuney.scale.scale import Scale
 from tuney.scale.table import Table
-from tuney.scale.tuning import Tuning, Type
+from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.text_timings import TextTimings
 from tuney.ui import control_panel
 
@@ -229,6 +231,28 @@ def test_entry_width_uses_compact_numeric_widths(
         file_regression,
         {
             'max_gap': _entry_width(Tuney, 'max_gap'),
+            'mapper_alphabet': _entry_width(Mapper, 'alphabet'),
+            'mapper_length': _entry_width(Mapper, 'length'),
+            'mapper_offset': _entry_width(Mapper, 'offset'),
+            'mapper_range_limit': _entry_width(Mapper, 'range_limit'),
+            'scale_root': _entry_width(Scale, 'root'),
+            'scale_begin': _entry_width(Scale, 'begin'),
+            'scale_end': _entry_width(Scale, 'end'),
+            'scale_notes': _entry_width(Scale, 'notes'),
+            'scale_offset': _entry_width(Scale, 'offset'),
+            'detune': _entry_width(Tuning, 'detune'),
+            'limit': _entry_width(Computed, 'limit'),
+            'notes_per_octave': _entry_width(Computed, 'notes_per_octave'),
+            'octave_ratio': _entry_width(Computed, 'octave_ratio'),
+            'headroom': _entry_width(Polyphony, 'headroom'),
+            'max_voices': _entry_width(Polyphony, 'max_voices'),
+            'duty_cycle': _entry_width(Oscillator, 'duty_cycle'),
+            'key_scale_note': _entry_width(Oscillator, 'key_scale_note'),
+            'key_scale': _entry_width(Oscillator, 'key_scale'),
+            'midi_channel': _entry_width(MIDI, 'channel'),
+            'midi_velocity': _entry_width(MIDI, 'velocity'),
+            'midi_note_offset': _entry_width(MIDI, 'note_offset'),
+            'overlap': _entry_width(TextTimings, 'overlap'),
             'gain': _entry_width(Sound, 'gain'),
             'scale': _entry_width(TextTimings, 'scale'),
             'frequency': _entry_width(Tuning, 'root_frequency'),
@@ -240,6 +264,18 @@ def test_entry_width_uses_compact_numeric_widths(
             'output': _entry_width(MIDI, 'output'),
         },
     )
+
+
+def test_numeric_metadata_configures_steps_and_decimals() -> None:
+    assert control_panel._numeric_metadata(Tuning, 'detune').decimals == 0
+    assert control_panel._numeric_metadata(Tuning, 'detune').inc == 1
+    assert control_panel._numeric_metadata(Computed, 'octave_ratio').inc == 0.001
+    assert control_panel._numeric_metadata(Polyphony, 'headroom').decimals == 0
+    assert control_panel._numeric_metadata(Polyphony, 'headroom').inc == 1
+    assert control_panel._numeric_metadata(Oscillator, 'duty_cycle').inc == 0.01
+    assert control_panel._numeric_metadata(TextTimings, 'overlap').decimals == 0
+    assert control_panel._numeric_metadata(TextTimings, 'overlap').inc == 1
+    assert control_panel._numeric_metadata(TextTimings, 'scale').decimals is None
 
 
 def test_display_labels_use_sentence_case() -> None:

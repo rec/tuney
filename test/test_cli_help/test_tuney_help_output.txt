@@ -129,7 +129,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --headroom FLOAT
         Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
   --max-voices INT
-        Maximum number of notes that can play simultaneously (default: 32)
+        Maximum number of notes that can play simultaneously (default: 10)
 
  midi options
  ----------------------------------------------------------------------------------------------------------------------

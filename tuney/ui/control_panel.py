@@ -741,6 +741,7 @@ def _is_wide_field(data: BaseModel, name: str) -> bool:
     annotation = type(data).model_fields[name].annotation
     return not (
         _control_metadata(type(data), name).width
+        or _numeric_metadata(type(data), name).width
         or isinstance(value, bool | int | float | enum.Enum)
         or _options_metadata(type(data), name)
     ) and (str in _annotation_types(annotation) or isinstance(value, list | dict))
@@ -1289,6 +1290,8 @@ def _entry_width(
 ) -> int | None:
     display = display or Display()
     numeric = numeric or Numeric()
+    if width := numeric.width:
+        return width * ENTRY_CHAR_WIDTH
     if width := display.width:
         return width * ENTRY_CHAR_WIDTH
 

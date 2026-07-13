@@ -48,7 +48,7 @@
     "note_offset": 44,
     "polyphony": {
       "headroom": 4,
-      "max_voices": 32
+      "max_voices": 10
     },
     "minimum_note_time": 0.5
   },

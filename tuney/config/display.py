@@ -31,6 +31,7 @@ class Options(_Base, frozen=True):
 class Numeric(_Base, frozen=True):
     min: float | None = None
     max: float | None = None
+    width: int | None = None
     dial: bool = False
     log: bool = False
     # Number of decimal places to display

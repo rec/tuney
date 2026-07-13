@@ -52,7 +52,7 @@ key_scale = 0.0
 
 [sound.polyphony]
 headroom = 4
-max_voices = 32
+max_voices = 10
 
 [midi]
 enable = false

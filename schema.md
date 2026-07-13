@@ -219,7 +219,7 @@ class Polyphony:
     headroom: float = 4
 
     # Maximum number of notes that can play simultaneously
-    max_voices: int = 32
+    max_voices: int = 10
 
 
 class MIDI:
