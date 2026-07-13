@@ -121,7 +121,7 @@ class History:
         window.app.key_recorder.insert_time = state.key_recorder.insert_time
         window.app.key_recorder.replay_text = state.key_recorder.replay_text
         self.loop_state = state.loop
-        window.ui.set_text(window.app.display_text)
+        window.update_text_display()
         window.ui.rebuild_control_panel()
         window.ui.rebuild_note_grid()
         window.ui.refresh_loop_controls()
@@ -129,3 +129,5 @@ class History:
         window.ui.set_randomize_on_each_loop_state(self.randomize_on_each_loop)
         if hasattr(window, 'load_autosave_action'):
             window.load_autosave_action.setChecked(window.app.load_autosave)
+        if hasattr(window, 'show_text_timings_action'):
+            window.show_text_timings_action.setChecked(window.app.show_text_timings)

@@ -44,6 +44,7 @@ from ..app.app import (
     clear,
     dump_data,
     dump_toml,
+    edit_text_timing,
     load_text_file,
     on_char,
     on_replay,
@@ -138,6 +139,7 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menu)
         self.ui = Layout(self)
         self.setCentralWidget(self.ui)
+        self.update_text_display()
         self.qt_app.installEventFilter(self)
 
     @cached_property
@@ -253,6 +255,18 @@ class MainWindow(QMainWindow):
 
     def on_advanced(self, checked: bool) -> None:
         self.ui.control_panel.show_mode(checked)
+
+    def on_show_text_timings(self, checked: bool) -> None:
+        self.app.show_text_timings = checked
+        self.update_text_display()
+
+    def on_text_timing_changed(self, row: int, column: int, text: str) -> None:
+        try:
+            self.history.checkpoint_undo()
+            edit_text_timing(self.app, row, column, text)
+        except ValueError as error:
+            QMessageBox.critical(self, 'Show Text Timings', str(error))
+        self.update_text_display()
 
     def on_open_text_file(self, *_: object) -> None:
         self._is_saving = True
@@ -456,7 +470,8 @@ class MainWindow(QMainWindow):
             return
         self.ui.rebuild_control_panel()
         self.ui.rebuild_note_grid()
-        self.ui.set_text(self.app.display_text)
+        self.sync_config_actions()
+        self.update_text_display()
 
     def on_load_autosave(self, checked: bool) -> None:
         if checked == self.app.load_autosave:
@@ -479,10 +494,16 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError, ValidationError) as error:
             QMessageBox.critical(self, 'Swap with autosave', str(error))
             return
-        self.load_autosave_action.setChecked(self.app.load_autosave)
+        self.sync_config_actions()
         self.ui.rebuild_control_panel()
         self.ui.rebuild_note_grid()
-        self.ui.set_text(self.app.display_text)
+        self.update_text_display()
+
+    def update_text_display(self) -> None:
+        if self.app.show_text_timings:
+            self.ui.set_text_timings(self.app.display_text_timings)
+        else:
+            self.ui.set_text(self.app.display_text)
 
     @property
     def is_saving(self) -> bool:
@@ -572,6 +593,11 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
+        self.show_text_timings_action = _add_action(
+            edit_menu, 'Show Text Timings', None, self.on_show_text_timings
+        )
+        self.show_text_timings_action.setCheckable(True)
+        self.show_text_timings_action.setChecked(self.app.show_text_timings)
         self.advanced_action = _add_action(
             edit_menu, 'Advanced', None, self.on_advanced
         )
@@ -610,6 +636,12 @@ class MainWindow(QMainWindow):
         _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
         _add_action(help_menu, 'Show Log Location', None, self.on_show_log)
         return menu
+
+    def sync_config_actions(self) -> None:
+        if hasattr(self, 'load_autosave_action'):
+            self.load_autosave_action.setChecked(self.app.load_autosave)
+        if hasattr(self, 'show_text_timings_action'):
+            self.show_text_timings_action.setChecked(self.app.show_text_timings)
 
     @property
     def is_replaying(self) -> bool:

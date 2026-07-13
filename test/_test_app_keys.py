@@ -266,12 +266,25 @@ def test_application_uses_cross_platform_style() -> None:
         assert 'Load autosave on start' in file_actions
         assert 'Swap with autosave' in file_actions
         assert 'Advanced' in edit_actions
+        assert 'Show Text Timings' in edit_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions
         assert 'Clear Text' not in file_actions
+        assert window.show_text_timings_action.isCheckable()
+        assert not window.show_text_timings_action.isChecked()
         assert window.advanced_action.isCheckable()
         assert window.advanced_action.isChecked()
+
+        window.app.text = [CharPress('a', time=0.0), CharPress('a', False, 25.0)]
+        window.app.__dict__.pop('char_presses', None)
+        window.show_text_timings_action.trigger()
+
+        assert window.app.show_text_timings
+        assert window.ui.text_timings.rowCount() == 1
+        assert window.ui.text_timings.item(0, 0).text() == 'a'
+        assert window.ui.text_timings.item(0, 1).text() == '0'
+        assert window.ui.text_timings.item(0, 2).text() == '25'
 
         window.advanced_action.trigger()
 
@@ -639,9 +652,16 @@ class FakeLayout:
         self.randomize_on_each_loop = FakeLoop()
         self.rebuild_control_panel_count = 0
         self.text = None
+        self.text_timings = None
 
     def set_text(self, text: object) -> None:
         self.text = text
+
+    def set_text_timings(self, rows: list[list[str]]) -> None:
+        self.text_timings = rows
+
+    def set_active_text_timing(self, index: int | None) -> None:
+        pass
 
     def rebuild_control_panel(self) -> None:
         self.rebuild_control_panel_count += 1
@@ -671,6 +691,17 @@ class HistoryApp:
         self.ui = FakeLayout()
         self.history = History(self)
         self.load_autosave_action = FakeAction()
+        self.show_text_timings_action = FakeAction()
+
+    def update_text_display(self) -> None:
+        if self.app.show_text_timings:
+            self.ui.set_text_timings(self.app.display_text_timings)
+        else:
+            self.ui.set_text(self.app.display_text)
+
+    def sync_config_actions(self) -> None:
+        self.load_autosave_action.setChecked(self.app.load_autosave)
+        self.show_text_timings_action.setChecked(self.app.show_text_timings)
 
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name

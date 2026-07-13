@@ -90,6 +90,10 @@ class App(Tuney):
     def display_text(self) -> str:
         return ''.join(c.char for c in self.char_presses if c.is_press)
 
+    @property
+    def display_text_timings(self) -> list[list[str]]:
+        return _text_timing_rows(self.char_presses)
+
     @cached_property
     def _autosave(self) -> Autosave:
         return Autosave(file=startup.autosave_file)
@@ -141,7 +145,7 @@ def on_char(app: App, c: CharPress) -> None:
             elif app.char_presses:
                 app.key_recorder.delete_last_char(app.char_presses)
                 start_backspace_repeat(app)
-            app.main_window.ui.set_text(app.display_text)
+            app.main_window.update_text_display()
         else:
             if c.char != '\b':
                 append_char_press(app, recorded)
@@ -154,6 +158,55 @@ def append_char_press(app: App, c: CharPress) -> None:
     if len(app.char_presses) > 1 and c < (d := app.char_presses[-2]):
         report_error(f'Out-of-order char_press: {c} follows {d}')
         app.char_presses.sort()
+
+
+def edit_text_timing(app: App, row: int, column: int, text: str) -> None:
+    pairs = _text_timing_pairs(app.char_presses)
+    if row < 0 or row >= len(pairs):
+        return
+    press_index, release_index = pairs[row]
+    press = app.char_presses[press_index]
+    if column == 0:
+        app.char_presses[press_index] = press.model_copy(update={'char': text})
+        if release_index is not None:
+            release = app.char_presses[release_index]
+            app.char_presses[release_index] = release.model_copy(update={'char': text})
+    elif column == 1:
+        delta = _validated_milliseconds(text)
+        previous = app.char_presses[pairs[row - 1][0]].time if row else 0.0
+        time_shift = previous + delta - press.time
+        app.char_presses[press_index] = press.model_copy(
+            update={'time': press.time + time_shift}
+        )
+        if release_index is not None:
+            release = app.char_presses[release_index]
+            app.char_presses[release_index] = release.model_copy(
+                update={'time': release.time + time_shift}
+            )
+    elif column == 2:
+        duration = None if not text.strip() else _validated_milliseconds(text)
+        if duration is None and release_index is not None:
+            app.char_presses.pop(release_index)
+        elif duration is not None and release_index is None:
+            app.char_presses.append(
+                CharPress(press.char, False, time=press.time + duration)
+            )
+        elif duration is not None and release_index is not None:
+            release = app.char_presses[release_index]
+            app.char_presses[release_index] = release.model_copy(
+                update={'time': press.time + duration}
+            )
+    app.char_presses.sort()
+
+
+def text_timing_active_indexes(char_presses: list[CharPress]) -> dict[int, int | None]:
+    result = {}
+    pairs = _text_timing_pairs(char_presses)
+    for row, (press_index, release_index) in enumerate(pairs):
+        result[id(char_presses[press_index])] = row
+        if release_index is not None:
+            result[id(char_presses[release_index])] = None
+    return result
 
 
 def start_backspace_repeat(app: App) -> None:
@@ -171,7 +224,7 @@ def repeat_backspace(app: App) -> None:
         return
     app.main_window.history.checkpoint_undo()
     app.key_recorder.delete_last_char(app.char_presses)
-    app.main_window.ui.set_text(app.display_text)
+    app.main_window.update_text_display()
     play_char(app, CharPress('\b', time=0))
     if app.char_presses:
         app.key_recorder.backspace_repeat_after_id = app.main_window.after(
@@ -198,7 +251,8 @@ def clear(app: App) -> None:
     if main_window is not None:
         main_window.ui.rebuild_control_panel()
         main_window.ui.rebuild_note_grid()
-        main_window.ui.set_text('')
+        main_window.sync_config_actions()
+        main_window.update_text_display()
 
 
 def randomize_timing(app: App) -> None:
@@ -209,7 +263,7 @@ def randomize_timing(app: App) -> None:
     app.__dict__['char_presses'] = list(app.text_timings.char_presses(text))
     app.key_recorder.clear()
     if app.gui:
-        app.main_window.ui.set_text(text)
+        app.main_window.update_text_display()
 
 
 def load_text_file(app: App, path: Path) -> None:
@@ -219,7 +273,7 @@ def load_text_file(app: App, path: Path) -> None:
     app.__dict__['char_presses'] = list(app.text_timings.char_presses(text))
     app.key_recorder.clear()
     if app.gui:
-        app.main_window.ui.set_text(app.display_text)
+        app.main_window.update_text_display()
 
 
 def save(app: App, path: Path) -> None:
@@ -430,6 +484,36 @@ def _loop_window(
     if result and suffix:
         result.append(CharPress(time=result[-1].time + suffix))
     return result
+
+
+def _text_timing_rows(char_presses: list[CharPress]) -> list[list[str]]:
+    rows = []
+    pairs = _text_timing_pairs(char_presses)
+    for i, (press_index, release_index) in enumerate(pairs):
+        press = char_presses[press_index]
+        previous = char_presses[pairs[i - 1][0]].time if i else 0.0
+        duration = ''
+        if release_index is not None:
+            duration = f'{max(0.0, char_presses[release_index].time - press.time):g}'
+        rows.append([press.char, f'{max(0.0, press.time - previous):g}', duration])
+    return rows
+
+
+def _text_timing_pairs(char_presses: list[CharPress]) -> list[tuple[int, int | None]]:
+    rows: list[tuple[int, int | None]] = []
+    active: dict[str, list[int]] = {}
+    for i, c in enumerate(char_presses):
+        if c.is_press:
+            active.setdefault(c.char, []).append(len(rows))
+            rows.append((i, None))
+        elif indexes := active.get(c.char):
+            row = indexes.pop()
+            rows[row] = (rows[row][0], i)
+    return rows
+
+
+def _validated_milliseconds(text: str) -> float:
+    return max(0.0, float(text))
 
 
 def _read_state_text(text: str) -> dict[str, object]:

@@ -68,7 +68,7 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: App) -> None:
-        from ..app.app import play_char, replay_char_presses
+        from ..app.app import play_char, replay_char_presses, text_timing_active_indexes
 
         state.player.stop_all()
 
@@ -78,33 +78,47 @@ class KeyRecorder(BaseModel):
 
         self.replay_text = ''
         if state.main_window.is_replaying:
-            state.main_window.ui.set_text(self.replay_text)
-            state.main_window.ui.set_play_cursor(0)
+            char_presses = replay_char_presses(state)
+            active_indexes = text_timing_active_indexes(char_presses)
+            if state.show_text_timings:
+                state.main_window.update_text_display()
+                state.main_window.ui.set_active_text_timing(None)
+            else:
+                state.main_window.ui.set_text(self.replay_text)
+                state.main_window.ui.set_play_cursor(0)
 
             def callback(char_press: CharPress | None) -> None:
                 if char_press:
-                    if char_press.is_press:
-                        self.replay_text += char_press.char
-                        state.main_window.after(
-                            0, state.main_window.ui.set_text, self.replay_text
-                        )
+                    if state.show_text_timings:
                         state.main_window.after(
                             0,
-                            state.main_window.ui.set_play_cursor,
-                            len(self.replay_text),
+                            state.main_window.ui.set_active_text_timing,
+                            active_indexes.get(id(char_press)),
                         )
+                    if char_press.is_press:
+                        self.replay_text += char_press.char
+                        if not state.show_text_timings:
+                            state.main_window.after(
+                                0, state.main_window.ui.set_text, self.replay_text
+                            )
+                            state.main_window.after(
+                                0,
+                                state.main_window.ui.set_play_cursor,
+                                len(self.replay_text),
+                            )
                     play_char(state, char_press)
                 elif state.main_window.is_replaying and self.sequencer is not None:
                     state.main_window.after(0, self.finish_replay, state)
 
             self.sequencer = Sequencer(
-                char_presses=replay_char_presses(state),
+                char_presses=char_presses,
                 callback=callback,
             )
             self.sequencer.start()
         else:
-            state.main_window.ui.set_text(state.display_text)
+            state.main_window.update_text_display()
             state.main_window.ui.set_play_cursor(None)
+            state.main_window.ui.set_active_text_timing(None)
 
     def finish_replay(self, state: App) -> None:
         from ..app.app import on_replay, replay_char_presses, stop_replaying

@@ -6,12 +6,16 @@ from functools import cached_property
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
+    QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -68,7 +72,7 @@ class Layout(QWidget):
         _ = self.control_panel
         _ = self.text_area
         _ = self.stats_frame
-        _ = self.textbox
+        _ = self.text_stack
         _ = self.replay_frame
         _ = self.loop_controls
         _ = self.note_grid_widget
@@ -83,9 +87,33 @@ class Layout(QWidget):
         self.set_text(main_window.app.display_text)
 
     def set_text(self, s: str) -> None:
+        self.text_stack.setCurrentWidget(self.textbox)
         self.textbox.setPlainText(s)
         self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
         self.count_label.setText(f'Chars: {len(s)}')
+
+    def set_text_timings(self, rows: list[list[str]]) -> None:
+        self.text_stack.setCurrentWidget(self.text_timings)
+        self.text_timings.blockSignals(True)
+        self.text_timings.setRowCount(len(rows))
+        for row, values in enumerate(rows):
+            for column, value in enumerate(values):
+                self.text_timings.setItem(row, column, QTableWidgetItem(value))
+        self.text_timings.blockSignals(False)
+        self.count_label.setText(f'Notes: {len(rows)}')
+
+    def set_active_text_timing(self, index: int | None) -> None:
+        self.text_timings.clearSelection()
+        if index is None or index < 0 or index >= self.text_timings.rowCount():
+            return
+        self.text_timings.selectRow(index)
+        if item := self.text_timings.item(index, 0):
+            self.text_timings.scrollToItem(
+                item, QAbstractItemView.ScrollHint.PositionAtCenter
+            )
+
+    def on_text_timing_changed(self, item: QTableWidgetItem) -> None:
+        self.main_window.on_text_timing_changed(item.row(), item.column(), item.text())
 
     def set_play_cursor(self, index: int | None) -> None:
         if index is None:
@@ -178,8 +206,26 @@ class Layout(QWidget):
         textbox.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         textbox.setCursorWidth(2)
         textbox.setReadOnly(True)
-        self.text_area_layout.addWidget(textbox, stretch=1)
         return textbox
+
+    @cached_property
+    def text_timings(self) -> QTableWidget:
+        text_timings = QTableWidget(0, 3, self.text_area)
+        text_timings.setMinimumHeight(40)
+        text_timings.setFont(QFont(FONT_FAMILY, FONT_SIZE))
+        text_timings.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        text_timings.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        text_timings.setHorizontalHeaderLabels(['Character', 'Delay', 'Hold'])
+        text_timings.itemChanged.connect(self.on_text_timing_changed)
+        return text_timings
+
+    @cached_property
+    def text_stack(self) -> QStackedWidget:
+        stack = QStackedWidget(self.text_area)
+        stack.addWidget(self.textbox)
+        stack.addWidget(self.text_timings)
+        self.text_area_layout.addWidget(stack, stretch=1)
+        return stack
 
     @cached_property
     def replay_frame(self) -> QWidget:

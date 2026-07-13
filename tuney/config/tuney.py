@@ -66,6 +66,9 @@ class Tuney(BaseModel):
     # Load autosaved settings on startup
     load_autosave: Annotated[tyro.conf.Suppress[bool], Hidden] = True
 
+    # Show recorded key timings instead of plain text
+    show_text_timings: Annotated[tyro.conf.Suppress[bool], Hidden] = False
+
     # Open the graphical interface
     gui: Annotated[bool, tyro_option('-g'), Hidden] = False
 

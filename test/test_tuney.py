@@ -14,6 +14,7 @@ from tuney.app.app import (
     App,
     append_char_press,
     clear,
+    edit_text_timing,
     load_text_file,
     on_char,
     output_comment,
@@ -167,6 +168,10 @@ class FakeApp:
             pass
 
         @staticmethod
+        def set_text_timings(_: list[list[str]]) -> None:
+            pass
+
+        @staticmethod
         def rebuild_control_panel() -> None:
             pass
 
@@ -178,7 +183,17 @@ class FakeApp:
         def set_play_cursor(_: int | None) -> None:
             pass
 
+        @staticmethod
+        def set_active_text_timing(_: int | None) -> None:
+            pass
+
     ui = layout
+
+    def update_text_display(self) -> None:
+        pass
+
+    def sync_config_actions(self) -> None:
+        pass
 
     def checkpoint_undo(self) -> None:
         self.undo_count += 1
@@ -318,6 +333,46 @@ def test_display_text_uses_only_key_presses():
     )
 
     assert app.display_text == 'ab'
+
+
+def test_display_text_timings_show_offsets() -> None:
+    app = App(
+        text=[
+            CharPress('a', time=100.0),
+            CharPress('a', False, 250.0),
+            CharPress('\b', time=300.0),
+        ]
+    )
+
+    assert app.display_text_timings == [
+        ['a', '100', '150'],
+        ['\b', '200', ''],
+    ]
+
+
+def test_edit_text_timings_updates_char_presses() -> None:
+    app = App(
+        text=[
+            CharPress('a', time=100.0),
+            CharPress('a', False, 250.0),
+            CharPress('b', time=300.0),
+        ]
+    )
+
+    edit_text_timing(app, 0, 0, 'c')
+    edit_text_timing(app, 1, 1, '500')
+    edit_text_timing(app, 1, 2, '75')
+
+    assert app.char_presses == [
+        CharPress('c', time=100.0),
+        CharPress('c', False, 250.0),
+        CharPress('b', time=600.0),
+        CharPress('b', False, 675.0),
+    ]
+
+
+def test_char_press_negative_time_is_zero() -> None:
+    assert CharPress('a', time=-1).time == 0.0
 
 
 def test_clear_resets_recording_state():

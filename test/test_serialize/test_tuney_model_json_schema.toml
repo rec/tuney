@@ -574,6 +574,11 @@ default = true
 title = "Load Autosave"
 type = "boolean"
 
+[properties.show_text_timings]
+default = false
+title = "Show Text Timings"
+type = "boolean"
+
 [properties.gui]
 default = false
 title = "Gui"

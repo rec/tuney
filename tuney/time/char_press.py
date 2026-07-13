@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from . import Seconds
 
@@ -17,3 +17,8 @@ class CharPress(BaseModel):
 
     def __lt__(self, other: CharPress) -> bool:
         return self.time < other.time
+
+    @field_validator('time')
+    @classmethod
+    def _validate_time(cls, time: Seconds) -> Seconds:
+        return max(0.0, time)
