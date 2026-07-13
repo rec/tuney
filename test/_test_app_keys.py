@@ -16,8 +16,13 @@ from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import main_window as main_window_module
 from tuney.ui import startup
-from tuney.ui.history import History, LoopState
+from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
+
+
+def run(names: list[str]) -> None:
+    for name in names:
+        globals()[name]()
 
 
 def test_qt_key_events() -> None:
@@ -209,26 +214,35 @@ def test_app_mainloop_exits_on_sigint() -> None:
         def quit(self) -> None:
             calls.append('quit')
 
-    main_window_module.QTimer = FakeTimer
-    main_window_module.signal.getsignal = lambda signum: 'old'
-    main_window_module.signal.signal = lambda signum, handler: handlers.append(
-        (signum, handler)
-    )
+    old_timer = main_window_module.QTimer
+    old_getsignal = main_window_module.signal.getsignal
+    old_signal = main_window_module.signal.signal
 
-    app = type(
-        'LoopApp',
-        (),
-        {
-            'qt_app': FakeQtApp(),
-            'activate': lambda self: calls.append('activate'),
-            'close': lambda self: calls.append('close'),
-            '_on_sigint': lambda self, signum, frame: MainWindow._on_sigint(
-                self, signum, frame
-            ),
-        },
-    )()
+    try:
+        main_window_module.QTimer = FakeTimer
+        main_window_module.signal.getsignal = lambda signum: 'old'
+        main_window_module.signal.signal = lambda signum, handler: handlers.append(
+            (signum, handler)
+        )
 
-    MainWindow.mainloop(app)
+        app = type(
+            'LoopApp',
+            (),
+            {
+                'qt_app': FakeQtApp(),
+                'activate': lambda self: calls.append('activate'),
+                'close': lambda self: calls.append('close'),
+                '_on_sigint': lambda self, signum, frame: MainWindow._on_sigint(
+                    self, signum, frame
+                ),
+            },
+        )()
+
+        MainWindow.mainloop(app)
+    finally:
+        main_window_module.QTimer = old_timer
+        main_window_module.signal.getsignal = old_getsignal
+        main_window_module.signal.signal = old_signal
 
     assert calls == [
         ('timer', app),
@@ -293,24 +307,20 @@ def test_application_uses_cross_platform_style() -> None:
 
 
 def test_loop_state_restoration_does_not_retoggle_checkboxes() -> None:
-    with tempfile.TemporaryDirectory() as directory:
-        path = Path(directory) / 'state.toml'
-        startup.autosave_file = path
-        window = MainWindow(App(gui=True, silent=True))
-        window.history.loop_state = LoopState(
-            replay=True,
-            randomize_on_each_loop=True,
-        )
-        window.ui.set_loop_state(True)
-        window.ui.set_randomize_on_each_loop_state(True)
-        window.history.loop_state = LoopState()
+    app = HistoryApp()
 
-        window.ui.set_loop_state(False)
-        window.ui.set_randomize_on_each_loop_state(False)
+    app.history.loop_replay = False
 
-        assert not window.history.loop_replay
-        assert not window.history.randomize_on_each_loop
-        window.close()
+    assert app.ui.loop.calls == []
+
+    app.history.loop_replay = True
+
+    assert app.ui.loop.calls == ['select']
+
+    app.ui.loop.calls.clear()
+    app.history.loop_replay = True
+
+    assert app.ui.loop.calls == []
 
 
 def test_app_activate_and_history() -> None:
@@ -631,11 +641,14 @@ def test_app_saves_and_deletes_presets() -> None:
 
 
 class FakeLoop:
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
     def select(self) -> None:
-        pass
+        self.calls.append('select')
 
     def deselect(self) -> None:
-        pass
+        self.calls.append('deselect')
 
 
 class FakeAction:
