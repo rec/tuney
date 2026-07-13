@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import random
+import string
 import tomllib
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -20,6 +22,8 @@ from ..presets import is_str_dict, merged_data, read_preset
 from ..presets.autosave import Autosave
 from ..recorders.audio_recorder import AudioRecorder
 from ..recorders.key_recorder import KeyRecorder
+from ..scale.accidentals import Accidentals
+from ..scale.tuning import Computed, Type
 from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
@@ -264,6 +268,46 @@ def randomize_timing(app: App) -> None:
     app.key_recorder.clear()
     if app.gui:
         app.main_window.update_text_display()
+
+
+def randomize_settings(app: App, rng: random.Random | None = None) -> None:
+    rng = rng or random.Random()
+    if app.gui:
+        app.main_window.history.checkpoint_undo()
+    intervals, notes = rng.choice(SCALE_CHOICES)
+    app.scale = type(app.scale).model_validate(
+        app.scale.model_dump()
+        | {
+            'note_names': string.ascii_uppercase,
+            'root': rng.choice('ABCDEFG'),
+            'begin': 'A',
+            'end': 'G',
+            'notes': notes,
+            'intervals': intervals,
+            'accidentals': rng.choice(list(Accidentals)),
+            'offset': rng.randint(-12, 12),
+        }
+    )
+    app.tuning = type(app.tuning).model_validate(
+        app.tuning.model_dump()
+        | {
+            'type': Type.computed,
+            'computed': Computed(
+                limit=rng.choice([0, 0, 0, 3, 5, 7, 11]),
+                notes_per_octave=sum(intervals),
+                octave_ratio=rng.choice([1.5, 2.0, 2.0, 2.0, 3.0]),
+            ),
+            'detune': rng.uniform(-50, 50),
+            'root_frequency': rng.uniform(220, 660),
+            'root_note': rng.randint(48, 72),
+        }
+    )
+    if isinstance(player := app.__dict__.get('player'), Player):
+        player.close()
+    clear_cached_values(app)
+    if app.gui:
+        app.main_window.ui.rebuild_control_panel()
+        app.main_window.ui.rebuild_note_grid()
 
 
 def load_text_file(app: App, path: Path) -> None:
@@ -529,3 +573,14 @@ def _read_state_text(text: str) -> dict[str, object]:
     if not is_str_dict(data):
         raise ValueError('Clipboard does not contain a string dictionary')
     return data
+
+
+SCALE_CHOICES = [
+    ([1] * 12, None),
+    ([2, 2, 1, 2, 2, 2, 1], None),
+    ([2, 2, 1, 2, 2, 2, 1], 'CDEFGAB'),
+    ([2, 2, 3, 2, 3], None),
+    ([2, 2, 3, 2, 3], 'CDFGA'),
+    ([2, 2, 2, 2, 2, 2], None),
+    ([3, 2, 2, 3, 2], None),
+]

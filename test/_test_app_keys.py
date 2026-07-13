@@ -281,6 +281,7 @@ def test_application_uses_cross_platform_style() -> None:
         assert 'Swap with autosave' in file_actions
         assert 'Advanced' in edit_actions
         assert 'Show Text Timings' in edit_actions
+        assert 'Randomize Settings' in edit_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions

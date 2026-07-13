@@ -49,6 +49,7 @@ from ..app.app import (
     on_char,
     on_replay,
     output_comment,
+    randomize_settings,
     randomize_timing,
     restore_data,
     restore_text,
@@ -591,6 +592,12 @@ class MainWindow(QMainWindow):
         _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
         _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
+        _add_action(
+            edit_menu,
+            'Randomize Settings',
+            None,
+            lambda *_: randomize_settings(self.app),
+        )
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
         _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
         self.show_text_timings_action = _add_action(

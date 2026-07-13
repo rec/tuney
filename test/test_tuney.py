@@ -1,3 +1,4 @@
+import random
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,7 @@ from tuney.app.app import (
     on_char,
     output_comment,
     play_cli,
+    randomize_settings,
     randomize_timing,
     replay_char_presses,
     restore_data,
@@ -36,6 +38,7 @@ from tuney.app.platform_info import (
 from tuney.app.runnable import start_thread
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
@@ -422,6 +425,36 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
     assert app.key_recorder.time_offset == 0.0
     assert app.key_recorder.insert_time is None
     assert app.key_recorder.replay_text == ''
+    assert main_window.undo_count == 1
+
+
+def test_randomize_settings_changes_valid_scale_and_tuning_only() -> None:
+    app = App(
+        gui=True,
+        text=[
+            CharPress('a', time=100.0),
+            CharPress('a', False, 200.0),
+        ],
+    )
+    main_window = FakeApp()
+    app.__dict__['main_window'] = main_window
+    text_timings = app.text_timings.model_copy(deep=True)
+    char_presses = list(app.char_presses)
+
+    randomize_settings(app, random.Random(1))
+
+    assert type(app).model_validate(app.model_dump())
+    assert app.text_timings == text_timings
+    assert app.char_presses == char_presses
+    assert app.tuning.type == Type.computed
+    assert isinstance(app.tuning.computed, Computed)
+    assert app.tuning.computed.notes_per_octave == sum(app.scale.intervals)
+    assert 5 <= app.tuning.computed.notes_per_octave <= 12
+    assert 220 <= app.tuning.root_frequency <= 660
+    assert 48 <= app.tuning.root_note <= 72
+    assert app.scale.begin == 'A'
+    assert app.scale.end == 'G'
+    assert app.scale.root in 'ABCDEFG'
     assert main_window.undo_count == 1
 
 
