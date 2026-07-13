@@ -29,11 +29,10 @@ class Mixer(BaseModel):
     def apply(self, note: NotePress) -> bool:
         note_number = note.note_number
         if note.is_press:
-            if (
-                note_number in self.voices
-                or len(self.pressed_notes) >= self.polyphony.max_voices
-            ):
+            if note_number in self.voices:
                 return False
+            if len(self.pressed_notes) >= self.polyphony.max_voices:
+                self._release_oldest()
             self.voices[note_number] = VoiceState(voice=self.voice_maker(note_number))
             self.pressed_notes.append(note_number)
             return True
@@ -51,6 +50,13 @@ class Mixer(BaseModel):
         self.pressed_notes.clear()
         for voice in self.voices.values():
             voice.release()
+
+    def _release_oldest(self) -> None:
+        note_number = self.pressed_notes.pop(0)
+        voice = self.voices[note_number]
+        voice.release()
+        if voice.complete:
+            self.voices.pop(note_number)
 
     def render(
         self,

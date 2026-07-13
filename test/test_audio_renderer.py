@@ -14,6 +14,7 @@ from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
+from tuney.audio.polyphony import Polyphony
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Sound
 from tuney.audio.voice import Voice, VoiceState
@@ -306,6 +307,23 @@ def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
     )
 
 
+def test_player_steals_oldest_voice_at_max_polyphony(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    player = Player(sound=Sound(polyphony=Polyphony(max_voices=1)))
+
+    assert player.start(0)
+    assert player.start(7)
+
+    out = np.zeros((128, 1), dtype=np.float32)
+    player.engine.callback(out, len(out), None, None)
+
+    assert player.pressed_notes == [7]
+    assert player.engine.mixer.pressed_notes == [7]
+    assert player.engine.mixer.voices[0].release_frame is not None
+    assert 7 in player.engine.mixer.voices
+
+
 def test_player_uses_scale_note_subset_for_frequencies() -> None:
     chromatic = Player(sound=Sound(note_offset=0))
     white_notes = Player(sound=Sound(note_offset=0), scale=Scale(notes='ABCDEFG'))
@@ -350,13 +368,15 @@ def test_device_change_restarts_active_stream(monkeypatch) -> None:
     assert _EngineStream.instances[2].options['device'] == 'headphones'
 
 
-def test_mixer_limits_max_polyphony() -> None:
+def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:
     voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
     mixer = Mixer(voice_maker=lambda _: voice)
     for note_number in range(mixer.polyphony.max_voices):
         assert mixer.apply(NotePress(note_number))
 
-    assert not mixer.apply(NotePress(mixer.polyphony.max_voices))
+    assert mixer.apply(NotePress(mixer.polyphony.max_voices))
+    assert mixer.pressed_notes == list(range(1, mixer.polyphony.max_voices + 1))
+    assert mixer.voices[0].release_frame is not None
 
     out = mixer.render(48_000, np.float32)
 

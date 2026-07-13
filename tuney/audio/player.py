@@ -98,11 +98,11 @@ class Player(BaseModel, frozen=True):
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
-        if (
-            note_number in self.pressed_notes
-            or len(self.pressed_notes) >= self.sound.polyphony.max_voices
-        ):
+        if note_number in self.pressed_notes:
             return False
+        stolen_note: NoteNumber | None = None
+        if len(self.pressed_notes) >= self.sound.polyphony.max_voices:
+            stolen_note = self.pressed_notes.pop(0)
         self.pressed_notes.append(note_number)
         try:
             voice_maker = partial(
@@ -115,6 +115,8 @@ class Player(BaseModel, frozen=True):
                     polyphony=self.sound.polyphony,
                 )
             )
+            if stolen_note is not None:
+                self.engine.submit(NotePress(stolen_note, False))
             self.engine.submit(NotePress(note_number))
             self.engine.start()
             return True
@@ -122,6 +124,8 @@ class Player(BaseModel, frozen=True):
             if e.__class__.__name__ != 'PortAudioError':
                 raise
             self.pressed_notes.remove(note_number)
+            if stolen_note is not None:
+                self.pressed_notes.insert(0, stolen_note)
             self.engine.close()
             return False
 
