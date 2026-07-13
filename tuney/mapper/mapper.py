@@ -7,7 +7,7 @@ from string import ascii_lowercase, ascii_uppercase
 from typing import Annotated
 
 import tyro
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config.display import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
@@ -93,7 +93,9 @@ class Mapper(BaseModel):
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet
-    length: Annotated[int, tyro_option('-l'), Display(row=1), Numeric()] = 0
+    length: Annotated[int, tyro_option('-l'), Display(row=1), Numeric(min=0)] = Field(
+        0, ge=0
+    )
 
     # Treat uppercase and lowercase characters as distinct
     case_sensitive: Annotated[bool, tyro_option('-C'), Display(column=4, row=1)] = True

@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from tuney.audio.sound import Sound
 from tuney.mapper.language import (
     alphabet_for_language_name,
@@ -32,6 +35,11 @@ def test_mapper_length_is_centered() -> None:
     mapper = Mapper(alphabet='abcdef', length=3)
 
     assert [mapper(char) for char in 'abcdef'] == [19, 20, 21, 19, 20, 21]
+
+
+def test_mapper_length_rejects_negative_values() -> None:
+    with pytest.raises(ValidationError):
+        Mapper(length=-1)
 
 
 def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:

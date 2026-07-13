@@ -217,6 +217,7 @@ type = "null"
 
 ["$defs".Mapper.properties.length]
 default = 0
+minimum = 0
 title = "Length"
 type = "integer"
 

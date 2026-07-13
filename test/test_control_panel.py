@@ -96,6 +96,24 @@ def test_set_model_value_validates_and_clears_cached_values(
     )
 
 
+def test_mapper_length_spinbox_cannot_go_below_zero() -> None:
+    from PySide6.QtWidgets import QSpinBox, QWidget
+
+    _qt_app()
+    mapper = Mapper()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, mapper)
+    editors = [
+        widget
+        for widget in panel.findChildren(QSpinBox)
+        if control_panel.CONTROL_BINDINGS.get(widget, (None,))[0] is mapper
+        and control_panel.CONTROL_BINDINGS[widget][1] == 'length'
+    ]
+
+    assert len(editors) == 1
+    assert {editor.minimum() for editor in editors} == {0}
+
+
 def test_set_model_value_converts_dtype_string(
     file_regression,
 ) -> None:
