@@ -190,11 +190,14 @@ def clear(app: App) -> None:
     main_window = app.__dict__.get('main_window')
     if main_window is None and app.gui:
         main_window = app.main_window
-    if main_window is not None and app.char_presses:
+    data = dump_data(App(gui=app.gui))
+    if main_window is not None and dump_data(app) != data:
         main_window.history.checkpoint_undo()
-    app.char_presses.clear()
+    restore_data(app, data)
     app.key_recorder.clear()
     if main_window is not None:
+        main_window.ui.rebuild_control_panel()
+        main_window.ui.rebuild_note_grid()
         main_window.ui.set_text('')
 
 

@@ -343,11 +343,8 @@ def test_app_activate_and_history() -> None:
     app.history.clear_settings()
 
     assert app.app.max_gap == App().max_gap
-    assert (
-        app.app.mapper.alphabet
-        == 'ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZabcçdefgğhıijklmnoöprsştuüvyz'
-    )
-    assert app.app.mapper.language == 'tr'
+    assert app.app.mapper.alphabet == Mapper().alphabet
+    assert app.app.mapper.language == Mapper().language
     assert app.app.char_presses == []
     assert not app.app.gui
     assert not app.history.loop_replay

@@ -100,7 +100,7 @@ class History:
     def clear_settings(self) -> None:
         self.checkpoint_undo()
         app = self.main_window.app
-        data = type(app)(mapper={'language': app.mapper.language}).model_dump()
+        data = type(app)().model_dump()
         data['gui'] = app.gui
         self.restore(HistoryState(tuney=data))
 

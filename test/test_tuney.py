@@ -167,6 +167,14 @@ class FakeApp:
             pass
 
         @staticmethod
+        def rebuild_control_panel() -> None:
+            pass
+
+        @staticmethod
+        def rebuild_note_grid() -> None:
+            pass
+
+        @staticmethod
         def set_play_cursor(_: int | None) -> None:
             pass
 
@@ -313,7 +321,7 @@ def test_display_text_uses_only_key_presses():
 
 
 def test_clear_resets_recording_state():
-    app = App(gui=True, text=[CharPress('a', time=0.0)])
+    app = App(gui=True, text=[CharPress('a', time=0.0)], max_gap=2.0)
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
     app.key_recorder.start_time = 100.0
@@ -324,6 +332,7 @@ def test_clear_resets_recording_state():
     clear(app)
 
     assert app.char_presses == []
+    assert app.max_gap == App().max_gap
     assert app.key_recorder.start_time is None
     assert app.key_recorder.time_offset == 0.0
     assert app.key_recorder.insert_time is None
