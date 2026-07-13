@@ -376,6 +376,22 @@ def test_control_panel_sections_are_collapsible() -> None:
     assert not body.isHidden()
 
 
+def test_control_panel_sections_show_section_presets() -> None:
+    from PySide6.QtWidgets import QComboBox, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    presets = [
+        [menu.itemText(i) for i in range(menu.count())]
+        for menu in panel.findChildren(QComboBox)
+        if menu.objectName() == 'section_preset'
+    ]
+
+    assert any('white-notes' in menu for menu in presets)
+    assert any('just-14' in menu for menu in presets)
+
+
 def test_dials_are_limited_to_explicit_analog_controls(
     file_regression,
 ) -> None:

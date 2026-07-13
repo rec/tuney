@@ -11,6 +11,8 @@ from ..config.serialize import serialize
 BUILTIN_PRESETS = Path(__file__).resolve().parent
 USER_PRESETS = Path.home() / '.config' / 'tuney' / 'presets'
 PRESET_SUFFIXES = ['.toml', '.json']
+SECTION_PRESET_SUFFIX = '.toml'
+SECTION_PRESETS = {'scale', 'tuning'}
 FORBIDDEN_PRESET_FIELDS = ['text', 'text_file', 'text_args']
 SKIPPED_PRESET_FIELDS = [
     *FORBIDDEN_PRESET_FIELDS,
@@ -43,8 +45,26 @@ def preset_names() -> list[str]:
         if not directory.exists():
             continue
         for path in sorted(directory.iterdir()):
-            if path.suffix in PRESET_SUFFIXES and path.stem not in names:
+            if (
+                path.suffix in PRESET_SUFFIXES
+                and not _is_section_preset_path(path)
+                and path.stem not in names
+            ):
                 names.append(path.stem)
+    return names
+
+
+def section_preset_names(section: str) -> list[str]:
+    _validate_section(section)
+    names: list[str] = []
+    suffix = f'.{section}{SECTION_PRESET_SUFFIX}'
+    for directory in [USER_PRESETS, BUILTIN_PRESETS]:
+        if not directory.exists():
+            continue
+        for path in sorted(directory.iterdir()):
+            if path.name.endswith(suffix) and (name := path.name[: -len(suffix)]):
+                if name not in names:
+                    names.append(name)
     return names
 
 
@@ -92,6 +112,15 @@ def read_preset(name: str) -> dict[str, Any]:
     return data
 
 
+def read_section_preset(section: str, name: str) -> dict[str, Any]:
+    _validate_section(section)
+    data = read_file(_section_preset_path(section, name))
+    value = data.get(section)
+    if not is_str_dict(value):
+        raise ValueError(f'Section preset {name} must contain [{section}]')
+    return value
+
+
 def merged_data(*data: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for item in data:
@@ -103,9 +132,21 @@ def _preset_path(name: str) -> Path:
     _validate_preset_name(name)
     for directory in [USER_PRESETS, BUILTIN_PRESETS]:
         for suffix in PRESET_SUFFIXES:
-            if (path := directory / f'{name}{suffix}').exists():
+            if (
+                path := directory / f'{name}{suffix}'
+            ).exists() and not _is_section_preset_path(path):
                 return path
     raise ValueError(f'Unknown preset {name}')
+
+
+def _section_preset_path(section: str, name: str) -> Path:
+    _validate_section(section)
+    _validate_preset_name(name)
+    suffix = f'.{section}{SECTION_PRESET_SUFFIX}'
+    for directory in [USER_PRESETS, BUILTIN_PRESETS]:
+        if (path := directory / f'{name}{suffix}').exists():
+            return path
+    raise ValueError(f'Unknown {section} preset {name}')
 
 
 def _user_preset_path(name: str) -> Path:
@@ -125,14 +166,30 @@ def _validate_preset_name(name: str) -> None:
         raise ValueError(f'Preset names must not contain path separators: {name}')
 
 
+def _validate_section(section: str) -> None:
+    if section not in SECTION_PRESETS:
+        raise ValueError(f'Unknown preset section {section}')
+
+
 def _preset_names(directory: Path) -> list[str]:
     if not directory.exists():
         return []
     names: list[str] = []
     for path in sorted(directory.iterdir()):
-        if path.suffix in PRESET_SUFFIXES and path.stem not in names:
+        if (
+            path.suffix in PRESET_SUFFIXES
+            and not _is_section_preset_path(path)
+            and path.stem not in names
+        ):
             names.append(path.stem)
     return names
+
+
+def _is_section_preset_path(path: Path) -> bool:
+    return any(
+        path.name.endswith(f'.{section}{SECTION_PRESET_SUFFIX}')
+        for section in SECTION_PRESETS
+    )
 
 
 def _merge_data(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:

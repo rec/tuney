@@ -36,6 +36,7 @@ from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
 from ..config.display import Beginner, Display, General, Hidden, Numeric, Options
 from ..mapper.mapper import Mapper
+from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
 from ..scale.table import Table
@@ -49,6 +50,7 @@ Scalar: TypeAlias = bool | float | int | str | None
 
 INLINE_CHILDREN = (Polyphony,)
 ENTRY_CHAR_WIDTH = 10
+SECTION_PRESET_PLACEHOLDER = 'Preset...'
 
 CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
     WeakKeyDictionary()
@@ -185,7 +187,7 @@ def _add_model_controls(
     advanced: bool = True,
 ) -> None:
     if title:
-        parent = _add_collapsible_section(parent, title)
+        parent = _add_collapsible_section(parent, title, data)
 
     if isinstance(data, Tuning):
         _add_tuning_controls(parent, data, option_controls, advanced)
@@ -268,7 +270,9 @@ def _section(parent: QWidget) -> QFrame:
     return section
 
 
-def _add_collapsible_section(parent: QWidget, title: str) -> QWidget:
+def _add_collapsible_section(
+    parent: QWidget, title: str, data: BaseModel | None = None
+) -> QWidget:
     section = _section(parent)
     _parent_layout(parent).addWidget(section)
     layout = QVBoxLayout(section)
@@ -291,7 +295,13 @@ def _add_collapsible_section(parent: QWidget, title: str) -> QWidget:
     button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     button.toggled.connect(lambda checked: _set_section_expanded(button, body, checked))
 
-    layout.addWidget(button)
+    header = QHBoxLayout()
+    header.setContentsMargins(0, 0, 0, 0)
+    header.setSpacing(6)
+    header.addWidget(button)
+    _add_section_preset_control(section, header, data)
+
+    layout.addLayout(header)
     layout.addWidget(body)
     return body
 
@@ -299,6 +309,56 @@ def _add_collapsible_section(parent: QWidget, title: str) -> QWidget:
 def _set_section_expanded(button: QToolButton, body: QWidget, expanded: bool) -> None:
     body.setVisible(expanded)
     button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+
+
+def _add_section_preset_control(
+    parent: QWidget,
+    layout: QBoxLayout,
+    data: BaseModel | None,
+) -> None:
+    section = _section_preset_section(data)
+    if section is None or not (names := section_preset_names(section)):
+        return
+    assert data is not None
+
+    menu = QComboBox(parent)
+    menu.setObjectName('section_preset')
+    menu.addItems([SECTION_PRESET_PLACEHOLDER, *names])
+    menu.setCurrentIndex(0)
+    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    layout.addWidget(menu)
+
+    def command(name: str) -> None:
+        if name == SECTION_PRESET_PLACEHOLDER:
+            return
+        _apply_section_preset(parent, data, section, name)
+        blocker = QSignalBlocker(menu)
+        menu.setCurrentIndex(0)
+        del blocker
+
+    menu.currentTextChanged.connect(command)
+
+
+def _section_preset_section(data: BaseModel | None) -> str | None:
+    if isinstance(data, Scale):
+        return 'scale'
+    if isinstance(data, Tuning):
+        return 'tuning'
+    return None
+
+
+def _apply_section_preset(
+    parent: QWidget, data: BaseModel, section: str, name: str
+) -> None:
+    values = merged_data(data.model_dump(), read_section_preset(section, name))
+    validated = type(data).model_validate(values)
+    if data.model_dump() != validated.model_dump():
+        _checkpoint_undo(parent)
+    for field in type(data).model_fields:
+        setattr(data, field, getattr(validated, field))
+    _clear_cached_values(data)
+    _after(parent, 0, _rebuild_parent_control_panel, parent)
+    _rebuild_note_grid_if_mapping_changed(parent, data)
 
 
 def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel, str]]:
