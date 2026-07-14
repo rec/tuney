@@ -118,8 +118,9 @@ class Layout(QWidget):
 
     def set_play_cursor(self, index: int | None) -> None:
         if index is None:
-            self.textbox.clearFocus()
-            return
+            if self.text_stack.currentWidget() is not self.textbox:
+                return
+            index = len(self.textbox.toPlainText())
         cursor = self.textbox.textCursor()
         cursor.setPosition(max(0, min(index, len(self.textbox.toPlainText()))))
         self.textbox.setTextCursor(cursor)
