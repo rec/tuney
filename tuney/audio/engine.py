@@ -9,6 +9,7 @@ from typing import Any, Protocol, runtime_checkable
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..app.platform_info import instrument
 from ..scale import NoteNumber
 from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
@@ -75,12 +76,15 @@ class AudioEngine(BaseModel):
         kwargs['samplerate'] = kwargs.pop('sample_rate')
         kwargs['device'] = output_device(kwargs['device'])
         try:
+            instrument('audio stream create', kwargs=kwargs)
             return sd.OutputStream(callback=self.callback, **kwargs)
         except sd.PortAudioError as error:
+            instrument('audio stream create error', error=str(error))
             self.diagnostics.record_stream_error(str(error))
             raise
 
     def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> None:
+        instrument('audio command submit', command=type(command).__name__)
         self.commands.put(command)
 
     def start(self) -> None:
@@ -88,15 +92,19 @@ class AudioEngine(BaseModel):
         if 'stream' in self.__dict__ and self.stream.active:
             return
         try:
+            instrument('audio stream start')
             self.stream.start()
+            instrument('audio stream started')
         except Exception as error:
             if error.__class__.__name__ == 'PortAudioError':
                 if stream := self.__dict__.pop('stream', None):
+                    instrument('audio stream start error', error=str(error))
                     self.diagnostics.record_stream_error(str(error))
                     stream.close()
             raise
 
     def close(self) -> None:
+        instrument('audio engine close')
         if stream := self.__dict__.pop('stream', None):
             stream.stop()
             stream.close()
@@ -107,6 +115,7 @@ class AudioEngine(BaseModel):
 
     def reconfigure(self) -> None:
         restart = 'stream' in self.__dict__ and self.stream.active
+        instrument('audio engine reconfigure', restart=restart)
         self.close()
         if restart:
             self.start()
@@ -114,13 +123,16 @@ class AudioEngine(BaseModel):
     def wait(self) -> None:
         if (stream := self.__dict__.get('stream')) is not None:
             if stream.active:
+                instrument('audio stream wait')
                 self.playback_complete.wait()
                 stream.stop()
+                instrument('audio stream stopped after wait')
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: Any, status: Any
     ) -> None:
         if status:
+            instrument('audio callback status', status=str(status))
             self.diagnostics.record_callback_status(str(status))
 
         try:
@@ -136,6 +148,7 @@ class AudioEngine(BaseModel):
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
             from sounddevice import CallbackAbort
 
+            instrument('audio callback error', error=repr(error))
             self.diagnostics.record_callback_error(str(error))
             self.playback_complete.set()
             raise CallbackAbort from error
@@ -150,14 +163,23 @@ class AudioEngine(BaseModel):
                 return
 
             if isinstance(command, NotePress):
+                instrument(
+                    'audio command apply',
+                    command='NotePress',
+                    note=command.note_number,
+                    is_press=command.is_press,
+                )
                 self.stop_when_silent = False
                 self.mixer.apply(command)
             elif isinstance(command, Configure):
+                instrument('audio command apply', command='Configure')
                 self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
             elif isinstance(command, PlaySpeech):
+                instrument('audio command apply', command='PlaySpeech')
                 self.speech = command.speech
             else:
+                instrument('audio command apply', command='StopAll')
                 self.stop_when_silent = True
                 self.speech = None
                 self.mixer.stop_all()

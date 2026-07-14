@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from ..app.platform_info import instrument
 from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
@@ -36,6 +37,7 @@ class Player(BaseModel, frozen=True):
         return engine
 
     def reconfigure_device(self) -> None:
+        instrument('player reconfigure device')
         self.pressed_notes.clear()
         try:
             self.engine.reconfigure()
@@ -85,20 +87,24 @@ class Player(BaseModel, frozen=True):
         comment: Callable[[], str] | None = None,
         append: bool = False,
     ) -> None:
+        instrument('player start recording', path=path, append=append)
         stream = self.engine.stream
         self.engine.recorder = AudioFileWriter(
             path, int(stream.samplerate), stream.channels, comment, append
         )
 
     def stop_recording(self) -> None:
+        instrument('player stop recording')
         recorder, self.engine.recorder = self.engine.recorder, None
         if recorder:
             recorder.close()
 
     def on_note(self, note_number: NoteNumber, is_press: bool) -> bool:
+        instrument('player note', note=note_number, is_press=is_press)
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
+        instrument('player start note', note=note_number)
         if note_number in self.pressed_notes:
             return False
         stolen_note: NoteNumber | None = None
@@ -124,6 +130,11 @@ class Player(BaseModel, frozen=True):
         except Exception as e:
             if e.__class__.__name__ != 'PortAudioError':
                 raise
+            instrument(
+                'player start note portaudio error',
+                note=note_number,
+                error=str(e),
+            )
             self.pressed_notes.remove(note_number)
             if stolen_note is not None:
                 self.pressed_notes.insert(0, stolen_note)
@@ -131,6 +142,7 @@ class Player(BaseModel, frozen=True):
             return False
 
     def stop(self, note_number: NoteNumber) -> bool:
+        instrument('player stop note', note=note_number)
         if note_number not in self.pressed_notes:
             return False
         self.pressed_notes.remove(note_number)
@@ -138,10 +150,14 @@ class Player(BaseModel, frozen=True):
         return True
 
     def stop_all(self) -> None:
+        instrument('player stop all')
         self.pressed_notes.clear()
         self.engine.submit(StopAll())
 
     def start_speech(self, text: str, duration: float, level: float) -> None:
+        instrument(
+            'player start speech', length=len(text), duration=duration, level=level
+        )
         stream = self.engine.stream
         speech = speech_playback(text, duration, int(stream.samplerate), level)
         if speech is not None:
@@ -149,10 +165,12 @@ class Player(BaseModel, frozen=True):
             self.engine.start()
 
     def close(self) -> None:
+        instrument('player close')
         self.pressed_notes.clear()
         if 'engine' in self.__dict__:
             self.engine.close()
 
     def wait(self) -> None:
+        instrument('player wait')
         if 'engine' in self.__dict__:
             self.engine.wait()

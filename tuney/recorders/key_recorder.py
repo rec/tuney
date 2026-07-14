@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..app.platform_info import instrument
 from ..time import Milliseconds, Seconds, to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
@@ -59,6 +60,7 @@ class KeyRecorder(BaseModel):
         return result
 
     def delete_last_char(self, char_presses: list[CharPress]) -> None:
+        instrument('key recorder delete last char', count=len(char_presses))
         deleted_time = None
         while char_presses:
             if (deleted := char_presses.pop()).is_press:
@@ -70,15 +72,21 @@ class KeyRecorder(BaseModel):
     def on_replay(self, state: App) -> None:
         from ..app.app import play_char, replay_char_presses, text_timing_active_indexes
 
+        instrument(
+            'key recorder replay start',
+            is_replaying=state.main_window.is_replaying,
+        )
         state.player.stop_all()
 
         sequencer, self.sequencer = self.sequencer, None
         if sequencer:
+            instrument('key recorder stop old sequencer')
             sequencer.stop()
 
         self.replay_text = ''
         if state.main_window.is_replaying:
             char_presses = replay_char_presses(state)
+            instrument('key recorder replay events', count=len(char_presses))
             if state.use_speech and char_presses:
                 text = ''.join(c.char for c in char_presses if c.is_press)
                 duration = max(c.time for c in char_presses) / 1000
@@ -118,15 +126,18 @@ class KeyRecorder(BaseModel):
                 char_presses=char_presses,
                 callback=callback,
             )
+            instrument('key recorder sequencer start')
             self.sequencer.start()
         else:
             state.main_window.update_text_display()
             state.main_window.ui.set_play_cursor(None)
             state.main_window.ui.set_active_text_timing(None)
+        instrument('key recorder replay end')
 
     def finish_replay(self, state: App) -> None:
         from ..app.app import on_replay, replay_char_presses, stop_replaying
 
+        instrument('key recorder finish replay')
         if state.main_window.history.loop_replay and replay_char_presses(state):
             on_replay(state)
             return
@@ -134,6 +145,7 @@ class KeyRecorder(BaseModel):
         stop_replaying(state)
 
     def clear(self) -> None:
+        instrument('key recorder clear')
         self.start_time = None
         self.time_offset = 0.0
         self.insert_time = None

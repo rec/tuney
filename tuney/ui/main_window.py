@@ -56,7 +56,7 @@ from ..app.app import (
     save,
 )
 from ..app.global_config import GlobalConfig
-from ..app.platform_info import error_issue_url, log_exception, log_path
+from ..app.platform_info import error_issue_url, instrument, log_exception, log_path
 from ..presets import delete_presets, read_file, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
@@ -119,19 +119,24 @@ class _AfterDispatcher(QObject):
 
 class MainWindow(QMainWindow):
     def __init__(self, app: App) -> None:
+        instrument('main window init start')
         startup.set_gui(True)
         if (instance := QApplication.instance()) is None:
+            instrument('qapplication create')
             self.qt_app = QApplication(sys.argv[:1])
         else:
             assert isinstance(instance, QApplication)
+            instrument('qapplication reuse')
             self.qt_app = instance
         self.qt_app.setApplicationName(APP_NAME)
         self.qt_app.setStyle('Fusion')
         from .layout import Layout
 
         super().__init__()
+        instrument('main window qmainwindow ready')
         self.setWindowTitle(APP_NAME)
         if ICON_PATH.exists():
+            instrument('main window icon set', path=ICON_PATH)
             self.setWindowIcon(QIcon(str(ICON_PATH)))
         self.app = app
         self.queue = Queue[CharPress]()
@@ -154,10 +159,13 @@ class MainWindow(QMainWindow):
         self._queue_timer = QTimer(self)
         self._queue_timer.timeout.connect(self._handle_queue)
         self.setMenuBar(self.menu)
+        instrument('layout construct start')
         self.ui = Layout(self)
+        instrument('layout construct end')
         self.setCentralWidget(self.ui)
         self.update_text_display()
         self.qt_app.installEventFilter(self)
+        instrument('main window init end')
 
     @cached_property
     def global_config(self) -> GlobalConfig:
@@ -216,9 +224,11 @@ class MainWindow(QMainWindow):
             timer.deleteLater()
 
     def start(self) -> None:
+        instrument('main window start')
         self._queue_timer.start(QUEUE_POLL_IN_MS)
 
     def mainloop(self) -> None:
+        instrument('qt exec enter')
         old_handler = signal.getsignal(signal.SIGINT)
         signal_timer = QTimer(self)
         signal_timer.timeout.connect(lambda: None)
@@ -231,12 +241,14 @@ class MainWindow(QMainWindow):
             signal_timer.stop()
             signal_timer.deleteLater()
             signal.signal(signal.SIGINT, old_handler)
+            instrument('qt exec leave')
 
     def _on_sigint(self, _signum: int, _frame: FrameType | None) -> None:
         self.close()
         self.qt_app.quit()
 
     def activate(self) -> None:
+        instrument('main window activate')
         self.show()
         self.raise_()
         self.activateWindow()
@@ -244,12 +256,14 @@ class MainWindow(QMainWindow):
         self._has_focus = True
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        instrument('close event start')
         try:
             self.app._autosave.save(lambda path: save(self.app, path))
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.player.close()
         super().closeEvent(event)
+        instrument('close event end')
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
@@ -265,19 +279,24 @@ class MainWindow(QMainWindow):
             self.key_queue.put(c)
 
     def on_clear(self, *_: object) -> None:
+        instrument('ui clear')
         self.history.clear_settings()
 
     def on_clear_text(self, *_: object) -> None:
+        instrument('ui clear text')
         clear(self.app)
 
     def on_advanced(self, checked: bool) -> None:
+        instrument('ui advanced', checked=checked)
         self.ui.control_panel.show_mode(checked)
 
     def on_show_text_timings(self, checked: bool) -> None:
+        instrument('ui show text timings', checked=checked)
         self.app.show_text_timings = checked
         self.update_text_display()
 
     def on_text_timing_changed(self, row: int, column: int, text: str) -> None:
+        instrument('ui text timing changed', row=row, column=column, text=text)
         try:
             self.history.checkpoint_undo()
             edit_text_timing(self.app, row, column, text)
@@ -286,6 +305,7 @@ class MainWindow(QMainWindow):
         self.update_text_display()
 
     def on_open_text_file(self, *_: object) -> None:
+        instrument('ui open text file')
         self._is_saving = True
         try:
             result = self._get_open_file_name(
@@ -303,6 +323,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_save(self, *_: object) -> None:
+        instrument('ui save')
         self._is_saving = True
         try:
             result = self._get_save_file_name(
@@ -318,6 +339,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_save_preset(self, *_: object) -> None:
+        instrument('ui save preset')
         if (name := _preset_name(self)) is None:
             return
         try:
@@ -328,6 +350,7 @@ class MainWindow(QMainWindow):
         self.ui.rebuild_control_panel()
 
     def on_delete_presets(self, *_: object) -> None:
+        instrument('ui delete presets')
         if not (names := _selected_preset_names(self)):
             return
         try:
@@ -339,6 +362,7 @@ class MainWindow(QMainWindow):
         self.ui.rebuild_control_panel()
 
     def on_import_tuning(self, *_: object) -> None:
+        instrument('ui import tuning')
         self._is_saving = True
         try:
             result = self._get_open_file_name(
@@ -357,6 +381,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def on_export_tuning(self, *_: object) -> None:
+        instrument('ui export tuning')
         if (tuning := _export_tuning_source(self.app.tuning)) is None:
             return
 
@@ -380,6 +405,7 @@ class MainWindow(QMainWindow):
             self._has_focus = False
 
     def _set_tuning(self, tuning: Computed | Ratios | Table) -> None:
+        instrument('ui set tuning', tuning=type(tuning).__name__)
         data = self.app.tuning.model_dump()
         match tuning:
             case Computed():
@@ -399,6 +425,12 @@ class MainWindow(QMainWindow):
         )
 
     def on_transport_state(self, change: StateChange) -> bool:
+        instrument(
+            'ui transport state',
+            old_state=change.old_state,
+            state=change.state,
+            action=change.action,
+        )
         filename = ''
         if change.action == Action.save:
             self._is_saving = True
@@ -421,12 +453,15 @@ class MainWindow(QMainWindow):
         )
 
     def on_refresh_devices(self, *_: object) -> None:
+        instrument('ui refresh devices')
         self.ui.refresh_devices()
 
     def on_randomize_timing(self, *_: object) -> None:
+        instrument('ui randomize timing')
         randomize_timing(self.app)
 
     def on_help(self, *_: object) -> None:
+        instrument('ui help')
         show_help(self)
 
     def on_show_log(self, *_: object) -> None:
@@ -457,6 +492,7 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl(error_issue_url(error, path)))
 
     def on_open_config_folder(self, *_: object) -> None:
+        instrument('ui open config folder')
         path = self.app.config_file or self.app._autosave.path
         folder = path.expanduser().parent.resolve()
         try:
@@ -476,9 +512,11 @@ class MainWindow(QMainWindow):
             )
 
     def on_copy_from_state(self, *_: object) -> None:
+        instrument('ui copy from state')
         self.qt_app.clipboard().setText(dump_toml(self.app))
 
     def on_paste_into_state(self, *_: object) -> None:
+        instrument('ui paste into state')
         try:
             self.history.checkpoint_undo()
             restore_text(self.app, self.qt_app.clipboard().text())
@@ -491,12 +529,14 @@ class MainWindow(QMainWindow):
         self.update_text_display()
 
     def on_load_autosave(self, checked: bool) -> None:
+        instrument('ui load autosave', checked=checked)
         if checked == self.app.load_autosave:
             return
         self.history.checkpoint_undo()
         self.app.load_autosave = checked
 
     def on_swap_with_autosave(self, *_: object) -> None:
+        instrument('ui swap with autosave')
         path = self.app._autosave.path
         try:
             data = read_file(path)
@@ -517,6 +557,7 @@ class MainWindow(QMainWindow):
         self.update_text_display()
 
     def update_text_display(self) -> None:
+        instrument('ui update text display', timings=self.app.show_text_timings)
         if self.app.show_text_timings:
             self.ui.set_text_timings(self.app.display_text_timings)
         else:
@@ -721,19 +762,23 @@ class MainWindow(QMainWindow):
     @is_replaying.setter
     def is_replaying(self, is_replaying: bool) -> None:
         if self._is_replaying != is_replaying:
+            instrument('ui replay state', is_replaying=is_replaying)
             self._is_replaying = is_replaying
             self.ui.set_replay_state(is_replaying)
             on_replay(self.app)
 
     def on_replay(self, *_: object) -> None:
+        instrument('ui replay button')
         self.is_replaying = not self.is_replaying
 
     def on_loop_replay(self, checked: bool) -> None:
+        instrument('ui loop replay', checked=checked)
         if checked != self.history.loop_replay:
             self.history.checkpoint_undo()
             self.history.loop_replay = checked
 
     def on_loop_tempo(self, tempo: str) -> None:
+        instrument('ui loop tempo', tempo=tempo)
         try:
             value = float(tempo)
         except ValueError:
@@ -743,6 +788,7 @@ class MainWindow(QMainWindow):
             self.history.loop_tempo = value
 
     def on_loop_before(self, before: str) -> None:
+        instrument('ui loop before', before=before)
         if (
             value := _float_or_none(before)
         ) is not None and value != self.history.loop_before:
@@ -750,6 +796,7 @@ class MainWindow(QMainWindow):
             self.history.loop_before = value
 
     def on_loop_after(self, after: str) -> None:
+        instrument('ui loop after', after=after)
         if (
             value := _float_or_none(after)
         ) is not None and value != self.history.loop_after:
@@ -757,6 +804,7 @@ class MainWindow(QMainWindow):
             self.history.loop_after = value
 
     def on_randomize_on_each_loop(self, checked: bool) -> None:
+        instrument('ui randomize on each loop', checked=checked)
         if checked != self.history.randomize_on_each_loop:
             self.history.checkpoint_undo()
             self.history.randomize_on_each_loop = checked
@@ -786,7 +834,14 @@ def _add_action(
         action.setShortcuts(shortcut)
     elif shortcut:
         action.setShortcut(shortcut)
-    action.triggered.connect(callback)
+
+    def instrumented_callback(*args: object) -> object:
+        instrument('menu action', text=text)
+        if action.isCheckable():
+            return callback(action.isChecked())
+        return callback(*args)
+
+    action.triggered.connect(instrumented_callback)
     menu.addAction(action)
     return action
 

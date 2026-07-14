@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
+TUNEY_TRACE = 'TUNEY_TRACE'
 APP_STATE_DIR = Path('tuney')
 LOG_FILE = 'tuney.txt'
 ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
@@ -49,6 +50,16 @@ def append_log(message: str) -> Path:
     with path.open('a') as fp:
         print(f'[{timestamp}] {message}', file=fp)
     return path
+
+
+def instrument(event: str, **data: object) -> None:
+    if not is_frozen() and os.environ.get(TUNEY_TRACE) != '1':
+        return
+    details = ' '.join(f'{k}={v!r}' for k, v in data.items())
+    try:
+        append_log(f'TRACE {event}{": " + details if details else ""}')
+    except OSError:
+        pass
 
 
 def report_error(message: str) -> None:

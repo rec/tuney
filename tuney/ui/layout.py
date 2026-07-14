@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..app.app import on_char
+from ..app.platform_info import instrument
 from ..audio.device import device_names
 from . import constants
 from .control_panel import ControlPanel
@@ -52,6 +53,7 @@ WIDTH, HEIGHT = 70, 80
 
 class Layout(QWidget):
     def __init__(self, main_window: MainWindow) -> None:
+        instrument('layout init start')
         super().__init__(main_window)
         width = WIDTH * main_window.columns
         height = (
@@ -86,14 +88,17 @@ class Layout(QWidget):
         )
         self.set_text(main_window.app.display_text)
         QTimer.singleShot(0, self.refresh_note_button_fonts)
+        instrument('layout init end')
 
     def set_text(self, s: str) -> None:
+        instrument('layout set text', length=len(s))
         self.text_stack.setCurrentWidget(self.textbox)
         self.textbox.setPlainText(s)
         self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
         self.count_label.setText(f'Chars: {len(s)}')
 
     def set_text_timings(self, rows: list[list[str]]) -> None:
+        instrument('layout set text timings', rows=len(rows))
         self.text_stack.setCurrentWidget(self.text_timings)
         self.text_timings.blockSignals(True)
         self.text_timings.setRowCount(len(rows))
@@ -117,6 +122,7 @@ class Layout(QWidget):
         self.main_window.on_text_timing_changed(item.row(), item.column(), item.text())
 
     def set_play_cursor(self, index: int | None) -> None:
+        instrument('layout set play cursor', index=index)
         if index is None:
             if self.text_stack.currentWidget() is not self.textbox:
                 return
@@ -135,6 +141,7 @@ class Layout(QWidget):
         buttons = list(self.__dict__.get('note_buttons', {}).values())
         if not buttons:
             return
+        instrument('layout refresh note button fonts', buttons=len(buttons))
         font_size = max(
             MIN_FONT_SIZE,
             min(_note_font_size(i.width(), i.height(), i.note_name) for i in buttons),
@@ -175,12 +182,15 @@ class Layout(QWidget):
         return frame
 
     def refresh_devices(self) -> None:
+        instrument('layout refresh devices')
         device_names.cache_clear()
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 
     def rebuild_control_panel(self) -> None:
+        instrument('layout rebuild control panel start')
         self.control_panel.rebuild()
+        instrument('layout rebuild control panel end')
 
     def refresh_loop_controls(self) -> None:
         _set_entry_text(self.loop_before, str(self.main_window.history.loop_before))
@@ -359,6 +369,7 @@ class Layout(QWidget):
         return {}
 
     def rebuild_note_grid(self) -> None:
+        instrument('layout rebuild note grid start')
         self.main_window.app.__dict__.pop('note_labels', None)
         self.__dict__.pop('note_buttons', None)
         _clear_grid(self.note_grid)
@@ -377,6 +388,7 @@ class Layout(QWidget):
             )
             _ = self.note_buttons
         self.refresh_note_button_fonts()
+        instrument('layout rebuild note grid end', has_note_buttons=has_note_buttons)
 
     def _note_frame(self, i: int, char: str, text: str) -> NoteButton:
         row, column = divmod(i, self.main_window.columns)

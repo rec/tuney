@@ -8,6 +8,7 @@ from zipfile import ZipFile
 
 from pydantic import BaseModel, Field
 
+from ..app.platform_info import instrument
 from .ratios import Ratios
 
 SCALES_ZIP = Path('scala/scales.toml.zip')
@@ -54,15 +55,19 @@ class ScalaTrie(BaseModel):
 
 @cache
 def scala_trie() -> ScalaTrie:
+    instrument('scala trie build start')
     return build_trie(scala_scales())
 
 
 @cache
 def scala_scales() -> dict[str, Ratios]:
     path = scales_zip_path()
+    instrument('scala scales load start', path=path)
     with ZipFile(path) as archive:
         data = tomllib.loads(archive.read(SCALES_TOML).decode())
-    return {k: Ratios.model_validate(v) for k, v in data.items()}
+    scales = {k: Ratios.model_validate(v) for k, v in data.items()}
+    instrument('scala scales load end', count=len(scales))
+    return scales
 
 
 def build_trie(scales: dict[str, Ratios]) -> ScalaTrie:
@@ -72,6 +77,7 @@ def build_trie(scales: dict[str, Ratios]) -> ScalaTrie:
         for c in key:
             node = node.children.setdefault(c, ScalaTrie())
         node.value = value
+    instrument('scala trie build end', count=len(scales))
     return root
 
 

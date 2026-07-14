@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import random
 import string
+import sys
 import tomllib
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -28,7 +29,7 @@ from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..ui import startup
-from .platform_info import exit_with_message, report_error
+from .platform_info import exit_with_message, instrument, report_error
 
 if TYPE_CHECKING:
     from ..ui.main_window import MainWindow
@@ -113,28 +114,38 @@ class App(Tuney):
 
 
 def run(app: App) -> None:
+    instrument('run', gui=app.gui, frozen=getattr(sys, 'frozen', False))
     if app.gui:
         restore_error = None
         try:
+            instrument('autosave restore start')
             restore_error = app._autosave.restore(app)
+            instrument('autosave restore end', error=restore_error is not None)
         except Exception as error:
+            instrument('autosave restore exception', error=repr(error))
             restore_error = error
+        instrument('main window construct start')
         main_window = app.main_window
+        instrument('main window construct end')
         if restore_error is not None:
             main_window.show_restore_error(restore_error)
         start(app)
+        instrument('mainloop start')
         main_window.mainloop()
+        instrument('mainloop end')
     else:
         run_cli(app)
 
 
 def start(app: App) -> None:
+    instrument('app start', run_in_background=app.run_in_background)
     app.main_window.start()
     if app.run_in_background:
         app.listener.start()
 
 
 def on_char(app: App, c: CharPress) -> None:
+    instrument('char event', char=c.char, is_press=c.is_press)
     if c.char == '\b' and not c.is_press:
         stop_backspace_repeat(app)
     if app._is_listening:
@@ -244,6 +255,7 @@ def stop_backspace_repeat(app: App) -> None:
 
 
 def clear(app: App) -> None:
+    instrument('clear')
     main_window = app.__dict__.get('main_window')
     if main_window is None and app.gui:
         main_window = app.main_window
@@ -260,6 +272,7 @@ def clear(app: App) -> None:
 
 
 def randomize_timing(app: App) -> None:
+    instrument('randomize timing')
     if not (text := app.display_text):
         return
     if app.gui:
@@ -271,6 +284,7 @@ def randomize_timing(app: App) -> None:
 
 
 def randomize_settings(app: App, rng: random.Random | None = None) -> None:
+    instrument('randomize settings')
     rng = rng or random.Random()
     if app.gui:
         app.main_window.history.checkpoint_undo()
@@ -311,6 +325,7 @@ def randomize_settings(app: App, rng: random.Random | None = None) -> None:
 
 
 def load_text_file(app: App, path: Path) -> None:
+    instrument('load text file', path=path)
     text = read_text_file(path)
     if app.gui:
         app.main_window.history.checkpoint_undo()
@@ -340,6 +355,7 @@ def restore_text(app: App, text: str) -> None:
 
 
 def apply_preset(app: App, name: str) -> None:
+    instrument('apply preset', name=name)
     char_presses = app.__dict__.get('char_presses')
     data = merged_data(app.model_dump(), read_preset(name), {'preset': name})
     validated = type(app).model_validate(data)
@@ -353,12 +369,14 @@ def apply_preset(app: App, name: str) -> None:
 
 
 def restore_data(app: App, data: dict[str, object]) -> None:
+    instrument('restore data start', keys=sorted(data))
     validated = type(app).model_validate(data)
     if isinstance(player := app.__dict__.get('player'), Player):
         player.close()
     for field in type(app).model_fields:
         setattr(app, field, getattr(validated, field))
     clear_cached_values(app)
+    instrument('restore data end')
 
 
 def dump_data(app: App) -> dict[str, object]:
@@ -372,6 +390,7 @@ def dump_data(app: App) -> dict[str, object]:
 
 def play_char(app: App, c: CharPress) -> None:
     if (note := app.mapper(c.char)) is not None:
+        instrument('play char', char=c.char, is_press=c.is_press, note=note)
         if not app.silent:
             app.player.on_note(note, c.is_press)
         app.midi(note, c.is_press)

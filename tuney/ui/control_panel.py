@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 from tyro._fields import field_list_from_type_or_callable
 
 from ..app.app import apply_preset
+from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
@@ -238,6 +239,7 @@ class _ScalaBrowserEdit(QLineEdit):
 
     @cached_property
     def trie(self) -> ScalaTrie:
+        instrument('scala browser trie load start')
         return scala_trie()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -354,6 +356,7 @@ class ControlPanel(QScrollArea):
         height: int = 200,
         app: App | None = None,
     ) -> None:
+        instrument('control panel init', model=type(data).__name__)
         super().__init__(parent)
         self.data = data
         self.app = app
@@ -369,6 +372,7 @@ class ControlPanel(QScrollArea):
         self.rebuild()
 
     def rebuild(self) -> None:
+        instrument('control panel rebuild start', model=type(self.data).__name__)
         while self.content.count():
             page = self.content.widget(0)
             assert page is not None
@@ -379,8 +383,10 @@ class ControlPanel(QScrollArea):
         self.pages[True] = self._build_page(True)
         self.pages[False] = self._build_page(False)
         self.content.setCurrentWidget(self.pages[self.show_advanced])
+        instrument('control panel rebuild end', model=type(self.data).__name__)
 
     def show_mode(self, advanced: bool) -> None:
+        instrument('control panel show mode', advanced=advanced)
         if advanced == self.show_advanced and advanced in self.pages:
             return
         self.show_advanced = advanced
@@ -389,6 +395,7 @@ class ControlPanel(QScrollArea):
         self.content.setCurrentWidget(self.pages[advanced])
 
     def _build_page(self, advanced: bool) -> QWidget:
+        instrument('control panel build page start', advanced=advanced)
         page = QWidget(self.content)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(6, 6, 6, 6)
@@ -402,6 +409,7 @@ class ControlPanel(QScrollArea):
                 advanced,
             )
         _add_model_controls(page, self.data, self.option_controls, advanced=advanced)
+        instrument('control panel build page end', advanced=advanced)
         return page
 
 
@@ -1322,6 +1330,7 @@ def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
 def _set_model_value(
     data: BaseModel, name: str, value: object, parent: Any | None = None
 ) -> None:
+    instrument('control value set start', model=type(data).__name__, field=name)
     values = data.model_dump()
     values[name] = value
     validated = type(data).model_validate(values)
@@ -1338,6 +1347,7 @@ def _set_model_value(
         data.notify_change()
     if parent is not None:
         _sync_model_controls(parent, data, name)
+    instrument('control value set end', model=type(data).__name__, field=name)
 
 
 def _checkpoint_undo(parent: Any) -> None:

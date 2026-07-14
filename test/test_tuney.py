@@ -33,6 +33,7 @@ from tuney.app.platform_info import (
     ISSUE_URL,
     error_issue_url,
     exit_with_message,
+    instrument,
     report_error,
 )
 from tuney.app.runnable import start_thread
@@ -663,6 +664,17 @@ def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'problem' in log.read_text()
+
+
+def test_instrument_appends_to_app_state_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        monkeypatch.setenv('TUNEY_TRACE', '1')
+
+        instrument('clicked button', button='Play')
+
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        assert "TRACE clicked button: button='Play'" in log.read_text()
 
 
 def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:

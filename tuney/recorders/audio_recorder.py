@@ -8,6 +8,7 @@ from shutil import move
 
 from pydantic import BaseModel
 
+from ..app.platform_info import instrument
 from ..audio.player import Player
 from ..ui import Action, State, StateChange
 
@@ -24,6 +25,12 @@ class AudioRecorder(BaseModel):
         comment_factory: Callable[[], Callable[[], str]],
         path: Path | None = None,
     ) -> bool:
+        instrument(
+            'audio recorder transport',
+            old_state=change.old_state,
+            state=change.state,
+            action=change.action,
+        )
         if change.action == Action.save:
             if path is None:
                 return False
@@ -46,6 +53,7 @@ class AudioRecorder(BaseModel):
     def start(
         self, player: Player, comment_factory: Callable[[], Callable[[], str]]
     ) -> None:
+        instrument('audio recorder start', has_path=self.path is not None)
         if self.path is None:
             self.path = Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
             self.path.touch()
@@ -59,15 +67,18 @@ class AudioRecorder(BaseModel):
         self.started = True
 
     def stop(self, player: Player) -> None:
+        instrument('audio recorder stop')
         player.stop_recording()
 
     def save(self, path: Path) -> None:
+        instrument('audio recorder save', path=path)
         if self.path is None:
             return
         move(self.path, path)
         self._forget()
 
     def clear(self) -> None:
+        instrument('audio recorder clear')
         if self.path is not None:
             self.path.unlink(missing_ok=True)
         self._forget()
