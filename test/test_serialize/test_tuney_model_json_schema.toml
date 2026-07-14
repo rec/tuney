@@ -595,6 +595,16 @@ default = false
 title = "Silent"
 type = "boolean"
 
+[properties.use_speech]
+default = false
+title = "Use Speech"
+type = "boolean"
+
+[properties.speech_level]
+default = 1.0
+title = "Speech Level"
+type = "number"
+
 [properties.output]
 default = "<null>"
 title = "Output"

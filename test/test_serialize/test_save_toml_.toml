@@ -7,6 +7,8 @@ show_text_timings = false
 audition_scala = true
 gui = false
 silent = false
+use_speech = false
+speech_level = 1.0
 run_in_background = false
 
 [mapper]

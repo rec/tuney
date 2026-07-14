@@ -15,6 +15,7 @@ from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter
 from .polyphony import Polyphony
+from .speech import SpeechPlayback
 from .voice import Voice
 
 
@@ -42,6 +43,12 @@ class StopAll:
     pass
 
 
+class PlaySpeech(BaseModel, frozen=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    speech: SpeechPlayback
+
+
 class AudioEngine(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -49,10 +56,11 @@ class AudioEngine(BaseModel):
     device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
     recorder: AudioFileWriter | None = Field(default=None, exclude=True)
+    speech: SpeechPlayback | None = Field(default=None, exclude=True)
     stop_when_silent: bool = False
 
     @cached_property
-    def commands(self) -> SimpleQueue[NotePress | Configure | StopAll]:
+    def commands(self) -> SimpleQueue[NotePress | Configure | PlaySpeech | StopAll]:
         return SimpleQueue()
 
     @cached_property
@@ -72,7 +80,7 @@ class AudioEngine(BaseModel):
             self.diagnostics.record_stream_error(str(error))
             raise
 
-    def submit(self, command: NotePress | Configure | StopAll) -> None:
+    def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> None:
         self.commands.put(command)
 
     def start(self) -> None:
@@ -118,6 +126,11 @@ class AudioEngine(BaseModel):
         try:
             self._drain_commands()
             out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
+            if self.speech is not None:
+                out += self.speech.render(frame_size, out.dtype, out.shape[1])
+                np.clip(out, -1, 1, out=out)
+                if self.speech.complete:
+                    self.speech = None
             if self.recorder:
                 self.recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
@@ -142,6 +155,9 @@ class AudioEngine(BaseModel):
             elif isinstance(command, Configure):
                 self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
+            elif isinstance(command, PlaySpeech):
+                self.speech = command.speech
             else:
                 self.stop_when_silent = True
+                self.speech = None
                 self.mixer.stop_all()

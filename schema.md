@@ -38,6 +38,12 @@ class Tuney:
     # Disable synthesized audio output
     silent: bool = False
 
+    # Speak the replay text along with the synthesized notes
+    use_speech: bool = False
+
+    # Speech volume multiplier
+    speech_level: float = 1.0
+
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
 

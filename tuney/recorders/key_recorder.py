@@ -79,6 +79,10 @@ class KeyRecorder(BaseModel):
         self.replay_text = ''
         if state.main_window.is_replaying:
             char_presses = replay_char_presses(state)
+            if state.use_speech and char_presses:
+                text = ''.join(c.char for c in char_presses if c.is_press)
+                duration = max(c.time for c in char_presses) / 1000
+                state.player.start_speech(text, duration, state.speech_level)
             active_indexes = text_timing_active_indexes(char_presses)
             if state.show_text_timings:
                 state.main_window.update_text_display()

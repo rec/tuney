@@ -12,6 +12,8 @@ LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
 SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
 OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
+    '--use-speech',
+    '--speech-level',
     '--backspace-repeat-delay',
     '--backspace-repeat-rate',
     '--sample-rate',

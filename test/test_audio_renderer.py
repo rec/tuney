@@ -11,7 +11,7 @@ from sounddevice import CallbackAbort, PortAudioError
 
 from tuney.audio import device as device_module
 from tuney.audio.device import Device
-from tuney.audio.engine import AudioEngine, StopAll, Stream
+from tuney.audio.engine import AudioEngine, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
@@ -19,6 +19,7 @@ from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Sound
+from tuney.audio.speech import SpeechPlayback
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
 
@@ -484,6 +485,38 @@ def test_engine_applies_stop_all_on_next_block() -> None:
 
     assert not engine.mixer.voices
     assert engine.playback_complete.is_set()
+
+
+def test_engine_mixes_speech_playback() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer)
+    speech = SpeechPlayback(data=np.ones((8, 1), dtype=np.float32) * 0.25, level=2.0)
+    engine.submit(PlaySpeech(speech=speech))
+    out = np.zeros((4, 1), dtype=np.float32)
+
+    engine.callback(out, len(out), None, None)
+
+    np.testing.assert_allclose(out, 0.5)
+    assert engine.speech is speech
+
+
+def test_engine_clears_speech_playback_when_complete() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer)
+    speech = SpeechPlayback(data=np.ones((4, 1), dtype=np.float32), level=1.0)
+    engine.submit(PlaySpeech(speech=speech))
+
+    engine.callback(np.zeros((8, 1), dtype=np.float32), 8, None, None)
+
+    assert engine.speech is None
+
+
+def test_engine_stop_all_clears_speech_playback() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.submit(PlaySpeech(speech=SpeechPlayback(data=np.ones((8, 1)), level=1.0)))
+    engine.submit(StopAll())
+
+    engine.callback(np.zeros((4, 1)), 4, None, None)
+
+    assert engine.speech is None
 
 
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:

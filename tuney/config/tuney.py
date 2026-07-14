@@ -78,6 +78,14 @@ class Tuney(BaseModel):
     # Disable synthesized audio output
     silent: Annotated[bool, tyro_option('-s'), General, Beginner] = False
 
+    # Speak the replay text along with the synthesized notes
+    use_speech: Annotated[bool, General, Beginner] = False
+
+    # Speech volume multiplier
+    speech_level: Annotated[
+        float, General, Beginner, Numeric(min=0, max=4, inc=0.01)
+    ] = 1.0
+
     # Audio file to write while playing text
     output: Annotated[Path | None, tyro_option('-o'), Hidden] = None
 

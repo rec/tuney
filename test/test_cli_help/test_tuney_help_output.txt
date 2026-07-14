@@ -22,6 +22,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Open the graphical interface (default: False)
   -s, --silent, --no-silent
         Disable synthesized audio output (default: False)
+  --use-speech, --no-use-speech
+        Speak the replay text along with the synthesized notes (default: False)
+  --speech-level FLOAT
+        Speech volume multiplier (default: 1.0)
   -o {None}|PATH, --output {None}|PATH
         Audio file to write while playing text (default: None)
   -b, --run-in-background, --no-run-in-background

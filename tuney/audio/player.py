@@ -10,10 +10,11 @@ from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .device import Device
-from .engine import AudioEngine, Configure, StopAll
+from .engine import AudioEngine, Configure, PlaySpeech, StopAll
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter, render_file
 from .sound import Sound
+from .speech import speech_playback
 from .voice import Voice
 
 
@@ -139,6 +140,13 @@ class Player(BaseModel, frozen=True):
     def stop_all(self) -> None:
         self.pressed_notes.clear()
         self.engine.submit(StopAll())
+
+    def start_speech(self, text: str, duration: float, level: float) -> None:
+        stream = self.engine.stream
+        speech = speech_playback(text, duration, int(stream.samplerate), level)
+        if speech is not None:
+            self.engine.submit(PlaySpeech(speech=speech))
+            self.engine.start()
 
     def close(self) -> None:
         self.pressed_notes.clear()

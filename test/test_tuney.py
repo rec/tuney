@@ -962,6 +962,49 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
     assert main_window.ui.cursor == [0, 1, 2]
 
 
+def test_replay_starts_speech(monkeypatch) -> None:
+    class FakePlayer:
+        def __init__(self) -> None:
+            self.speech: list[tuple[str, float, float]] = []
+
+        @staticmethod
+        def stop_all() -> None:
+            pass
+
+        def start_speech(self, text: str, duration: float, level: float) -> None:
+            self.speech.append((text, duration, level))
+
+    class FakeSequencer:
+        def __init__(self, *_: object, **__: object) -> None:
+            pass
+
+        @staticmethod
+        def start() -> None:
+            pass
+
+    app = App(
+        gui=True,
+        use_speech=True,
+        speech_level=0.5,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+            CharPress('b', time=200),
+            CharPress('b', False, 400),
+        ],
+    )
+    main_window = FakeApp()
+    main_window.is_replaying = True
+    app.__dict__['main_window'] = main_window
+    player = FakePlayer()
+    app.__dict__['player'] = player
+    monkeypatch.setattr('tuney.recorders.key_recorder.Sequencer', FakeSequencer)
+
+    app.key_recorder.on_replay(app)
+
+    assert player.speech == [('ab', 0.4, 0.5)]
+
+
 def test_replay_char_presses_use_loop_tempo() -> None:
     app = App(
         gui=True,
