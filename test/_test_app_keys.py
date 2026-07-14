@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QKeySequence
 
 from tuney import presets as presets_module
 from tuney.app.app import App
@@ -23,6 +23,12 @@ from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 def run(names: list[str]) -> None:
     for name in names:
         globals()[name]()
+
+
+def _shortcut_text(shortcuts: list[QKeySequence]) -> str:
+    return ', '.join(
+        i.toString(QKeySequence.SequenceFormat.PortableText) for i in shortcuts
+    )
 
 
 def test_qt_key_events() -> None:
@@ -269,12 +275,43 @@ def test_application_uses_cross_platform_style() -> None:
         assert app.applicationName() == 'Tuney'
         assert app.style().objectName().lower() == 'fusion'
         menu_actions: dict[str, list[str]] = {}
+        action_shortcuts: dict[str, str] = {}
         for action in window.menuBar().actions():
             if (menu := action.menu()) is not None:
                 menu_actions[action.text()] = [i.text() for i in menu.actions()]
+                action_shortcuts |= {
+                    i.text(): _shortcut_text(i.shortcuts()) for i in menu.actions()
+                }
         edit_actions = menu_actions['Edit']
         file_actions = menu_actions['File']
 
+        assert all(action_shortcuts.values())
+        help_shortcut = action_shortcuts.pop('Tuney Help')
+        assert help_shortcut in {'Ctrl+?, Help', 'F1, Help'}
+        expected_shortcuts = {
+            'Undo': 'Ctrl+Z',
+            'Redo': 'Ctrl+Y',
+            'Randomize Timing': 'Ctrl+R',
+            'Randomize Settings': 'Ctrl+Alt+R',
+            'Clear': 'Ctrl+B',
+            'Clear Text': 'Ctrl+Alt+B',
+            'Show Text Timings': 'Ctrl+T',
+            'Advanced': 'Ctrl+Alt+A',
+            'Open Text File': 'Ctrl+O',
+            'Save preset...': 'Ctrl+P',
+            'Delete presets...': 'Ctrl+Alt+P',
+            'Import tuning...': 'Ctrl+I',
+            'Export tuning...': 'Ctrl+E',
+            'Save': 'Ctrl+S',
+            'Open enclosing folder for config file': 'Ctrl+Alt+O',
+            'Copy from state': 'Ctrl+Alt+C',
+            'Paste into state': 'Ctrl+Alt+V',
+            'Load autosave on start': 'Ctrl+L',
+            'Swap with autosave': 'Ctrl+Alt+S',
+            'Refresh Devices': 'Ctrl+D',
+            'Show Log Location': 'Ctrl+Alt+L',
+        }
+        assert action_shortcuts == expected_shortcuts, action_shortcuts
         assert 'Save preset...' in file_actions
         assert 'Delete presets...' in file_actions
         assert 'Load autosave on start' in file_actions

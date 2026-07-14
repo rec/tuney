@@ -77,6 +77,22 @@ REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
 SAVE_ACCELERATOR = 'Ctrl+S'
 UNDO_ACCELERATOR = 'Ctrl+Z'
 REDO_ACCELERATOR = 'Ctrl+Y'
+RANDOMIZE_TIMING_ACCELERATOR = 'Ctrl+R'
+RANDOMIZE_SETTINGS_ACCELERATOR = 'Ctrl+Alt+R'
+CLEAR_TEXT_ACCELERATOR = 'Ctrl+Alt+B'
+SHOW_TEXT_TIMINGS_ACCELERATOR = 'Ctrl+T'
+ADVANCED_ACCELERATOR = 'Ctrl+Alt+A'
+OPEN_TEXT_FILE_ACCELERATOR = 'Ctrl+O'
+SAVE_PRESET_ACCELERATOR = 'Ctrl+P'
+DELETE_PRESETS_ACCELERATOR = 'Ctrl+Alt+P'
+IMPORT_TUNING_ACCELERATOR = 'Ctrl+I'
+EXPORT_TUNING_ACCELERATOR = 'Ctrl+E'
+OPEN_CONFIG_FOLDER_ACCELERATOR = 'Ctrl+Alt+O'
+COPY_STATE_ACCELERATOR = 'Ctrl+Alt+C'
+PASTE_STATE_ACCELERATOR = 'Ctrl+Alt+V'
+LOAD_AUTOSAVE_ACCELERATOR = 'Ctrl+L'
+SWAP_AUTOSAVE_ACCELERATOR = 'Ctrl+Alt+S'
+SHOW_LOG_ACCELERATOR = 'Ctrl+Alt+L'
 HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
 OPEN_TEXT_FILE_COMMAND = 'Open Text File'
@@ -591,31 +607,59 @@ class MainWindow(QMainWindow):
         help_menu = menu.addMenu('Help')
         _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
         _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
-        _add_action(edit_menu, 'Randomize Timing', None, self.on_randomize_timing)
+        _add_action(
+            edit_menu,
+            'Randomize Timing',
+            RANDOMIZE_TIMING_ACCELERATOR,
+            self.on_randomize_timing,
+        )
         _add_action(
             edit_menu,
             'Randomize Settings',
-            None,
+            RANDOMIZE_SETTINGS_ACCELERATOR,
             lambda *_: randomize_settings(self.app),
         )
         _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
-        _add_action(edit_menu, 'Clear Text', None, self.on_clear_text)
+        _add_action(edit_menu, 'Clear Text', CLEAR_TEXT_ACCELERATOR, self.on_clear_text)
         self.show_text_timings_action = _add_action(
-            edit_menu, 'Show Text Timings', None, self.on_show_text_timings
+            edit_menu,
+            'Show Text Timings',
+            SHOW_TEXT_TIMINGS_ACCELERATOR,
+            self.on_show_text_timings,
         )
         self.show_text_timings_action.setCheckable(True)
         self.show_text_timings_action.setChecked(self.app.show_text_timings)
         self.advanced_action = _add_action(
-            edit_menu, 'Advanced', None, self.on_advanced
+            edit_menu, 'Advanced', ADVANCED_ACCELERATOR, self.on_advanced
         )
         self.advanced_action.setCheckable(True)
         self.advanced_action.setChecked(True)
-        _add_action(file_menu, OPEN_TEXT_FILE_COMMAND, None, self.on_open_text_file)
-        _add_action(file_menu, 'Save preset...', None, self.on_save_preset)
-        _add_action(file_menu, 'Delete presets...', None, self.on_delete_presets)
-        _add_action(file_menu, IMPORT_TUNING_COMMAND, None, self.on_import_tuning)
+        _add_action(
+            file_menu,
+            OPEN_TEXT_FILE_COMMAND,
+            OPEN_TEXT_FILE_ACCELERATOR,
+            self.on_open_text_file,
+        )
+        _add_action(
+            file_menu, 'Save preset...', SAVE_PRESET_ACCELERATOR, self.on_save_preset
+        )
+        _add_action(
+            file_menu,
+            'Delete presets...',
+            DELETE_PRESETS_ACCELERATOR,
+            self.on_delete_presets,
+        )
+        _add_action(
+            file_menu,
+            IMPORT_TUNING_COMMAND,
+            IMPORT_TUNING_ACCELERATOR,
+            self.on_import_tuning,
+        )
         self.export_tuning_action = _add_action(
-            file_menu, EXPORT_TUNING_COMMAND, None, self.on_export_tuning
+            file_menu,
+            EXPORT_TUNING_COMMAND,
+            EXPORT_TUNING_ACCELERATOR,
+            self.on_export_tuning,
         )
         file_menu.aboutToShow.connect(self._update_export_tuning_action)
         self._update_export_tuning_action()
@@ -623,17 +667,35 @@ class MainWindow(QMainWindow):
         _add_action(
             file_menu,
             'Open enclosing folder for config file',
-            None,
+            OPEN_CONFIG_FOLDER_ACCELERATOR,
             self.on_open_config_folder,
         )
-        _add_action(file_menu, 'Copy from state', None, self.on_copy_from_state)
-        _add_action(file_menu, 'Paste into state', None, self.on_paste_into_state)
+        _add_action(
+            file_menu,
+            'Copy from state',
+            COPY_STATE_ACCELERATOR,
+            self.on_copy_from_state,
+        )
+        _add_action(
+            file_menu,
+            'Paste into state',
+            PASTE_STATE_ACCELERATOR,
+            self.on_paste_into_state,
+        )
         self.load_autosave_action = _add_action(
-            file_menu, 'Load autosave on start', None, self.on_load_autosave
+            file_menu,
+            'Load autosave on start',
+            LOAD_AUTOSAVE_ACCELERATOR,
+            self.on_load_autosave,
         )
         self.load_autosave_action.setCheckable(True)
         self.load_autosave_action.setChecked(self.app.load_autosave)
-        _add_action(file_menu, 'Swap with autosave', None, self.on_swap_with_autosave)
+        _add_action(
+            file_menu,
+            'Swap with autosave',
+            SWAP_AUTOSAVE_ACCELERATOR,
+            self.on_swap_with_autosave,
+        )
         _add_action(
             file_menu,
             'Refresh Devices',
@@ -641,7 +703,9 @@ class MainWindow(QMainWindow):
             self.on_refresh_devices,
         )
         _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
-        _add_action(help_menu, 'Show Log Location', None, self.on_show_log)
+        _add_action(
+            help_menu, 'Show Log Location', SHOW_LOG_ACCELERATOR, self.on_show_log
+        )
         return menu
 
     def sync_config_actions(self) -> None:
