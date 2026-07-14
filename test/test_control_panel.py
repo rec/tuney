@@ -942,6 +942,30 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
     assert app.main_window.ui.rebuild_count == 1
 
 
+def test_scala_browser_data_is_lazy_loaded(monkeypatch) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QLineEdit, QWidget
+
+    calls = []
+    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
+    monkeypatch.setattr(
+        control_panel,
+        'scala_trie',
+        lambda: calls.append('load') or build_trie({'abc': ratios}),
+    )
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+    assert calls == []
+
+    _press(browser, Qt.Key.Key_A, 'a')
+
+    assert calls == ['load']
+
+
 def _press(widget, key: object, text: str = '') -> None:
     from PySide6.QtCore import QEvent, Qt
     from PySide6.QtGui import QKeyEvent

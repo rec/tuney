@@ -5,6 +5,7 @@ import inspect
 import json
 import math
 from collections.abc import Callable
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
 from weakref import WeakKeyDictionary
 
@@ -231,10 +232,13 @@ class _ScalaBrowserEdit(QLineEdit):
     def __init__(self, parent: QWidget, app: App | None) -> None:
         super().__init__(parent)
         self.app = app
-        self.trie = scala_trie()
         self.index = 0
         self.audition = app.audition_scala if app is not None else False
         self.original_tuning: Tuning | None = None
+
+    @cached_property
+    def trie(self) -> ScalaTrie:
+        return scala_trie()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         key = event.key()
@@ -959,7 +963,6 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     entry = _ScalaBrowserEdit(frame, app)
     _configure_editor(entry, 12 * ENTRY_CHAR_WIDTH)
     entry.setObjectName('scala_browser')
-    entry._sync()
     layout.addWidget(entry)
     if app is not None:
         checkbox = QCheckBox('audition', frame)
