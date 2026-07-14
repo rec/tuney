@@ -580,6 +580,11 @@ default = false
 title = "Show Text Timings"
 type = "boolean"
 
+[properties.audition_scala]
+default = true
+title = "Audition Scala"
+type = "boolean"
+
 [properties.gui]
 default = false
 title = "Gui"

@@ -69,6 +69,9 @@ class Tuney(BaseModel):
     # Show recorded key timings instead of plain text
     show_text_timings: Annotated[tyro.conf.Suppress[bool], Hidden] = False
 
+    # Temporarily play completed Scala browser entries before loading them
+    audition_scala: Annotated[tyro.conf.Suppress[bool], Hidden] = True
+
     # Open the graphical interface
     gui: Annotated[bool, tyro_option('-g'), Hidden] = False
 

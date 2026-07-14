@@ -827,6 +827,7 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
     ratios = {
         'abc': Ratios(text='2', name='abc.scl', desc='first scale'),
         'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
+        'xyz': Ratios(text='4', name='xyz.scl', desc='third scale'),
     }
     monkeypatch.setattr(control_panel, 'scala_trie', lambda: build_trie(ratios))
 
@@ -853,6 +854,59 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
     _press(browser, Qt.Key.Key_Up)
     assert browser.text() == 'abd'
     assert browser.cursorPosition() == 1
+
+    _press(browser, Qt.Key.Key_Left)
+    _press(browser, Qt.Key.Key_X, 'x')
+    assert browser.text() == 'xyz'
+    assert browser.cursorPosition() == 1
+
+    _press(browser, Qt.Key.Key_Down)
+    assert browser.text() == 'xyz'
+    assert browser.cursorPosition() == 1
+
+    _press(browser, Qt.Key.Key_Right)
+    assert browser.cursorPosition() == 3
+
+    _press(browser, Qt.Key.Key_Left)
+    assert browser.cursorPosition() == 0
+
+
+def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QLineEdit, QWidget
+
+    ratios = Ratios(text='3/2', name='xyz.scl', desc='first scale')
+    app = App(gui=True)
+    original = app.tuning.model_copy(deep=True)
+    closed = []
+    app.__dict__['main_window'] = _FakeMainWindow()
+    app.__dict__['player'] = _FakePlayer(closed)
+    other_ratios = Ratios(text='2', name='xbc.scl', desc='second scale')
+    monkeypatch.setattr(
+        control_panel,
+        'scala_trie',
+        lambda: build_trie({'abc': ratios, 'xbc': other_ratios}),
+    )
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+
+    _press(browser, Qt.Key.Key_A, 'a')
+    _press(browser, Qt.Key.Key_B, 'b')
+    _press(browser, Qt.Key.Key_C, 'c')
+
+    assert app.tuning.type == Type.ratios
+    assert app.tuning.ratios == ratios
+    assert closed == ['close']
+    assert 'player' not in app.__dict__
+
+    _press(browser, Qt.Key.Key_Left)
+
+    assert app.tuning.model_dump() == original.model_dump()
+    assert closed == ['close']
 
 
 def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
@@ -923,3 +977,11 @@ class _FakeMainWindow:
     def __init__(self) -> None:
         self.history = _FakeHistory()
         self.ui = _FakeUi()
+
+
+class _FakePlayer:
+    def __init__(self, closed: list[str]) -> None:
+        self.closed = closed
+
+    def close(self) -> None:
+        self.closed.append('close')

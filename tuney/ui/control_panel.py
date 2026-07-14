@@ -228,21 +228,32 @@ class _CurrentPageStackedWidget(QStackedWidget):
 
 
 class _ScalaBrowserEdit(QLineEdit):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, app: App | None) -> None:
         super().__init__(parent)
+        self.app = app
         self.trie = scala_trie()
         self.index = 0
+        self.audition = app.audition_scala if app is not None else False
+        self.original_tuning: Tuning | None = None
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         key = event.key()
         if event.text().isalnum() and len(event.text()) == 1:
             self._type(event.text().casefold())
         elif key == Qt.Key.Key_Left:
-            self.index = max(0, self.index - 1)
+            if self.completion():
+                self.index = self._last_choice_index()
+            else:
+                self.index = max(0, self.index - 1)
         elif key == Qt.Key.Key_Right:
-            self.index = min(len(self.text()), self.index + 1)
+            self.index = (
+                len(self.text())
+                if self.completion()
+                else min(len(self.text()), self.index + 1)
+            )
         elif key in {Qt.Key.Key_Up, Qt.Key.Key_Down}:
-            self._cycle(1 if key == Qt.Key.Key_Down else -1)
+            if not self.completion():
+                self._cycle(1 if key == Qt.Key.Key_Down else -1)
         elif key in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             _load_scala_browser_tuning(self)
         else:
@@ -255,13 +266,28 @@ class _ScalaBrowserEdit(QLineEdit):
         return self.text()[: self.index]
 
     def selected_ratios(self) -> Ratios | None:
-        return self.trie.first(self.text())
+        return self.trie.first(self.current_prefix())
+
+    def completion(self) -> tuple[str, Ratios] | None:
+        if (completion := self.trie.unique(self.current_prefix())) is None:
+            return None
+        return completion if self.text() == completion[0] else None
+
+    def set_audition(self, enabled: bool) -> None:
+        self.audition = enabled
+        self._sync()
+
+    def restore_audition(self) -> None:
+        if self.app is not None and self.original_tuning is not None:
+            _set_app_tuning(self.app, self.original_tuning)
+            self.original_tuning = None
 
     def _type(self, c: str) -> None:
         if c not in self.trie.choices(self.current_prefix()):
             return
         self._set_current(c)
         self.index += 1
+        self._complete()
 
     def _cycle(self, step: int) -> None:
         choices = self.trie.choices(self.current_prefix())
@@ -280,6 +306,10 @@ class _ScalaBrowserEdit(QLineEdit):
             candidate if self._path_exists(candidate) else text[: self.index] + c
         )
 
+    def _complete(self) -> None:
+        if completion := self.trie.unique(self.current_prefix()):
+            self.setText(completion[0])
+
     def _path_exists(self, prefix: str) -> bool:
         try:
             self.trie.node(prefix)
@@ -290,6 +320,26 @@ class _ScalaBrowserEdit(QLineEdit):
     def _sync(self) -> None:
         self.setCursorPosition(self.index)
         self.setToolTip(_scala_browser_tooltip(self.trie, self.text()))
+        if completion := self.completion():
+            self._audition(completion[1])
+        else:
+            self.restore_audition()
+
+    def _audition(self, ratios: Ratios) -> None:
+        if self.app is None or not self.audition:
+            self.restore_audition()
+            return
+        if self.original_tuning is not None:
+            return
+        self.original_tuning = self.app.tuning.model_copy(deep=True)
+        _set_app_tuning(self.app, ratios)
+
+    def _last_choice_index(self) -> int:
+        text = self.text()
+        for i in range(len(text) - 1, -1, -1):
+            if len(self.trie.choices(text[:i])) > 1:
+                return i
+        return 0
 
 
 class ControlPanel(QScrollArea):
@@ -903,11 +953,22 @@ def _add_option_control(
 
 def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
-    entry = _ScalaBrowserEdit(frame)
+    app = _control_panel(parent).app
+    entry = _ScalaBrowserEdit(frame, app)
     _configure_editor(entry, 12 * ENTRY_CHAR_WIDTH)
     entry.setObjectName('scala_browser')
     entry._sync()
     layout.addWidget(entry)
+    if app is not None:
+        checkbox = QCheckBox('audition', frame)
+        checkbox.setChecked(app.audition_scala)
+
+        def update(checked: bool) -> None:
+            app.audition_scala = checked
+            entry.set_audition(checked)
+
+        checkbox.toggled.connect(update)
+        layout.addWidget(checkbox)
     _parent_layout(parent).addWidget(frame)
 
 
@@ -934,13 +995,24 @@ def _load_scala_browser_tuning(entry: _ScalaBrowserEdit) -> None:
     control_panel = _control_panel(parent)
     app = control_panel.app
     assert app is not None
+    entry.restore_audition()
     app.main_window.history.checkpoint_undo()
-    data = app.tuning.model_dump() | {'type': Type.ratios, 'ratios': ratios}
+    _set_app_tuning(app, ratios)
+    app.main_window.ui.rebuild_control_panel()
+
+
+def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
+    data = (
+        tuning.model_dump()
+        if isinstance(tuning, Tuning)
+        else app.tuning.model_dump() | {'type': Type.ratios, 'ratios': tuning}
+    )
     validated = type(app.tuning).model_validate(data)
     for field in type(app.tuning).model_fields:
         setattr(app.tuning, field, getattr(validated, field))
     _clear_cached_values(app.tuning)
-    app.main_window.ui.rebuild_control_panel()
+    if (player := app.__dict__.pop('player', None)) is not None:
+        player.close()
 
 
 def _control_panel(parent: Any) -> ControlPanel:

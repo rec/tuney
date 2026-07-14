@@ -39,6 +39,18 @@ class ScalaTrie(BaseModel):
     def terminal(self, prefix: str) -> Ratios | None:
         return self.node(prefix).value
 
+    def unique(self, prefix: str) -> tuple[str, Ratios] | None:
+        matches = self.node(prefix)._matches(prefix, 2)
+        return matches[0] if len(matches) == 1 else None
+
+    def _matches(self, prefix: str, limit: int) -> list[tuple[str, Ratios]]:
+        matches = [(prefix, self.value)] if self.value is not None else []
+        for c in sorted(self.children):
+            if len(matches) >= limit:
+                return matches
+            matches.extend(self.children[c]._matches(prefix + c, limit - len(matches)))
+        return matches
+
 
 @cache
 def scala_trie() -> ScalaTrie:
