@@ -79,7 +79,7 @@ uv run --with pyinstaller --with pillow pyinstaller \
   --collect-binaries _sounddevice_data \
   --collect-binaries _soundfile_data \
   --add-data "$repo_root/tuney:tuney" \
-  --add-data "$repo_root/scala/scales.toml.zip:scala/scales.toml.zip" \
+  --add-data "$repo_root/scala/scales.toml.zip:scala" \
   --add-data "$repo_root/README.md:README.md" \
   --add-data "$repo_root/packaging/README-WINDOWS.txt:README-WINDOWS.txt" \
   --add-data "$repo_root/packaging/README-MACOS.txt:README-MACOS.txt" \

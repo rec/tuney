@@ -77,8 +77,10 @@ def build_trie(scales: dict[str, Ratios]) -> ScalaTrie:
 
 def scales_zip_path() -> Path:
     for path in scales_zip_paths():
-        if path.exists():
+        if path.is_file():
             return path
+        if path.is_dir() and (nested := path / SCALES_ZIP.name).is_file():
+            return nested
     raise FileNotFoundError(f'Could not find {SCALES_ZIP}')
 
 

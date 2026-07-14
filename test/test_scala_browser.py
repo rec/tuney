@@ -1,5 +1,11 @@
+from tuney.scale import scala_browser
 from tuney.scale.ratios import Ratios
-from tuney.scale.scala_browser import build_trie, scala_scales, scales_zip_path
+from tuney.scale.scala_browser import (
+    SCALES_ZIP,
+    build_trie,
+    scala_scales,
+    scales_zip_path,
+)
 
 
 def test_scala_scales_load_from_zipped_toml() -> None:
@@ -9,6 +15,16 @@ def test_scala_scales_load_from_zipped_toml() -> None:
     assert len(scales) == 5401
     assert scales['zwolle'].name == 'zwolle.scl'
     assert scales['zwolle'].desc == 'Henri Arnaut De Zwolle. Pythagorean on G flat.'
+
+
+def test_scales_zip_path_accepts_pyinstaller_nested_zip(tmp_path, monkeypatch) -> None:
+    bundle_root = tmp_path / 'bundle'
+    nested = bundle_root / SCALES_ZIP / SCALES_ZIP.name
+    nested.parent.mkdir(parents=True)
+    nested.write_bytes(b'zip')
+    monkeypatch.setattr(scala_browser.sys, '_MEIPASS', str(bundle_root), raising=False)
+
+    assert scales_zip_path() == nested
 
 
 def test_scala_trie_navigates_prefixes() -> None:
