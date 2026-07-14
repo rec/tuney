@@ -15,6 +15,7 @@ XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
 TUNEY_TRACE = 'TUNEY_TRACE'
 APP_STATE_DIR = Path('tuney')
 LOG_FILE = 'tuney.txt'
+CRASH_MARKER_FILE = 'running.txt'
 ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
 MAX_ISSUE_BODY = 6000
 
@@ -41,6 +42,10 @@ def is_frozen() -> bool:
 
 def log_path() -> Path:
     return app_state_dir() / LOG_FILE
+
+
+def crash_marker_path() -> Path:
+    return app_state_dir() / CRASH_MARKER_FILE
 
 
 def append_log(message: str) -> Path:
@@ -83,6 +88,24 @@ def log_exception(error: BaseException) -> Path:
     return append_log(''.join(format_exception(error)).rstrip())
 
 
+def mark_session_started() -> bool:
+    path = crash_marker_path()
+    crashed = path.exists()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(datetime.now(timezone.utc).isoformat())
+    except OSError:
+        return False
+    return crashed
+
+
+def mark_session_clean_exit() -> None:
+    try:
+        crash_marker_path().unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def error_issue_url(error: BaseException, path: Path) -> str:
     lines = str(error).splitlines()
     title = f'{type(error).__name__}: {lines[0] if lines else "(no message)"}'
@@ -109,6 +132,35 @@ def error_issue_url(error: BaseException, path: Path) -> str:
     if len(report) > MAX_ISSUE_BODY:
         report = f'{report[:MAX_ISSUE_BODY]}\n\n[truncated]'
     return f'{ISSUE_URL}?{urlencode({"title": title[:120], "body": report})}'
+
+
+def crash_issue_url(path: Path) -> str:
+    title = 'Tuney crashed'
+    try:
+        log = path.read_text(errors='replace')
+    except OSError as error:
+        log = f'Could not read {path}: {error}'
+    report = '\n'.join(
+        [
+            '## Error',
+            '',
+            'Tuney appears to have crashed during the previous run.',
+            '',
+            '## Environment',
+            '',
+            f'- Platform: {platform.platform()}',
+            f'- Python: {platform.python_version()}',
+            f'- Frozen app: {is_frozen()}',
+            f'- Log file: {path}',
+            '',
+            '## Log',
+            '',
+            '```text',
+            log[-MAX_ISSUE_BODY:],
+            '```',
+        ]
+    )
+    return f'{ISSUE_URL}?{urlencode({"title": title, "body": report})}'
 
 
 def show_frozen_exception(error: BaseException, path: Path) -> None:

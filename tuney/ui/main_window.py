@@ -56,7 +56,13 @@ from ..app.app import (
     save,
 )
 from ..app.global_config import GlobalConfig
-from ..app.platform_info import error_issue_url, instrument, log_exception, log_path
+from ..app.platform_info import (
+    crash_issue_url,
+    error_issue_url,
+    instrument,
+    log_exception,
+    log_path,
+)
 from ..presets import delete_presets, read_file, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
@@ -490,6 +496,16 @@ class MainWindow(QMainWindow):
         dialog.exec()
         if dialog.clickedButton() is report:
             QDesktopServices.openUrl(QUrl(error_issue_url(error, path)))
+
+    def show_crash_report(self) -> None:
+        path = log_path()
+        reply = QMessageBox.question(
+            self,
+            'File issue?',
+            'Tuney appears to have crashed during the previous run.\n\nFile issue?',
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            QDesktopServices.openUrl(QUrl(crash_issue_url(path)))
 
     def on_open_config_folder(self, *_: object) -> None:
         instrument('ui open config folder')

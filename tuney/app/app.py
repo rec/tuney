@@ -29,7 +29,14 @@ from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..ui import startup
-from .platform_info import exit_with_message, instrument, report_error
+from .platform_info import (
+    exit_with_message,
+    instrument,
+    is_frozen,
+    mark_session_clean_exit,
+    mark_session_started,
+    report_error,
+)
 
 if TYPE_CHECKING:
     from ..ui.main_window import MainWindow
@@ -116,6 +123,7 @@ class App(Tuney):
 def run(app: App) -> None:
     instrument('run', gui=app.gui, frozen=getattr(sys, 'frozen', False))
     if app.gui:
+        crashed = is_frozen() and mark_session_started()
         restore_error = None
         try:
             instrument('autosave restore start')
@@ -127,11 +135,15 @@ def run(app: App) -> None:
         instrument('main window construct start')
         main_window = app.main_window
         instrument('main window construct end')
+        if crashed:
+            main_window.show_crash_report()
         if restore_error is not None:
             main_window.show_restore_error(restore_error)
         start(app)
         instrument('mainloop start')
         main_window.mainloop()
+        if is_frozen():
+            mark_session_clean_exit()
         instrument('mainloop end')
     else:
         run_cli(app)

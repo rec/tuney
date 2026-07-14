@@ -31,9 +31,13 @@ from tuney.app.app import (
 from tuney.app.global_config import GlobalConfig
 from tuney.app.platform_info import (
     ISSUE_URL,
+    crash_issue_url,
+    crash_marker_path,
     error_issue_url,
     exit_with_message,
     instrument,
+    mark_session_clean_exit,
+    mark_session_started,
     report_error,
 )
 from tuney.app.runnable import start_thread
@@ -107,6 +111,34 @@ def test_error_issue_url_includes_traceback() -> None:
     assert 'Traceback (most recent call last)' in body
 
 
+def test_crash_issue_url_includes_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        log.parent.mkdir(parents=True)
+        log.write_text('TRACE one\nTRACE two\n')
+
+        url = crash_issue_url(log)
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert query['title'] == ['Tuney crashed']
+    body = query['body'][0]
+    assert 'Tuney appears to have crashed during the previous run.' in body
+    assert 'TRACE one\nTRACE two' in body
+
+
+def test_crash_marker_tracks_unclean_shutdown(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+
+        assert not mark_session_started()
+        assert mark_session_started()
+        mark_session_clean_exit()
+        assert not mark_session_started()
+
+
 def test_run_restores_autosave_before_constructing_window_and_continues(
     monkeypatch,
 ) -> None:
@@ -147,6 +179,40 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
 
     assert isinstance(window.error, RuntimeError)
     assert calls == ['restore', 'window', 'error', 'mainloop']
+
+
+def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        assert not mark_session_started()
+        calls: list[str] = []
+
+        class Autosave:
+            @staticmethod
+            def restore(_: object) -> None:
+                calls.append('restore')
+
+        class FakeWindow:
+            @staticmethod
+            def show_crash_report() -> None:
+                calls.append('crash')
+
+            @staticmethod
+            def mainloop() -> None:
+                calls.append('mainloop')
+
+        class FakeApp:
+            gui = True
+            _autosave = Autosave()
+            main_window = FakeWindow()
+
+        monkeypatch.setattr(app_module, 'is_frozen', lambda: True)
+        monkeypatch.setattr(app_module, 'start', lambda _: None)
+
+        run(FakeApp())
+
+        assert calls == ['restore', 'crash', 'mainloop']
+        assert not crash_marker_path().exists()
 
 
 class FakeApp:
