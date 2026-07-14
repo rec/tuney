@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.12"
 
 [options]
-exclude-newer = "2026-07-06T19:37:48.954464Z"
+exclude-newer = "2026-07-07T09:58:49.120417Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -801,7 +801,7 @@ wheels = [
 
 [[package]]
 name = "tuney"
-version = "0.3.27"
+version = "0.3.28"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
