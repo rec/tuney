@@ -1,16 +1,20 @@
+import tempfile
+from pathlib import Path
+
 import pyttsx3
-import timeit
+
 engine = pyttsx3.init()
 
 
 def save():
+    path = Path(tempfile.gettempdir()) / 'tuney-test-speech.wav'
     print('zero')
-    engine.save_to_file('Hello World' , 'test.wav')
+    engine.save_to_file('Hello World', str(path))
     print('one')
     engine.runAndWait()
     print('two')
 
 
-save()
-
-# print(timeit.timeit(save, number=20))
+if __name__ == '__main__':
+    save()
+    # print(timeit.timeit(save, number=20))
