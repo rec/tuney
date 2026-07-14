@@ -344,7 +344,18 @@ class Layout(QWidget):
     @cached_property
     def note_buttons(self) -> dict[str, NoteButton]:
         it = self.main_window.app.note_labels.items()
-        return {k: self._note_frame(i, k, text) for i, (k, text) in enumerate(it)}
+        buttons = {}
+        for i, (char, text) in enumerate(it):
+            buttons[char] = self._note_frame(i, char, text)
+        for char, button in self.note_button_cache.items():
+            if char not in buttons:
+                button.hide()
+                button.is_press = False
+        return buttons
+
+    @cached_property
+    def note_button_cache(self) -> dict[str, NoteButton]:
+        return {}
 
     def rebuild_note_grid(self) -> None:
         self.main_window.app.__dict__.pop('note_labels', None)
@@ -355,19 +366,33 @@ class Layout(QWidget):
         except (AssertionError, ValueError, ZeroDivisionError):
             has_note_buttons = False
         if has_note_buttons:
+            n = len(self.main_window.app.note_labels)
+            self.main_window.columns = max(1, int(n**0.5 + 0.999999))
+            self.main_window.rows = max(
+                1, (n + self.main_window.columns - 1) // self.main_window.columns
+            )
+            self.note_grid_widget.setMinimumHeight(
+                max(MIN_BUTTON_HEIGHT * self.main_window.rows, MIN_BUTTON_HEIGHT)
+            )
             _ = self.note_buttons
         self.refresh_note_button_fonts()
 
     def _note_frame(self, i: int, char: str, text: str) -> NoteButton:
         row, column = divmod(i, self.main_window.columns)
-        return NoteButton(
-            self.note_grid,
-            row,
-            column,
-            char,
-            text,
-            lambda c: on_char(self.main_window.app, c),
-        )
+        if char not in self.note_button_cache:
+            self.note_button_cache[char] = NoteButton(
+                self.note_grid,
+                row,
+                column,
+                char,
+                text,
+                lambda c: on_char(self.main_window.app, c),
+            )
+        button = self.note_button_cache[char]
+        button.set_note(text)
+        button.show()
+        self.note_grid.addWidget(button, row, column)
+        return button
 
 
 def _set_entry_text(entry: QLineEdit, text: str) -> None:
@@ -376,7 +401,4 @@ def _set_entry_text(entry: QLineEdit, text: str) -> None:
 
 def _clear_grid(layout: QGridLayout) -> None:
     while layout.count():
-        if (item := layout.takeAt(0)) is None:
-            continue
-        if (widget := item.widget()) is not None:
-            widget.deleteLater()
+        layout.takeAt(0)

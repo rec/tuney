@@ -49,6 +49,11 @@ class NoteButton(QPushButton):
         )
         self.is_press = False
 
+    def set_note(self, text: str) -> None:
+        if text != self.note_name:
+            self.note_name = text
+            self.setText(text)
+
     @property
     def is_press(self) -> bool:
         return getattr(self, '_is_press', False)
