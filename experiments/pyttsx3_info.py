@@ -21,19 +21,28 @@ def _voice_data(voice: object) -> dict[str, object]:
         except AttributeError:
             continue
         if not callable(value):
-            data[name] = _toml_value(value)
+            if (toml_value := _toml_value(value)) is not None:
+                data[name] = toml_value
     return data
 
 
 def _toml_value(value: object) -> object:
-    if value is None or isinstance(value, bool | float | int | str):
+    if value is None:
+        return None
+    if isinstance(value, bool | float | int | str):
         return value
     if isinstance(value, bytes):
         return value.decode(errors='replace')
     if isinstance(value, Mapping):
-        return {str(k): _toml_value(v) for k, v in value.items()}
+        return {
+            str(k): toml_value
+            for k, v in value.items()
+            if (toml_value := _toml_value(v)) is not None
+        }
     if isinstance(value, Sequence) and not isinstance(value, str | bytes):
-        return [_toml_value(i) for i in value]
+        return [
+            toml_value for i in value if (toml_value := _toml_value(i)) is not None
+        ]
     return str(value)
 
 
