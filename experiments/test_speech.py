@@ -3,11 +3,10 @@ from pathlib import Path
 
 import pyttsx3
 
-engine = pyttsx3.init()
-
 
 def save():
     path = Path(tempfile.gettempdir()) / 'tuney-test-speech.wav'
+    engine = pyttsx3.init()
     print('zero')
     engine.save_to_file('Hello World', str(path))
     print('one')
