@@ -392,18 +392,17 @@ def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
 
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuney())
-    advanced_calls = len(calls)
+    startup_calls = len(calls)
+
+    assert startup_calls > 0
+    assert set(panel.pages) == {False, True}
+    assert {False, True} <= set(calls)
 
     control_panel._set_control_panel_mode(panel, False)
-    beginner_calls = len(calls)
-
-    assert advanced_calls > 0
-    assert beginner_calls > advanced_calls
-
     control_panel._set_control_panel_mode(panel, True)
     control_panel._set_control_panel_mode(panel, False)
 
-    assert len(calls) == beginner_calls
+    assert len(calls) == startup_calls
 
 
 def test_control_panel_sections_are_collapsible() -> None:
@@ -672,9 +671,10 @@ def test_control_panel_language_menu_sets_mapper_alphabet() -> None:
     mapper = Mapper()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, mapper)
+    assert panel.content.currentWidget() is not None
     menus = [
         widget
-        for widget in panel.findChildren(QComboBox)
+        for widget in panel.content.currentWidget().findChildren(QComboBox)
         if widget.objectName() == 'alphabet_language'
     ]
 

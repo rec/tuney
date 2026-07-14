@@ -372,7 +372,9 @@ class ControlPanel(QScrollArea):
             page.deleteLater()
         self.pages.clear()
         self.option_controls.clear()
-        self.show_mode(self.show_advanced)
+        self.pages[True] = self._build_page(True)
+        self.pages[False] = self._build_page(False)
+        self.content.setCurrentWidget(self.pages[self.show_advanced])
 
     def show_mode(self, advanced: bool) -> None:
         if advanced == self.show_advanced and advanced in self.pages:
