@@ -40,9 +40,7 @@ def _toml_value(value: object) -> object:
             if (toml_value := _toml_value(v)) is not None
         }
     if isinstance(value, Sequence) and not isinstance(value, str | bytes):
-        return [
-            toml_value for i in value if (toml_value := _toml_value(i)) is not None
-        ]
+        return [toml_value for i in value if (toml_value := _toml_value(i)) is not None]
     return str(value)
 
 
