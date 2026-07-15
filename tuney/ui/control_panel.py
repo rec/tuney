@@ -6,14 +6,13 @@ import json
 import math
 from collections.abc import Callable
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
+from typing import TYPE_CHECKING, Any, TypeAlias, get_args
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
-from PySide6.QtCore import QLocale, QPoint, QRect, QSignalBlocker, QSize, Qt, QTimer
+from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
-    QApplication,
     QBoxLayout,
     QCheckBox,
     QComboBox,
@@ -22,8 +21,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLayout,
-    QLayoutItem,
     QLineEdit,
     QMessageBox,
     QRadioButton,
@@ -42,7 +39,7 @@ from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.midi import MIDI
 from ..audio.polyphony import Polyphony
-from ..config.display import Beginner, Display, General, Hidden, Numeric, Options
+from ..config.display import Beginner, Display, General, Hidden
 from ..mapper.language import (
     alphabet_for_language_name,
     language_menu_names,
@@ -55,6 +52,26 @@ from ..scale.scala_browser import ScalaTrie, scala_trie
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
+from .control_panel_layout import _CurrentPageStackedWidget, _FlowLayout
+from .control_panel_metadata import (
+    _annotation_types,
+    _control_metadata,
+    _enum_class,
+    _expects_json,
+    _has_metadata,
+    _numeric_metadata,
+    _options_metadata,
+)
+from .control_panel_sizing import (
+    ENTRY_CHAR_WIDTH,
+    SPIN_BUTTON_WIDTH,
+    _configure_editor,
+    _configure_flexible_editor,
+    _configure_label,
+    _display_label,
+    _entry_width,
+)
+from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
 from .tooltip import Tooltip
 
 if TYPE_CHECKING:
@@ -63,9 +80,6 @@ if TYPE_CHECKING:
 Scalar: TypeAlias = bool | float | int | str | None
 
 INLINE_CHILDREN = (Polyphony,)
-ENTRY_CHAR_WIDTH = 10
-EDITOR_HORIZONTAL_PADDING = 8
-SPIN_BUTTON_WIDTH = 34
 SECTION_PRESET_PLACEHOLDER = 'Preset...'
 
 CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
@@ -75,9 +89,6 @@ INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QLineEdit, str] = (
     WeakKeyDictionary()
 )
 NUMERIC_LOCALE = QLocale.c()
-LABEL_PADDING = 8
-MIN_EDITOR_WIDTH = 72
-MIN_TEXT_EDITOR_WIDTH = 160
 SPIN_MINIMUM = -9999
 SPIN_MAXIMUM = 9999
 SECTION_STYLE = """
@@ -115,120 +126,6 @@ class _OptionControl:
         self.menu.clear()
         self.menu.addItems(['', *choices])
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
-
-
-class _NumericDoubleSpinBox(QDoubleSpinBox):
-    def __init__(self, parent: QWidget, numeric: Numeric) -> None:
-        super().__init__(parent)
-        self.numeric = numeric
-
-    def stepBy(self, steps: int) -> None:
-        modified_steps = _modified_steps(steps)
-        if not self.numeric.log:
-            self.setValue(self.numeric.step(self.value(), modified_steps))
-            return
-        value = self.value()
-        if value <= 0:
-            assert self.numeric.min is not None
-            value = self.numeric.min
-        self.setValue(self.numeric.step(value, modified_steps))
-
-
-class _NumericSpinBox(QSpinBox):
-    def stepBy(self, steps: int) -> None:
-        self.setValue(round(self.value() + self.singleStep() * _modified_steps(steps)))
-
-
-def _modified_steps(steps: int) -> float:
-    modifiers = QApplication.keyboardModifiers()
-    if modifiers & Qt.KeyboardModifier.AltModifier:
-        return steps / 10
-    if modifiers & Qt.KeyboardModifier.ShiftModifier:
-        return steps * 10
-    return steps
-
-
-class _FlowLayout(QLayout):
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent)
-        self.items: list[QLayoutItem] = []
-        self.setSpacing(6)
-
-    def addItem(self, item: QLayoutItem) -> None:
-        self.items.append(item)
-
-    def count(self) -> int:
-        return len(self.items)
-
-    def itemAt(self, index: int) -> QLayoutItem | None:
-        return self.items[index] if 0 <= index < len(self.items) else None
-
-    def takeAt(self, index: int) -> QLayoutItem | None:
-        if 0 <= index < len(self.items):
-            return self.items.pop(index)
-        return None
-
-    def expandingDirections(self) -> Qt.Orientation:
-        return Qt.Orientation(0)
-
-    def hasHeightForWidth(self) -> bool:
-        return True
-
-    def heightForWidth(self, width: int) -> int:
-        return self._layout(QRect(0, 0, width, 0), test_only=True)
-
-    def setGeometry(self, rect: QRect) -> None:
-        super().setGeometry(rect)
-        self._layout(rect, test_only=False)
-
-    def sizeHint(self) -> QSize:
-        return self.minimumSize()
-
-    def minimumSize(self) -> QSize:
-        size = QSize()
-        for item in self.items:
-            size = size.expandedTo(item.minimumSize())
-        margins = self.contentsMargins()
-        size += QSize(
-            margins.left() + margins.right(),
-            margins.top() + margins.bottom(),
-        )
-        return size
-
-    def _layout(self, rect: QRect, test_only: bool) -> int:
-        margins = self.contentsMargins()
-        effective = rect.adjusted(
-            margins.left(), margins.top(), -margins.right(), -margins.bottom()
-        )
-        x = effective.x()
-        y = effective.y()
-        line_height = 0
-        spacing = self.spacing()
-        for item in self.items:
-            hint = item.sizeHint()
-            next_x = x + hint.width() + spacing
-            if x > effective.x() and next_x - spacing > effective.right():
-                x = effective.x()
-                y += line_height + spacing
-                next_x = x + hint.width() + spacing
-                line_height = 0
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), hint))
-            x = next_x
-            line_height = max(line_height, hint.height())
-        return y + line_height - rect.y() + margins.bottom()
-
-
-class _CurrentPageStackedWidget(QStackedWidget):
-    def sizeHint(self) -> QSize:
-        if current := self.currentWidget():
-            return current.sizeHint()
-        return super().sizeHint()
-
-    def minimumSizeHint(self) -> QSize:
-        if current := self.currentWidget():
-            return current.minimumSizeHint()
-        return super().minimumSizeHint()
 
 
 class _ScalaBrowserEdit(QLineEdit):
@@ -816,38 +713,6 @@ def _model_tree(data: BaseModel) -> list[BaseModel]:
     return models
 
 
-def _control_metadata(cls: type[BaseModel], name: str) -> Display:
-    for metadata in cls.model_fields[name].metadata:
-        if isinstance(metadata, Display):
-            return metadata
-    return Display()
-
-
-def _numeric_metadata(cls: type[BaseModel], name: str) -> Numeric:
-    for metadata in cls.model_fields[name].metadata:
-        if isinstance(metadata, Numeric):
-            return metadata
-    return Numeric()
-
-
-def _options_metadata(cls: type[BaseModel], name: str) -> Options | None:
-    for metadata in cls.model_fields[name].metadata:
-        if isinstance(metadata, Options):
-            return metadata
-    return None
-
-
-def _has_metadata(cls: type[BaseModel], name: str, metadata_type: type[object]) -> bool:
-    return any(
-        metadata is metadata_type or isinstance(metadata, metadata_type)
-        for metadata in cls.model_fields[name].metadata
-    )
-
-
-def _display_label(name: str) -> str:
-    return name.replace('_', ' ').capitalize()
-
-
 def _add_labeled_control_frame(
     parent: QWidget,
     name: str,
@@ -861,31 +726,6 @@ def _add_labeled_control_frame(
     _configure_label(label)
     layout.addWidget(label)
     return frame, layout, label
-
-
-def _configure_label(label: QLabel) -> None:
-    label.setObjectName('control_label')
-    width = label.fontMetrics().horizontalAdvance(label.text()) + LABEL_PADDING
-    label.setMinimumWidth(width)
-    label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-
-
-def _configure_editor(widget: QWidget, width: int | None = None) -> None:
-    widget.setObjectName('control_editor')
-    if width:
-        widget.setFixedWidth(width)
-        widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-    else:
-        widget.setMinimumWidth(max(MIN_TEXT_EDITOR_WIDTH, MIN_EDITOR_WIDTH))
-        widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-
-def _configure_flexible_editor(widget: QWidget, width: int | None = None) -> None:
-    widget.setObjectName('control_editor')
-    widget.setMinimumWidth(MIN_EDITOR_WIDTH)
-    if width is not None:
-        widget.setMaximumWidth(width)
-    widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
 def _is_wide_field(data: BaseModel, name: str) -> bool:
@@ -1536,62 +1376,6 @@ def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) 
         if choice := next((i for i in choices if i.startswith(prefix)), ''):
             return choice
     return str(value)
-
-
-def _entry_width(
-    name: str,
-    annotation: Any,
-    display: Display | None = None,
-    numeric: Numeric | None = None,
-) -> int | None:
-    display = display or Display()
-    numeric = numeric or Numeric()
-    if width := numeric.width:
-        return width * ENTRY_CHAR_WIDTH + EDITOR_HORIZONTAL_PADDING
-    if width := display.width:
-        return width * ENTRY_CHAR_WIDTH + EDITOR_HORIZONTAL_PADDING
-
-    types = _annotation_types(annotation)
-    if str in types:
-        return None
-    if int in types and float not in types and bool not in types:
-        return 4 * ENTRY_CHAR_WIDTH
-    if float in types:
-        return (4 if numeric.inc == 0.01 else 6) * ENTRY_CHAR_WIDTH
-    return None
-
-
-def _annotation_types(annotation: Any) -> tuple[Any, ...]:
-    value = getattr(annotation, '__value__', annotation)
-    return (value, *_flatten_type_args(value))
-
-
-def _expects_json(annotation: Any) -> bool:
-    args = _flatten_type_args(annotation)
-    if str in args:
-        return False
-    origins = {get_origin(i) or i for i in (annotation, *args)}
-    return bool(origins & {list, dict})
-
-
-def _enum_class(annotation: Any, value: object) -> type[enum.Enum] | None:
-    if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
-        return annotation
-    if isinstance(value, enum.Enum):
-        return type(value)
-
-    for arg in _flatten_type_args(annotation):
-        if isinstance(arg, type) and issubclass(arg, enum.Enum):
-            return arg
-    return None
-
-
-def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
-    if get_origin(annotation) is None:
-        return ()
-
-    args = get_args(annotation)
-    return args + tuple(i for a in args for i in _flatten_type_args(a))
 
 
 def _parent_layout(parent: QWidget) -> QBoxLayout:

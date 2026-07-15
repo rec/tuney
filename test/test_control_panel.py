@@ -21,7 +21,7 @@ from tuney.scale.scale import Scale
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.text_timings import TextTimings
-from tuney.ui import control_panel
+from tuney.ui import control_panel, control_panel_sizing, control_panel_spin
 
 
 def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
@@ -293,10 +293,10 @@ def test_numeric_width_sets_actual_editor_width() -> None:
     }
 
     assert mapper_editors['length'].minimumWidth() == (
-        _entry_width(Mapper, 'length') + control_panel.SPIN_BUTTON_WIDTH
+        _entry_width(Mapper, 'length') + control_panel_sizing.SPIN_BUTTON_WIDTH
     )
     assert mapper_editors['offset'].minimumWidth() == (
-        _entry_width(Mapper, 'offset') + control_panel.SPIN_BUTTON_WIDTH
+        _entry_width(Mapper, 'offset') + control_panel_sizing.SPIN_BUTTON_WIDTH
     )
     assert scale_editors['root'].minimumWidth() == _entry_width(Scale, 'root')
     assert scale_editors['begin'].minimumWidth() == _entry_width(Scale, 'begin')
@@ -666,7 +666,7 @@ def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     int_spin.setValue(10)
 
     monkeypatch.setattr(
-        control_panel.QApplication,
+        control_panel_spin.QApplication,
         'keyboardModifiers',
         lambda: Qt.KeyboardModifier.ShiftModifier,
     )
@@ -677,7 +677,7 @@ def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     assert int_spin.value() == 110
 
     monkeypatch.setattr(
-        control_panel.QApplication,
+        control_panel_spin.QApplication,
         'keyboardModifiers',
         lambda: Qt.KeyboardModifier.AltModifier,
     )
@@ -929,8 +929,8 @@ def test_scala_description_does_not_force_panel_width() -> None:
     description = panel.findChild(QLineEdit, 'tuning_description')
 
     assert description is not None
-    assert description.minimumWidth() == control_panel.MIN_EDITOR_WIDTH
-    assert description.maximumWidth() == 120 * control_panel.ENTRY_CHAR_WIDTH
+    assert description.minimumWidth() == control_panel_sizing.MIN_EDITOR_WIDTH
+    assert description.maximumWidth() == 120 * control_panel_sizing.ENTRY_CHAR_WIDTH
     assert description.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
 
 
