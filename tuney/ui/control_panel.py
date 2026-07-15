@@ -4,7 +4,6 @@ import enum
 import inspect
 import json
 import math
-import sys
 from collections.abc import Callable
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
@@ -725,8 +724,6 @@ def _field_widgets(parent: Any) -> list[Any]:
 
 
 def _is_visible_field(cls: type[BaseModel], name: str) -> bool:
-    if cls is Device and name == 'latency':
-        return sys.platform == 'win32'
     return not _is_suppressed_field(cls, name)
 
 

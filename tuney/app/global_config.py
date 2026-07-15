@@ -10,10 +10,12 @@ from pydantic import BaseModel, Field
 from .platform_info import app_config_dir, report_error
 
 GLOBAL_CONFIG_FILE = 'global.toml'
+BUFFER_SIZE_INCREMENT = 32
 
 
 class GlobalConfig(BaseModel):
     directories: dict[str, str] = Field(default_factory=dict)
+    buffer_size: int = 32
     file: Path | None = Field(default=None, exclude=True)
 
     @cached_property
@@ -33,7 +35,11 @@ class GlobalConfig(BaseModel):
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(tomlkit.dumps({'directories': self.directories}))
+        self.path.write_text(
+            tomlkit.dumps(
+                {'directories': self.directories, 'buffer_size': self.buffer_size}
+            )
+        )
 
     def directory(self, name: str) -> str:
         return self.directories.get(name, '')
@@ -46,3 +52,11 @@ class GlobalConfig(BaseModel):
             self.save()
         except OSError as error:
             report_error(f'Could not save global config {self.path}: {error}')
+
+    def increase_buffer_size(self) -> int:
+        self.buffer_size += BUFFER_SIZE_INCREMENT
+        try:
+            self.save()
+        except OSError as error:
+            report_error(f'Could not save global config {self.path}: {error}')
+        return self.buffer_size

@@ -536,14 +536,6 @@ def test_visible_field_names(file_regression) -> None:
     )
 
 
-def test_latency_is_visible_only_on_windows(monkeypatch) -> None:
-    monkeypatch.setattr(control_panel.sys, 'platform', 'darwin')
-    assert 'latency' not in control_panel._visible_field_names(Device())
-
-    monkeypatch.setattr(control_panel.sys, 'platform', 'win32')
-    assert 'latency' in control_panel._visible_field_names(Device())
-
-
 def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
     from PySide6.QtWidgets import (
         QComboBox,

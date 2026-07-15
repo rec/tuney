@@ -62,14 +62,6 @@ def test_output_device_label_with_index_is_stored_as_index() -> None:
     assert Device(device='[7] Speakers (Realtek(R) Audio)').device == 7
 
 
-def test_default_latency_is_windows_only(monkeypatch) -> None:
-    monkeypatch.setattr(device_module.sys, 'platform', 'darwin')
-    assert Device().latency is None
-
-    monkeypatch.setattr(device_module.sys, 'platform', 'win32')
-    assert Device().latency == 0.2
-
-
 def test_output_device_resolves_duplicate_name_to_index(monkeypatch) -> None:
     monkeypatch.setattr(
         device_module.sounddevice,

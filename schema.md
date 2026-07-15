@@ -185,8 +185,6 @@ class Device:
     # Sample data type sent to the audio output device
     dtype: DType | None = None
 
-    blocksize: int | None = None
-
     channels: int | None = None
 
 

@@ -24,6 +24,8 @@ class Player(BaseModel, frozen=True):
     sound: Sound = Field(default_factory=Sound)
     scale: Scale = Field(default_factory=Scale)
     tuning: Tuning = Field(default_factory=Tuning)
+    buffer_size: int = 32
+    increase_buffer_size: Callable[[], int] | None = None
 
     @cached_property
     def pressed_notes(self) -> list[NoteNumber]:
@@ -33,7 +35,11 @@ class Player(BaseModel, frozen=True):
     def engine(self) -> AudioEngine:
         mixer = Mixer(voice_maker=self.voice_maker, polyphony=self.sound.polyphony)
         engine = AudioEngine(
-            mixer=mixer, master_gain=self.sound.master_gain, device=self.device
+            mixer=mixer,
+            master_gain=self.sound.master_gain,
+            buffer_size=self.buffer_size,
+            increase_buffer_size=self.increase_buffer_size,
+            device=self.device,
         )
         self.device.set_change_callback(self.reconfigure_device)
         return engine

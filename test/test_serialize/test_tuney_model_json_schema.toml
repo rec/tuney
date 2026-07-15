@@ -84,15 +84,6 @@ default = "<null>"
 [["$defs".Device.properties.dtype.anyOf]]
 type = "null"
 
-["$defs".Device.properties.blocksize]
-default = "<null>"
-title = "Blocksize"
-[["$defs".Device.properties.blocksize.anyOf]]
-type = "integer"
-
-[["$defs".Device.properties.blocksize.anyOf]]
-type = "null"
-
 ["$defs".Device.properties.channels]
 default = "<null>"
 title = "Channels"
@@ -100,14 +91,6 @@ title = "Channels"
 type = "integer"
 
 [["$defs".Device.properties.channels.anyOf]]
-type = "null"
-
-["$defs".Device.properties.latency]
-title = "Latency"
-[["$defs".Device.properties.latency.anyOf]]
-type = "number"
-
-[["$defs".Device.properties.latency.anyOf]]
 type = "null"
 
 ["$defs".Device.properties.extra_settings]

@@ -29,6 +29,7 @@ from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..ui import startup
+from .global_config import GlobalConfig
 from .platform_info import (
     exit_with_message,
     instrument,
@@ -65,8 +66,17 @@ class App(Tuney):
     @cached_property
     def player(self) -> Player:
         return Player(
-            device=self.device, sound=self.sound, scale=self.scale, tuning=self.tuning
+            device=self.device,
+            sound=self.sound,
+            scale=self.scale,
+            tuning=self.tuning,
+            buffer_size=self.global_config.buffer_size,
+            increase_buffer_size=self.global_config.increase_buffer_size,
         )
+
+    @cached_property
+    def global_config(self) -> GlobalConfig:
+        return GlobalConfig.read()
 
     @cached_property
     def note_labels(self) -> dict[str, str]:

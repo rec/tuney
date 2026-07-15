@@ -55,7 +55,6 @@ from ..app.app import (
     restore_text,
     save,
 )
-from ..app.global_config import GlobalConfig
 from ..app.platform_info import (
     crash_issue_url,
     error_issue_url,
@@ -173,26 +172,22 @@ class MainWindow(QMainWindow):
         self.qt_app.installEventFilter(self)
         instrument('main window init end')
 
-    @cached_property
-    def global_config(self) -> GlobalConfig:
-        return GlobalConfig.read()
-
     def _get_open_file_name(
         self, command: str, title: str, filter_: str
     ) -> tuple[str, str]:
         result = QFileDialog.getOpenFileName(
-            self, title, self.global_config.directory(command), filter_
+            self, title, self.app.global_config.directory(command), filter_
         )
-        self.global_config.remember_directory(command, result[0])
+        self.app.global_config.remember_directory(command, result[0])
         return result
 
     def _get_save_file_name(
         self, command: str, title: str, filter_: str
     ) -> tuple[str, str]:
         result = QFileDialog.getSaveFileName(
-            self, title, self.global_config.directory(command), filter_
+            self, title, self.app.global_config.directory(command), filter_
         )
-        self.global_config.remember_directory(command, result[0])
+        self.app.global_config.remember_directory(command, result[0])
         return result
 
     def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:

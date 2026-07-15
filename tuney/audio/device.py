@@ -1,4 +1,3 @@
-import sys
 from collections import Counter
 from collections.abc import Callable
 from enum import StrEnum, auto
@@ -6,7 +5,7 @@ from functools import cache
 from typing import Annotated
 
 import tyro
-from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from pydantic import BaseModel, PrivateAttr, field_validator
 
 from ..app.platform_info import report_error
 from ..config.display import Beginner, Display, Numeric, Options
@@ -81,10 +80,6 @@ def dtype_names() -> list[str]:
     return [dtype.value for dtype in DType]
 
 
-def default_latency() -> float | None:
-    return 0.2 if sys.platform == 'win32' else None
-
-
 class Device(BaseModel):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
@@ -106,14 +101,7 @@ class Device(BaseModel):
         DType | None, tyro_option(), Display(column=2, row=0), Options(dtype_names)
     ] = None
 
-    blocksize: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
     channels: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
-    # Audio output buffer latency, in seconds
-    latency: Annotated[
-        tyro.conf.Suppress[float | None],
-        Display(column=3, row=0, width=6),
-        Numeric(min=0, max=1, inc=0.01),
-    ] = Field(default_factory=default_latency)
     extra_settings: tyro.conf.Suppress[str | None] = None
     clip_off: tyro.conf.Suppress[bool | None] = None
     dither_off: tyro.conf.Suppress[bool | None] = None

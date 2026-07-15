@@ -721,6 +721,16 @@ def test_global_config_persists_dialog_directories() -> None:
         }
 
 
+def test_global_config_persists_buffer_size() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'global.toml'
+        config = GlobalConfig(file=path)
+
+        assert config.buffer_size == 32
+        assert config.increase_buffer_size() == 64
+        assert GlobalConfig.read(path).buffer_size == 64
+
+
 def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setattr(sys, 'frozen', True, raising=False)

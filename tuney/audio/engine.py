@@ -55,6 +55,8 @@ class AudioEngine(BaseModel):
 
     mixer: Mixer
     master_gain: float = 1.0
+    buffer_size: int = 32
+    increase_buffer_size: Callable[[], int] | None = Field(default=None, exclude=True)
     device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
     recorder: AudioFileWriter | None = Field(default=None, exclude=True)
@@ -76,6 +78,7 @@ class AudioEngine(BaseModel):
         kwargs = self.device.model_dump()
         kwargs['samplerate'] = kwargs.pop('sample_rate')
         kwargs['device'] = output_device(kwargs['device'])
+        kwargs['blocksize'] = self.buffer_size
         try:
             instrument('audio stream create', kwargs=kwargs)
             return sd.OutputStream(callback=self.callback, **kwargs)
@@ -133,8 +136,13 @@ class AudioEngine(BaseModel):
         self, out: np.ndarray, frame_size: int, time: Any, status: Any
     ) -> None:
         if status:
-            instrument('audio callback status', status=str(status))
-            self.diagnostics.record_callback_status(str(status))
+            status_text = str(status)
+            if 'underflow' in status_text.lower():
+                if self.increase_buffer_size is not None:
+                    self.buffer_size = self.increase_buffer_size()
+                status_text = f'{status_text}; buffer_size={self.buffer_size}'
+            instrument('audio callback status', status=status_text)
+            self.diagnostics.record_callback_status(status_text)
 
         try:
             self._drain_commands()

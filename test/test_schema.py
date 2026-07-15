@@ -9,7 +9,6 @@ from tuney.config.tuney import Tuney
 
 MARKDOWN_PATH = Path('schema.md')
 OMIT = (
-    'latency',
     'extra_settings',
     'clip_off',
     'dither_off',

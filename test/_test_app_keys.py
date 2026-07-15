@@ -529,7 +529,7 @@ def test_app_imports_and_exports_tuning() -> None:
     app = HistoryApp()
 
     with tempfile.TemporaryDirectory() as tmp:
-        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
+        app.app.__dict__['global_config'] = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'input.scl'
         Ratios(text='2', name='input.scl', desc='one step').write_scala_file(path)
 
@@ -547,7 +547,7 @@ def test_app_imports_and_exports_tuning() -> None:
     assert app.ui.rebuild_control_panel_count == 1
 
     with tempfile.TemporaryDirectory() as tmp:
-        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
+        app.app.__dict__['global_config'] = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'output.scl'
 
         class FakeSaveDialog:
@@ -567,7 +567,7 @@ def test_app_imports_and_exports_tuning() -> None:
     )
 
     with tempfile.TemporaryDirectory() as tmp:
-        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
+        app.app.__dict__['global_config'] = GlobalConfig(file=Path(tmp) / 'global.toml')
         path = Path(tmp) / 'computed.scl'
 
         class FakeComputedSaveDialog:
@@ -613,7 +613,7 @@ def test_file_dialogs_remember_last_directories() -> None:
         first = Path(tmp) / 'first' / 'input.txt'
         second = Path(tmp) / 'second' / 'output.toml'
         calls: list[str] = []
-        app.global_config = GlobalConfig(file=Path(tmp) / 'global.toml')
+        app.app.__dict__['global_config'] = GlobalConfig(file=Path(tmp) / 'global.toml')
 
         class FakeDialog:
             @staticmethod

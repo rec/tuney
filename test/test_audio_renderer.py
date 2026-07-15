@@ -107,8 +107,44 @@ def test_callback_records_status_without_printing(
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
 
-    assert engine.diagnostics.callback_statuses == ['underflow']
+    assert engine.diagnostics.callback_statuses == ['underflow; buffer_size=32']
     assert capsys.readouterr().out == ''
+
+
+def test_underflow_increases_buffer_size() -> None:
+    buffer_sizes = [32]
+
+    def increase_buffer_size() -> int:
+        buffer_sizes[0] += 32
+        return buffer_sizes[0]
+
+    engine = AudioEngine(
+        mixer=_renderer().mixer,
+        buffer_size=buffer_sizes[0],
+        increase_buffer_size=increase_buffer_size,
+    )
+
+    engine.callback(np.zeros((4, 1)), 4, 0.0, 'output underflow')
+
+    assert engine.buffer_size == 64
+    assert engine.diagnostics.callback_statuses == ['output underflow; buffer_size=64']
+
+
+def test_underflow_logs_buffer_size(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+    monkeypatch.setenv('TUNEY_TRACE', '1')
+    engine = AudioEngine(
+        mixer=_renderer().mixer,
+        buffer_size=32,
+        increase_buffer_size=lambda: 64,
+    )
+
+    engine.callback(np.zeros((4, 1)), 4, 0.0, 'output underflow')
+
+    assert (
+        'output underflow; buffer_size=64'
+        in (tmp_path / 'tuney' / 'tuney.txt').read_text()
+    )
 
 
 def test_engine_master_gain_scales_output() -> None:
@@ -412,13 +448,13 @@ def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
     assert _EngineStream.instances[0].options['device'] == 0
 
 
-def test_player_passes_latency_to_output_stream(monkeypatch) -> None:
+def test_player_passes_buffer_size_to_output_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
 
-    Player(device=Device(latency=0.25)).start(0)
+    Player(buffer_size=64).start(0)
 
-    assert _EngineStream.instances[0].options['latency'] == 0.25
+    assert _EngineStream.instances[0].options['blocksize'] == 64
 
 
 def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:
