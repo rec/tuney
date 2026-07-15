@@ -48,8 +48,10 @@ from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
+from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
+from tuney.ui.history import History
 
 
 @contextmanager
@@ -633,6 +635,24 @@ def test_on_char_records_undo_for_added_char_press() -> None:
     on_char(app, CharPress('a', time=100.0))
 
     assert main_window.undo_count == 1
+
+
+def test_history_checkpoint_ignores_live_sequencer() -> None:
+    class FakeWindow:
+        def __init__(self) -> None:
+            self.app = App(gui=True, text='a')
+
+    window = FakeWindow()
+    history = History(window)
+    window.app.key_recorder.sequencer = Sequencer(
+        char_presses=[CharPress('a', time=60_000)],
+        callback=lambda _: None,
+    )
+
+    history.checkpoint_undo()
+
+    assert len(history.undo_stack) == 1
+    assert history.undo_stack[0].key_recorder.sequencer is None
 
 
 def test_gui_listener_queues_keys_through_app() -> None:

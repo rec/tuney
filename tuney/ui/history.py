@@ -107,7 +107,12 @@ class History:
     def state(self) -> HistoryState:
         return HistoryState(
             tuney=deepcopy(dump_data(self.main_window.app)),
-            key_recorder=self.main_window.app.key_recorder.model_copy(deep=True),
+            key_recorder=KeyRecorder(
+                start_time=self.main_window.app.key_recorder.start_time,
+                time_offset=self.main_window.app.key_recorder.time_offset,
+                insert_time=self.main_window.app.key_recorder.insert_time,
+                replay_text=self.main_window.app.key_recorder.replay_text,
+            ),
             loop=self.loop_state,
             user_presets=user_preset_snapshot(),
         )
