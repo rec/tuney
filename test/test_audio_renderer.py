@@ -527,6 +527,21 @@ def test_voice_holds_early_release_until_minimum_note_time() -> None:
     assert state.complete
 
 
+def test_square_wave_renders_with_float_envelope() -> None:
+    state = VoiceState(
+        voice=Voice(
+            fade_in=0.1,
+            oscillator=Oscillator(waveform=Waveform.square),
+            sample_rate=SAMPLE_RATE,
+        )
+    )
+
+    out = state.render(128)
+
+    assert out.dtype == float
+    assert np.max(np.abs(out)) <= 1
+
+
 def test_mixer_maps_mono_signal_to_each_channel() -> None:
     mixer = _renderer().mixer
     mixer.apply(NotePress(0))

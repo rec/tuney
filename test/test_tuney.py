@@ -6,6 +6,7 @@ import tomllib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from queue import SimpleQueue
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -146,6 +147,42 @@ def test_problem_issue_url_includes_log(monkeypatch) -> None:
     body = query['body'][0]
     assert 'Problem report from Tuney.' in body
     assert 'TRACE problem' in body
+
+
+def test_audio_diagnostics_use_reportable_dialog() -> None:
+    from tuney.ui.main_window import MainWindow
+
+    class FakeDiagnostics:
+        def take_errors(self) -> list[str]:
+            return ['cannot render block']
+
+    class FakeEngine:
+        diagnostics = FakeDiagnostics()
+
+    class FakePlayer:
+        def __init__(self) -> None:
+            self.engine = FakeEngine()
+
+    class FakeApp:
+        player = FakePlayer()
+
+    class FakeWindow:
+        key_queue = SimpleQueue()
+        queue = SimpleQueue()
+        app = FakeApp()
+        errors: list[str] = []
+
+        def _on_char(self, c: CharPress) -> None:
+            raise AssertionError(c)
+
+        def show_audio_error(self, error: str) -> None:
+            self.errors.append(error)
+
+    window = FakeWindow()
+
+    MainWindow._handle_queue(window)
+
+    assert window.errors == ['cannot render block']
 
 
 def test_crash_marker_tracks_unclean_shutdown(monkeypatch) -> None:

@@ -100,7 +100,7 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         NoteNumber,
         tyro_option('-W'),
         Display(column=5, row=0),
-        Numeric(width=3),
+        Numeric(min=0, max=127, width=3),
     ] = 69  # MIDI note 69 is A440, for non-Yamaha units
 
     @cached_property

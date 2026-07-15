@@ -38,7 +38,7 @@ class Sound(BaseModel):
         tyro_option('-n', name='audio-note-offset'),
         General,
         Beginner,
-        Numeric(),
+        Numeric(min=-99, max=99, width=3),
     ] = 44
 
     polyphony: Polyphony = Field(default_factory=Polyphony)

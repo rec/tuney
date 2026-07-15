@@ -109,7 +109,7 @@ class Mapper(BaseModel):
         int,
         tyro_option('-O', name='mapper-offset'),
         Display(column=1, row=1),
-        Numeric(width=3),
+        Numeric(min=-99, max=99, width=3),
     ] = 0
 
     # Limit pitch range to this many notes

@@ -606,6 +606,28 @@ def test_numeric_spinbox_uses_numeric_range() -> None:
     assert editors
 
 
+def test_note_number_spinboxes_use_musical_ranges() -> None:
+    from PySide6.QtWidgets import QSpinBox, QWidget
+
+    _qt_app()
+    tuney = Tuney()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, tuney)
+
+    ranges = {
+        f'{type(data).__name__}.{name}': (w.minimum(), w.maximum())
+        for w in panel.findChildren(QSpinBox)
+        if (binding := control_panel.CONTROL_BINDINGS.get(w)) is not None
+        for data, name, _ in [binding]
+    }
+
+    assert ranges['Mapper.offset'] == (-99, 99)
+    assert ranges['Scale.offset'] == (-99, 99)
+    assert ranges['Sound.note_offset'] == (-99, 99)
+    assert ranges['Oscillator.key_scale_note'] == (0, 127)
+    assert ranges['Tuning.root_note'] == (0, 127)
+
+
 def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QWidget

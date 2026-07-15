@@ -66,7 +66,9 @@ class VoiceState(BaseModel):
             return np.zeros(frame_size)
 
         period_samples = self.voice.period_samples
-        wave = self.voice.oscillator(self.phase, frame_size, period_samples)
+        wave = self.voice.oscillator(self.phase, frame_size, period_samples).astype(
+            float, copy=False
+        )
         frames = self.frame_count + np.arange(frame_size)
         wave *= self._envelope(frames) * self.voice.gain
 

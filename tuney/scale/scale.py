@@ -101,7 +101,7 @@ class Scale(BaseModel):
         int,
         tyro_option('-Y', name='scale-offset'),
         Display(column=3, row=0),
-        Numeric(width=3),
+        Numeric(min=-99, max=99, width=3),
     ] = 0
 
     @model_validator(mode='after')

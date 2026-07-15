@@ -508,6 +508,17 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             QDesktopServices.openUrl(QUrl(crash_issue_url(path)))
 
+    def show_audio_error(self, error: str) -> None:
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Icon.Critical)
+        dialog.setWindowTitle('Audio error')
+        dialog.setText(error)
+        report = dialog.addButton('Report Issue', QMessageBox.ButtonRole.ActionRole)
+        dialog.addButton(QMessageBox.StandardButton.Ok)
+        dialog.exec()
+        if dialog.clickedButton() is report:
+            QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
+
     def on_open_config_folder(self, *_: object) -> None:
         instrument('ui open config folder')
         path = self.app.config_file or self.app._autosave.path
@@ -843,7 +854,7 @@ class MainWindow(QMainWindow):
             self._on_char(self.queue.get())
         if engine := self.app.player.__dict__.get('engine'):
             for error in engine.diagnostics.take_errors():
-                QMessageBox.critical(self, 'Audio error', error)
+                self.show_audio_error(error)
 
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
