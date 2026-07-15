@@ -310,6 +310,7 @@ def test_application_uses_cross_platform_style() -> None:
             'Swap with autosave': 'Ctrl+Alt+S',
             'Refresh Devices': 'Ctrl+D',
             'Show Log Location': 'Ctrl+Alt+L',
+            'Report a problem...': 'Ctrl+Alt+I',
         }
         assert action_shortcuts == expected_shortcuts, action_shortcuts
         assert 'Save preset...' in file_actions
@@ -523,6 +524,25 @@ def test_app_activate_and_history() -> None:
 
         assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]
         assert autosave_file.parent.is_dir()
+
+
+def test_app_reports_problem() -> None:
+    opened: list[str] = []
+
+    class FakeDesktopServices:
+        @staticmethod
+        def openUrl(url: QUrl) -> bool:
+            opened.append(url.toString())
+            return True
+
+    main_window_module.QDesktopServices = FakeDesktopServices
+    app = HistoryApp()
+
+    MainWindow.on_report_problem(app)
+
+    assert opened
+    assert opened[0].startswith('https://github.com/rec/tuney/issues/new?')
+    assert 'Tuney+problem+report' in opened[0]
 
 
 def test_app_imports_and_exports_tuning() -> None:

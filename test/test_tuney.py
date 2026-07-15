@@ -38,6 +38,7 @@ from tuney.app.platform_info import (
     instrument,
     mark_session_clean_exit,
     mark_session_started,
+    problem_issue_url,
     report_error,
 )
 from tuney.app.runnable import start_thread
@@ -127,6 +128,24 @@ def test_crash_issue_url_includes_log(monkeypatch) -> None:
     body = query['body'][0]
     assert 'Tuney appears to have crashed during the previous run.' in body
     assert 'TRACE one\nTRACE two' in body
+
+
+def test_problem_issue_url_includes_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        log.parent.mkdir(parents=True)
+        log.write_text('TRACE problem\n')
+
+        url = problem_issue_url(log)
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert query['title'] == ['Tuney problem report']
+    body = query['body'][0]
+    assert 'Problem report from Tuney.' in body
+    assert 'TRACE problem' in body
 
 
 def test_crash_marker_tracks_unclean_shutdown(monkeypatch) -> None:

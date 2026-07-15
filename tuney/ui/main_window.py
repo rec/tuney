@@ -61,6 +61,7 @@ from ..app.platform_info import (
     instrument,
     log_exception,
     log_path,
+    problem_issue_url,
 )
 from ..presets import delete_presets, read_file, user_preset_names, write_preset
 from ..scale.ratios import Ratios
@@ -98,6 +99,7 @@ PASTE_STATE_ACCELERATOR = 'Ctrl+Alt+V'
 LOAD_AUTOSAVE_ACCELERATOR = 'Ctrl+L'
 SWAP_AUTOSAVE_ACCELERATOR = 'Ctrl+Alt+S'
 SHOW_LOG_ACCELERATOR = 'Ctrl+Alt+L'
+REPORT_PROBLEM_ACCELERATOR = 'Ctrl+Alt+I'
 HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
 OPEN_TEXT_FILE_COMMAND = 'Open Text File'
@@ -472,6 +474,10 @@ class MainWindow(QMainWindow):
             f'Log file:\n\n{log_path()}',
         )
 
+    def on_report_problem(self, *_: object) -> None:
+        instrument('ui report problem')
+        QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
+
     def show_restore_error(self, error: BaseException) -> None:
         path = log_exception(error)
         dialog = QMessageBox(self)
@@ -757,6 +763,12 @@ class MainWindow(QMainWindow):
         _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
         _add_action(
             help_menu, 'Show Log Location', SHOW_LOG_ACCELERATOR, self.on_show_log
+        )
+        _add_action(
+            help_menu,
+            'Report a problem...',
+            REPORT_PROBLEM_ACCELERATOR,
+            self.on_report_problem,
         )
         return menu
 

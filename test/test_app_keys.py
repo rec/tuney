@@ -27,6 +27,7 @@ def test_app_history_and_dialogs() -> None:
     _run_app_key_scripts(
         'test_loop_state_restoration_does_not_retoggle_checkboxes',
         'test_app_activate_and_history',
+        'test_app_reports_problem',
         'test_app_imports_and_exports_tuning',
         'test_file_dialogs_remember_last_directories',
         'test_app_saves_and_deletes_presets',

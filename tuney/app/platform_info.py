@@ -135,7 +135,18 @@ def error_issue_url(error: BaseException, path: Path) -> str:
 
 
 def crash_issue_url(path: Path) -> str:
-    title = 'Tuney crashed'
+    return log_issue_url(
+        path,
+        'Tuney crashed',
+        'Tuney appears to have crashed during the previous run.',
+    )
+
+
+def problem_issue_url(path: Path) -> str:
+    return log_issue_url(path, 'Tuney problem report', 'Problem report from Tuney.')
+
+
+def log_issue_url(path: Path, title: str, message: str) -> str:
     try:
         log = path.read_text(errors='replace')
     except OSError as error:
@@ -144,7 +155,7 @@ def crash_issue_url(path: Path) -> str:
         [
             '## Error',
             '',
-            'Tuney appears to have crashed during the previous run.',
+            message,
             '',
             '## Environment',
             '',
