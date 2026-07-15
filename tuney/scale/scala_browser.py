@@ -29,28 +29,23 @@ class ScalaTrie(BaseModel):
         return node
 
     def first(self, prefix: str) -> Ratios | None:
-        node = self.node(prefix)
-        if node.value is not None:
-            return node.value
-        for c in sorted(node.children):
-            if value := node.children[c].first(''):
+        if match := self.first_match(prefix):
+            return match[1]
+        return None
+
+    def first_match(self, prefix: str) -> tuple[str, Ratios] | None:
+        return self.node(prefix)._first_match(prefix)
+
+    def _first_match(self, prefix: str) -> tuple[str, Ratios] | None:
+        if self.value is not None:
+            return prefix, self.value
+        for c in sorted(self.children):
+            if value := self.children[c]._first_match(prefix + c):
                 return value
         return None
 
     def terminal(self, prefix: str) -> Ratios | None:
         return self.node(prefix).value
-
-    def unique(self, prefix: str) -> tuple[str, Ratios] | None:
-        matches = self.node(prefix)._matches(prefix, 2)
-        return matches[0] if len(matches) == 1 else None
-
-    def _matches(self, prefix: str, limit: int) -> list[tuple[str, Ratios]]:
-        matches = [(prefix, self.value)] if self.value is not None else []
-        for c in sorted(self.children):
-            if len(matches) >= limit:
-                return matches
-            matches.extend(self.children[c]._matches(prefix + c, limit - len(matches)))
-        return matches
 
 
 @cache

@@ -842,33 +842,37 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
     _press(browser, Qt.Key.Key_B, 'b')
     _press(browser, Qt.Key.Key_Down)
 
-    assert browser.text() == 'abc'
-    assert browser.cursorPosition() == 2
-    assert browser.toolTip() == 'abc.scl\n\nfirst scale'
+    assert browser.text() == 'abd'
+    assert browser.selectionStart() == 2
+    assert browser.selectedText() == 'd'
+    assert browser.toolTip() == 'second scale'
 
     _press(browser, Qt.Key.Key_Down)
-    assert browser.text() == 'abd'
-    assert browser.toolTip() == 'abd.scl\n\nsecond scale'
+    assert browser.text() == 'abc'
+    assert browser.selectedText() == 'c'
+    assert browser.toolTip() == 'first scale'
 
     _press(browser, Qt.Key.Key_Left)
     _press(browser, Qt.Key.Key_Up)
-    assert browser.text() == 'abd'
-    assert browser.cursorPosition() == 1
+    assert browser.text() == 'abc'
+    assert browser.selectionStart() == 1
 
     _press(browser, Qt.Key.Key_Left)
     _press(browser, Qt.Key.Key_X, 'x')
     assert browser.text() == 'xyz'
-    assert browser.cursorPosition() == 1
+    assert browser.selectionStart() == 1
+    assert browser.selectedText() == 'yz'
 
     _press(browser, Qt.Key.Key_Down)
     assert browser.text() == 'xyz'
-    assert browser.cursorPosition() == 1
+    assert browser.selectionStart() == 1
 
     _press(browser, Qt.Key.Key_Right)
     assert browser.cursorPosition() == 3
 
     _press(browser, Qt.Key.Key_Left)
-    assert browser.cursorPosition() == 0
+    assert browser.selectionStart() == 2
+    assert browser.selectedText() == 'z'
 
 
 def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
@@ -930,16 +934,24 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
     panel = control_panel.ControlPanel(parent, app, app=app)
     browser = panel.findChild(QLineEdit, 'scala_browser')
     assert browser is not None
+    name = panel.findChild(QLineEdit, 'tuning_name')
+    description = panel.findChild(QLineEdit, 'tuning_description')
+    assert name is not None
+    assert description is not None
 
     _press(browser, Qt.Key.Key_A, 'a')
     _press(browser, Qt.Key.Key_B, 'b')
     _press(browser, Qt.Key.Key_C, 'c')
+    assert name.text() == ''
+    assert description.text() == ''
     _press(browser, Qt.Key.Key_Return)
 
     assert app.tuning.type == Type.ratios
     assert app.tuning.ratios == ratios
     assert app.main_window.history.undo_count == 1
     assert app.main_window.ui.rebuild_count == 1
+    assert name.text() == 'abc'
+    assert description.text() == 'first scale'
 
 
 def test_scala_browser_data_is_lazy_loaded(monkeypatch) -> None:

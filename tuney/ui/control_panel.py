@@ -236,6 +236,12 @@ class _ScalaBrowserEdit(QLineEdit):
         self.index = 0
         self.audition = app.audition_scala if app is not None else False
         self.original_tuning: Tuning | None = None
+        self.setStyleSheet(
+            'QLineEdit {'
+            'selection-color: #909090;'
+            'selection-background-color: transparent;'
+            '}'
+        )
 
     @cached_property
     def trie(self) -> ScalaTrie:
@@ -247,10 +253,7 @@ class _ScalaBrowserEdit(QLineEdit):
         if event.text().isalnum() and len(event.text()) == 1:
             self._type(event.text().casefold())
         elif key == Qt.Key.Key_Left:
-            if self.completion():
-                self.index = self._last_choice_index()
-            else:
-                self.index = max(0, self.index - 1)
+            self.index = max(0, self.index - 1)
         elif key == Qt.Key.Key_Right:
             self.index = (
                 len(self.text())
@@ -258,8 +261,7 @@ class _ScalaBrowserEdit(QLineEdit):
                 else min(len(self.text()), self.index + 1)
             )
         elif key in {Qt.Key.Key_Up, Qt.Key.Key_Down}:
-            if not self.completion():
-                self._cycle(1 if key == Qt.Key.Key_Down else -1)
+            self._cycle(1 if key == Qt.Key.Key_Down else -1)
         elif key in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
             _load_scala_browser_tuning(self)
         else:
@@ -272,12 +274,12 @@ class _ScalaBrowserEdit(QLineEdit):
         return self.text()[: self.index]
 
     def selected_ratios(self) -> Ratios | None:
-        return self.trie.first(self.current_prefix())
+        return self.trie.terminal(self.text()) or self.trie.first(self.current_prefix())
 
     def completion(self) -> tuple[str, Ratios] | None:
-        if (completion := self.trie.unique(self.current_prefix())) is None:
-            return None
-        return completion if self.text() == completion[0] else None
+        if ratios := self.trie.terminal(self.text()):
+            return self.text(), ratios
+        return self.trie.first_match(self.current_prefix())
 
     def set_audition(self, enabled: bool) -> None:
         self.audition = enabled
@@ -291,7 +293,7 @@ class _ScalaBrowserEdit(QLineEdit):
     def _type(self, c: str) -> None:
         if c not in self.trie.choices(self.current_prefix()):
             return
-        self._set_current(c)
+        self.setText(self.text()[: self.index] + c)
         self.index += 1
         self._complete()
 
@@ -306,27 +308,20 @@ class _ScalaBrowserEdit(QLineEdit):
 
     def _set_current(self, c: str) -> None:
         text = self.text()
-        suffix = text[self.index + 1 :] if self.index < len(text) else ''
-        candidate = text[: self.index] + c + suffix
-        self.setText(
-            candidate if self._path_exists(candidate) else text[: self.index] + c
-        )
+        prefix = text[: self.index] + c
+        match = self.trie.first_match(prefix)
+        self.setText(match[0] if match else prefix)
 
     def _complete(self) -> None:
-        if completion := self.trie.unique(self.current_prefix()):
-            self.setText(completion[0])
-
-    def _path_exists(self, prefix: str) -> bool:
-        try:
-            self.trie.node(prefix)
-        except KeyError:
-            return False
-        return True
+        if match := self.trie.first_match(self.current_prefix()):
+            self.setText(match[0])
 
     def _sync(self) -> None:
         self.setCursorPosition(self.index)
+        if self.index < len(self.text()):
+            self.setSelection(self.index, len(self.text()) - self.index)
         self.setToolTip(_scala_browser_tooltip(self.trie, self.text()))
-        if completion := self.completion():
+        if (completion := self.completion()) and self.index == len(self.text()):
             self._audition(completion[1])
         else:
             self.restore_audition()
@@ -339,13 +334,6 @@ class _ScalaBrowserEdit(QLineEdit):
             return
         self.original_tuning = self.app.tuning.model_copy(deep=True)
         _set_app_tuning(self.app, ratios)
-
-    def _last_choice_index(self) -> int:
-        text = self.text()
-        for i in range(len(text) - 1, -1, -1):
-            if len(self.trie.choices(text[:i])) > 1:
-                return i
-        return 0
 
 
 class ControlPanel(QScrollArea):
@@ -986,13 +974,39 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
 
         checkbox.toggled.connect(update)
         layout.addWidget(checkbox)
+    name = QLineEdit(_loaded_scala_name(app), frame)
+    name.setReadOnly(True)
+    _configure_editor(name, 7 * ENTRY_CHAR_WIDTH)
+    name.setObjectName('tuning_name')
+    layout.addWidget(name)
+    description = QLineEdit(_loaded_scala_description(app), frame)
+    description.setReadOnly(True)
+    _configure_editor(description, 100 * ENTRY_CHAR_WIDTH)
+    description.setObjectName('tuning_description')
+    layout.addWidget(description)
     _parent_layout(parent).addWidget(frame)
 
 
 def _scala_browser_tooltip(trie: ScalaTrie, prefix: str) -> str:
-    if ratios := trie.terminal(prefix):
-        return f'{ratios.name}\n\n{ratios.desc}'
+    if ratios := trie.first(prefix):
+        return ratios.desc
     return prefix
+
+
+def _loaded_scala_name(app: App | None) -> str:
+    ratios = _loaded_scala_ratios(app)
+    return ratios.name.removesuffix('.scl') if ratios else ''
+
+
+def _loaded_scala_description(app: App | None) -> str:
+    ratios = _loaded_scala_ratios(app)
+    return ratios.desc if ratios else ''
+
+
+def _loaded_scala_ratios(app: App | None) -> Ratios | None:
+    if app is None or app.tuning.type != Type.ratios:
+        return None
+    return app.tuning.ratios
 
 
 def _load_scala_browser_tuning(entry: _ScalaBrowserEdit) -> None:
@@ -1015,7 +1029,15 @@ def _load_scala_browser_tuning(entry: _ScalaBrowserEdit) -> None:
     entry.restore_audition()
     app.main_window.history.checkpoint_undo()
     _set_app_tuning(app, ratios)
+    _set_loaded_scala_fields(control_panel, ratios)
     app.main_window.ui.rebuild_control_panel()
+
+
+def _set_loaded_scala_fields(control_panel: ControlPanel, ratios: Ratios) -> None:
+    if name := control_panel.findChild(QLineEdit, 'tuning_name'):
+        name.setText(ratios.name.removesuffix('.scl'))
+    if description := control_panel.findChild(QLineEdit, 'tuning_description'):
+        description.setText(ratios.desc)
 
 
 def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
