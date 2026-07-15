@@ -268,6 +268,35 @@ def test_entry_width_uses_compact_numeric_widths(
     )
 
 
+def test_numeric_width_sets_actual_editor_width() -> None:
+    from PySide6.QtWidgets import QLineEdit, QSpinBox, QWidget
+
+    _qt_app()
+    mapper = Mapper()
+    scale = Scale()
+    mapper_parent = QWidget()
+    scale_parent = QWidget()
+    mapper_panel = control_panel.ControlPanel(mapper_parent, mapper)
+    scale_panel = control_panel.ControlPanel(scale_parent, scale)
+
+    mapper_editors = {
+        control_panel.CONTROL_BINDINGS[w][1]: w
+        for w in mapper_panel.findChildren(QSpinBox)
+        if control_panel.CONTROL_BINDINGS.get(w, (None,))[0] is mapper
+    }
+    scale_editors = {
+        control_panel.CONTROL_BINDINGS[w][1]: w
+        for w in scale_panel.findChildren(QLineEdit)
+        if control_panel.CONTROL_BINDINGS.get(w, (None,))[0] is scale
+    }
+
+    assert mapper_editors['length'].minimumWidth() == _entry_width(Mapper, 'length')
+    assert mapper_editors['offset'].minimumWidth() == _entry_width(Mapper, 'offset')
+    assert scale_editors['root'].minimumWidth() == _entry_width(Scale, 'root')
+    assert scale_editors['begin'].minimumWidth() == _entry_width(Scale, 'begin')
+    assert scale_editors['end'].minimumWidth() == _entry_width(Scale, 'end')
+
+
 def test_numeric_metadata_configures_steps_and_decimals() -> None:
     assert control_panel._numeric_metadata(Tuning, 'detune').decimals == 0
     assert control_panel._numeric_metadata(Tuning, 'detune').inc == 1
@@ -536,13 +565,9 @@ def test_visible_field_names(file_regression) -> None:
     )
 
 
-def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
+def test_control_panel_labels_fit_their_text() -> None:
     from PySide6.QtWidgets import (
-        QComboBox,
-        QDoubleSpinBox,
         QLabel,
-        QLineEdit,
-        QSpinBox,
         QWidget,
     )
 
@@ -555,37 +580,12 @@ def test_control_panel_labels_and_editors_keep_minimum_sizes() -> None:
         for label in panel.findChildren(QLabel)
         if label.objectName() == 'control_label'
     ]
-    editors = [
-        *[
-            editor
-            for editor in panel.findChildren(QLineEdit)
-            if editor.objectName() == 'control_editor'
-        ],
-        *[
-            editor
-            for editor in panel.findChildren(QSpinBox)
-            if editor.objectName() == 'control_editor'
-        ],
-        *[
-            editor
-            for editor in panel.findChildren(QDoubleSpinBox)
-            if editor.objectName() == 'control_editor'
-        ],
-        *[
-            editor
-            for editor in panel.findChildren(QComboBox)
-            if editor.objectName() == 'control_editor'
-        ],
-    ]
 
     assert labels
-    assert editors
     for label in labels:
         assert label.minimumWidth() >= label.fontMetrics().horizontalAdvance(
             label.text()
         )
-    for editor in editors:
-        assert editor.minimumWidth() >= control_panel.MIN_EDITOR_WIDTH
 
 
 def test_numeric_spinbox_uses_numeric_range() -> None:

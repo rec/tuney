@@ -870,11 +870,10 @@ def _configure_label(label: QLabel) -> None:
 
 def _configure_editor(widget: QWidget, width: int | None = None) -> None:
     widget.setObjectName('control_editor')
-    minimum = max(width or MIN_TEXT_EDITOR_WIDTH, MIN_EDITOR_WIDTH)
-    widget.setMinimumWidth(minimum)
     if width:
-        widget.setFixedWidth(minimum)
+        widget.setFixedWidth(width)
     else:
+        widget.setMinimumWidth(max(MIN_TEXT_EDITOR_WIDTH, MIN_EDITOR_WIDTH))
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
@@ -1133,7 +1132,12 @@ def _add_entry_control(
     frame, layout, _ = _add_labeled_control_frame(parent, name)
     entry = QLineEdit(text, frame)
     _bind_control(entry, data, name)
-    width = _entry_width(name, annotation, _control_metadata(type(data), name))
+    width = _entry_width(
+        name,
+        annotation,
+        _control_metadata(type(data), name),
+        _numeric_metadata(type(data), name),
+    )
     _configure_editor(entry, width)
     text_color = entry.palette().text().color().name()
 
@@ -1249,7 +1253,7 @@ def _add_spin_control(
             layout.addWidget(dial)
 
     width = _entry_width(name, annotation, _control_metadata(type(data), name), numeric)
-    _configure_editor(spin, max(width + 18, 56) if width else MIN_EDITOR_WIDTH)
+    _configure_editor(spin, width)
     _parent_layout(parent).addWidget(frame)
 
 
