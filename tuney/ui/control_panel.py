@@ -879,6 +879,12 @@ def _configure_editor(widget: QWidget, width: int | None = None) -> None:
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
+def _configure_flexible_editor(widget: QWidget) -> None:
+    widget.setObjectName('control_editor')
+    widget.setMinimumWidth(MIN_EDITOR_WIDTH)
+    widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+
+
 def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
@@ -982,7 +988,7 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     layout.addWidget(name)
     description = QLineEdit(_loaded_scala_description(app), frame)
     description.setReadOnly(True)
-    _configure_editor(description, 100 * ENTRY_CHAR_WIDTH)
+    _configure_flexible_editor(description)
     description.setObjectName('tuning_description')
     layout.addWidget(description)
     _parent_layout(parent).addWidget(frame)

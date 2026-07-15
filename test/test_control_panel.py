@@ -919,6 +919,19 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
     assert browser.selectedText() == 'z'
 
 
+def test_scala_description_does_not_force_panel_width() -> None:
+    from PySide6.QtWidgets import QLineEdit, QSizePolicy, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    description = panel.findChild(QLineEdit, 'tuning_description')
+
+    assert description is not None
+    assert description.minimumWidth() == control_panel.MIN_EDITOR_WIDTH
+    assert description.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Ignored
+
+
 def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QLineEdit, QWidget
