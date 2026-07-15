@@ -103,10 +103,9 @@ type = "integer"
 type = "null"
 
 ["$defs".Device.properties.latency]
-default = "<null>"
 title = "Latency"
 [["$defs".Device.properties.latency.anyOf]]
-type = "integer"
+type = "number"
 
 [["$defs".Device.properties.latency.anyOf]]
 type = "null"

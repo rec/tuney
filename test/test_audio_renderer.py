@@ -388,6 +388,15 @@ def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
     assert _EngineStream.instances[0].options['device'] == 0
 
 
+def test_player_passes_latency_to_output_stream(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+
+    Player(device=Device(latency=0.25)).start(0)
+
+    assert _EngineStream.instances[0].options['latency'] == 0.25
+
+
 def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:
     voice = Voice(fade_in=0, oscillator=Oscillator(waveform=Waveform.triangle))
     mixer = Mixer(voice_maker=lambda _: voice)

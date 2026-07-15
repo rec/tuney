@@ -4,6 +4,7 @@ import enum
 import inspect
 import json
 import math
+import sys
 from collections.abc import Callable
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypeAlias, get_args, get_origin
@@ -687,7 +688,7 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
     return tuple(
         name
         for name in cls.model_fields
-        if not _is_suppressed_field(cls, name)
+        if _is_visible_field(cls, name)
         and not _has_metadata(cls, name, Hidden)
         and not _has_metadata(cls, name, General)
     )
@@ -721,6 +722,12 @@ def _field_widgets(parent: Any) -> list[Any]:
     if not children:
         return [parent]
     return [widget for child in children for widget in _field_widgets(child)]
+
+
+def _is_visible_field(cls: type[BaseModel], name: str) -> bool:
+    if cls is Device and name == 'latency':
+        return sys.platform == 'win32'
+    return not _is_suppressed_field(cls, name)
 
 
 def _field_hover_text(model: type[BaseModel], name: str) -> str:
