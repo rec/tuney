@@ -241,6 +241,7 @@ def test_entry_width_uses_compact_numeric_widths(
             'scale_begin': _entry_width(Scale, 'begin'),
             'scale_end': _entry_width(Scale, 'end'),
             'scale_notes': _entry_width(Scale, 'notes'),
+            'scale_intervals': _entry_width(Scale, 'intervals'),
             'scale_offset': _entry_width(Scale, 'offset'),
             'detune': _entry_width(Tuning, 'detune'),
             'limit': _entry_width(Computed, 'limit'),
@@ -290,8 +291,12 @@ def test_numeric_width_sets_actual_editor_width() -> None:
         if control_panel.CONTROL_BINDINGS.get(w, (None,))[0] is scale
     }
 
-    assert mapper_editors['length'].minimumWidth() == _entry_width(Mapper, 'length')
-    assert mapper_editors['offset'].minimumWidth() == _entry_width(Mapper, 'offset')
+    assert mapper_editors['length'].minimumWidth() == (
+        _entry_width(Mapper, 'length') + control_panel.SPIN_BUTTON_WIDTH
+    )
+    assert mapper_editors['offset'].minimumWidth() == (
+        _entry_width(Mapper, 'offset') + control_panel.SPIN_BUTTON_WIDTH
+    )
     assert scale_editors['root'].minimumWidth() == _entry_width(Scale, 'root')
     assert scale_editors['begin'].minimumWidth() == _entry_width(Scale, 'begin')
     assert scale_editors['end'].minimumWidth() == _entry_width(Scale, 'end')

@@ -90,7 +90,7 @@ class Mapper(BaseModel):
         tyro_option('-a'),
         Beginner,
         Display(row=0),
-        Numeric(width=52),
+        Numeric(width=26),
     ] = None
 
     # Number of note numbers to cycle through; zero uses the full alphabet

@@ -64,6 +64,8 @@ Scalar: TypeAlias = bool | float | int | str | None
 
 INLINE_CHILDREN = (Polyphony,)
 ENTRY_CHAR_WIDTH = 10
+EDITOR_HORIZONTAL_PADDING = 8
+SPIN_BUTTON_WIDTH = 24
 SECTION_PRESET_PLACEHOLDER = 'Preset...'
 
 CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
@@ -1253,7 +1255,7 @@ def _add_spin_control(
             layout.addWidget(dial)
 
     width = _entry_width(name, annotation, _control_metadata(type(data), name), numeric)
-    _configure_editor(spin, width)
+    _configure_editor(spin, width + SPIN_BUTTON_WIDTH if width else None)
     _parent_layout(parent).addWidget(frame)
 
 
@@ -1536,9 +1538,9 @@ def _entry_width(
     display = display or Display()
     numeric = numeric or Numeric()
     if width := numeric.width:
-        return width * ENTRY_CHAR_WIDTH
+        return width * ENTRY_CHAR_WIDTH + EDITOR_HORIZONTAL_PADDING
     if width := display.width:
-        return width * ENTRY_CHAR_WIDTH
+        return width * ENTRY_CHAR_WIDTH + EDITOR_HORIZONTAL_PADDING
 
     types = _annotation_types(annotation)
     if str in types:

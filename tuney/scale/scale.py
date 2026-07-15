@@ -88,7 +88,7 @@ class Scale(BaseModel):
         list[int],
         validate_intervals,
         tyro_option('-i'),
-        Display(column=1, row=1),
+        Display(column=1, row=1, width=7),
     ] = Field(default_factory=lambda: list(INTERVALS))
 
     # Which accidentals are allowed in note names
