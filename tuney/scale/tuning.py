@@ -101,7 +101,7 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         tyro_option('-W'),
         Display(column=5, row=0),
         Numeric(min=0, max=127, width=3),
-    ] = 69  # MIDI note 69 is A440, for non-Yamaha units
+    ] = Field(69, ge=0, le=127)  # MIDI note 69 is A440, for non-Yamaha units
 
     @cached_property
     def detune_ratio(self) -> float:

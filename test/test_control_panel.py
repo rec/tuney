@@ -628,6 +628,23 @@ def test_note_number_spinboxes_use_musical_ranges() -> None:
     assert ranges['Tuning.root_note'] == (0, 127)
 
 
+@pytest.mark.parametrize(
+    ('cls', 'name', 'value'),
+    [
+        (Mapper, 'offset', 100),
+        (Scale, 'offset', 100),
+        (Sound, 'note_offset', 100),
+        (Oscillator, 'key_scale_note', 128),
+        (Tuning, 'root_note', 128),
+    ],
+)
+def test_note_number_ranges_are_model_constraints(
+    cls: type[BaseModel], name: str, value: int
+) -> None:
+    with pytest.raises(ValueError):
+        cls(**{name: value})
+
+
 def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QWidget

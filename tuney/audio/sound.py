@@ -39,7 +39,7 @@ class Sound(BaseModel):
         General,
         Beginner,
         Numeric(min=-99, max=99, width=3),
-    ] = 44
+    ] = Field(44, ge=-99, le=99)
 
     polyphony: Polyphony = Field(default_factory=Polyphony)
 

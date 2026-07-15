@@ -102,7 +102,7 @@ class Scale(BaseModel):
         tyro_option('-Y', name='scale-offset'),
         Display(column=3, row=0),
         Numeric(min=-99, max=99, width=3),
-    ] = 0
+    ] = Field(0, ge=-99, le=99)
 
     @model_validator(mode='after')
     def _validate_note_name_range(self) -> Self:

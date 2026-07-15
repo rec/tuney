@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config.display import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
@@ -59,7 +59,7 @@ class Oscillator(BaseModel):
         tyro_option('-K'),
         Display(column=2, row=0),
         Numeric(min=0, max=127, width=3),
-    ] = 64
+    ] = Field(64, ge=0, le=127)
 
     # Gain decibels added per keyboard octave above key_scale_note
     key_scale: Annotated[
