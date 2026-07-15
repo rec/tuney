@@ -54,6 +54,7 @@ class AudioEngine(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     mixer: Mixer
+    master_gain: float = 1.0
     device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
     recorder: AudioFileWriter | None = Field(default=None, exclude=True)
@@ -143,6 +144,8 @@ class AudioEngine(BaseModel):
                 np.clip(out, -1, 1, out=out)
                 if self.speech.complete:
                     self.speech = None
+            out *= self.master_gain
+            np.clip(out, -1, 1, out=out)
             if self.recorder:
                 self.recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:

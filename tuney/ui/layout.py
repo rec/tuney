@@ -8,6 +8,7 @@ from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QDial,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -45,8 +46,10 @@ REPLAY_TOOLTIPS = {
     'replay': 'Play recorded text, or stop playback',
     'randomize': 'Randomize time for the recorded text',
     'loop': 'Repeat replay until stopped',
+    'master_gain': 'Playback volume',
     'help': 'Help',
 }
+MASTER_GAIN_SCALE = 100
 
 WIDTH, HEIGHT = 70, 80
 
@@ -293,6 +296,18 @@ class Layout(QWidget):
         self.loop.toggled.connect(self.main_window.on_loop_replay)
         Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
         right_layout.addWidget(self.loop)
+        self.master_gain = QDial(frame)
+        self.master_gain.setFixedSize(34, 34)
+        self.master_gain.setRange(0, 200)
+        self.master_gain.setValue(
+            round(self.main_window.app.sound.master_gain * MASTER_GAIN_SCALE)
+        )
+        self.master_gain.setNotchesVisible(True)
+        self.master_gain.valueChanged.connect(
+            lambda value: self.main_window.on_master_gain(value / MASTER_GAIN_SCALE)
+        )
+        Tooltip(self.master_gain, REPLAY_TOOLTIPS['master_gain'], hover_time)
+        right_layout.addWidget(self.master_gain)
         self.help = QPushButton('?', frame)
         self.help.setFixedSize(32, 32)
         self.help.setFont(QFont(FONT_FAMILY, 18))

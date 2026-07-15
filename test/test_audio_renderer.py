@@ -111,6 +111,20 @@ def test_callback_records_status_without_printing(
     assert capsys.readouterr().out == ''
 
 
+def test_engine_master_gain_scales_output() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer, master_gain=0.25)
+    engine.submit(NotePress(0))
+    out = np.zeros((128, 1), dtype=np.float32)
+
+    engine.callback(out, len(out), 0.0, None)
+
+    expected = AudioEngine(mixer=_renderer().mixer)
+    expected.submit(NotePress(0))
+    unscaled = np.zeros((128, 1), dtype=np.float32)
+    expected.callback(unscaled, len(unscaled), 0.0, None)
+    np.testing.assert_allclose(out, unscaled * 0.25)
+
+
 class _EngineStream(Stream):
     instances: list['_EngineStream'] = []
 
@@ -344,6 +358,16 @@ def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
     )
 
     assert player.voice_maker(24).gain == pytest.approx(0.25 * 10 ** (6 / 20))
+
+
+def test_player_updates_live_master_gain() -> None:
+    player = Player()
+    _ = player.engine
+
+    player.set_master_gain(0.5)
+
+    assert player.sound.master_gain == 0.5
+    assert player.engine.master_gain == 0.5
 
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:

@@ -32,9 +32,16 @@ class Player(BaseModel, frozen=True):
     @cached_property
     def engine(self) -> AudioEngine:
         mixer = Mixer(voice_maker=self.voice_maker, polyphony=self.sound.polyphony)
-        engine = AudioEngine(mixer=mixer, device=self.device)
+        engine = AudioEngine(
+            mixer=mixer, master_gain=self.sound.master_gain, device=self.device
+        )
         self.device.set_change_callback(self.reconfigure_device)
         return engine
+
+    def set_master_gain(self, master_gain: float) -> None:
+        self.sound.master_gain = master_gain
+        if 'engine' in self.__dict__:
+            self.engine.master_gain = master_gain
 
     def reconfigure_device(self) -> None:
         instrument('player reconfigure device')
@@ -79,7 +86,15 @@ class Player(BaseModel, frozen=True):
             channels=self.channels,
             polyphony=self.sound.polyphony,
         )
-        render_file(path, mixer, events, self.sample_rate, self.channels, comment)
+        render_file(
+            path,
+            mixer,
+            events,
+            self.sample_rate,
+            self.channels,
+            comment,
+            self.sound.master_gain,
+        )
 
     def start_recording(
         self,

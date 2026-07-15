@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import tyro
 from pydantic import BaseModel, Field
 
-from ..config.display import Beginner, Display, General, Numeric
+from ..config.display import Beginner, Display, General, Hidden, Numeric
 from ..config.tyro_option import tyro_option
 from ..scale import NoteNumber
 from .oscillator import Oscillator
@@ -14,6 +15,13 @@ from .polyphony import Polyphony
 class Sound(BaseModel):
     # Synthesizer oscillator settings
     oscillator: Oscillator = Field(default_factory=Oscillator)
+
+    # Overall playback volume
+    master_gain: Annotated[
+        tyro.conf.Suppress[float],
+        Hidden,
+        Numeric(min=0, max=2.0, dial=True, inc=0.01),
+    ] = Field(1.0, ge=0)
 
     # Audio output gain
     gain: Annotated[

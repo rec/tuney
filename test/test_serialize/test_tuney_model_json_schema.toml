@@ -366,6 +366,12 @@ type = "object"
 ["$defs".Sound.properties.oscillator]
 "$ref" = "#/$defs/Oscillator"
 
+["$defs".Sound.properties.master_gain]
+default = 1.0
+minimum = 0
+title = "Master Gain"
+type = "number"
+
 ["$defs".Sound.properties.gain]
 default = 1.0
 title = "Gain"

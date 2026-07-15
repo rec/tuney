@@ -793,6 +793,10 @@ class MainWindow(QMainWindow):
             self.history.checkpoint_undo()
             self.history.loop_replay = checked
 
+    def on_master_gain(self, master_gain: float) -> None:
+        instrument('ui master gain', master_gain=master_gain)
+        self.app.player.set_master_gain(master_gain)
+
     def on_loop_tempo(self, tempo: str) -> None:
         instrument('ui loop tempo', tempo=tempo)
         try:

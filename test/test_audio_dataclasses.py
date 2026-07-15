@@ -195,6 +195,10 @@ def test_sound_note_gain_combines_output_and_keyboard_gain() -> None:
     assert sound.note_gain(76) == pytest.approx(0.25 * 10 ** (6 / 20))
 
 
+def test_sound_master_gain_defaults_to_one() -> None:
+    assert Sound().master_gain == 1.0
+
+
 def completed_process(
     stdout: str, args: list[str] | None = None
 ) -> subprocess.CompletedProcess[str]:

@@ -56,6 +56,7 @@ def render_file(
     sample_rate: int,
     channels: int,
     comment: Callable[[], str] | None = None,
+    master_gain: float = 1.0,
 ) -> None:
     import soundfile
 
@@ -71,13 +72,20 @@ def render_file(
 
         for frame, note in events:
             if frame > rendered:
-                file.write(mixer.render(frame - rendered, np.float32, channels))
+                file.write(
+                    _mastered(
+                        mixer.render(frame - rendered, np.float32, channels),
+                        master_gain,
+                    )
+                )
                 rendered = frame
             mixer.apply(note)
 
         mixer.stop_all()
         while mixer.voices:
-            file.write(mixer.render(BLOCK_SIZE, np.float32, channels))
+            file.write(
+                _mastered(mixer.render(BLOCK_SIZE, np.float32, channels), master_gain)
+            )
 
         if comment is not None:
             _set_comment(file, comment())
@@ -91,3 +99,9 @@ def _set_comment(file: 'soundfile.SoundFile', comment: str) -> None:
     except soundfile.LibsndfileError as error:
         if 'File type does not support string data' not in str(error):
             raise
+
+
+def _mastered(block: np.ndarray, master_gain: float) -> np.ndarray:
+    block *= master_gain
+    np.clip(block, -1, 1, out=block)
+    return block
