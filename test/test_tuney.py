@@ -52,6 +52,7 @@ from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
 from tuney.ui.history import History
+from tuney.ui.main_window import MainWindow
 
 
 @contextmanager
@@ -653,6 +654,23 @@ def test_history_checkpoint_ignores_live_sequencer() -> None:
 
     assert len(history.undo_stack) == 1
     assert history.undo_stack[0].key_recorder.sequencer is None
+
+
+def test_randomize_on_each_loop_ignores_live_sequencer() -> None:
+    class FakeWindow:
+        def __init__(self) -> None:
+            self.app = App(gui=True, text='a')
+            self.history = History(self)
+
+    window = FakeWindow()
+    window.app.key_recorder.sequencer = Sequencer(
+        char_presses=[CharPress('a', time=60_000)],
+        callback=lambda _: None,
+    )
+
+    MainWindow.on_randomize_on_each_loop(window, True)
+
+    assert window.history.randomize_on_each_loop
 
 
 def test_gui_listener_queues_keys_through_app() -> None:
