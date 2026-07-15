@@ -3,12 +3,13 @@ from __future__ import annotations
 import sys
 from functools import cached_property
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QDial,
+    QDoubleSpinBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -50,6 +51,8 @@ REPLAY_TOOLTIPS = {
     'help': 'Help',
 }
 MASTER_GAIN_SCALE = 100
+MASTER_GAIN_DECIMALS = 4
+MASTER_GAIN_INCREMENT = 0.01
 
 WIDTH, HEIGHT = 70, 80
 
@@ -303,11 +306,20 @@ class Layout(QWidget):
             round(self.main_window.app.sound.master_gain * MASTER_GAIN_SCALE)
         )
         self.master_gain.setNotchesVisible(True)
-        self.master_gain.valueChanged.connect(
-            lambda value: self.main_window.on_master_gain(value / MASTER_GAIN_SCALE)
-        )
+        self.master_gain.setObjectName('master_gain_dial')
         Tooltip(self.master_gain, REPLAY_TOOLTIPS['master_gain'], hover_time)
         right_layout.addWidget(self.master_gain)
+        self.master_gain_value = QDoubleSpinBox(frame)
+        self.master_gain_value.setObjectName('master_gain')
+        self.master_gain_value.setDecimals(MASTER_GAIN_DECIMALS)
+        self.master_gain_value.setSingleStep(MASTER_GAIN_INCREMENT)
+        self.master_gain_value.setRange(0, 2)
+        self.master_gain_value.setValue(self.main_window.app.sound.master_gain)
+        self.master_gain_value.setFixedWidth(74)
+        Tooltip(self.master_gain_value, REPLAY_TOOLTIPS['master_gain'], hover_time)
+        right_layout.addWidget(self.master_gain_value)
+        self.master_gain.valueChanged.connect(self._on_master_gain_dial)
+        self.master_gain_value.valueChanged.connect(self._on_master_gain_value)
         self.help = QPushButton('?', frame)
         self.help.setFixedSize(32, 32)
         self.help.setFont(QFont(FONT_FAMILY, 18))
@@ -318,6 +330,17 @@ class Layout(QWidget):
         self.text_area_layout.addWidget(frame)
         self.set_replay_state(False)
         return frame
+
+    def _on_master_gain_dial(self, value: int) -> None:
+        gain = value / MASTER_GAIN_SCALE
+        with QSignalBlocker(self.master_gain_value):
+            self.master_gain_value.setValue(gain)
+        self.main_window.on_master_gain(gain)
+
+    def _on_master_gain_value(self, gain: float) -> None:
+        with QSignalBlocker(self.master_gain):
+            self.master_gain.setValue(round(gain * MASTER_GAIN_SCALE))
+        self.main_window.on_master_gain(gain)
 
     @cached_property
     def loop_controls(self) -> QWidget:
