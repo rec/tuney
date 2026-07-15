@@ -60,6 +60,16 @@ def append_log(message: str) -> Path:
 def instrument(event: str, **data: object) -> None:
     if not is_frozen() and os.environ.get(TUNEY_TRACE) != '1':
         return
+    _append_trace(event, data)
+
+
+def trace(event: str, **data: object) -> None:
+    if os.environ.get(TUNEY_TRACE) != '1':
+        return
+    _append_trace(event, data)
+
+
+def _append_trace(event: str, data: dict[str, object]) -> None:
     details = ' '.join(f'{k}={v!r}' for k, v in data.items())
     try:
         append_log(f'TRACE {event}{": " + details if details else ""}')

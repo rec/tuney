@@ -41,6 +41,7 @@ from tuney.app.platform_info import (
     mark_session_started,
     problem_issue_url,
     report_error,
+    trace,
 )
 from tuney.app.runnable import start_thread
 from tuney.audio.mixer import NotePress
@@ -807,6 +808,27 @@ def test_instrument_appends_to_app_state_log(monkeypatch) -> None:
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert "TRACE clicked button: button='Play'" in log.read_text()
+
+
+def test_trace_requires_trace_environment(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setattr(sys, 'frozen', True, raising=False)
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+
+        trace('note event', note=12)
+
+        assert not (tmp_path / 'tuney' / 'tuney.txt').exists()
+
+
+def test_trace_appends_to_app_state_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        monkeypatch.setenv('TUNEY_TRACE', '1')
+
+        trace('note event', note=12)
+
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        assert 'TRACE note event: note=12' in log.read_text()
 
 
 def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:

@@ -9,7 +9,7 @@ from typing import Any, Protocol, runtime_checkable
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..app.platform_info import instrument
+from ..app.platform_info import instrument, trace
 from ..scale import NoteNumber
 from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
@@ -88,7 +88,7 @@ class AudioEngine(BaseModel):
             raise
 
     def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> None:
-        instrument('audio command submit', command=type(command).__name__)
+        trace('audio command submit', command=type(command).__name__)
         self.commands.put(command)
 
     def start(self) -> None:
@@ -174,7 +174,7 @@ class AudioEngine(BaseModel):
                 return
 
             if isinstance(command, NotePress):
-                instrument(
+                trace(
                     'audio command apply',
                     command='NotePress',
                     note=command.note_number,
@@ -183,14 +183,14 @@ class AudioEngine(BaseModel):
                 self.stop_when_silent = False
                 self.mixer.apply(command)
             elif isinstance(command, Configure):
-                instrument('audio command apply', command='Configure')
+                trace('audio command apply', command='Configure')
                 self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
             elif isinstance(command, PlaySpeech):
-                instrument('audio command apply', command='PlaySpeech')
+                trace('audio command apply', command='PlaySpeech')
                 self.speech = command.speech
             else:
-                instrument('audio command apply', command='StopAll')
+                trace('audio command apply', command='StopAll')
                 self.stop_when_silent = True
                 self.speech = None
                 self.mixer.stop_all()

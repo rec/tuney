@@ -37,6 +37,7 @@ from .platform_info import (
     mark_session_clean_exit,
     mark_session_started,
     report_error,
+    trace,
 )
 
 if TYPE_CHECKING:
@@ -167,7 +168,7 @@ def start(app: App) -> None:
 
 
 def on_char(app: App, c: CharPress) -> None:
-    instrument('char event', char=c.char, is_press=c.is_press)
+    trace('char event', char=c.char, is_press=c.is_press)
     if c.char == '\b' and not c.is_press:
         stop_backspace_repeat(app)
     if app._is_listening:
@@ -412,7 +413,7 @@ def dump_data(app: App) -> dict[str, object]:
 
 def play_char(app: App, c: CharPress) -> None:
     if (note := app.mapper(c.char)) is not None:
-        instrument('play char', char=c.char, is_press=c.is_press, note=note)
+        trace('play char', char=c.char, is_press=c.is_press, note=note)
         if not app.silent:
             app.player.on_note(note, c.is_press)
         app.midi(note, c.is_press)

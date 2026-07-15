@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..app.app import on_char
-from ..app.platform_info import instrument
+from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
 from . import constants
 from .control_panel import ControlPanel
@@ -97,14 +97,14 @@ class Layout(QWidget):
         instrument('layout init end')
 
     def set_text(self, s: str) -> None:
-        instrument('layout set text', length=len(s))
+        trace('layout set text', length=len(s))
         self.text_stack.setCurrentWidget(self.textbox)
         self.textbox.setPlainText(s)
         self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
         self.count_label.setText(f'Chars: {len(s)}')
 
     def set_text_timings(self, rows: list[list[str]]) -> None:
-        instrument('layout set text timings', rows=len(rows))
+        trace('layout set text timings', rows=len(rows))
         self.text_stack.setCurrentWidget(self.text_timings)
         self.text_timings.blockSignals(True)
         self.text_timings.setRowCount(len(rows))
@@ -128,7 +128,7 @@ class Layout(QWidget):
         self.main_window.on_text_timing_changed(item.row(), item.column(), item.text())
 
     def set_play_cursor(self, index: int | None) -> None:
-        instrument('layout set play cursor', index=index)
+        trace('layout set play cursor', index=index)
         if index is None:
             if self.text_stack.currentWidget() is not self.textbox:
                 return

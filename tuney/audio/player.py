@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from ..app.platform_info import instrument
+from ..app.platform_info import instrument, trace
 from ..scale import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
@@ -121,11 +121,11 @@ class Player(BaseModel, frozen=True):
             recorder.close()
 
     def on_note(self, note_number: NoteNumber, is_press: bool) -> bool:
-        instrument('player note', note=note_number, is_press=is_press)
+        trace('player note', note=note_number, is_press=is_press)
         return self.start(note_number) if is_press else self.stop(note_number)
 
     def start(self, note_number: NoteNumber) -> bool:
-        instrument('player start note', note=note_number)
+        trace('player start note', note=note_number)
         if note_number in self.pressed_notes:
             return False
         stolen_note: NoteNumber | None = None
@@ -163,7 +163,7 @@ class Player(BaseModel, frozen=True):
             return False
 
     def stop(self, note_number: NoteNumber) -> bool:
-        instrument('player stop note', note=note_number)
+        trace('player stop note', note=note_number)
         if note_number not in self.pressed_notes:
             return False
         self.pressed_notes.remove(note_number)
