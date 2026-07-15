@@ -1,5 +1,6 @@
 import random
 
+from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import MAX_GENERATED_SEED, TextTimings
 
@@ -36,6 +37,19 @@ def test_text_timings_sorts_overlapping_events() -> None:
 
     Sequencer(char_presses=presses, callback=lambda _: None)
     assert presses == sorted(presses, key=lambda press: press.time)
+
+
+def test_sequencer_stop_wakes_waiting_thread() -> None:
+    sequencer = Sequencer(
+        char_presses=[CharPress('a', time=60_000)],
+        callback=lambda _: None,
+    )
+
+    thread = sequencer.start()
+    sequencer.stop()
+    thread.join(timeout=1)
+
+    assert not thread.is_alive()
 
 
 TEXT = """\

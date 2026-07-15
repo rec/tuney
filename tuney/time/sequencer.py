@@ -3,9 +3,10 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from itertools import pairwise
+from threading import Event
 from typing import Annotated, Any, override
 
-from pydantic import AfterValidator, BaseModel
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from ..app.runnable import Runnable
 from . import Milliseconds, Seconds, to_ms, to_seconds
@@ -21,12 +22,16 @@ def is_sorted(presses: list[CharPress]) -> list[CharPress]:
 
 
 class Sequencer(BaseModel, Runnable, frozen=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     char_presses: Annotated[list[CharPress], AfterValidator(is_sorted)]
     callback: Callable[[CharPress | None], Any]
+    stop_event: Event = Field(default_factory=Event, exclude=True)
 
     @override
     def _run(self) -> None:
         try:
+            self.stop_event.clear()
             start: Seconds = time.time()
             for cp in self.char_presses:
                 while True:
@@ -36,9 +41,15 @@ class Sequencer(BaseModel, Runnable, frozen=True):
                     if (next_time := max(0, cp.time - elapsed_ms)) <= 0:
                         self.callback(cp)
                         break
-                    time.sleep(to_seconds(min(MAX_WAIT_MS, next_time)))
+                    if self.stop_event.wait(to_seconds(min(MAX_WAIT_MS, next_time))):
+                        return
         finally:
             self.callback(None)
+
+    @override
+    def stop(self) -> None:
+        self.stop_event.set()
+        super().stop()
 
 
 def demo() -> None:
