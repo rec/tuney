@@ -262,6 +262,7 @@ def test_entry_width_uses_compact_numeric_widths(
             'note': _entry_width(Tuning, 'root_note'),
             'device': _entry_width(Device, 'device'),
             'sample_rate': _entry_width(Device, 'sample_rate'),
+            'dtype': _entry_width(Device, 'dtype'),
             'space': _entry_width(TextTimings, 'space'),
             'root': _entry_width(Scale, 'root'),
             'output': _entry_width(MIDI, 'output'),
@@ -929,7 +930,8 @@ def test_scala_description_does_not_force_panel_width() -> None:
 
     assert description is not None
     assert description.minimumWidth() == control_panel.MIN_EDITOR_WIDTH
-    assert description.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Ignored
+    assert description.maximumWidth() == 120 * control_panel.ENTRY_CHAR_WIDTH
+    assert description.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
 
 
 def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:

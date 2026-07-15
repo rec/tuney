@@ -1,5 +1,5 @@
 max_gap = 40
-mapper_alphabet = 268
+mapper_alphabet = 528
 mapper_length = 38
 mapper_offset = 38
 mapper_range_limit = 38
@@ -28,6 +28,7 @@ frequency = 60
 note = 38
 device = "None"
 sample_rate = 68
+dtype = 88
 space = 58
 root = 18
 output = 128

@@ -98,7 +98,10 @@ class Device(BaseModel):
 
     # Sample data type sent to the audio output device
     dtype: Annotated[
-        DType | None, tyro_option(), Display(column=2, row=0), Options(dtype_names)
+        DType | None,
+        tyro_option(),
+        Display(column=2, row=0, width=8),
+        Options(dtype_names),
     ] = None
 
     channels: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None

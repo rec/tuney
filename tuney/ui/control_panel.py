@@ -65,7 +65,7 @@ Scalar: TypeAlias = bool | float | int | str | None
 INLINE_CHILDREN = (Polyphony,)
 ENTRY_CHAR_WIDTH = 10
 EDITOR_HORIZONTAL_PADDING = 8
-SPIN_BUTTON_WIDTH = 24
+SPIN_BUTTON_WIDTH = 34
 SECTION_PRESET_PLACEHOLDER = 'Preset...'
 
 CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
@@ -874,15 +874,18 @@ def _configure_editor(widget: QWidget, width: int | None = None) -> None:
     widget.setObjectName('control_editor')
     if width:
         widget.setFixedWidth(width)
+        widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
     else:
         widget.setMinimumWidth(max(MIN_TEXT_EDITOR_WIDTH, MIN_EDITOR_WIDTH))
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
-def _configure_flexible_editor(widget: QWidget) -> None:
+def _configure_flexible_editor(widget: QWidget, width: int | None = None) -> None:
     widget.setObjectName('control_editor')
     widget.setMinimumWidth(MIN_EDITOR_WIDTH)
-    widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+    if width is not None:
+        widget.setMaximumWidth(width)
+    widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
 def _is_wide_field(data: BaseModel, name: str) -> bool:
@@ -988,7 +991,7 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     layout.addWidget(name)
     description = QLineEdit(_loaded_scala_description(app), frame)
     description.setReadOnly(True)
-    _configure_flexible_editor(description)
+    _configure_flexible_editor(description, 120 * ENTRY_CHAR_WIDTH)
     description.setObjectName('tuning_description')
     layout.addWidget(description)
     _parent_layout(parent).addWidget(frame)
