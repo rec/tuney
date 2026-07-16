@@ -90,6 +90,32 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
     assert layout.main_window.master_gains[-1] == 0.75
 
 
+def test_finish_startup_layout_reveals_after_deferred_build() -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    calls: list[str] = []
+    layout = Layout.__new__(Layout)
+    QWidget.__init__(layout)
+    layout.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    layout.hide()
+    layout.setEnabled(False)
+    layout.control_panel = _FakeStartupControlPanel(calls)
+    layout.root = _FakeStartupRoot(calls)
+    layout.splitter = _FakeStartupSplitter(calls)
+    layout.main_window = _FakeStartupMainWindow(calls)
+    layout.rebuild_note_grid = lambda: calls.append('grid')
+
+    Layout.finish_startup_layout(layout)
+
+    assert calls == ['control_panel', 'grid', 'root', 'splitter', 'events']
+    assert layout.isEnabled()
+    assert not layout.isHidden()
+
+
 class _FakeScale:
     note_count = 1
 
@@ -134,6 +160,43 @@ class _FakeMainWindow:
 
 class _FakeSound:
     master_gain = 1.2345
+
+
+class _FakeStartupControlPanel:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+
+    def rebuild(self) -> None:
+        self.calls.append('control_panel')
+
+
+class _FakeStartupRoot:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+
+    def activate(self) -> None:
+        self.calls.append('root')
+
+
+class _FakeStartupSplitter:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+
+    def updateGeometry(self) -> None:
+        self.calls.append('splitter')
+
+
+class _FakeStartupQtApp:
+    def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
+
+    def processEvents(self) -> None:
+        self.calls.append('events')
+
+
+class _FakeStartupMainWindow:
+    def __init__(self, calls: list[str]) -> None:
+        self.qt_app = _FakeStartupQtApp(calls)
 
 
 class _FakeCursor:

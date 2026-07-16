@@ -61,6 +61,8 @@ class Layout(QWidget):
     def __init__(self, main_window: MainWindow) -> None:
         instrument('layout init start')
         super().__init__(main_window)
+        self.setEnabled(False)
+        self.hide()
         width = WIDTH * main_window.columns
         height = (
             HEIGHT * main_window.rows
@@ -92,9 +94,19 @@ class Layout(QWidget):
             ]
         )
         self.set_text(main_window.app.display_text)
-        QTimer.singleShot(0, self.control_panel.rebuild)
-        QTimer.singleShot(0, self.rebuild_note_grid)
+        QTimer.singleShot(0, self.finish_startup_layout)
         instrument('layout init end')
+
+    def finish_startup_layout(self) -> None:
+        instrument('layout startup build start')
+        self.control_panel.rebuild()
+        self.rebuild_note_grid()
+        self.root.activate()
+        self.splitter.updateGeometry()
+        self.main_window.qt_app.processEvents()
+        self.setEnabled(True)
+        self.show()
+        instrument('layout startup build end')
 
     def set_text(self, s: str) -> None:
         trace('layout set text', length=len(s))
