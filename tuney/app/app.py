@@ -31,12 +31,15 @@ from ..time.sequencer import Sequencer
 from ..ui import startup
 from .global_config import GlobalConfig
 from .platform_info import (
+    acquire_single_instance,
     exit_with_message,
     instrument,
     is_frozen,
     mark_session_clean_exit,
     mark_session_started,
+    release_single_instance,
     report_error,
+    show_already_running,
     trace,
 )
 
@@ -134,28 +137,34 @@ class App(Tuney):
 def run(app: App) -> None:
     instrument('run', gui=app.gui, frozen=getattr(sys, 'frozen', False))
     if app.gui:
-        crashed = is_frozen() and mark_session_started()
-        restore_error = None
+        if not acquire_single_instance():
+            show_already_running()
+            return
         try:
-            instrument('autosave restore start')
-            restore_error = app._autosave.restore(app)
-            instrument('autosave restore end', error=restore_error is not None)
-        except Exception as error:
-            instrument('autosave restore exception', error=repr(error))
-            restore_error = error
-        instrument('main window construct start')
-        main_window = app.main_window
-        instrument('main window construct end')
-        if crashed:
-            main_window.show_crash_report()
-        if restore_error is not None:
-            main_window.show_restore_error(restore_error)
-        start(app)
-        instrument('mainloop start')
-        main_window.mainloop()
-        if is_frozen():
-            mark_session_clean_exit()
-        instrument('mainloop end')
+            crashed = is_frozen() and mark_session_started()
+            restore_error = None
+            try:
+                instrument('autosave restore start')
+                restore_error = app._autosave.restore(app)
+                instrument('autosave restore end', error=restore_error is not None)
+            except Exception as error:
+                instrument('autosave restore exception', error=repr(error))
+                restore_error = error
+            instrument('main window construct start')
+            main_window = app.main_window
+            instrument('main window construct end')
+            if crashed:
+                main_window.show_crash_report()
+            if restore_error is not None:
+                main_window.show_restore_error(restore_error)
+            start(app)
+            instrument('mainloop start')
+            main_window.mainloop()
+            if is_frozen():
+                mark_session_clean_exit()
+            instrument('mainloop end')
+        finally:
+            release_single_instance()
     else:
         run_cli(app)
 

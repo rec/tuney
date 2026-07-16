@@ -1,3 +1,4 @@
+import os
 import random
 import subprocess
 import sys
@@ -32,14 +33,17 @@ from tuney.app.app import (
 from tuney.app.global_config import GlobalConfig
 from tuney.app.platform_info import (
     ISSUE_URL,
+    acquire_single_instance,
     crash_issue_url,
     crash_marker_path,
     error_issue_url,
     exit_with_message,
+    instance_lock_path,
     instrument,
     mark_session_clean_exit,
     mark_session_started,
     problem_issue_url,
+    release_single_instance,
     report_error,
     trace,
 )
@@ -213,6 +217,62 @@ def test_crash_marker_clean_exit_only_removes_current_process(monkeypatch) -> No
         mark_session_clean_exit()
 
         assert crash_marker_path().exists()
+
+
+def test_single_instance_lock_blocks_second_instance(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        instance_lock_path().parent.mkdir(parents=True)
+        instance_lock_path().write_text(str(os.getpid()))
+
+        assert not acquire_single_instance()
+        instance_lock_path().unlink()
+        assert acquire_single_instance()
+        release_single_instance()
+
+
+def test_single_instance_lock_replaces_stale_lock(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        instance_lock_path().parent.mkdir(parents=True)
+        instance_lock_path().write_text('123456')
+        monkeypatch.setattr(
+            'tuney.app.platform_info._process_is_alive', lambda _: False
+        )
+
+        assert acquire_single_instance()
+        release_single_instance()
+
+
+def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        calls: list[str] = []
+        instance_lock_path().parent.mkdir(parents=True)
+        instance_lock_path().write_text(str(os.getpid()))
+
+        class Autosave:
+            @staticmethod
+            def restore(_: object) -> None:
+                calls.append('restore')
+
+        class FakeWindow:
+            @staticmethod
+            def mainloop() -> None:
+                calls.append('mainloop')
+
+        class FakeApp:
+            gui = True
+            _autosave = Autosave()
+            main_window = FakeWindow()
+
+        monkeypatch.setattr(
+            app_module, 'show_already_running', lambda: calls.append('busy')
+        )
+
+        run(FakeApp())
+
+        assert calls == ['busy']
 
 
 def test_run_restores_autosave_before_constructing_window_and_continues(

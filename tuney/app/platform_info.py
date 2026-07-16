@@ -16,8 +16,12 @@ TUNEY_TRACE = 'TUNEY_TRACE'
 APP_STATE_DIR = Path('tuney')
 LOG_FILE = 'tuney.txt'
 CRASH_MARKER_FILE = 'running.txt'
+INSTANCE_LOCK_FILE = 'instance.lock'
 ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
 MAX_ISSUE_BODY = 6000
+
+_instance_lock_fd: int | None = None
+_instance_lock_path: Path | None = None
 
 
 def app_config_dir() -> Path:
@@ -46,6 +50,10 @@ def log_path() -> Path:
 
 def crash_marker_path() -> Path:
     return app_state_dir() / CRASH_MARKER_FILE
+
+
+def instance_lock_path() -> Path:
+    return app_state_dir() / INSTANCE_LOCK_FILE
 
 
 def append_log(message: str) -> Path:
@@ -119,6 +127,50 @@ def mark_session_clean_exit() -> None:
             path.unlink(missing_ok=True)
     except OSError:
         pass
+
+
+def acquire_single_instance() -> bool:
+    global _instance_lock_fd, _instance_lock_path
+
+    if _instance_lock_fd is not None:
+        return True
+    path = instance_lock_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for _ in range(2):
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            if _marker_process_is_alive(path):
+                return False
+            try:
+                path.unlink()
+            except OSError:
+                return False
+            continue
+        except OSError:
+            return False
+        try:
+            os.write(fd, str(os.getpid()).encode())
+        except OSError:
+            os.close(fd)
+            path.unlink(missing_ok=True)
+            return False
+        _instance_lock_fd = fd
+        _instance_lock_path = path
+        return True
+    return False
+
+
+def release_single_instance() -> None:
+    global _instance_lock_fd, _instance_lock_path
+
+    fd, path = _instance_lock_fd, _instance_lock_path
+    _instance_lock_fd = None
+    _instance_lock_path = None
+    if fd is not None:
+        os.close(fd)
+    if path is not None and _marker_pid(path) == os.getpid():
+        path.unlink(missing_ok=True)
 
 
 def _marker_process_is_alive(path: Path) -> bool:
@@ -260,6 +312,25 @@ def show_frozen_exception(error: BaseException, path: Path) -> None:
         import ctypes
 
         ctypes.windll.user32.MessageBoxW(None, message, 'Tuney error', 0x10)
+        return
+    print(message, file=sys.stderr)
+
+
+def show_already_running() -> None:
+    message = 'Tuney is already running.'
+    try:
+        from PySide6.QtWidgets import QApplication, QMessageBox
+
+        _ = QApplication.instance() or QApplication([])
+        QMessageBox.information(None, 'Tuney', message)
+        return
+    except (ImportError, RuntimeError):
+        pass
+    if sys.platform == 'win32':
+        import ctypes
+
+        windll = ctypes.__dict__['windll']
+        windll.user32.MessageBoxW(None, message, 'Tuney', 0x40)
         return
     print(message, file=sys.stderr)
 
