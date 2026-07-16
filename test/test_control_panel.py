@@ -440,6 +440,47 @@ def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
     assert len(calls) == startup_calls
 
 
+def test_control_panel_can_defer_page_builds(monkeypatch) -> None:
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    calls: list[bool] = []
+    add_model_controls = control_panel._add_model_controls
+
+    def wrapped_add_model_controls(
+        parent: QWidget,
+        data: BaseModel,
+        option_controls: list[object],
+        title: str | None = None,
+        advanced: bool = True,
+    ) -> None:
+        calls.append(advanced)
+        add_model_controls(parent, data, option_controls, title, advanced)
+
+    monkeypatch.setattr(
+        control_panel, '_add_model_controls', wrapped_add_model_controls
+    )
+
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney(), build=False, eager_modes=False)
+
+    assert calls == []
+    assert panel.pages == {}
+
+    panel.rebuild()
+    assert set(panel.pages) == {True}
+    assert set(calls) == {True}
+
+    startup_calls = len(calls)
+    panel.show_mode(False)
+    panel.show_mode(True)
+    panel.show_mode(False)
+
+    assert set(panel.pages) == {False, True}
+    assert len(calls) > startup_calls
+    assert {False, True} <= set(calls)
+
+
 def test_control_panel_sections_are_collapsible() -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 

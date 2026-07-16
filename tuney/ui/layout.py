@@ -84,7 +84,6 @@ class Layout(QWidget):
         _ = self.replay_frame
         _ = self.loop_controls
         _ = self.note_grid_widget
-        _ = self.note_buttons
         self.splitter.setSizes(
             [
                 CONTROL_PANEL_HEIGHT,
@@ -93,7 +92,8 @@ class Layout(QWidget):
             ]
         )
         self.set_text(main_window.app.display_text)
-        QTimer.singleShot(0, self.refresh_note_button_fonts)
+        QTimer.singleShot(0, self.control_panel.rebuild)
+        QTimer.singleShot(0, self.rebuild_note_grid)
         instrument('layout init end')
 
     def set_text(self, s: str) -> None:
@@ -174,6 +174,8 @@ class Layout(QWidget):
             self.main_window.app,
             CONTROL_PANEL_HEIGHT,
             self.main_window.app,
+            build=False,
+            eager_modes=False,
         )
         self.splitter.addWidget(panel)
         return panel

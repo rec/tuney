@@ -242,6 +242,8 @@ class ControlPanel(QScrollArea):
         data: BaseModel,
         height: int = 200,
         app: App | None = None,
+        build: bool = True,
+        eager_modes: bool = True,
     ) -> None:
         instrument('control panel init', model=type(data).__name__)
         super().__init__(parent)
@@ -249,6 +251,7 @@ class ControlPanel(QScrollArea):
         self.app = app
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
+        self.eager_modes = eager_modes
         self.pages: dict[bool, QWidget] = {}
         self.setWidgetResizable(True)
         self.setMinimumHeight(min(height, 80))
@@ -256,7 +259,10 @@ class ControlPanel(QScrollArea):
         self.content: QStackedWidget = QStackedWidget()
         self.content.setObjectName('control_panel_content')
         self.setWidget(self.content)
-        self.rebuild()
+        if build:
+            self.rebuild()
+        else:
+            self._add_placeholder()
 
     def rebuild(self) -> None:
         instrument('control panel rebuild start', model=type(self.data).__name__)
@@ -267,8 +273,10 @@ class ControlPanel(QScrollArea):
             page.deleteLater()
         self.pages.clear()
         self.option_controls.clear()
-        self.pages[True] = self._build_page(True)
-        self.pages[False] = self._build_page(False)
+        self.pages[self.show_advanced] = self._build_page(self.show_advanced)
+        if self.eager_modes:
+            other_mode = not self.show_advanced
+            self.pages[other_mode] = self._build_page(other_mode)
         self.content.setCurrentWidget(self.pages[self.show_advanced])
         instrument('control panel rebuild end', model=type(self.data).__name__)
 
@@ -298,6 +306,13 @@ class ControlPanel(QScrollArea):
         _add_model_controls(page, self.data, self.option_controls, advanced=advanced)
         instrument('control panel build page end', advanced=advanced)
         return page
+
+    def _add_placeholder(self) -> None:
+        page = QWidget(self.content)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.addWidget(QLabel('Loading controls...', page))
+        self.content.addWidget(page)
 
 
 def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None:
