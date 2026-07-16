@@ -108,6 +108,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Synthesizer sound settings
   ----------------------------------------------------------------------------------------------------------------------
+  -F, --synchronize-oscillators, --no-synchronize-oscillators
+        Use the same time origin for every oscillator (default: False)
   -G FLOAT, --gain FLOAT
         Audio output gain (default: 1.0)
   -n INT, --audio-note-offset INT

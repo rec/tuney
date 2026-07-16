@@ -11,7 +11,7 @@ from sounddevice import CallbackAbort, PortAudioError
 
 from tuney.audio import device as device_module
 from tuney.audio.device import Device
-from tuney.audio.engine import AudioEngine, PlaySpeech, StopAll, Stream
+from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.output_file import AudioFileWriter
@@ -159,6 +159,49 @@ def test_engine_master_gain_scales_output() -> None:
     unscaled = np.zeros((128, 1), dtype=np.float32)
     expected.callback(unscaled, len(unscaled), 0.0, None)
     np.testing.assert_allclose(out, unscaled * 0.25)
+
+
+def test_synchronized_oscillators_use_mixer_frame_count() -> None:
+    voice = Voice(
+        frequency=480,
+        sample_rate=48_000,
+        oscillator=Oscillator(waveform=Waveform.sine),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice, synchronize_oscillators=True)
+
+    mixer.render(125)
+    mixer.apply(NotePress(0))
+
+    assert mixer.voices[0].phase == 25
+
+
+def test_unsynchronized_oscillators_start_at_zero() -> None:
+    voice = Voice(
+        frequency=480,
+        sample_rate=48_000,
+        oscillator=Oscillator(waveform=Waveform.sine),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice)
+
+    mixer.render(125)
+    mixer.apply(NotePress(0))
+
+    assert mixer.voices[0].phase == 0
+
+
+def test_configure_sets_synchronized_oscillators() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.submit(
+        Configure(
+            voice_maker=_voice_maker,
+            polyphony=Polyphony(),
+            synchronize_oscillators=True,
+        )
+    )
+
+    engine.callback(np.zeros((4, 1)), 4, 0.0, None)
+
+    assert engine.mixer.synchronize_oscillators
 
 
 class _EngineStream(Stream):

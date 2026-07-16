@@ -43,6 +43,7 @@ octave_ratio = 2
 [device]
 
 [sound]
+synchronize_oscillators = false
 master_gain = 1.0
 gain = 1.0
 note_offset = 44

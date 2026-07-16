@@ -350,6 +350,11 @@ type = "object"
 ["$defs".Sound.properties.oscillator]
 "$ref" = "#/$defs/Oscillator"
 
+["$defs".Sound.properties.synchronize_oscillators]
+default = false
+title = "Synchronize Oscillators"
+type = "boolean"
+
 ["$defs".Sound.properties.master_gain]
 default = 1.0
 minimum = 0

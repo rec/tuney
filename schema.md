@@ -192,6 +192,9 @@ class Sound:
     # Synthesizer oscillator settings
     oscillator: Oscillator
 
+    # Use the same time origin for every oscillator
+    synchronize_oscillators: bool = False
+
     # Audio output gain
     gain: float = 1.0
 

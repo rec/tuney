@@ -33,7 +33,11 @@ class Player(BaseModel, frozen=True):
 
     @cached_property
     def engine(self) -> AudioEngine:
-        mixer = Mixer(voice_maker=self.voice_maker, polyphony=self.sound.polyphony)
+        mixer = Mixer(
+            voice_maker=self.voice_maker,
+            polyphony=self.sound.polyphony,
+            synchronize_oscillators=self.sound.synchronize_oscillators,
+        )
         engine = AudioEngine(
             mixer=mixer,
             master_gain=self.sound.master_gain,
@@ -91,6 +95,7 @@ class Player(BaseModel, frozen=True):
             voice_maker=partial(self.voice_maker, sample_rate=self.sample_rate),
             channels=self.channels,
             polyphony=self.sound.polyphony,
+            synchronize_oscillators=self.sound.synchronize_oscillators,
         )
         render_file(
             path,
@@ -141,6 +146,7 @@ class Player(BaseModel, frozen=True):
                 Configure(
                     voice_maker=voice_maker,
                     polyphony=self.sound.polyphony,
+                    synchronize_oscillators=self.sound.synchronize_oscillators,
                 )
             )
             if stolen_note is not None:

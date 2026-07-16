@@ -16,6 +16,11 @@ class Sound(BaseModel):
     # Synthesizer oscillator settings
     oscillator: Oscillator = Field(default_factory=Oscillator)
 
+    # Use the same time origin for every oscillator
+    synchronize_oscillators: Annotated[
+        bool, tyro_option('-F', name='synchronize-oscillators'), General, Beginner
+    ] = False
+
     # Overall playback volume
     master_gain: Annotated[
         tyro.conf.Suppress[float],

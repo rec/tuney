@@ -38,6 +38,7 @@ class Configure(BaseModel, frozen=True):
 
     voice_maker: Callable[[NoteNumber], Voice]
     polyphony: Polyphony
+    synchronize_oscillators: bool = False
 
 
 class StopAll:
@@ -186,6 +187,7 @@ class AudioEngine(BaseModel):
                 trace('audio command apply', command='Configure')
                 self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
+                self.mixer.synchronize_oscillators = command.synchronize_oscillators
             elif isinstance(command, PlaySpeech):
                 trace('audio command apply', command='PlaySpeech')
                 self.speech = command.speech

@@ -23,6 +23,8 @@ class Mixer(BaseModel):
     voice_maker: Callable[[NoteNumber], Voice]
     channels: int = 1
     polyphony: Polyphony = Field(default_factory=Polyphony)
+    synchronize_oscillators: bool = False
+    frame_count: int = 0
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
@@ -33,7 +35,12 @@ class Mixer(BaseModel):
                 return False
             if len(self.pressed_notes) >= self.polyphony.max_voices:
                 self._release_oldest()
-            self.voices[note_number] = VoiceState(voice=self.voice_maker(note_number))
+            voice = self.voice_maker(note_number)
+            phase = self.frame_count % voice.period_samples
+            self.voices[note_number] = VoiceState(
+                voice=voice,
+                phase=phase if self.synchronize_oscillators else 0,
+            )
             self.pressed_notes.append(note_number)
             return True
 
@@ -73,6 +80,7 @@ class Mixer(BaseModel):
         np.clip(mixed, -1, 1, out=mixed)
 
         channel_count = self.channels if channels is None else channels
+        self.frame_count += frame_size
         return np.repeat(mixed[:, np.newaxis], channel_count, axis=1).astype(
             dtype, copy=False
         )
