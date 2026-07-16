@@ -194,9 +194,25 @@ def test_crash_marker_tracks_unclean_shutdown(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
         assert not mark_session_started()
+        assert not mark_session_started()
+        crash_marker_path().write_text('123456')
+        monkeypatch.setattr(
+            'tuney.app.platform_info._process_is_alive', lambda _: False
+        )
         assert mark_session_started()
         mark_session_clean_exit()
         assert not mark_session_started()
+
+
+def test_crash_marker_clean_exit_only_removes_current_process(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        crash_marker_path().parent.mkdir(parents=True)
+        crash_marker_path().write_text('123456')
+
+        mark_session_clean_exit()
+
+        assert crash_marker_path().exists()
 
 
 def test_run_restores_autosave_before_constructing_window_and_continues(
@@ -244,7 +260,8 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
 def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        assert not mark_session_started()
+        crash_marker_path().parent.mkdir(parents=True)
+        crash_marker_path().write_text('123456')
         calls: list[str] = []
 
         class Autosave:
@@ -267,6 +284,9 @@ def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
             main_window = FakeWindow()
 
         monkeypatch.setattr(app_module, 'is_frozen', lambda: True)
+        monkeypatch.setattr(
+            'tuney.app.platform_info._process_is_alive', lambda _: False
+        )
         monkeypatch.setattr(app_module, 'start', lambda _: None)
 
         run(FakeApp())

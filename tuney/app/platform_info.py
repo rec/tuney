@@ -100,10 +100,13 @@ def log_exception(error: BaseException) -> Path:
 
 def mark_session_started() -> bool:
     path = crash_marker_path()
-    crashed = path.exists()
+    crashed = False
+    if path.exists():
+        crashed = not _marker_process_is_alive(path)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(datetime.now(timezone.utc).isoformat())
+        if crashed or not path.exists():
+            path.write_text(str(os.getpid()))
     except OSError:
         return False
     return crashed
@@ -111,9 +114,55 @@ def mark_session_started() -> bool:
 
 def mark_session_clean_exit() -> None:
     try:
-        crash_marker_path().unlink(missing_ok=True)
+        path = crash_marker_path()
+        if _marker_pid(path) == os.getpid():
+            path.unlink(missing_ok=True)
     except OSError:
         pass
+
+
+def _marker_process_is_alive(path: Path) -> bool:
+    if (pid := _marker_pid(path)) is None:
+        return False
+    return _process_is_alive(pid)
+
+
+def _marker_pid(path: Path) -> int | None:
+    try:
+        return int(path.read_text().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def _process_is_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if sys.platform == 'win32':
+        return _windows_process_is_alive(pid)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _windows_process_is_alive(pid: int) -> bool:
+    import ctypes
+
+    process_query_limited_information = 0x1000
+    still_active = 259
+    windll = ctypes.__dict__['windll']
+    kernel32 = windll.kernel32
+    handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
+    if not handle:
+        return False
+    exit_code = ctypes.c_ulong()
+    try:
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+            return False
+        return exit_code.value == still_active
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def error_issue_url(error: BaseException, path: Path) -> str:
