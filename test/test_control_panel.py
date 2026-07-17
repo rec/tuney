@@ -692,6 +692,27 @@ def test_note_number_ranges_are_model_constraints(
         cls(**{name: value})
 
 
+def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    midi = MIDI(enable=False)
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, midi)
+
+    cells = {
+        name: widget
+        for widget in panel.findChildren(QWidget)
+        if (binding := control_panel.CONTROL_BINDINGS.get(widget)) is not None
+        for data, name, _ in [binding]
+        if data is midi
+    }
+
+    assert cells['enable'].isEnabled()
+    assert not cells['output'].isEnabled()
+    assert not cells['channel'].isEnabled()
+
+
 def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QWidget

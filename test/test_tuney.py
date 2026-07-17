@@ -278,43 +278,45 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
 def test_run_restores_autosave_before_constructing_window_and_continues(
     monkeypatch,
 ) -> None:
-    calls: list[str] = []
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        calls: list[str] = []
 
-    class FailingAutosave:
-        @staticmethod
-        def restore(_: object) -> RuntimeError:
-            calls.append('restore')
-            return RuntimeError('broken saved state')
+        class FailingAutosave:
+            @staticmethod
+            def restore(_: object) -> RuntimeError:
+                calls.append('restore')
+                return RuntimeError('broken saved state')
 
-    class FakeWindow:
-        error: BaseException | None = None
+        class FakeWindow:
+            error: BaseException | None = None
 
-        def show_restore_error(self, error: BaseException) -> None:
-            calls.append('error')
-            self.error = error
+            def show_restore_error(self, error: BaseException) -> None:
+                calls.append('error')
+                self.error = error
 
-        @staticmethod
-        def mainloop() -> None:
-            calls.append('mainloop')
+            @staticmethod
+            def mainloop() -> None:
+                calls.append('mainloop')
 
-    window = FakeWindow()
+        window = FakeWindow()
 
-    class FakeApp:
-        gui = True
-        _autosave = FailingAutosave()
+        class FakeApp:
+            gui = True
+            _autosave = FailingAutosave()
 
-        @property
-        def main_window(self) -> FakeWindow:
-            calls.append('window')
-            return window
+            @property
+            def main_window(self) -> FakeWindow:
+                calls.append('window')
+                return window
 
-    app = FakeApp()
-    monkeypatch.setattr(app_module, 'start', lambda _: None)
+        app = FakeApp()
+        monkeypatch.setattr(app_module, 'start', lambda _: None)
 
-    run(app)
+        run(app)
 
-    assert isinstance(window.error, RuntimeError)
-    assert calls == ['restore', 'window', 'error', 'mainloop']
+        assert isinstance(window.error, RuntimeError)
+        assert calls == ['restore', 'window', 'error', 'mainloop']
 
 
 def test_run_reports_previous_frozen_crash(monkeypatch) -> None:

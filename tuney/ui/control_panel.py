@@ -580,7 +580,7 @@ def _add_control_cell(
     _add_field_tooltips(cell, type(data), name)
     cell.setProperty('control_field_name', name)
     _bind_control(cell, data, name)
-    if isinstance(data, MIDI) and not data.enable:
+    if isinstance(data, MIDI) and not data.enable and name != 'enable':
         _set_widget_state(cell, False)
 
 
