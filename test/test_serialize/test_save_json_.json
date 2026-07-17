@@ -55,10 +55,16 @@
     "minimum_note_time": 0.5
   },
   "midi": {
-    "enable": false,
-    "channel": 0,
-    "velocity": 64,
-    "note_offset": 0
+    "input": {
+      "enable": false,
+      "channel": "omni"
+    },
+    "output": {
+      "enable": false,
+      "channel": 0,
+      "velocity": 64,
+      "note_offset": 0
+    }
   },
   "text_timings": {
     "space": 100,

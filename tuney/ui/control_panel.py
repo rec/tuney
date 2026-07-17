@@ -37,7 +37,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..app.app import apply_preset
 from ..app.platform_info import instrument
 from ..audio.device import Device
-from ..audio.midi import MIDI
+from ..audio.midi import MIDI, MIDI_in, MIDI_out
 from ..audio.polyphony import Polyphony
 from ..config.display import Beginner, Display, General, Hidden
 from ..mapper.language import (
@@ -353,7 +353,19 @@ def _add_model_controls(
         if not _visible_control_names(child, advanced):
             _add_model_controls(parent, child, option_controls, advanced=advanced)
             continue
-        _add_model_controls(parent, child, option_controls, name, advanced)
+        _add_model_controls(
+            parent,
+            child,
+            option_controls,
+            _midi_child_title(data, name),
+            advanced,
+        )
+
+
+def _midi_child_title(data: BaseModel, name: str) -> str:
+    if isinstance(data, MIDI):
+        return {'input': 'in', 'output': 'out'}.get(name, name)
+    return name
 
 
 def _add_tuning_controls(
@@ -580,7 +592,7 @@ def _add_control_cell(
     _add_field_tooltips(cell, type(data), name)
     cell.setProperty('control_field_name', name)
     _bind_control(cell, data, name)
-    if isinstance(data, MIDI) and not data.enable and name != 'enable':
+    if isinstance(data, MIDI_in | MIDI_out) and not data.enable and name != 'enable':
         _set_widget_state(cell, False)
 
 
@@ -962,8 +974,13 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
     def command(checked: bool) -> None:
         _set_model_value(data, name, checked, parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
-        if type(data).__name__ == 'MIDI' and name == 'enable':
+        if isinstance(data, MIDI_in | MIDI_out) and name == 'enable':
             _set_midi_controls_state(parent, checked)
+            if isinstance(data, MIDI_in) and (state := _control_panel(parent).app):
+                if checked:
+                    state.midi_input_listener.start()
+                else:
+                    state.midi_input_listener.close()
 
     check.toggled.connect(command)
     _parent_layout(parent).addWidget(check)

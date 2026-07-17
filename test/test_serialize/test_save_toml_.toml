@@ -59,7 +59,11 @@ key_scale = 0.0
 headroom = 4
 max_voices = 10
 
-[midi]
+[midi.input]
+enable = false
+channel = "omni"
+
+[midi.output]
 enable = false
 channel = 0
 velocity = 64

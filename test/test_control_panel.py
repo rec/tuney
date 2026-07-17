@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from tuney.app.app import App
 from tuney.audio.device import Device
-from tuney.audio.midi import MIDI
+from tuney.audio.midi import MIDI_in, MIDI_out
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Sound
@@ -252,9 +252,9 @@ def test_entry_width_uses_compact_numeric_widths(
             'duty_cycle': _entry_width(Oscillator, 'duty_cycle'),
             'key_scale_note': _entry_width(Oscillator, 'key_scale_note'),
             'key_scale': _entry_width(Oscillator, 'key_scale'),
-            'midi_channel': _entry_width(MIDI, 'channel'),
-            'midi_velocity': _entry_width(MIDI, 'velocity'),
-            'midi_note_offset': _entry_width(MIDI, 'note_offset'),
+            'midi_channel': _entry_width(MIDI_out, 'channel'),
+            'midi_velocity': _entry_width(MIDI_out, 'velocity'),
+            'midi_note_offset': _entry_width(MIDI_out, 'note_offset'),
             'overlap': _entry_width(TextTimings, 'overlap'),
             'gain': _entry_width(Sound, 'gain'),
             'scale': _entry_width(TextTimings, 'scale'),
@@ -265,7 +265,7 @@ def test_entry_width_uses_compact_numeric_widths(
             'dtype': _entry_width(Device, 'dtype'),
             'space': _entry_width(TextTimings, 'space'),
             'root': _entry_width(Scale, 'root'),
-            'output': _entry_width(MIDI, 'output'),
+            'output': _entry_width(MIDI_out, 'output'),
         },
     )
 
@@ -696,7 +696,7 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     from PySide6.QtWidgets import QWidget
 
     _qt_app()
-    midi = MIDI(enable=False)
+    midi = MIDI_out(enable=False)
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi)
 
@@ -710,6 +710,26 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
 
     assert cells['enable'].isEnabled()
     assert not cells['output'].isEnabled()
+    assert not cells['channel'].isEnabled()
+
+
+def test_midi_input_enable_control_stays_enabled_when_midi_is_disabled() -> None:
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    midi = MIDI_in(enable=False)
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, midi)
+
+    cells = {
+        name: widget
+        for widget in panel.findChildren(QWidget)
+        if (binding := control_panel.CONTROL_BINDINGS.get(widget)) is not None
+        for data, name, _ in [binding]
+        if data is midi
+    }
+
+    assert cells['enable'].isEnabled()
     assert not cells['channel'].isEnabled()
 
 

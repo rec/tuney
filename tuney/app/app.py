@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
+from ..audio.midi import MIDIInputListener
 from ..audio.mixer import NotePress
 from ..audio.player import Player
 from ..config.serialize import serialize
@@ -65,6 +66,12 @@ class App(Tuney):
     def listener(self) -> KeyboardListener:
         return KeyboardListener(
             self.main_window.on_key if self.gui else lambda c: on_char(self, c)
+        )
+
+    @cached_property
+    def midi_input_listener(self) -> MIDIInputListener:
+        return self.midi.input_listener(
+            lambda note, is_press: play_note(self, note, is_press)
         )
 
     @cached_property
@@ -172,6 +179,7 @@ def run(app: App) -> None:
 def start(app: App) -> None:
     instrument('app start', run_in_background=app.run_in_background)
     app.main_window.start()
+    app.midi_input_listener.start()
     if app.run_in_background:
         app.listener.start()
 
@@ -423,11 +431,16 @@ def dump_data(app: App) -> dict[str, object]:
 def play_char(app: App, c: CharPress) -> None:
     if (note := app.mapper(c.char)) is not None:
         trace('play char', char=c.char, is_press=c.is_press, note=note)
-        if not app.silent:
-            app.player.on_note(note, c.is_press)
-        app.midi(note, c.is_press)
+        play_note(app, note, c.is_press)
+        app.midi.output(note, c.is_press)
     if app.gui:
         app.main_window.on_char(c)
+
+
+def play_note(app: App, note: int, is_press: bool) -> None:
+    trace('play note', is_press=is_press, note=note)
+    if not app.silent:
+        app.player.on_note(note, is_press)
 
 
 def clear_cached_values(app: App) -> None:

@@ -43,7 +43,7 @@ class Tuney(BaseModel):
     # Synthesizer sound settings
     sound: Sound = Field(default_factory=Sound)
 
-    # Where to send MIDI output
+    # MIDI input and output settings
     midi: MIDI = Field(default_factory=MIDI)
 
     # Timings for playing back texts

@@ -22,6 +22,8 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--max-voices',
     '--type',
     '--table',
+    '--midi-in-enable',
+    '--midi-in-channel',
     '--midi-enable',
     '--midi-output',
     '--midi-channel',
@@ -177,6 +179,8 @@ def test_cli_accepts_flat_long_options() -> None:
         App,
         args=[
             '--alphabet=abc',
+            '--midi-in-enable',
+            '--midi-in-channel=3',
             '--midi-output=Port',
             '--midi-channel=3',
             '--midi-velocity=80',
@@ -202,10 +206,12 @@ def test_cli_accepts_flat_long_options() -> None:
     )
 
     assert app.mapper.alphabet == 'abc'
-    assert app.midi.output == 'Port'
-    assert app.midi.channel == 3
-    assert app.midi.velocity == 80
-    assert app.midi.note_offset == 12
+    assert app.midi.input.enable
+    assert app.midi.input.mido_channel == 2
+    assert app.midi.output.output == 'Port'
+    assert app.midi.output.channel == 3
+    assert app.midi.output.velocity == 80
+    assert app.midi.output.note_offset == 12
     assert app.text_timings.dot == 301
     assert app.text_timings.scale == 4
     assert app.text_timings.space == 101

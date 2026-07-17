@@ -1,11 +1,13 @@
 import json
 import subprocess
 import sys
+from collections.abc import Callable
+from enum import StrEnum
 from functools import cached_property
 from typing import Annotated, Any
 
 import mido
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from ..app.platform_info import report_error
 from ..config.display import Beginner, Display, Numeric, Options
@@ -44,7 +46,71 @@ def output_names() -> list[str]:
     return [name for name in names if isinstance(name, str)]
 
 
-class MIDI(BaseModel):
+class MIDI_channel(StrEnum):
+    omni = 'omni'
+    channel_1 = '1'
+    channel_2 = '2'
+    channel_3 = '3'
+    channel_4 = '4'
+    channel_5 = '5'
+    channel_6 = '6'
+    channel_7 = '7'
+    channel_8 = '8'
+    channel_9 = '9'
+    channel_10 = '10'
+    channel_11 = '11'
+    channel_12 = '12'
+    channel_13 = '13'
+    channel_14 = '14'
+    channel_15 = '15'
+    channel_16 = '16'
+
+
+class MIDI_in(BaseModel):
+    # Enable MIDI input
+    enable: Annotated[
+        bool, tyro_option(name='midi-in-enable'), Beginner, Display(row=0)
+    ] = False
+
+    # MIDI input channel, or omni to receive all channels
+    channel: Annotated[
+        MIDI_channel,
+        tyro_option(name='midi-in-channel', constructor=str),
+        Beginner,
+        Display(column=1, row=0),
+        Options(lambda: [c.value for c in MIDI_channel]),
+    ] = MIDI_channel.omni
+
+    @field_validator('channel', mode='before')
+    @classmethod
+    def _validate_channel(cls, value: object) -> object:
+        if value is None:
+            return MIDI_channel.omni
+        if isinstance(value, int):
+            if value == 0:
+                return MIDI_channel.omni
+            if 1 <= value <= 16:
+                return str(value)
+        if isinstance(value, str):
+            if value in {'', '0'}:
+                return MIDI_channel.omni
+            if value in MIDI_channel.__members__:
+                return MIDI_channel[value]
+        return value
+
+    @property
+    def mido_channel(self) -> int | None:
+        return (
+            None if self.channel is MIDI_channel.omni else int(self.channel.value) - 1
+        )
+
+    def accepts(self, message: Any) -> bool:
+        return (channel := self.mido_channel) is None or getattr(
+            message, 'channel', None
+        ) == channel
+
+
+class MIDI_out(BaseModel):
     # Enable MIDI output
     enable: Annotated[
         bool, tyro_option(name='midi-enable'), Beginner, Display(row=0)
@@ -87,16 +153,64 @@ class MIDI(BaseModel):
     def outport(self) -> Any:
         return mido.open_output(self.output)
 
+    def midi_note(self, note_number: int) -> int:
+        return (note_number + self.note_offset) % 128
+
+    def tuney_note(self, note_number: int) -> int:
+        return (note_number - self.note_offset) % 128
+
     def __call__(self, note_number: int, is_press: bool) -> None:
         if self.enable:
             self.outport.send(
                 mido.Message(
                     channel=self.channel,
-                    note=(note_number + self.note_offset) % 128,
+                    note=self.midi_note(note_number),
                     type='note_on' if is_press or ZERO_IS_NOTE_OFF else 'note_off',
                     velocity=max(0, min(127, is_press * self.velocity)),
                 )
             )
+
+
+class MIDI(BaseModel):
+    # MIDI input settings
+    input: MIDI_in = Field(default_factory=MIDI_in)
+
+    # MIDI output settings
+    output: MIDI_out = Field(default_factory=MIDI_out)
+
+    def input_listener(
+        self, callback: Callable[[int, bool], None]
+    ) -> 'MIDIInputListener':
+        return MIDIInputListener(self, callback)
+
+
+class MIDIInputListener:
+    def __init__(self, midi: MIDI, callback: Callable[[int, bool], None]) -> None:
+        self.midi = midi
+        self.callback = callback
+        self.port: Any | None = None
+
+    def start(self) -> None:
+        if self.midi.input.enable and self.port is None:
+            try:
+                self.port = mido.open_input(callback=self.on_message)
+            except (OSError, RuntimeError) as error:
+                report_error(f'Could not open MIDI input: {error}')
+
+    def close(self) -> None:
+        if self.port is not None:
+            self.port.close()
+            self.port = None
+
+    def on_message(self, message: Any) -> None:
+        if not self.midi.input.accepts(message):
+            return
+        if message.type == 'note_on':
+            self.callback(
+                self.midi.output.tuney_note(message.note), message.velocity > 0
+            )
+        elif message.type == 'note_off':
+            self.callback(self.midi.output.tuney_note(message.note), False)
 
 
 def _output_names() -> list[str]:

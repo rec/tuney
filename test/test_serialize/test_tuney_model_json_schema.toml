@@ -147,31 +147,59 @@ type = "string"
 title = "MIDI"
 type = "object"
 
-["$defs".MIDI.properties.enable]
+["$defs".MIDI.properties.input]
+"$ref" = "#/$defs/MIDI_in"
+
+["$defs".MIDI.properties.output]
+"$ref" = "#/$defs/MIDI_out"
+
+["$defs".MIDI_channel]
+enum = ["omni", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]
+title = "MIDI_channel"
+type = "string"
+
+["$defs".MIDI_in]
+title = "MIDI_in"
+type = "object"
+
+["$defs".MIDI_in.properties.enable]
 default = false
 title = "Enable"
 type = "boolean"
 
-["$defs".MIDI.properties.output]
+["$defs".MIDI_in.properties.channel]
+"$ref" = "#/$defs/MIDI_channel"
+default = "omni"
+
+["$defs".MIDI_out]
+title = "MIDI_out"
+type = "object"
+
+["$defs".MIDI_out.properties.enable]
+default = false
+title = "Enable"
+type = "boolean"
+
+["$defs".MIDI_out.properties.output]
 default = "<null>"
 title = "Output"
-[["$defs".MIDI.properties.output.anyOf]]
+[["$defs".MIDI_out.properties.output.anyOf]]
 type = "string"
 
-[["$defs".MIDI.properties.output.anyOf]]
+[["$defs".MIDI_out.properties.output.anyOf]]
 type = "null"
 
-["$defs".MIDI.properties.channel]
+["$defs".MIDI_out.properties.channel]
 default = 0
 title = "Channel"
 type = "integer"
 
-["$defs".MIDI.properties.velocity]
+["$defs".MIDI_out.properties.velocity]
 default = 64
 title = "Velocity"
 type = "integer"
 
-["$defs".MIDI.properties.note_offset]
+["$defs".MIDI_out.properties.note_offset]
 default = 0
 title = "Note Offset"
 type = "integer"

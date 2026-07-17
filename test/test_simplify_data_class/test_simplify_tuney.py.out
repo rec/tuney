@@ -20,7 +20,7 @@ class Tuney:
     # Synthesizer sound settings
     sound: Sound
 
-    # Where to send MIDI output
+    # MIDI input and output settings
     midi: MIDI
 
     # Timings for playing back texts

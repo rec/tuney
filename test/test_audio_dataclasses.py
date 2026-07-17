@@ -158,6 +158,48 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     )
 
 
+@pytest.mark.parametrize(
+    ('raw', 'expected'),
+    [
+        (None, None),
+        (0, None),
+        ('0', None),
+        ('omni', None),
+        (1, 0),
+        ('1', 0),
+        (16, 15),
+        ('16', 15),
+    ],
+)
+def test_midi_input_channel_accepts_omni_and_channel_numbers(
+    raw: object, expected: int | None
+) -> None:
+    assert midi_module.MIDI_in(channel=raw).mido_channel == expected
+
+
+def test_midi_input_listener_converts_note_without_sending_output() -> None:
+    events = []
+    midi = midi_module.MIDI(
+        input=midi_module.MIDI_in(enable=True, channel=3),
+        output=midi_module.MIDI_out(note_offset=12),
+    )
+    listener = midi.input_listener(
+        lambda note, is_press: events.append((note, is_press))
+    )
+
+    listener.on_message(
+        midi_module.mido.Message('note_on', channel=2, note=72, velocity=64)
+    )
+    listener.on_message(
+        midi_module.mido.Message('note_on', channel=3, note=72, velocity=64)
+    )
+    listener.on_message(
+        midi_module.mido.Message('note_off', channel=2, note=72, velocity=0)
+    )
+
+    assert events == [(60, True), (60, False)]
+
+
 def test_oscillator_uses_one_cycle_per_note_period():
     actual = Oscillator(waveform=Waveform.sine)(start=0, length=8, period=8)
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))

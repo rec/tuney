@@ -23,7 +23,7 @@ class Tuney:
     # Synthesizer sound settings
     sound: Sound
 
-    # Where to send MIDI output
+    # MIDI input and output settings
     midi: MIDI
 
     # Timings for playing back texts
@@ -229,7 +229,15 @@ class Polyphony:
     max_voices: int = 10
 
 
-class MIDI:
+class MIDI_in:
+    # Enable MIDI input
+    enable: bool = False
+
+    # MIDI input channel, or omni to receive all channels
+    channel: MIDI_channel = MIDI_channel.omni
+
+
+class MIDI_out:
     # Enable MIDI output
     enable: bool = False
 
@@ -244,6 +252,14 @@ class MIDI:
 
     # Offset added to MIDI note numbers
     note_offset: int = 0
+
+
+class MIDI:
+    # MIDI input settings
+    input: MIDI_in
+
+    # MIDI output settings
+    output: MIDI_out
 
 
 class TextTimings:

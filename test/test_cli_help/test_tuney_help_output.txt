@@ -137,9 +137,18 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --max-voices INT
         Maximum number of notes that can play simultaneously (default: 10)
 
- midi options
+ midi.input options
  ----------------------------------------------------------------------------------------------------------------------
-  Where to send MIDI output
+  MIDI input settings
+  ----------------------------------------------------------------------------------------------------------------------
+  --midi-in-enable, --no-midi-in-enable
+        Enable MIDI input (default: False)
+  --midi-in-channel STR
+        MIDI input channel, or omni to receive all channels (default: ['omni'])
+
+ midi.output options
+ ----------------------------------------------------------------------------------------------------------------------
+  MIDI output settings
   ----------------------------------------------------------------------------------------------------------------------
   --midi-enable, --no-midi-enable
         Enable MIDI output (default: False)
