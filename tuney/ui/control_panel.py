@@ -35,7 +35,7 @@ from tyro._fields import field_list_from_type_or_callable
 from ..app.app import apply_preset
 from ..app.platform_info import instrument
 from ..audio.device import Device
-from ..audio.midi import MIDI_in, MIDI_out
+from ..audio.midi import MIDIIn, MidiOut
 from ..audio.polyphony import Polyphony
 from ..config.display import General
 from ..mapper.language import (
@@ -491,7 +491,7 @@ def _add_control_cell(
     _add_field_tooltips(cell, type(data), name)
     cell.setProperty('control_field_name', name)
     _bind_control(cell, data, name)
-    if isinstance(data, MIDI_in | MIDI_out) and not data.enable and name != 'enable':
+    if isinstance(data, MIDIIn | MidiOut) and not data.enable and name != 'enable':
         _set_widget_state(cell, False)
 
 
@@ -741,9 +741,9 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
     def command(checked: bool) -> None:
         _set_model_value(data, name, checked, parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
-        if isinstance(data, MIDI_in | MIDI_out) and name == 'enable':
+        if isinstance(data, MIDIIn | MidiOut) and name == 'enable':
             _set_midi_controls_state(parent, checked)
-            if isinstance(data, MIDI_in) and (state := _control_panel(parent).app):
+            if isinstance(data, MIDIIn) and (state := _control_panel(parent).app):
                 if checked:
                     state.midi_input_listener.start()
                 else:

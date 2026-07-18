@@ -46,7 +46,7 @@ def output_names() -> list[str]:
     return [name for name in names if isinstance(name, str)]
 
 
-class MIDI_channel(StrEnum):
+class MIDIChannel(StrEnum):
     omni = 'omni'
     channel_1 = '1'
     channel_2 = '2'
@@ -66,7 +66,7 @@ class MIDI_channel(StrEnum):
     channel_16 = '16'
 
 
-class MIDI_in(BaseModel):
+class MIDIIn(BaseModel):
     # Enable MIDI input
     enable: Annotated[
         bool, tyro_option(name='midi-in-enable'), Beginner, Display(row=0)
@@ -74,34 +74,34 @@ class MIDI_in(BaseModel):
 
     # MIDI input channel, or omni to receive all channels
     channel: Annotated[
-        MIDI_channel,
+        MIDIChannel,
         tyro_option(name='midi-in-channel', constructor=str),
         Beginner,
         Display(column=1, row=0),
-        Options(lambda: [c.value for c in MIDI_channel]),
-    ] = MIDI_channel.omni
+        Options(lambda: [c.value for c in MIDIChannel]),
+    ] = MIDIChannel.omni
 
     @field_validator('channel', mode='before')
     @classmethod
     def _validate_channel(cls, value: object) -> object:
         if value is None:
-            return MIDI_channel.omni
+            return MIDIChannel.omni
         if isinstance(value, int):
             if value == 0:
-                return MIDI_channel.omni
+                return MIDIChannel.omni
             if 1 <= value <= 16:
                 return str(value)
         if isinstance(value, str):
             if value in {'', '0'}:
-                return MIDI_channel.omni
-            if value in MIDI_channel.__members__:
-                return MIDI_channel[value]
+                return MIDIChannel.omni
+            if value in MIDIChannel.__members__:
+                return MIDIChannel[value]
         return value
 
     @property
     def mido_channel(self) -> int | None:
         return (
-            None if self.channel is MIDI_channel.omni else int(self.channel.value) - 1
+            None if self.channel is MIDIChannel.omni else int(self.channel.value) - 1
         )
 
     def accepts(self, message: Any) -> bool:
@@ -110,7 +110,7 @@ class MIDI_in(BaseModel):
         ) == channel
 
 
-class MIDI_out(BaseModel):
+class MidiOut(BaseModel):
     # Enable MIDI output
     enable: Annotated[
         bool, tyro_option(name='midi-enable'), Beginner, Display(row=0)
@@ -173,10 +173,10 @@ class MIDI_out(BaseModel):
 
 class MIDI(BaseModel):
     # MIDI input settings
-    input: MIDI_in = Field(default_factory=MIDI_in)
+    input: MIDIIn = Field(default_factory=MIDIIn)
 
     # MIDI output settings
-    output: MIDI_out = Field(default_factory=MIDI_out)
+    output: MidiOut = Field(default_factory=MidiOut)
 
     def input_listener(
         self, callback: Callable[[int, bool], None]

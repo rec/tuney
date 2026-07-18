@@ -174,14 +174,14 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
 def test_midi_input_channel_accepts_omni_and_channel_numbers(
     raw: object, expected: int | None
 ) -> None:
-    assert midi_module.MIDI_in(channel=raw).mido_channel == expected
+    assert midi_module.MIDIIn(channel=raw).mido_channel == expected
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:
     events = []
     midi = midi_module.MIDI(
-        input=midi_module.MIDI_in(enable=True, channel=3),
-        output=midi_module.MIDI_out(note_offset=12),
+        input=midi_module.MIDIIn(enable=True, channel=3),
+        output=midi_module.MidiOut(note_offset=12),
     )
     listener = midi.input_listener(
         lambda note, is_press: events.append((note, is_press))
