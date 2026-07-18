@@ -20,7 +20,6 @@ from PySide6.QtGui import (
     QFocusEvent,
     QIcon,
     QKeyEvent,
-    QKeySequence,
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -34,7 +33,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QVBoxLayout,
     QWidget,
@@ -50,7 +48,6 @@ from ..app.app import (
     on_char,
     on_replay,
     output_comment,
-    randomize_settings,
     randomize_timing,
     restore_data,
     restore_text,
@@ -72,6 +69,15 @@ from ..time.char_press import CharPress
 from . import Action, StateChange, startup
 from .help import show_help
 from .history import History
+from .main_menu import (
+    EXPORT_TUNING_COMMAND,
+    IMPORT_TUNING_COMMAND,
+    OPEN_TEXT_FILE_COMMAND,
+    SAVE_AS_AUDIO_COMMAND,
+    SAVE_AUDIO_COMMAND,
+    SAVE_COMMAND,
+    build_menu,
+)
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -79,37 +85,7 @@ if TYPE_CHECKING:
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
-CLEAR_ACCELERATOR = 'Ctrl+B'
-REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
-SAVE_ACCELERATOR = 'Ctrl+S'
-SAVE_AS_AUDIO_ACCELERATOR = 'Ctrl+Alt+E'
-UNDO_ACCELERATOR = 'Ctrl+Z'
-REDO_ACCELERATOR = 'Ctrl+Y'
-RANDOMIZE_TIMING_ACCELERATOR = 'Ctrl+R'
-RANDOMIZE_SETTINGS_ACCELERATOR = 'Ctrl+Alt+R'
-CLEAR_TEXT_ACCELERATOR = 'Ctrl+Alt+B'
-SHOW_TEXT_TIMINGS_ACCELERATOR = 'Ctrl+T'
-ADVANCED_ACCELERATOR = 'Ctrl+Alt+A'
-OPEN_TEXT_FILE_ACCELERATOR = 'Ctrl+O'
-SAVE_PRESET_ACCELERATOR = 'Ctrl+P'
-DELETE_PRESETS_ACCELERATOR = 'Ctrl+Alt+P'
-IMPORT_TUNING_ACCELERATOR = 'Ctrl+I'
-EXPORT_TUNING_ACCELERATOR = 'Ctrl+E'
-OPEN_CONFIG_FOLDER_ACCELERATOR = 'Ctrl+Alt+O'
-COPY_STATE_ACCELERATOR = 'Ctrl+Alt+C'
-PASTE_STATE_ACCELERATOR = 'Ctrl+Alt+V'
-LOAD_AUTOSAVE_ACCELERATOR = 'Ctrl+L'
-SWAP_AUTOSAVE_ACCELERATOR = 'Ctrl+Alt+S'
-SHOW_LOG_ACCELERATOR = 'Ctrl+Alt+L'
-REPORT_PROBLEM_ACCELERATOR = 'Ctrl+Alt+I'
-HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
-OPEN_TEXT_FILE_COMMAND = 'Open Text File'
-SAVE_COMMAND = 'Save'
-SAVE_AS_AUDIO_COMMAND = 'Save as Audio...'
-IMPORT_TUNING_COMMAND = 'Import tuning...'
-EXPORT_TUNING_COMMAND = 'Export tuning...'
-SAVE_AUDIO_COMMAND = 'Save audio'
 COMMAND_MODIFIERS = (
     Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
 )
@@ -168,6 +144,10 @@ class MainWindow(QMainWindow):
         self._has_focus = True
         self._queue_timer = QTimer(self)
         self._queue_timer.timeout.connect(self._handle_queue)
+        self.advanced_action: QAction
+        self.export_tuning_action: QAction
+        self.load_autosave_action: QAction
+        self.show_text_timings_action: QAction
         self.setMenuBar(self.menu)
         instrument('layout construct start')
         self.ui = Layout(self)
@@ -696,124 +676,7 @@ class MainWindow(QMainWindow):
 
     @cached_property
     def menu(self):
-        menu = self.menuBar()
-        file_menu = menu.addMenu('File')
-        edit_menu = menu.addMenu('Edit')
-        help_menu = menu.addMenu('Help')
-        _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, self.history.undo)
-        _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, self.history.redo)
-        _add_action(
-            edit_menu,
-            'Randomize Timing',
-            RANDOMIZE_TIMING_ACCELERATOR,
-            self.on_randomize_timing,
-        )
-        _add_action(
-            edit_menu,
-            'Randomize Settings',
-            RANDOMIZE_SETTINGS_ACCELERATOR,
-            lambda *_: randomize_settings(self.app),
-        )
-        _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, self.on_clear)
-        _add_action(edit_menu, 'Clear Text', CLEAR_TEXT_ACCELERATOR, self.on_clear_text)
-        self.show_text_timings_action = _add_action(
-            edit_menu,
-            'Show Text Timings',
-            SHOW_TEXT_TIMINGS_ACCELERATOR,
-            self.on_show_text_timings,
-        )
-        self.show_text_timings_action.setCheckable(True)
-        self.show_text_timings_action.setChecked(self.app.show_text_timings)
-        self.advanced_action = _add_action(
-            edit_menu, 'Advanced', ADVANCED_ACCELERATOR, self.on_advanced
-        )
-        self.advanced_action.setCheckable(True)
-        self.advanced_action.setChecked(True)
-        _add_action(
-            file_menu,
-            OPEN_TEXT_FILE_COMMAND,
-            OPEN_TEXT_FILE_ACCELERATOR,
-            self.on_open_text_file,
-        )
-        _add_action(
-            file_menu, 'Save preset...', SAVE_PRESET_ACCELERATOR, self.on_save_preset
-        )
-        _add_action(
-            file_menu,
-            'Delete presets...',
-            DELETE_PRESETS_ACCELERATOR,
-            self.on_delete_presets,
-        )
-        _add_action(
-            file_menu,
-            IMPORT_TUNING_COMMAND,
-            IMPORT_TUNING_ACCELERATOR,
-            self.on_import_tuning,
-        )
-        self.export_tuning_action = _add_action(
-            file_menu,
-            EXPORT_TUNING_COMMAND,
-            EXPORT_TUNING_ACCELERATOR,
-            self.on_export_tuning,
-        )
-        file_menu.aboutToShow.connect(self._update_export_tuning_action)
-        self._update_export_tuning_action()
-        _add_action(file_menu, SAVE_COMMAND, SAVE_ACCELERATOR, self.on_save)
-        _add_action(
-            file_menu,
-            SAVE_AS_AUDIO_COMMAND,
-            SAVE_AS_AUDIO_ACCELERATOR,
-            self.on_save_as_audio,
-        )
-        _add_action(
-            file_menu,
-            'Open enclosing folder for config file',
-            OPEN_CONFIG_FOLDER_ACCELERATOR,
-            self.on_open_config_folder,
-        )
-        _add_action(
-            file_menu,
-            'Copy from state',
-            COPY_STATE_ACCELERATOR,
-            self.on_copy_from_state,
-        )
-        _add_action(
-            file_menu,
-            'Paste into state',
-            PASTE_STATE_ACCELERATOR,
-            self.on_paste_into_state,
-        )
-        self.load_autosave_action = _add_action(
-            file_menu,
-            'Load autosave on start',
-            LOAD_AUTOSAVE_ACCELERATOR,
-            self.on_load_autosave,
-        )
-        self.load_autosave_action.setCheckable(True)
-        self.load_autosave_action.setChecked(self.app.load_autosave)
-        _add_action(
-            file_menu,
-            'Swap with autosave',
-            SWAP_AUTOSAVE_ACCELERATOR,
-            self.on_swap_with_autosave,
-        )
-        _add_action(
-            file_menu,
-            'Refresh Devices',
-            REFRESH_DEVICES_ACCELERATOR,
-            self.on_refresh_devices,
-        )
-        _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, self.on_help)
-        _add_action(
-            help_menu, 'Show Log Location', SHOW_LOG_ACCELERATOR, self.on_show_log
-        )
-        _add_action(
-            help_menu,
-            'Report a problem...',
-            REPORT_PROBLEM_ACCELERATOR,
-            self.on_report_problem,
-        )
-        return menu
+        return build_menu(self)
 
     def sync_config_actions(self) -> None:
         if hasattr(self, 'load_autosave_action'):
@@ -891,29 +754,6 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def _add_action(
-    menu: QMenu,
-    text: str,
-    shortcut: str | QKeySequence.StandardKey | None,
-    callback: Callable[..., object],
-) -> QAction:
-    action = QAction(text, menu)
-    if isinstance(shortcut, QKeySequence.StandardKey):
-        action.setShortcuts(shortcut)
-    elif shortcut:
-        action.setShortcut(shortcut)
-
-    def instrumented_callback(*args: object) -> object:
-        instrument('menu action', text=text)
-        if action.isCheckable():
-            return callback(action.isChecked())
-        return callback(*args)
-
-    action.triggered.connect(instrumented_callback)
-    menu.addAction(action)
-    return action
 
 
 def _preset_name(parent: QWidget) -> str | None:
