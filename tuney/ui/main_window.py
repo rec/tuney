@@ -46,6 +46,7 @@ from ..app.app import (
     dump_toml,
     edit_text_timing,
     load_text_file,
+    note_events,
     on_char,
     on_replay,
     output_comment,
@@ -81,6 +82,7 @@ ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 CLEAR_ACCELERATOR = 'Ctrl+B'
 REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
 SAVE_ACCELERATOR = 'Ctrl+S'
+SAVE_AS_AUDIO_ACCELERATOR = 'Ctrl+Alt+E'
 UNDO_ACCELERATOR = 'Ctrl+Z'
 REDO_ACCELERATOR = 'Ctrl+Y'
 RANDOMIZE_TIMING_ACCELERATOR = 'Ctrl+R'
@@ -104,6 +106,7 @@ HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 APP_NAME = 'Tuney'
 OPEN_TEXT_FILE_COMMAND = 'Open Text File'
 SAVE_COMMAND = 'Save'
+SAVE_AS_AUDIO_COMMAND = 'Save as Audio...'
 IMPORT_TUNING_COMMAND = 'Import tuning...'
 EXPORT_TUNING_COMMAND = 'Export tuning...'
 SAVE_AUDIO_COMMAND = 'Save audio'
@@ -338,6 +341,28 @@ class MainWindow(QMainWindow):
                     save(self.app, Path(filename))
                 except (OSError, ValueError) as error:
                     QMessageBox.critical(self, 'Save', str(error))
+        finally:
+            self._is_saving = False
+            self._has_focus = False
+
+    def on_save_as_audio(self, *_: object) -> None:
+        instrument('ui save as audio')
+        self._is_saving = True
+        try:
+            result = self._get_save_file_name(
+                SAVE_AS_AUDIO_COMMAND,
+                SAVE_AS_AUDIO_COMMAND,
+                'WAV (*.wav);;All files (*)',
+            )
+            if filename := result[0]:
+                try:
+                    self.app.player.render_file(
+                        Path(filename),
+                        note_events(self.app),
+                        output_comment(self.app),
+                    )
+                except (OSError, RuntimeError, ValueError) as error:
+                    QMessageBox.critical(self, SAVE_AS_AUDIO_COMMAND, str(error))
         finally:
             self._is_saving = False
             self._has_focus = False
@@ -734,6 +759,12 @@ class MainWindow(QMainWindow):
         file_menu.aboutToShow.connect(self._update_export_tuning_action)
         self._update_export_tuning_action()
         _add_action(file_menu, SAVE_COMMAND, SAVE_ACCELERATOR, self.on_save)
+        _add_action(
+            file_menu,
+            SAVE_AS_AUDIO_COMMAND,
+            SAVE_AS_AUDIO_ACCELERATOR,
+            self.on_save_as_audio,
+        )
         _add_action(
             file_menu,
             'Open enclosing folder for config file',

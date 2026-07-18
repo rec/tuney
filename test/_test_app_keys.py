@@ -303,6 +303,7 @@ def test_application_uses_cross_platform_style() -> None:
             'Import tuning...': 'Ctrl+I',
             'Export tuning...': 'Ctrl+E',
             'Save': 'Ctrl+S',
+            'Save as Audio...': 'Ctrl+Alt+E',
             'Open enclosing folder for config file': 'Ctrl+Alt+O',
             'Copy from state': 'Ctrl+Alt+C',
             'Paste into state': 'Ctrl+Alt+V',
@@ -314,6 +315,7 @@ def test_application_uses_cross_platform_style() -> None:
         }
         assert action_shortcuts == expected_shortcuts, action_shortcuts
         assert 'Save preset...' in file_actions
+        assert 'Save as Audio...' in file_actions
         assert 'Delete presets...' in file_actions
         assert 'Load autosave on start' in file_actions
         assert 'Swap with autosave' in file_actions
@@ -654,6 +656,45 @@ def test_file_dialogs_remember_last_directories() -> None:
         MainWindow._get_save_file_name(app, 'Save', 'Save', '*')
 
     assert calls == ['', '', str(first.parent), str(second.parent)]
+
+
+def test_app_saves_audio_from_current_text() -> None:
+    app = HistoryApp()
+    app.app.text = [
+        CharPress('a', time=0),
+        CharPress('a', False, 100),
+    ]
+    app.app.__dict__.pop('char_presses', None)
+    rendered = []
+
+    with tempfile.TemporaryDirectory() as tmp:
+        app.app.__dict__['global_config'] = GlobalConfig(file=Path(tmp) / 'global.toml')
+        path = Path(tmp) / 'out.wav'
+
+        class FakeSaveDialog:
+            @staticmethod
+            def getSaveFileName(*_: object) -> tuple[str, str]:
+                return str(path), ''
+
+        def render_file(output, events, comment):
+            rendered.append((output, events, comment))
+
+        main_window_module.QFileDialog = FakeSaveDialog
+        app.app.__dict__['player'] = type(
+            'FakePlayer',
+            (),
+            {'render_file': staticmethod(render_file), 'sample_rate': 48_000},
+        )()
+
+        MainWindow.on_save_as_audio(app)
+
+    output, events, comment = rendered[0]
+    assert output == path
+    assert [(frame, note.is_press) for frame, note in events] == [
+        (0, True),
+        (4800, False),
+    ]
+    assert callable(comment)
 
 
 def test_app_saves_and_deletes_presets() -> None:

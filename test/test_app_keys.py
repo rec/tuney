@@ -30,6 +30,7 @@ def test_app_history_and_dialogs() -> None:
         'test_app_reports_problem',
         'test_app_imports_and_exports_tuning',
         'test_file_dialogs_remember_last_directories',
+        'test_app_saves_audio_from_current_text',
         'test_app_saves_and_deletes_presets',
     )
 
