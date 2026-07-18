@@ -148,61 +148,28 @@ title = "MIDI"
 type = "object"
 
 ["$defs".MIDI.properties.input]
-"$ref" = "#/$defs/MIDI_in"
+"$ref" = "#/$defs/MIDIIn"
 
 ["$defs".MIDI.properties.output]
-"$ref" = "#/$defs/MIDI_out"
+"$ref" = "#/$defs/MidiOut"
 
-["$defs".MIDI_channel]
+["$defs".MIDIChannel]
 enum = ["omni", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]
-title = "MIDI_channel"
+title = "MIDIChannel"
 type = "string"
 
-["$defs".MIDI_in]
-title = "MIDI_in"
+["$defs".MIDIIn]
+title = "MIDIIn"
 type = "object"
 
-["$defs".MIDI_in.properties.enable]
+["$defs".MIDIIn.properties.enable]
 default = false
 title = "Enable"
 type = "boolean"
 
-["$defs".MIDI_in.properties.channel]
-"$ref" = "#/$defs/MIDI_channel"
+["$defs".MIDIIn.properties.channel]
+"$ref" = "#/$defs/MIDIChannel"
 default = "omni"
-
-["$defs".MIDI_out]
-title = "MIDI_out"
-type = "object"
-
-["$defs".MIDI_out.properties.enable]
-default = false
-title = "Enable"
-type = "boolean"
-
-["$defs".MIDI_out.properties.output]
-default = "<null>"
-title = "Output"
-[["$defs".MIDI_out.properties.output.anyOf]]
-type = "string"
-
-[["$defs".MIDI_out.properties.output.anyOf]]
-type = "null"
-
-["$defs".MIDI_out.properties.channel]
-default = 0
-title = "Channel"
-type = "integer"
-
-["$defs".MIDI_out.properties.velocity]
-default = 64
-title = "Velocity"
-type = "integer"
-
-["$defs".MIDI_out.properties.note_offset]
-default = 0
-title = "Note Offset"
-type = "integer"
 
 ["$defs".Map]
 enum = ["linear"]
@@ -256,6 +223,39 @@ type = "integer"
 ["$defs".Mapper.properties.limiter]
 "$ref" = "#/$defs/Limiter"
 default = "wrap"
+
+["$defs".MidiOut]
+title = "MidiOut"
+type = "object"
+
+["$defs".MidiOut.properties.enable]
+default = false
+title = "Enable"
+type = "boolean"
+
+["$defs".MidiOut.properties.output]
+default = "<null>"
+title = "Output"
+[["$defs".MidiOut.properties.output.anyOf]]
+type = "string"
+
+[["$defs".MidiOut.properties.output.anyOf]]
+type = "null"
+
+["$defs".MidiOut.properties.channel]
+default = 0
+title = "Channel"
+type = "integer"
+
+["$defs".MidiOut.properties.velocity]
+default = 64
+title = "Velocity"
+type = "integer"
+
+["$defs".MidiOut.properties.note_offset]
+default = 0
+title = "Note Offset"
+type = "integer"
 
 ["$defs".Milliseconds]
 type = "number"

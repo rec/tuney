@@ -229,15 +229,15 @@ class Polyphony:
     max_voices: int = 10
 
 
-class MIDI_in:
+class MIDIIn:
     # Enable MIDI input
     enable: bool = False
 
     # MIDI input channel, or omni to receive all channels
-    channel: MIDI_channel = MIDI_channel.omni
+    channel: MIDIChannel = MIDIChannel.omni
 
 
-class MIDI_out:
+class MidiOut:
     # Enable MIDI output
     enable: bool = False
 
@@ -256,10 +256,10 @@ class MIDI_out:
 
 class MIDI:
     # MIDI input settings
-    input: MIDI_in
+    input: MIDIIn
 
     # MIDI output settings
-    output: MIDI_out
+    output: MidiOut
 
 
 class TextTimings:

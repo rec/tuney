@@ -86,16 +86,12 @@ class MIDIIn(BaseModel):
     def _validate_channel(cls, value: object) -> MIDIChannel:
         if isinstance(value, MIDIChannel):
             return value
-        if value is None:
+        if value in {'', '0', None, 0}:
             return MIDIChannel.omni
         elif isinstance(value, int):
-            if value == 0:
-                return MIDIChannel.omni
             if 1 <= value <= 16:
                 return MIDIChannel(str(value))
         elif isinstance(value, str):
-            if value in {'', '0'}:
-                return MIDIChannel.omni
             if value in {c.value for c in MIDIChannel}:
                 return MIDIChannel(value)
         raise ValueError('MIDI input channel must be omni, 0, or 1-16')
