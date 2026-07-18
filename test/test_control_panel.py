@@ -21,7 +21,13 @@ from tuney.scale.scale import Scale
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.text_timings import TextTimings
-from tuney.ui import control_panel, control_panel_sizing, control_panel_spin
+from tuney.ui import (
+    control_panel,
+    control_panel_scala,
+    control_panel_sizing,
+    control_panel_spin,
+    control_panel_visibility,
+)
 
 
 def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
@@ -600,7 +606,7 @@ def test_visible_field_names(file_regression) -> None:
     _check_regression(
         file_regression,
         {
-            name: list(control_panel._visible_field_names(data))
+            name: list(control_panel_visibility._visible_field_names(data))
             for name, data in [
                 ('tuney', tuney),
                 ('mapper', tuney.mapper),
@@ -956,7 +962,7 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
         'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
         'xyz': Ratios(text='4', name='xyz.scl', desc='third scale'),
     }
-    monkeypatch.setattr(control_panel, 'scala_trie', lambda: build_trie(ratios))
+    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
 
     _qt_app()
     parent = QWidget()
@@ -1028,7 +1034,7 @@ def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
     app.__dict__['player'] = _FakePlayer(closed)
     other_ratios = Ratios(text='2', name='xbc.scl', desc='second scale')
     monkeypatch.setattr(
-        control_panel,
+        control_panel_scala,
         'scala_trie',
         lambda: build_trie({'abc': ratios, 'xbc': other_ratios}),
     )
@@ -1062,7 +1068,7 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
     app = App(gui=True)
     app.__dict__['main_window'] = _FakeMainWindow()
     monkeypatch.setattr(
-        control_panel, 'scala_trie', lambda: build_trie({'abc': ratios})
+        control_panel_scala, 'scala_trie', lambda: build_trie({'abc': ratios})
     )
     monkeypatch.setattr(
         control_panel.QMessageBox,
@@ -1102,7 +1108,7 @@ def test_scala_browser_data_is_lazy_loaded(monkeypatch) -> None:
     calls = []
     ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
     monkeypatch.setattr(
-        control_panel,
+        control_panel_scala,
         'scala_trie',
         lambda: calls.append('load') or build_trie({'abc': ratios}),
     )

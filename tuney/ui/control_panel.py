@@ -5,13 +5,11 @@ import inspect
 import json
 import math
 from collections.abc import Callable
-from functools import cached_property
-from typing import TYPE_CHECKING, Any, TypeAlias, get_args
+from typing import TYPE_CHECKING, Any, TypeAlias
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
-from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
@@ -37,9 +35,9 @@ from tyro._fields import field_list_from_type_or_callable
 from ..app.app import apply_preset
 from ..app.platform_info import instrument
 from ..audio.device import Device
-from ..audio.midi import MIDI, MIDI_in, MIDI_out
+from ..audio.midi import MIDI_in, MIDI_out
 from ..audio.polyphony import Polyphony
-from ..config.display import Beginner, Display, General, Hidden
+from ..config.display import General
 from ..mapper.language import (
     alphabet_for_language_name,
     language_menu_names,
@@ -48,7 +46,6 @@ from ..mapper.language import (
 from ..mapper.mapper import Mapper
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
-from ..scale.scala_browser import ScalaTrie, scala_trie
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
@@ -62,6 +59,11 @@ from .control_panel_metadata import (
     _numeric_metadata,
     _options_metadata,
 )
+from .control_panel_scala import (
+    ScalaBrowserEdit,
+    loaded_scala_description,
+    loaded_scala_name,
+)
 from .control_panel_sizing import (
     ENTRY_CHAR_WIDTH,
     SPIN_BUTTON_WIDTH,
@@ -72,6 +74,16 @@ from .control_panel_sizing import (
     _entry_width,
 )
 from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
+from .control_panel_visibility import (
+    _active_tuning_type,
+    _has_visible_fields,
+    _is_beginner_field,
+    _is_wide_field,
+    _midi_child_title,
+    _model_tree,
+    _visible_child_names,
+    _visible_control_names,
+)
 from .tooltip import Tooltip
 
 if TYPE_CHECKING:
@@ -126,113 +138,6 @@ class _OptionControl:
         self.menu.clear()
         self.menu.addItems(['', *choices])
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
-
-
-class _ScalaBrowserEdit(QLineEdit):
-    def __init__(self, parent: QWidget, app: App | None) -> None:
-        super().__init__(parent)
-        self.app = app
-        self.index = 0
-        self.audition = app.audition_scala if app is not None else False
-        self.original_tuning: Tuning | None = None
-        self.setStyleSheet(
-            'QLineEdit {'
-            'selection-color: #909090;'
-            'selection-background-color: transparent;'
-            '}'
-        )
-
-    @cached_property
-    def trie(self) -> ScalaTrie:
-        instrument('scala browser trie load start')
-        return scala_trie()
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        key = event.key()
-        if event.text().isalnum() and len(event.text()) == 1:
-            self._type(event.text().casefold())
-        elif key == Qt.Key.Key_Left:
-            self.index = max(0, self.index - 1)
-        elif key == Qt.Key.Key_Right:
-            self.index = (
-                len(self.text())
-                if self.completion()
-                else min(len(self.text()), self.index + 1)
-            )
-        elif key in {Qt.Key.Key_Up, Qt.Key.Key_Down}:
-            self._cycle(1 if key == Qt.Key.Key_Down else -1)
-        elif key in {Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-            _load_scala_browser_tuning(self)
-        else:
-            super().keyPressEvent(event)
-            return
-        self._sync()
-        event.accept()
-
-    def current_prefix(self) -> str:
-        return self.text()[: self.index]
-
-    def selected_ratios(self) -> Ratios | None:
-        return self.trie.terminal(self.text()) or self.trie.first(self.current_prefix())
-
-    def completion(self) -> tuple[str, Ratios] | None:
-        if ratios := self.trie.terminal(self.text()):
-            return self.text(), ratios
-        return self.trie.first_match(self.current_prefix())
-
-    def set_audition(self, enabled: bool) -> None:
-        self.audition = enabled
-        self._sync()
-
-    def restore_audition(self) -> None:
-        if self.app is not None and self.original_tuning is not None:
-            _set_app_tuning(self.app, self.original_tuning)
-            self.original_tuning = None
-
-    def _type(self, c: str) -> None:
-        if c not in self.trie.choices(self.current_prefix()):
-            return
-        self.setText(self.text()[: self.index] + c)
-        self.index += 1
-        self._complete()
-
-    def _cycle(self, step: int) -> None:
-        choices = self.trie.choices(self.current_prefix())
-        if not choices:
-            return
-        text = self.text()
-        current = text[self.index] if self.index < len(text) else ''
-        index = choices.index(current) if current in choices else -1
-        self._set_current(choices[(index + step) % len(choices)])
-
-    def _set_current(self, c: str) -> None:
-        text = self.text()
-        prefix = text[: self.index] + c
-        match = self.trie.first_match(prefix)
-        self.setText(match[0] if match else prefix)
-
-    def _complete(self) -> None:
-        if match := self.trie.first_match(self.current_prefix()):
-            self.setText(match[0])
-
-    def _sync(self) -> None:
-        self.setCursorPosition(self.index)
-        if self.index < len(self.text()):
-            self.setSelection(self.index, len(self.text()) - self.index)
-        self.setToolTip(_scala_browser_tooltip(self.trie, self.text()))
-        if (completion := self.completion()) and self.index == len(self.text()):
-            self._audition(completion[1])
-        else:
-            self.restore_audition()
-
-    def _audition(self, ratios: Ratios) -> None:
-        if self.app is None or not self.audition:
-            self.restore_audition()
-            return
-        if self.original_tuning is not None:
-            return
-        self.original_tuning = self.app.tuning.model_copy(deep=True)
-        _set_app_tuning(self.app, ratios)
 
 
 class ControlPanel(QScrollArea):
@@ -360,12 +265,6 @@ def _add_model_controls(
             _midi_child_title(data, name),
             advanced,
         )
-
-
-def _midi_child_title(data: BaseModel, name: str) -> str:
-    if isinstance(data, MIDI):
-        return {'input': 'in', 'output': 'out'}.get(name, name)
-    return name
 
 
 def _add_tuning_controls(
@@ -596,17 +495,6 @@ def _add_control_cell(
         _set_widget_state(cell, False)
 
 
-def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
-    cls = type(data)
-    return tuple(
-        name
-        for name in cls.model_fields
-        if _is_visible_field(cls, name)
-        and not _has_metadata(cls, name, Hidden)
-        and not _has_metadata(cls, name, General)
-    )
-
-
 def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> None:
     control_panel = _control_panel(parent)
     for widget in _field_widgets(parent):
@@ -637,10 +525,6 @@ def _field_widgets(parent: Any) -> list[Any]:
     return [widget for child in children for widget in _field_widgets(child)]
 
 
-def _is_visible_field(cls: type[BaseModel], name: str) -> bool:
-    return not _is_suppressed_field(cls, name)
-
-
 def _field_hover_text(model: type[BaseModel], name: str) -> str:
     return _rewrap_hover_text(_field_help(model, name) or name)
 
@@ -665,81 +549,6 @@ def _field_help(model: type[BaseModel], name: str) -> str | None:
     return None
 
 
-def _visible_control_names(data: BaseModel, advanced: bool = True) -> list[str]:
-    if isinstance(data, Tuning):
-        return [
-            name
-            for name in _visible_tuning_control_names(data)
-            if advanced or _is_beginner_field(data, name)
-        ]
-
-    return [
-        name
-        for name in _visible_field_names(data)
-        if not isinstance(getattr(data, name), BaseModel)
-        and (advanced or _is_beginner_field(data, name))
-    ]
-
-
-def _visible_child_names(data: BaseModel, advanced: bool = True) -> list[str]:
-    if isinstance(data, Tuning):
-        return (
-            ['computed']
-            if _active_tuning_type(data) is Type.computed
-            and data.computed is not None
-            and _has_visible_fields(data.computed, advanced)
-            else []
-        )
-
-    return [
-        name
-        for name in _visible_field_names(data)
-        if isinstance(getattr(data, name), BaseModel)
-        and _has_visible_fields(getattr(data, name), advanced)
-    ]
-
-
-def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
-    return bool(
-        _visible_control_names(data, advanced)
-        or any(
-            _has_visible_fields(getattr(data, name), advanced)
-            for name in _visible_child_names(data, advanced)
-        )
-    )
-
-
-def _visible_tuning_control_names(data: Tuning) -> list[str]:
-    names = ['type', 'detune', 'root_frequency', 'root_note']
-    match _active_tuning_type(data):
-        case Type.table:
-            names.append('table')
-        case Type.ratios:
-            names.append('ratios')
-    return names
-
-
-def _active_tuning_type(data: Tuning) -> Type:
-    return data.type or Type.computed
-
-
-def _is_beginner_field(data: BaseModel, name: str) -> bool:
-    return _has_metadata(type(data), name, Beginner)
-
-
-def _model_tree(data: BaseModel) -> list[BaseModel]:
-    models = [data]
-    for name in type(data).model_fields:
-        if _is_suppressed_field(type(data), name):
-            continue
-        if _has_metadata(type(data), name, Hidden):
-            continue
-        child = getattr(data, name)
-        if isinstance(child, BaseModel):
-            models.extend(_model_tree(child))
-    return models
-
-
 def _add_labeled_control_frame(
     parent: QWidget,
     name: str,
@@ -753,26 +562,6 @@ def _add_labeled_control_frame(
     _configure_label(label)
     layout.addWidget(label)
     return frame, layout, label
-
-
-def _is_wide_field(data: BaseModel, name: str) -> bool:
-    value = getattr(data, name)
-    annotation = type(data).model_fields[name].annotation
-    return not (
-        _control_metadata(type(data), name).width
-        or _numeric_metadata(type(data), name).width
-        or isinstance(value, bool | int | float | enum.Enum)
-        or _options_metadata(type(data), name)
-    ) and (str in _annotation_types(annotation) or isinstance(value, list | dict))
-
-
-def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
-    if _has_metadata(cls, name, Display):
-        return False
-    annotation = cls.__annotations__.get(name, '')
-    return str(annotation).startswith('tyro.conf.Suppress') or 'Suppress' in {
-        str(i) for i in get_args(annotation)
-    }
 
 
 def _add_control(
@@ -837,7 +626,7 @@ def _add_option_control(
 def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
     app = _control_panel(parent).app
-    entry = _ScalaBrowserEdit(frame, app)
+    entry = ScalaBrowserEdit(frame, app, _load_scala_browser_tuning, _set_app_tuning)
     _configure_editor(entry, 12 * ENTRY_CHAR_WIDTH)
     entry.setObjectName('scala_browser')
     layout.addWidget(entry)
@@ -851,12 +640,12 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
 
         checkbox.toggled.connect(update)
         layout.addWidget(checkbox)
-    name = QLineEdit(_loaded_scala_name(app), frame)
+    name = QLineEdit(loaded_scala_name(app), frame)
     name.setReadOnly(True)
     _configure_editor(name, 7 * ENTRY_CHAR_WIDTH)
     name.setObjectName('tuning_name')
     layout.addWidget(name)
-    description = QLineEdit(_loaded_scala_description(app), frame)
+    description = QLineEdit(loaded_scala_description(app), frame)
     description.setReadOnly(True)
     _configure_flexible_editor(description, 120 * ENTRY_CHAR_WIDTH)
     description.setObjectName('tuning_description')
@@ -864,29 +653,7 @@ def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
     _parent_layout(parent).addWidget(frame)
 
 
-def _scala_browser_tooltip(trie: ScalaTrie, prefix: str) -> str:
-    if ratios := trie.first(prefix):
-        return ratios.desc
-    return prefix
-
-
-def _loaded_scala_name(app: App | None) -> str:
-    ratios = _loaded_scala_ratios(app)
-    return ratios.name.removesuffix('.scl') if ratios else ''
-
-
-def _loaded_scala_description(app: App | None) -> str:
-    ratios = _loaded_scala_ratios(app)
-    return ratios.desc if ratios else ''
-
-
-def _loaded_scala_ratios(app: App | None) -> Ratios | None:
-    if app is None or app.tuning.type != Type.ratios:
-        return None
-    return app.tuning.ratios
-
-
-def _load_scala_browser_tuning(entry: _ScalaBrowserEdit) -> None:
+def _load_scala_browser_tuning(entry: ScalaBrowserEdit) -> None:
     if (ratios := entry.selected_ratios()) is None:
         return
     parent = entry.parentWidget()
