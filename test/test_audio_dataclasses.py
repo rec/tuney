@@ -165,8 +165,10 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
         (0, None),
         ('0', None),
         ('omni', None),
+        (midi_module.MIDIChannel.omni, None),
         (1, 0),
         ('1', 0),
+        (midi_module.MIDIChannel.channel_1, 0),
         (16, 15),
         ('16', 15),
     ],
@@ -175,6 +177,12 @@ def test_midi_input_channel_accepts_omni_and_channel_numbers(
     raw: object, expected: int | None
 ) -> None:
     assert midi_module.MIDIIn(channel=raw).mido_channel == expected
+
+
+@pytest.mark.parametrize('raw', [-1, 17, 'channel_1', '17', 'bad', object()])
+def test_midi_input_channel_rejects_invalid_values(raw: object) -> None:
+    with pytest.raises(ValueError, match='MIDI input channel must be omni'):
+        midi_module.MIDIIn(channel=raw)
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:

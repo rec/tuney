@@ -83,26 +83,26 @@ class MIDIIn(BaseModel):
 
     @field_validator('channel', mode='before')
     @classmethod
-    def _validate_channel(cls, value: object) -> object:
+    def _validate_channel(cls, value: object) -> MIDIChannel:
+        if isinstance(value, MIDIChannel):
+            return value
         if value is None:
             return MIDIChannel.omni
-        if isinstance(value, int):
+        elif isinstance(value, int):
             if value == 0:
                 return MIDIChannel.omni
             if 1 <= value <= 16:
-                return str(value)
-        if isinstance(value, str):
+                return MIDIChannel(str(value))
+        elif isinstance(value, str):
             if value in {'', '0'}:
                 return MIDIChannel.omni
-            if value in MIDIChannel.__members__:
-                return MIDIChannel[value]
-        return value
+            if value in {c.value for c in MIDIChannel}:
+                return MIDIChannel(value)
+        raise ValueError('MIDI input channel must be omni, 0, or 1-16')
 
     @property
     def mido_channel(self) -> int | None:
-        return (
-            None if self.channel is MIDIChannel.omni else int(self.channel.value) - 1
-        )
+        return None if self.channel is MIDIChannel.omni else int(self.channel.value) - 1
 
     def accepts(self, message: Any) -> bool:
         return (channel := self.mido_channel) is None or getattr(
