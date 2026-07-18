@@ -42,7 +42,6 @@ from ..app.app import (
     clear,
     dump_data,
     dump_toml,
-    edit_text_timing,
     load_text_file,
     note_events,
     on_char,
@@ -61,6 +60,7 @@ from ..app.platform_info import (
     log_path,
     problem_issue_url,
 )
+from ..app.text_timing import edit_text_timing
 from ..presets import delete_presets, read_file, user_preset_names, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         instrument('ui text timing changed', row=row, column=column, text=text)
         try:
             self.history.checkpoint_undo()
-            edit_text_timing(self.app, row, column, text)
+            edit_text_timing(self.app.char_presses, row, column, text)
         except ValueError as error:
             QMessageBox.critical(self, 'Show Text Timings', str(error))
         self.update_text_display()

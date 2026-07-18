@@ -43,6 +43,7 @@ from .platform_info import (
     show_already_running,
     trace,
 )
+from .text_timing import text_timing_rows
 
 if TYPE_CHECKING:
     from ..ui.main_window import MainWindow
@@ -125,7 +126,7 @@ class App(Tuney):
 
     @property
     def display_text_timings(self) -> list[list[str]]:
-        return _text_timing_rows(self.char_presses)
+        return text_timing_rows(self.char_presses)
 
     @cached_property
     def _autosave(self) -> Autosave:
@@ -213,55 +214,6 @@ def append_char_press(app: App, c: CharPress) -> None:
     if len(app.char_presses) > 1 and c < (d := app.char_presses[-2]):
         report_error(f'Out-of-order char_press: {c} follows {d}')
         app.char_presses.sort()
-
-
-def edit_text_timing(app: App, row: int, column: int, text: str) -> None:
-    pairs = _text_timing_pairs(app.char_presses)
-    if row < 0 or row >= len(pairs):
-        return
-    press_index, release_index = pairs[row]
-    press = app.char_presses[press_index]
-    if column == 0:
-        app.char_presses[press_index] = press.model_copy(update={'char': text})
-        if release_index is not None:
-            release = app.char_presses[release_index]
-            app.char_presses[release_index] = release.model_copy(update={'char': text})
-    elif column == 1:
-        delta = _validated_milliseconds(text)
-        previous = app.char_presses[pairs[row - 1][0]].time if row else 0.0
-        time_shift = previous + delta - press.time
-        app.char_presses[press_index] = press.model_copy(
-            update={'time': press.time + time_shift}
-        )
-        if release_index is not None:
-            release = app.char_presses[release_index]
-            app.char_presses[release_index] = release.model_copy(
-                update={'time': release.time + time_shift}
-            )
-    elif column == 2:
-        duration = None if not text.strip() else _validated_milliseconds(text)
-        if duration is None and release_index is not None:
-            app.char_presses.pop(release_index)
-        elif duration is not None and release_index is None:
-            app.char_presses.append(
-                CharPress(press.char, False, time=press.time + duration)
-            )
-        elif duration is not None and release_index is not None:
-            release = app.char_presses[release_index]
-            app.char_presses[release_index] = release.model_copy(
-                update={'time': press.time + duration}
-            )
-    app.char_presses.sort()
-
-
-def text_timing_active_indexes(char_presses: list[CharPress]) -> dict[int, int | None]:
-    result = {}
-    pairs = _text_timing_pairs(char_presses)
-    for row, (press_index, release_index) in enumerate(pairs):
-        result[id(char_presses[press_index])] = row
-        if release_index is not None:
-            result[id(char_presses[release_index])] = None
-    return result
 
 
 def start_backspace_repeat(app: App) -> None:
@@ -592,36 +544,6 @@ def _loop_window(
     if result and suffix:
         result.append(CharPress(time=result[-1].time + suffix))
     return result
-
-
-def _text_timing_rows(char_presses: list[CharPress]) -> list[list[str]]:
-    rows = []
-    pairs = _text_timing_pairs(char_presses)
-    for i, (press_index, release_index) in enumerate(pairs):
-        press = char_presses[press_index]
-        previous = char_presses[pairs[i - 1][0]].time if i else 0.0
-        duration = ''
-        if release_index is not None:
-            duration = f'{max(0.0, char_presses[release_index].time - press.time):g}'
-        rows.append([press.char, f'{max(0.0, press.time - previous):g}', duration])
-    return rows
-
-
-def _text_timing_pairs(char_presses: list[CharPress]) -> list[tuple[int, int | None]]:
-    rows: list[tuple[int, int | None]] = []
-    active: dict[str, list[int]] = {}
-    for i, c in enumerate(char_presses):
-        if c.is_press:
-            active.setdefault(c.char, []).append(len(rows))
-            rows.append((i, None))
-        elif indexes := active.get(c.char):
-            row = indexes.pop()
-            rows[row] = (rows[row][0], i)
-    return rows
-
-
-def _validated_milliseconds(text: str) -> float:
-    return max(0.0, float(text))
 
 
 def _read_state_text(text: str) -> dict[str, object]:

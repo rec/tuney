@@ -17,7 +17,6 @@ from tuney.app.app import (
     App,
     append_char_press,
     clear,
-    edit_text_timing,
     load_text_file,
     on_char,
     output_comment,
@@ -48,6 +47,7 @@ from tuney.app.platform_info import (
     trace,
 )
 from tuney.app.runnable import start_thread
+from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.scale.tuning import Computed, Type
@@ -571,9 +571,9 @@ def test_edit_text_timings_updates_char_presses() -> None:
         ]
     )
 
-    edit_text_timing(app, 0, 0, 'c')
-    edit_text_timing(app, 1, 1, '500')
-    edit_text_timing(app, 1, 2, '75')
+    edit_text_timing(app.char_presses, 0, 0, 'c')
+    edit_text_timing(app.char_presses, 1, 1, '500')
+    edit_text_timing(app.char_presses, 1, 2, '75')
 
     assert app.char_presses == [
         CharPress('c', time=100.0),

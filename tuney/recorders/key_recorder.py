@@ -70,7 +70,8 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: App) -> None:
-        from ..app.app import play_char, replay_char_presses, text_timing_active_indexes
+        from ..app.app import play_char, replay_char_presses
+        from ..app.text_timing import text_timing_active_indexes
 
         instrument(
             'key recorder replay start',
