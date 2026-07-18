@@ -234,7 +234,7 @@ class MIDIIn:
     enable: bool = False
 
     # MIDI input channel, or omni to receive all channels
-    channel: MIDIChannel = MIDIChannel.omni
+    channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 'omni'
 
 
 class MidiOut:
@@ -244,8 +244,8 @@ class MidiOut:
     # MIDI output port name
     output: str | None = None
 
-    # MIDI channel, from 0 to 15
-    channel: int = 0
+    # MIDI output channel, or omni to use the default channel
+    channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 
     # Velocity used for MIDI note-on messages
     velocity: int = 64

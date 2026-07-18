@@ -153,11 +153,6 @@ type = "object"
 ["$defs".MIDI.properties.output]
 "$ref" = "#/$defs/MidiOut"
 
-["$defs".MIDIChannel]
-enum = ["omni", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]
-title = "MIDIChannel"
-type = "string"
-
 ["$defs".MIDIIn]
 title = "MIDIIn"
 type = "object"
@@ -168,8 +163,16 @@ title = "Enable"
 type = "boolean"
 
 ["$defs".MIDIIn.properties.channel]
-"$ref" = "#/$defs/MIDIChannel"
 default = "omni"
+title = "Channel"
+[["$defs".MIDIIn.properties.channel.anyOf]]
+const = "omni"
+type = "string"
+
+[["$defs".MIDIIn.properties.channel.anyOf]]
+maximum = 16
+minimum = 1
+type = "integer"
 
 ["$defs".Map]
 enum = ["linear"]
@@ -243,8 +246,15 @@ type = "string"
 type = "null"
 
 ["$defs".MidiOut.properties.channel]
-default = 0
+default = 1
 title = "Channel"
+[["$defs".MidiOut.properties.channel.anyOf]]
+const = "omni"
+type = "string"
+
+[["$defs".MidiOut.properties.channel.anyOf]]
+maximum = 16
+minimum = 1
 type = "integer"
 
 ["$defs".MidiOut.properties.velocity]

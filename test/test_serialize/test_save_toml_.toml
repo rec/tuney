@@ -65,7 +65,7 @@ channel = "omni"
 
 [midi.output]
 enable = false
-channel = 0
+channel = 1
 velocity = 64
 note_offset = 0
 

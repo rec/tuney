@@ -159,30 +159,74 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
 
 
 @pytest.mark.parametrize(
-    ('raw', 'expected'),
+    ('raw', 'channel', 'mido_channel'),
     [
-        (None, None),
-        (0, None),
-        ('0', None),
-        ('omni', None),
-        (midi_module.MIDIChannel.omni, None),
-        (1, 0),
-        ('1', 0),
-        (midi_module.MIDIChannel.channel_1, 0),
-        (16, 15),
-        ('16', 15),
+        (None, 'omni', None),
+        (0, 'omni', None),
+        ('0', 'omni', None),
+        ('omni', 'omni', None),
+        (1, 1, 0),
+        ('1', 1, 0),
+        (16, 16, 15),
+        ('16', 16, 15),
     ],
 )
 def test_midi_input_channel_accepts_omni_and_channel_numbers(
-    raw: object, expected: int | None
+    raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    assert midi_module.MIDIIn(channel=raw).mido_channel == expected
+    midi = midi_module.MIDIIn(channel=raw)
+
+    assert midi.channel == channel
+    assert midi.mido_channel == mido_channel
 
 
-@pytest.mark.parametrize('raw', [-1, 17, 'channel_1', '17', 'bad', object()])
-def test_midi_input_channel_rejects_invalid_values(raw: object) -> None:
-    with pytest.raises(ValueError, match='MIDI input channel must be omni'):
+@pytest.mark.parametrize(
+    'raw', [False, True, -1, 17, 'channel_1', '17', 'bad', 1.5, [], object()]
+)
+def test_midi_channel_rejects_invalid_values(raw: object) -> None:
+    with pytest.raises(ValueError, match='MIDI channel must be omni'):
         midi_module.MIDIIn(channel=raw)
+    with pytest.raises(ValueError, match='MIDI channel must be omni'):
+        midi_module.MidiOut(channel=raw)
+
+
+@pytest.mark.parametrize(
+    ('raw', 'channel', 'mido_channel'),
+    [
+        (None, 'omni', None),
+        (0, 'omni', None),
+        ('0', 'omni', None),
+        ('omni', 'omni', None),
+        (1, 1, 0),
+        ('1', 1, 0),
+        (16, 16, 15),
+        ('16', 16, 15),
+    ],
+)
+def test_midi_output_channel_accepts_omni_and_channel_numbers(
+    raw: object, channel: object, mido_channel: int | None
+) -> None:
+    midi = midi_module.MidiOut(channel=raw)
+
+    assert midi.channel == channel
+    assert midi.mido_channel == mido_channel
+
+
+@pytest.mark.parametrize(('channel', 'expected'), [(3, 2), ('omni', 0)])
+def test_midi_output_sends_on_mido_channel(
+    channel: int | str, expected: int, monkeypatch
+) -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    monkeypatch.setattr(midi_module.mido, 'open_output', lambda _: Port())
+
+    midi_module.MidiOut(enable=True, channel=channel)(60, True)
+
+    assert [m.channel for m in messages] == [expected]
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:

@@ -12,7 +12,7 @@ from tuney.audio.midi import MIDIIn, MidiOut
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Sound
-from tuney.config.display import Numeric
+from tuney.config.display import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
@@ -63,6 +63,8 @@ def _entry_width(cls: type[BaseModel], name: str) -> int | None:
 
 def _is_scalar_numeric_field(cls: type[BaseModel], name: str) -> bool:
     annotation = cls.model_fields[name].annotation
+    if any(isinstance(i, Options) for i in cls.model_fields[name].metadata):
+        return False
     if get_origin(annotation) in {list, dict}:
         return False
     types = set(control_panel._annotation_types(annotation))

@@ -2,9 +2,8 @@ import json
 import subprocess
 import sys
 from collections.abc import Callable
-from enum import StrEnum
 from functools import cached_property
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import mido
 from pydantic import BaseModel, Field, field_validator
@@ -18,6 +17,7 @@ INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
+MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
 
 
 def output_names() -> list[str]:
@@ -46,26 +46,6 @@ def output_names() -> list[str]:
     return [name for name in names if isinstance(name, str)]
 
 
-class MIDIChannel(StrEnum):
-    omni = 'omni'
-    channel_1 = '1'
-    channel_2 = '2'
-    channel_3 = '3'
-    channel_4 = '4'
-    channel_5 = '5'
-    channel_6 = '6'
-    channel_7 = '7'
-    channel_8 = '8'
-    channel_9 = '9'
-    channel_10 = '10'
-    channel_11 = '11'
-    channel_12 = '12'
-    channel_13 = '13'
-    channel_14 = '14'
-    channel_15 = '15'
-    channel_16 = '16'
-
-
 class MIDIIn(BaseModel):
     # Enable MIDI input
     enable: Annotated[
@@ -74,31 +54,21 @@ class MIDIIn(BaseModel):
 
     # MIDI input channel, or omni to receive all channels
     channel: Annotated[
-        MIDIChannel,
-        tyro_option(name='midi-in-channel', constructor=str),
+        Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
+        tyro_option(name='midi-in-channel'),
         Beginner,
         Display(column=1, row=0),
-        Options(lambda: [c.value for c in MIDIChannel]),
-    ] = MIDIChannel.omni
+        Options(lambda: MIDI_CHANNEL_OPTIONS),
+    ] = 'omni'
 
     @field_validator('channel', mode='before')
     @classmethod
-    def _validate_channel(cls, value: object) -> MIDIChannel:
-        if isinstance(value, MIDIChannel):
-            return value
-        if value in {'', '0', None, 0}:
-            return MIDIChannel.omni
-        elif isinstance(value, int):
-            if 1 <= value <= 16:
-                return MIDIChannel(str(value))
-        elif isinstance(value, str):
-            if value in {c.value for c in MIDIChannel}:
-                return MIDIChannel(value)
-        raise ValueError('MIDI input channel must be omni, 0, or 1-16')
+    def _validate_channel(cls, value: object) -> Literal['omni'] | int:
+        return _validate_channel(value)
 
     @property
     def mido_channel(self) -> int | None:
-        return None if self.channel is MIDIChannel.omni else int(self.channel.value) - 1
+        return None if self.channel == 'omni' else self.channel - 1
 
     def accepts(self, message: Any) -> bool:
         return (channel := self.mido_channel) is None or getattr(
@@ -121,13 +91,13 @@ class MidiOut(BaseModel):
         Options(output_names),
     ] = None
 
-    # MIDI channel, from 0 to 15
+    # MIDI output channel, or omni to use the default channel
     channel: Annotated[
-        int,
+        Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
         tyro_option(name='midi-channel'),
         Display(column=2, row=0),
-        Numeric(width=2),
-    ] = 0
+        Options(lambda: MIDI_CHANNEL_OPTIONS),
+    ] = 1
 
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
@@ -155,11 +125,21 @@ class MidiOut(BaseModel):
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
 
+    @field_validator('channel', mode='before')
+    @classmethod
+    def _validate_channel(cls, value: object) -> Literal['omni'] | int:
+        return _validate_channel(value)
+
+    @property
+    def mido_channel(self) -> int | None:
+        return None if self.channel == 'omni' else self.channel - 1
+
     def __call__(self, note_number: int, is_press: bool) -> None:
         if self.enable:
+            kwargs = {} if self.mido_channel is None else {'channel': self.mido_channel}
             self.outport.send(
                 mido.Message(
-                    channel=self.channel,
+                    **kwargs,
                     note=self.midi_note(note_number),
                     type='note_on' if is_press or ZERO_IS_NOTE_OFF else 'note_off',
                     velocity=max(0, min(127, is_press * self.velocity)),
@@ -220,3 +200,19 @@ def _output_names() -> list[str]:
 
 def output_names_json() -> str:
     return json.dumps(_output_names())
+
+
+def _validate_channel(value: object) -> Literal['omni'] | int:
+    if isinstance(value, bool):
+        raise ValueError('MIDI channel must be omni, 0, or 1-16')
+    if value is None or value == '' or value == '0' or value == 0:
+        return 'omni'
+    elif isinstance(value, int):
+        if 1 <= value <= 16:
+            return value
+    elif isinstance(value, str):
+        if value == 'omni':
+            return 'omni'
+        if value in {str(i) for i in range(1, 17)}:
+            return int(value)
+    raise ValueError('MIDI channel must be omni, 0, or 1-16')
