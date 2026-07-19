@@ -147,14 +147,15 @@ class AudioEngine(BaseModel):
 
         try:
             self._drain_commands()
-            out[:] = self.mixer.render(frame_size, out.dtype, out.shape[1])
+            mixed = self.mixer.render(frame_size, float, out.shape[1])
             if self.speech is not None:
-                out += self.speech.render(frame_size, out.dtype, out.shape[1])
-                np.clip(out, -1, 1, out=out)
+                mixed += self.speech.render(frame_size, float, out.shape[1])
+                np.clip(mixed, -1, 1, out=mixed)
                 if self.speech.complete:
                     self.speech = None
-            out *= self.master_gain
-            np.clip(out, -1, 1, out=out)
+            mixed *= self.master_gain
+            np.clip(mixed, -1, 1, out=mixed)
+            out[:] = mixed.astype(out.dtype, copy=False)
             if self.recorder:
                 self.recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:

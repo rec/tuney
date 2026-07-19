@@ -161,6 +161,16 @@ def test_engine_master_gain_scales_output() -> None:
     np.testing.assert_allclose(out, unscaled * 0.25)
 
 
+def test_engine_master_gain_accepts_integer_output_buffer() -> None:
+    engine = AudioEngine(mixer=_renderer().mixer, master_gain=0.25)
+    engine.submit(NotePress(0))
+    out = np.zeros((128, 1), dtype=np.int16)
+
+    engine.callback(out, len(out), 0.0, None)
+
+    assert out.dtype == np.int16
+
+
 def test_synchronized_oscillators_use_mixer_frame_count() -> None:
     voice = Voice(
         frequency=480,
