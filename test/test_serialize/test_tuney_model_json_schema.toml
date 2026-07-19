@@ -162,6 +162,15 @@ default = false
 title = "Enable"
 type = "boolean"
 
+["$defs".MIDIIn.properties.input]
+default = "<null>"
+title = "Input"
+[["$defs".MIDIIn.properties.input.anyOf]]
+type = "string"
+
+[["$defs".MIDIIn.properties.input.anyOf]]
+type = "null"
+
 ["$defs".MIDIIn.properties.channel]
 default = "omni"
 title = "Channel"

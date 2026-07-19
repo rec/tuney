@@ -12,7 +12,12 @@ from tuney.app.platform_info import (  # noqa: E402
     handle_frozen_exception,
     install_frozen_excepthook,
 )
-from tuney.audio.midi import INTERNAL_LIST_MIDI_OUTPUTS, output_names_json  # noqa: E402
+from tuney.audio.midi import (  # noqa: E402
+    INTERNAL_LIST_MIDI_INPUTS,
+    INTERNAL_LIST_MIDI_OUTPUTS,
+    input_names_json,
+    output_names_json,
+)
 
 
 def app_args(argv: list[str], *, frozen: bool) -> list[str]:
@@ -26,6 +31,9 @@ def main() -> None:
     if frozen:
         install_frozen_excepthook()
     try:
+        if sys.argv[1:] == [INTERNAL_LIST_MIDI_INPUTS]:
+            print(input_names_json())
+            return
         if sys.argv[1:] == [INTERNAL_LIST_MIDI_OUTPUTS]:
             print(output_names_json())
             return

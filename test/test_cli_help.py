@@ -23,6 +23,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--type',
     '--table',
     '--midi-in-enable',
+    '--midi-input',
     '--midi-in-channel',
     '--midi-enable',
     '--midi-output',

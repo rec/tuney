@@ -233,6 +233,9 @@ class MIDIIn:
     # Enable MIDI input
     enable: bool = False
 
+    # MIDI input port name
+    input: str | None = None
+
     # MIDI input channel, or omni to receive all channels
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 'omni'
 

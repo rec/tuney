@@ -13,18 +13,28 @@ from ..config.display import Beginner, Display, Numeric, Options
 from ..config.tyro_option import tyro_option
 
 ZERO_IS_NOTE_OFF = True
+INTERNAL_LIST_MIDI_INPUTS = '--internal-list-midi-inputs'
 INTERNAL_LIST_MIDI_OUTPUTS = '--internal-list-midi-outputs'
+MIDO_INPUT_NAMES_SCRIPT = 'import json, mido; print(json.dumps(mido.get_input_names()))'
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
 MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
 
 
+def input_names() -> list[str]:
+    return _port_names(INTERNAL_LIST_MIDI_INPUTS, MIDO_INPUT_NAMES_SCRIPT, 'inputs')
+
+
 def output_names() -> list[str]:
+    return _port_names(INTERNAL_LIST_MIDI_OUTPUTS, MIDO_OUTPUT_NAMES_SCRIPT, 'outputs')
+
+
+def _port_names(internal_command: str, script: str, kind: str) -> list[str]:
     args = (
-        [sys.executable, INTERNAL_LIST_MIDI_OUTPUTS]
+        [sys.executable, internal_command]
         if getattr(sys, 'frozen', False)
-        else [sys.executable, '-c', MIDO_OUTPUT_NAMES_SCRIPT]
+        else [sys.executable, '-c', script]
     )
     try:
         result = subprocess.run(
@@ -36,11 +46,11 @@ def output_names() -> list[str]:
         )
         names = json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
-        report_error(f'Could not list MIDI outputs: {error}')
+        report_error(f'Could not list MIDI {kind}: {error}')
         return []
     if not isinstance(names, list):
         report_error(
-            f'Could not list MIDI outputs: expected list, got {type(names).__name__}'
+            f'Could not list MIDI {kind}: expected list, got {type(names).__name__}'
         )
         return []
     return [name for name in names if isinstance(name, str)]
@@ -52,12 +62,21 @@ class MIDIIn(BaseModel):
         bool, tyro_option(name='midi-in-enable'), Beginner, Display(row=0)
     ] = False
 
+    # MIDI input port name
+    input: Annotated[
+        str | None,
+        tyro_option(name='midi-input'),
+        Beginner,
+        Display(column=1, row=0, width=12),
+        Options(input_names),
+    ] = None
+
     # MIDI input channel, or omni to receive all channels
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
         tyro_option(name='midi-in-channel'),
         Beginner,
-        Display(column=1, row=0),
+        Display(column=2, row=0),
         Options(lambda: MIDI_CHANNEL_OPTIONS),
     ] = 'omni'
 
@@ -169,7 +188,9 @@ class MIDIInputListener:
     def start(self) -> None:
         if self.midi.input.enable and self.port is None:
             try:
-                self.port = mido.open_input(callback=self.on_message)
+                self.port = mido.open_input(
+                    self.midi.input.input, callback=self.on_message
+                )
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
@@ -190,16 +211,30 @@ class MIDIInputListener:
 
 
 def _output_names() -> list[str]:
-    try:
-        names = mido.get_output_names()
-    except (OSError, RuntimeError) as error:
-        report_error(f'Could not list MIDI outputs: {error}')
-        return []
-    return [name for name in names if isinstance(name, str)]
+    return _direct_port_names(mido.get_output_names, 'outputs')
+
+
+def _input_names() -> list[str]:
+    return _direct_port_names(mido.get_input_names, 'inputs')
 
 
 def output_names_json() -> str:
     return json.dumps(_output_names())
+
+
+def input_names_json() -> str:
+    return json.dumps(_input_names())
+
+
+def _direct_port_names(names: Callable[[], object], kind: str) -> list[str]:
+    try:
+        result = names()
+    except (OSError, RuntimeError) as error:
+        report_error(f'Could not list MIDI {kind}: {error}')
+        return []
+    if not isinstance(result, list):
+        return []
+    return [name for name in result if isinstance(name, str)]
 
 
 def _validate_channel(value: object) -> Literal['omni'] | int:

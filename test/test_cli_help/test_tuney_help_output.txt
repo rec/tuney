@@ -143,6 +143,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --midi-in-enable, --no-midi-in-enable
         Enable MIDI input (default: False)
+  --midi-input {None}|STR
+        MIDI input port name (default: None)
   --midi-in-channel {omni}|INT
         MIDI input channel, or omni to receive all channels (default: omni)
 

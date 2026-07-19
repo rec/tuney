@@ -56,6 +56,18 @@ def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
     assert capsys.readouterr().out == '["synth"]\n'
 
 
+def test_internal_midi_input_mode_prints_json(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        'sys.argv',
+        ['Tuney', midi_module.INTERNAL_LIST_MIDI_INPUTS],
+    )
+    monkeypatch.setattr(midi_module, '_input_names', lambda: ['keyboard'])
+
+    main()
+
+    assert capsys.readouterr().out == '["keyboard"]\n'
+
+
 def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:
     release_script = Path('scripts/release.sh').read_text()
     release_workflow = Path('.github/workflows/release-builds.yml').read_text()
