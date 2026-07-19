@@ -59,6 +59,7 @@ from ..app.platform_info import (
     log_exception,
     log_path,
     problem_issue_url,
+    set_windows_app_user_model_id,
 )
 from ..app.text_timing import edit_text_timing
 from ..presets import delete_presets, read_file, user_preset_names, write_preset
@@ -107,6 +108,7 @@ class MainWindow(QMainWindow):
     def __init__(self, app: App) -> None:
         instrument('main window init start')
         startup.set_gui(True)
+        set_windows_app_user_model_id()
         if (instance := QApplication.instance()) is None:
             instrument('qapplication create')
             self.qt_app = QApplication(sys.argv[:1])

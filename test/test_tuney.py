@@ -31,6 +31,7 @@ from tuney.app.app import (
 )
 from tuney.app.global_config import GlobalConfig
 from tuney.app.platform_info import (
+    APP_USER_MODEL_ID,
     ISSUE_URL,
     acquire_single_instance,
     crash_issue_url,
@@ -44,6 +45,7 @@ from tuney.app.platform_info import (
     problem_issue_url,
     release_single_instance,
     report_error,
+    set_windows_app_user_model_id,
     trace,
 )
 from tuney.app.runnable import start_thread
@@ -155,6 +157,50 @@ def test_problem_issue_url_includes_log(monkeypatch) -> None:
     body = query['body'][0]
     assert 'Problem report from Tuney.' in body
     assert 'TRACE problem' in body
+
+
+def test_app_user_model_id_is_windows_only(monkeypatch) -> None:
+    calls = []
+
+    class Shell32:
+        @staticmethod
+        def SetCurrentProcessExplicitAppUserModelID(app_id: str) -> int:
+            calls.append(app_id)
+            return 0
+
+    class Windll:
+        shell32 = Shell32()
+
+    monkeypatch.setattr('tuney.app.platform_info.sys.platform', 'darwin')
+    monkeypatch.setattr(
+        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
+    )
+
+    set_windows_app_user_model_id()
+
+    assert calls == []
+
+
+def test_app_user_model_id_is_set_on_windows(monkeypatch) -> None:
+    calls = []
+
+    class Shell32:
+        @staticmethod
+        def SetCurrentProcessExplicitAppUserModelID(app_id: str) -> int:
+            calls.append(app_id)
+            return 0
+
+    class Windll:
+        shell32 = Shell32()
+
+    monkeypatch.setattr('tuney.app.platform_info.sys.platform', 'win32')
+    monkeypatch.setattr(
+        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
+    )
+
+    set_windows_app_user_model_id()
+
+    assert calls == [APP_USER_MODEL_ID]
 
 
 def test_audio_diagnostics_use_reportable_dialog() -> None:

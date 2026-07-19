@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import os
 import platform
 import sys
@@ -19,6 +20,7 @@ CRASH_MARKER_FILE = 'running.txt'
 INSTANCE_LOCK_FILE = 'instance.lock'
 ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
 MAX_ISSUE_BODY = 6000
+APP_USER_MODEL_ID = 'rec.tuney.Tuney'
 
 _instance_lock_fd: int | None = None
 _instance_lock_path: Path | None = None
@@ -42,6 +44,20 @@ def app_state_dir() -> Path:
 
 def is_frozen() -> bool:
     return bool(getattr(sys, 'frozen', False))
+
+
+def set_windows_app_user_model_id() -> None:
+    if sys.platform != 'win32':
+        return
+    try:
+        result = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            APP_USER_MODEL_ID
+        )
+    except (AttributeError, OSError) as error:
+        instrument('windows app user model id error', error=str(error))
+        return
+    if result:
+        instrument('windows app user model id failed', result=result)
 
 
 def log_path() -> Path:
