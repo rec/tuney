@@ -305,6 +305,7 @@ def test_application_uses_cross_platform_style() -> None:
             'Save': 'Ctrl+S',
             'Save as Audio...': 'Ctrl+Alt+E',
             'Open enclosing folder for config file': 'Ctrl+Alt+O',
+            'Put Config file in Trash': 'Ctrl+Alt+Del',
             'Copy from state': 'Ctrl+Alt+C',
             'Paste into state': 'Ctrl+Alt+V',
             'Load autosave on start': 'Ctrl+L',
@@ -526,6 +527,37 @@ def test_app_activate_and_history() -> None:
 
         assert [Path(i).resolve() for i in opened] == [autosave_file.parent.resolve()]
         assert autosave_file.parent.is_dir()
+
+    trashed = []
+
+    class FakeFile:
+        @staticmethod
+        def moveToTrash(path: str) -> bool:
+            trashed.append(path)
+            return True
+
+    main_window_module.QFile = FakeFile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        config_file = Path(tmp) / 'configs' / 'settings.toml'
+        config_file.parent.mkdir()
+        config_file.write_text('max_gap = 2.0\n')
+        app = HistoryApp()
+        app.app.config_file = config_file
+        MainWindow.on_trash_config_file(app)
+
+        assert [Path(i).resolve() for i in trashed] == [config_file.resolve()]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        trashed.clear()
+        autosave_file = Path(tmp) / 'state' / 'state.toml'
+        autosave_file.parent.mkdir()
+        autosave_file.write_text('max_gap = 2.0\n')
+        app = HistoryApp()
+        startup.autosave_file = autosave_file
+        MainWindow.on_trash_config_file(app)
+
+        assert [Path(i).resolve() for i in trashed] == [autosave_file.resolve()]
 
 
 def test_app_reports_problem() -> None:
@@ -818,3 +850,4 @@ class HistoryApp:
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name
     _get_save_file_name = MainWindow._get_save_file_name
+    _config_path = MainWindow._config_path

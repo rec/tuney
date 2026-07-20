@@ -91,6 +91,12 @@ def build_menu(window: MainWindow) -> QMenuBar:
     )
     _add_action(
         file_menu,
+        'Put Config file in Trash',
+        TRASH_CONFIG_FILE_ACCELERATOR,
+        window.on_trash_config_file,
+    )
+    _add_action(
+        file_menu,
         'Copy from state',
         COPY_STATE_ACCELERATOR,
         window.on_copy_from_state,
@@ -151,6 +157,7 @@ DELETE_PRESETS_ACCELERATOR = 'Ctrl+Alt+P'
 IMPORT_TUNING_ACCELERATOR = 'Ctrl+I'
 EXPORT_TUNING_ACCELERATOR = 'Ctrl+E'
 OPEN_CONFIG_FOLDER_ACCELERATOR = 'Ctrl+Alt+O'
+TRASH_CONFIG_FILE_ACCELERATOR = 'Ctrl+Alt+Delete'
 COPY_STATE_ACCELERATOR = 'Ctrl+Alt+C'
 PASTE_STATE_ACCELERATOR = 'Ctrl+Alt+V'
 LOAD_AUTOSAVE_ACCELERATOR = 'Ctrl+L'

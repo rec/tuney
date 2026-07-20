@@ -12,7 +12,7 @@ from types import FrameType
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QEvent, QFile, QObject, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -529,7 +529,7 @@ class MainWindow(QMainWindow):
 
     def on_open_config_folder(self, *_: object) -> None:
         instrument('ui open config folder')
-        path = self.app.config_file or self.app._autosave.path
+        path = self._config_path()
         folder = path.expanduser().parent.resolve()
         try:
             folder.mkdir(parents=True, exist_ok=True)
@@ -546,6 +546,26 @@ class MainWindow(QMainWindow):
                 'Open enclosing folder for config file',
                 f'Could not open {folder}',
             )
+
+    def on_trash_config_file(self, *_: object) -> None:
+        instrument('ui trash config file')
+        path = self._config_path().expanduser().resolve()
+        if not path.exists():
+            QMessageBox.critical(
+                self,
+                'Put Config file in Trash',
+                f'Config file does not exist:\n\n{path}',
+            )
+            return
+        if not QFile.moveToTrash(str(path)):
+            QMessageBox.critical(
+                self,
+                'Put Config file in Trash',
+                f'Could not put config file in Trash:\n\n{path}',
+            )
+
+    def _config_path(self) -> Path:
+        return self.app.config_file or self.app._autosave.path
 
     def on_copy_from_state(self, *_: object) -> None:
         instrument('ui copy from state')
