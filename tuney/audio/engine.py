@@ -81,8 +81,26 @@ class AudioEngine(BaseModel):
         kwargs['device'] = output_device(kwargs['device'])
         kwargs['blocksize'] = self.buffer_size
         try:
-            instrument('audio stream create', kwargs=kwargs)
-            return sd.OutputStream(callback=self.callback, **kwargs)
+            instrument(
+                'audio stream create',
+                requested_device=self.device.device,
+                resolved_device=kwargs['device'],
+                sample_rate=kwargs['samplerate'],
+                channels=kwargs['channels'],
+                dtype=_display_value(kwargs['dtype']),
+                blocksize=kwargs['blocksize'],
+                clip_off=kwargs['clip_off'],
+                dither_off=kwargs['dither_off'],
+                never_drop_input=kwargs['never_drop_input'],
+                prime_output_buffers_using_stream_callback=kwargs[
+                    'prime_output_buffers_using_stream_callback'
+                ],
+                sounddevice_defaults=_sounddevice_defaults(sd),
+                resolved_device_info=_sounddevice_device_info(sd, kwargs['device']),
+            )
+            stream = sd.OutputStream(callback=self.callback, **kwargs)
+            instrument('audio stream created', **_stream_info(stream))
+            return stream
         except sd.PortAudioError as error:
             instrument('audio stream create error', error=str(error))
             self.diagnostics.record_stream_error(str(error))
@@ -97,9 +115,9 @@ class AudioEngine(BaseModel):
         if 'stream' in self.__dict__ and self.stream.active:
             return
         try:
-            instrument('audio stream start')
+            instrument('audio stream start', **_stream_info(self.stream))
             self.stream.start()
-            instrument('audio stream started')
+            instrument('audio stream started', **_stream_info(self.stream))
         except Exception as error:
             if error.__class__.__name__ == 'PortAudioError':
                 if stream := self.__dict__.pop('stream', None):
@@ -197,3 +215,37 @@ class AudioEngine(BaseModel):
                 self.stop_when_silent = True
                 self.speech = None
                 self.mixer.stop_all()
+
+
+def _stream_info(stream: Stream) -> dict[str, object]:
+    return {
+        'active': stream.active,
+        'samplerate': stream.samplerate,
+        'channels': stream.channels,
+        'blocksize': getattr(stream, 'blocksize', None),
+        'latency': getattr(stream, 'latency', None),
+        'dtype': _display_value(getattr(stream, 'dtype', None)),
+        'device': getattr(stream, 'device', None),
+        'closed': getattr(stream, 'closed', None),
+    }
+
+
+def _display_value(value: object) -> object:
+    return str(value) if value is not None else None
+
+
+def _sounddevice_defaults(sd: Any) -> object:
+    return getattr(sd, 'default', None)
+
+
+def _sounddevice_device_info(sd: Any, device: object) -> object:
+    if device is None:
+        return None
+    try:
+        query_devices = sd.query_devices
+    except AttributeError:
+        return None
+    try:
+        return query_devices(device)
+    except (OSError, RuntimeError, TypeError, ValueError) as error:
+        return f'{type(error).__name__}: {error}'

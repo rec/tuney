@@ -224,6 +224,10 @@ class _EngineStream(Stream):
         self.samplerate = 44_100
         self.channels = 1
         self.options = _
+        self.blocksize = _.get('blocksize')
+        self.dtype = _.get('dtype')
+        self.device = _.get('device')
+        self.latency = 0.01
         self.instances.append(self)
 
     def start(self) -> None:
@@ -508,6 +512,31 @@ def test_player_passes_buffer_size_to_output_stream(monkeypatch) -> None:
     Player(buffer_size=64).start(0)
 
     assert _EngineStream.instances[0].options['blocksize'] == 64
+
+
+def test_stream_logging_includes_device_details(monkeypatch, tmp_path) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+    monkeypatch.setenv('TUNEY_TRACE', '1')
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    monkeypatch.setattr(sounddevice, 'default', {'device': [None, 'speaker']})
+
+    def query_devices(device: object = None) -> object:
+        if device is None:
+            return [{'name': 'speaker', 'max_output_channels': 2}]
+        return {'name': device, 'max_output_channels': 2}
+
+    monkeypatch.setattr(sounddevice, 'query_devices', query_devices)
+
+    Player(device=Device(device='speaker', dtype='float32')).start(0)
+
+    log = (tmp_path / 'tuney' / 'tuney.txt').read_text()
+    assert "requested_device='speaker'" in log
+    assert "resolved_device='speaker'" in log
+    assert "dtype='float32'" in log
+    assert "sounddevice_defaults={'device': [None, 'speaker']}" in log
+    assert "resolved_device_info={'name': 'speaker', 'max_output_channels': 2}" in log
+    assert 'latency=0.01' in log
 
 
 def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:
