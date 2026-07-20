@@ -5,17 +5,19 @@ from functools import cached_property
 from pathlib import Path
 
 import tomlkit
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .platform_info import app_config_dir, report_error
 
 GLOBAL_CONFIG_FILE = 'global.toml'
+BUFFER_SIZE_MIN = 32
+BUFFER_SIZE_MAX = 4096
 BUFFER_SIZE_INCREMENT = 32
 
 
 class GlobalConfig(BaseModel):
     directories: dict[str, str] = Field(default_factory=dict)
-    buffer_size: int = 32
+    buffer_size: int = BUFFER_SIZE_MIN
     file: Path | None = Field(default=None, exclude=True)
 
     @cached_property
@@ -54,9 +56,20 @@ class GlobalConfig(BaseModel):
             report_error(f'Could not save global config {self.path}: {error}')
 
     def increase_buffer_size(self) -> int:
-        self.buffer_size += BUFFER_SIZE_INCREMENT
+        self.buffer_size = min(
+            self.buffer_size + BUFFER_SIZE_INCREMENT, BUFFER_SIZE_MAX
+        )
         try:
             self.save()
         except OSError as error:
             report_error(f'Could not save global config {self.path}: {error}')
         return self.buffer_size
+
+    @field_validator('buffer_size', mode='before')
+    @classmethod
+    def _validate_buffer_size(cls, value: object) -> object:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return min(max(value, BUFFER_SIZE_MIN), BUFFER_SIZE_MAX)
+        return value
