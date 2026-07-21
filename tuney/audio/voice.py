@@ -3,10 +3,11 @@ from __future__ import annotations
 from functools import cached_property
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..time import Seconds
 from .oscillator import Oscillator
+from .sound import Binaural
 
 DEFAULT_FADE: Seconds = 0x1000 / 48_000
 
@@ -19,6 +20,7 @@ class Voice(BaseModel, frozen=True):
     minimum_note_time: Seconds = 0.5
     oscillator: Oscillator = Field(default_factory=Oscillator)
     sample_rate: int = 48_000
+    binaural: Binaural = Field(default_factory=Binaural)
 
     @cached_property
     def period(self) -> float:
@@ -27,6 +29,12 @@ class Voice(BaseModel, frozen=True):
     @cached_property
     def period_samples(self) -> float:
         return self.period * self.sample_rate
+
+    @cached_property
+    def binaural_period_samples(self) -> np.ndarray:
+        beat = self.binaural.frequency / 2
+        frequencies = np.array([self.frequency - beat, self.frequency + beat])
+        return self.sample_rate / frequencies
 
     @cached_property
     def fade_in_samples(self) -> float:
@@ -42,8 +50,10 @@ class Voice(BaseModel, frozen=True):
 
 
 class VoiceState(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     voice: Voice
-    phase: float = 0
+    phase: float | np.ndarray = 0
     frame_count: int = 0
     release_frame: float | None = None
     release_gain: float = 1.0
@@ -63,14 +73,28 @@ class VoiceState(BaseModel):
 
     def render(self, frame_size: int) -> np.ndarray:
         if self.complete:
-            return np.zeros(frame_size)
+            shape = (frame_size, 2) if self.voice.binaural.enable else frame_size
+            return np.zeros(shape)
 
-        period_samples = self.voice.period_samples
+        period_samples: float | np.ndarray
+        period_samples = (
+            self.voice.binaural_period_samples
+            if self.voice.binaural.enable
+            else self.voice.period_samples
+        )
         wave = self.voice.oscillator(self.phase, frame_size, period_samples).astype(
             float, copy=False
         )
         frames = self.frame_count + np.arange(frame_size)
-        wave *= self._envelope(frames) * self.voice.gain
+        if self.voice.binaural.enable:
+            wave = self._binaural_wave(wave)
+            envelope = self._envelope(frames)
+            if isinstance(envelope, int):
+                envelope = np.full(frame_size, envelope)
+            envelope = envelope[:, np.newaxis]
+        else:
+            envelope = self._envelope(frames)
+        wave *= envelope * self.voice.gain
 
         self.phase = (self.phase + frame_size) % period_samples
         self.frame_count += frame_size
@@ -78,6 +102,19 @@ class VoiceState(BaseModel):
             last_sample = self.release_frame + self.voice.fade_out_samples
             self.complete = self.frame_count >= last_sample
         return wave
+
+    def _binaural_wave(self, wave: np.ndarray) -> np.ndarray:
+        width = self.voice.binaural.width
+        low_left = (1 + width) / 2
+        high_left = (1 - width) / 2
+        low_right = high_left
+        high_right = low_left
+        return np.column_stack(
+            [
+                wave[:, 0] * low_left + wave[:, 1] * high_left,
+                wave[:, 0] * low_right + wave[:, 1] * high_right,
+            ]
+        )
 
     def _envelope(self, frames: np.ndarray) -> np.ndarray | int:
         if self.voice.fade_in_samples <= 0:

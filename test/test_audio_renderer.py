@@ -17,7 +17,7 @@ from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.renderer import OfflineRenderer
-from tuney.audio.sound import Sound
+from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPlayback
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
@@ -452,6 +452,25 @@ def test_player_applies_oscillator_key_scaling_to_voice_gain() -> None:
     assert player.voice_maker(24).gain == pytest.approx(0.25 * 10 ** (6 / 20))
 
 
+def test_player_forces_stereo_for_binaural_sound() -> None:
+    player = Player(sound=Sound(binaural=Binaural(enable=True)))
+
+    assert player.channels == 2
+    assert player.engine.device.channels == 2
+    assert player.voice_maker(0).binaural.enable
+
+
+def test_player_updates_cached_engine_channels_for_binaural_sound() -> None:
+    player = Player()
+    engine = player.engine
+    player.sound.binaural.enable = True
+
+    player.sync_engine_device()
+
+    assert player.engine is engine
+    assert player.engine.device.channels == 2
+
+
 def test_player_updates_live_master_gain() -> None:
     player = Player()
     _ = player.engine
@@ -632,6 +651,42 @@ def test_mixer_maps_mono_signal_to_each_channel() -> None:
     assert out.shape == (48_000, 3)
     np.testing.assert_array_equal(out[:, 0], out[:, 1])
     np.testing.assert_array_equal(out[:, 1], out[:, 2])
+
+
+def test_binaural_voice_splits_frequencies_across_stereo_channels() -> None:
+    voice = Voice(
+        frequency=100,
+        sample_rate=SAMPLE_RATE,
+        oscillator=Oscillator(waveform=Waveform.sine),
+        binaural=Binaural(enable=True, frequency=20, width=1),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice)
+    mixer.apply(NotePress(0))
+
+    out = mixer.render(SAMPLE_RATE, np.float32, channels=2)
+
+    assert out.shape == (SAMPLE_RATE, 2)
+    np.testing.assert_allclose(
+        voice.binaural_period_samples,
+        [SAMPLE_RATE / 90, SAMPLE_RATE / 110],
+    )
+    assert not np.allclose(out[:, 0], out[:, 1])
+
+
+def test_centered_binaural_width_mixes_both_frequencies_to_both_channels() -> None:
+    state = VoiceState(
+        voice=Voice(
+            frequency=100,
+            sample_rate=SAMPLE_RATE,
+            oscillator=Oscillator(waveform=Waveform.sine),
+            binaural=Binaural(enable=True, frequency=20, width=0),
+        )
+    )
+
+    out = state.render(SAMPLE_RATE)
+
+    assert out.shape == (SAMPLE_RATE, 2)
+    np.testing.assert_allclose(out[:, 0], out[:, 1])
 
 
 def test_engine_applies_stop_all_on_next_block() -> None:

@@ -43,7 +43,11 @@ class Player(BaseModel, frozen=True):
             master_gain=self.sound.master_gain,
             buffer_size=self.buffer_size,
             increase_buffer_size=self.increase_buffer_size,
-            device=self.device,
+            device=(
+                self.device.model_copy(update={'channels': self.channels})
+                if self.sound.binaural.enable
+                else self.device
+            ),
         )
         self.device.set_change_callback(self.reconfigure_device)
         return engine
@@ -53,11 +57,27 @@ class Player(BaseModel, frozen=True):
         if 'engine' in self.__dict__:
             self.engine.master_gain = master_gain
 
+    def sync_engine_device(self) -> bool:
+        if 'engine' not in self.__dict__:
+            return False
+        device = (
+            self.device.model_copy(update={'channels': self.channels})
+            if self.sound.binaural.enable
+            else self.device
+        )
+        if self.engine.device != device:
+            self.engine.device = device
+            self.engine.reconfigure()
+            return True
+        return False
+
     def reconfigure_device(self) -> None:
         instrument('player reconfigure device')
         self.pressed_notes.clear()
+        synced = self.sync_engine_device()
         try:
-            self.engine.reconfigure()
+            if not synced:
+                self.engine.reconfigure()
         except Exception as e:
             if e.__class__.__name__ != 'PortAudioError':
                 raise
@@ -75,6 +95,7 @@ class Player(BaseModel, frozen=True):
             minimum_note_time=self.sound.minimum_note_time,
             oscillator=self.sound.oscillator,
             sample_rate=sample_rate or self.device.sample_rate or 48_000,
+            binaural=self.sound.binaural,
         )
 
     @property
@@ -83,6 +104,8 @@ class Player(BaseModel, frozen=True):
 
     @property
     def channels(self) -> int:
+        if self.sound.binaural.enable:
+            return 2
         return self.device.channels or 1
 
     def render_file(
@@ -133,6 +156,7 @@ class Player(BaseModel, frozen=True):
         trace('player start note', note=note_number)
         if note_number in self.pressed_notes:
             return False
+        self.sync_engine_device()
         stolen_note: NoteNumber | None = None
         if len(self.pressed_notes) >= self.sound.polyphony.max_voices:
             stolen_note = self.pressed_notes.pop(0)

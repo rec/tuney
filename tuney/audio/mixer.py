@@ -71,16 +71,22 @@ class Mixer(BaseModel):
         dtype: DTypeLike = float,
         channels: int | None = None,
     ) -> np.ndarray:
-        mixed = np.zeros(frame_size)
+        channel_count = self.channels if channels is None else channels
+        mixed = np.zeros((frame_size, channel_count))
         for note_number, voice in tuple(self.voices.items()):
-            mixed += voice.render(frame_size)
+            rendered = voice.render(frame_size)
+            if rendered.ndim == 1:
+                mixed += rendered[:, np.newaxis]
+            elif rendered.shape[1] == channel_count:
+                mixed += rendered
+            elif channel_count == 1:
+                mixed += rendered.mean(axis=1)[:, np.newaxis]
+            else:
+                mixed += rendered[:, :1]
             if voice.complete:
                 self.voices.pop(note_number)
         mixed /= self.polyphony.headroom
         np.clip(mixed, -1, 1, out=mixed)
 
-        channel_count = self.channels if channels is None else channels
         self.frame_count += frame_size
-        return np.repeat(mixed[:, np.newaxis], channel_count, axis=1).astype(
-            dtype, copy=False
-        )
+        return mixed.astype(dtype, copy=False)

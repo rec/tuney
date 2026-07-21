@@ -9,7 +9,7 @@ from tuney.audio import midi as midi_module
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
-from tuney.audio.sound import Sound
+from tuney.audio.sound import Binaural, Sound
 from tuney.ui.layout import Layout
 
 
@@ -377,6 +377,21 @@ def test_sound_note_gain_combines_output_and_keyboard_gain() -> None:
 
 def test_sound_master_gain_defaults_to_one() -> None:
     assert Sound().master_gain == 1.0
+
+
+def test_binaural_defaults_and_constraints() -> None:
+    binaural = Binaural()
+
+    assert not binaural.enable
+    assert binaural.frequency == 7.8
+    assert binaural.width == 1.0
+
+    with pytest.raises(ValueError):
+        Binaural(frequency=0)
+    with pytest.raises(ValueError):
+        Binaural(width=-1.01)
+    with pytest.raises(ValueError):
+        Binaural(width=1.01)
 
 
 def completed_process(

@@ -66,7 +66,9 @@ class Oscillator(BaseModel):
         float, tyro_option('-k'), Display(column=3, row=0), Numeric(width=5)
     ] = 0.0
 
-    def __call__(self, start: float, length: int, period: float) -> np.ndarray:
+    def __call__(
+        self, start: float | np.ndarray, length: int, period: float | np.ndarray
+    ) -> np.ndarray:
         # TODO: add intensity to compensate for different energies
         end = start + length
         ratio = 2 * np.pi / period

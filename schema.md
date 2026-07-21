@@ -188,12 +188,27 @@ class Device:
     channels: int | None = None
 
 
+class Binaural:
+    # Add a binaural beat by splitting each note into separate left and right
+    # frequencies
+    enable: bool = False
+
+    # Difference between the left and right frequencies, in hertz
+    frequency: float = 7.8
+
+    # Stereo placement from reversed to centered to normal
+    width: float = 1.0
+
+
 class Sound:
     # Synthesizer oscillator settings
     oscillator: Oscillator
 
     # Use the same time origin for every oscillator
     synchronize_oscillators: bool = False
+
+    # Binaural beat settings
+    binaural: Binaural
 
     # Audio output gain
     gain: float = 1.0

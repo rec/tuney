@@ -130,6 +130,17 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -k FLOAT, --key-scale FLOAT
         Gain decibels added per keyboard octave above key_scale_note (default: 0.0)
 
+ sound.binaural options
+ ----------------------------------------------------------------------------------------------------------------------
+  Binaural beat settings
+  ----------------------------------------------------------------------------------------------------------------------
+  --enable, --no-enable
+        Add a binaural beat by splitting each note into separate left and right frequencies (default: False)
+  --frequency FLOAT
+        Difference between the left and right frequencies, in hertz (default: 7.8)
+  --width FLOAT
+        Stereo placement from reversed to centered to normal (default: 1.0)
+
  sound.polyphony options
  ----------------------------------------------------------------------------------------------------------------------
   --headroom FLOAT

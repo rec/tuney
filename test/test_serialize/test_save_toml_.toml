@@ -55,6 +55,11 @@ duty_cycle = 0.5
 key_scale_note = 64
 key_scale = 0.0
 
+[sound.binaural]
+enable = false
+frequency = 7.8
+width = 1.0
+
 [sound.polyphony]
 headroom = 4
 max_voices = 10

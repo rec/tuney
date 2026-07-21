@@ -7,6 +7,28 @@ enum = ["none", "whole", "half"]
 title = "Accidentals"
 type = "string"
 
+["$defs".Binaural]
+title = "Binaural"
+type = "object"
+
+["$defs".Binaural.properties.enable]
+default = false
+title = "Enable"
+type = "boolean"
+
+["$defs".Binaural.properties.frequency]
+default = 7.8
+exclusiveMinimum = 0
+title = "Frequency"
+type = "number"
+
+["$defs".Binaural.properties.width]
+default = 1.0
+maximum = 1
+minimum = -1
+title = "Width"
+type = "number"
+
 ["$defs".CharPress]
 required = ["char", "time"]
 title = "CharPress"
@@ -401,6 +423,9 @@ type = "object"
 default = false
 title = "Synchronize Oscillators"
 type = "boolean"
+
+["$defs".Sound.properties.binaural]
+"$ref" = "#/$defs/Binaural"
 
 ["$defs".Sound.properties.master_gain]
 default = 1.0
