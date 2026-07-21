@@ -30,15 +30,13 @@ from PySide6.QtWidgets import (
 from ..app.app import (
     clear,
     on_char,
-    on_replay,
-    output_comment,
     randomize_timing,
     save,
 )
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
-from . import Action, StateChange, startup
+from . import startup
 from .error_dialogs import (
     on_report_problem,
     on_show_log,
@@ -63,7 +61,19 @@ from .file_commands import (
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
-from .main_menu import SAVE_AUDIO_COMMAND, build_menu
+from .main_menu import build_menu
+from .replay_controls import (
+    is_replaying,
+    on_loop_after,
+    on_loop_before,
+    on_loop_replay,
+    on_loop_tempo,
+    on_master_gain,
+    on_randomize_on_each_loop,
+    on_replay,
+    on_transport_state,
+    set_is_replaying,
+)
 from .tuning_files import on_export_tuning, on_import_tuning
 from .tuning_files import set_tuning as _set_tuning
 from .tuning_files import update_export_tuning_action as _update_export_tuning_action
@@ -277,33 +287,7 @@ class MainWindow(QMainWindow):
     _set_tuning = _set_tuning
     _update_export_tuning_action = _update_export_tuning_action
 
-    def on_transport_state(self, change: StateChange) -> bool:
-        instrument(
-            'ui transport state',
-            old_state=change.old_state,
-            state=change.state,
-            action=change.action,
-        )
-        filename = ''
-        if change.action == Action.save:
-            self._is_saving = True
-            try:
-                result = self._get_save_file_name(
-                    SAVE_AUDIO_COMMAND,
-                    SAVE_AUDIO_COMMAND,
-                    'WAV (*.wav)',
-                )
-                filename = result[0]
-            finally:
-                self._is_saving = False
-                self._has_focus = False
-        path = Path(filename) if filename else None
-        return self.app.audio_recorder.on_transport_state(
-            change,
-            self.app.player,
-            lambda: output_comment(self.app),
-            path,
-        )
+    on_transport_state = on_transport_state
 
     def on_refresh_devices(self, *_: object) -> None:
         instrument('ui refresh devices')
@@ -425,63 +409,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'show_text_timings_action'):
             self.show_text_timings_action.setChecked(self.app.show_text_timings)
 
-    @property
-    def is_replaying(self) -> bool:
-        return self._is_replaying
-
-    @is_replaying.setter
-    def is_replaying(self, is_replaying: bool) -> None:
-        if self._is_replaying != is_replaying:
-            instrument('ui replay state', is_replaying=is_replaying)
-            self._is_replaying = is_replaying
-            self.ui.set_replay_state(is_replaying)
-            on_replay(self.app)
-
-    def on_replay(self, *_: object) -> None:
-        instrument('ui replay button')
-        self.is_replaying = not self.is_replaying
-
-    def on_loop_replay(self, checked: bool) -> None:
-        instrument('ui loop replay', checked=checked)
-        if checked != self.history.loop_replay:
-            self.history.checkpoint_undo()
-            self.history.loop_replay = checked
-
-    def on_master_gain(self, master_gain: float) -> None:
-        instrument('ui master gain', master_gain=master_gain)
-        self.app.player.set_master_gain(master_gain)
-
-    def on_loop_tempo(self, tempo: str) -> None:
-        instrument('ui loop tempo', tempo=tempo)
-        try:
-            value = float(tempo)
-        except ValueError:
-            return
-        if value > 0 and value != self.history.loop_tempo:
-            self.history.checkpoint_undo()
-            self.history.loop_tempo = value
-
-    def on_loop_before(self, before: str) -> None:
-        instrument('ui loop before', before=before)
-        if (
-            value := _float_or_none(before)
-        ) is not None and value != self.history.loop_before:
-            self.history.checkpoint_undo()
-            self.history.loop_before = value
-
-    def on_loop_after(self, after: str) -> None:
-        instrument('ui loop after', after=after)
-        if (
-            value := _float_or_none(after)
-        ) is not None and value != self.history.loop_after:
-            self.history.checkpoint_undo()
-            self.history.loop_after = value
-
-    def on_randomize_on_each_loop(self, checked: bool) -> None:
-        instrument('ui randomize on each loop', checked=checked)
-        if checked != self.history.randomize_on_each_loop:
-            self.history.checkpoint_undo()
-            self.history.randomize_on_each_loop = checked
+    is_replaying = property(is_replaying, set_is_replaying)
+    on_replay = on_replay
+    on_loop_replay = on_loop_replay
+    on_master_gain = on_master_gain
+    on_loop_tempo = on_loop_tempo
+    on_loop_before = on_loop_before
+    on_loop_after = on_loop_after
+    on_randomize_on_each_loop = on_randomize_on_each_loop
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():
@@ -495,10 +430,3 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def _float_or_none(text: str) -> float | None:
-    try:
-        return float(text)
-    except ValueError:
-        return None
