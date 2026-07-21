@@ -17,6 +17,8 @@ BUFFER_SIZE_INCREMENT = 32
 
 class GlobalConfig(BaseModel):
     directories: dict[str, str] = Field(default_factory=dict)
+    control_panel_sections: dict[str, bool] = Field(default_factory=dict)
+    control_panel_scroll: int = 0
     buffer_size: int = BUFFER_SIZE_MIN
     file: Path | None = Field(default=None, exclude=True)
 
@@ -46,7 +48,12 @@ class GlobalConfig(BaseModel):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(
             tomlkit.dumps(
-                {'directories': self.directories, 'buffer_size': self.buffer_size}
+                {
+                    'directories': self.directories,
+                    'control_panel_sections': self.control_panel_sections,
+                    'control_panel_scroll': self.control_panel_scroll,
+                    'buffer_size': self.buffer_size,
+                }
             )
         )
 

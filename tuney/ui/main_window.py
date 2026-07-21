@@ -219,6 +219,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         instrument('close event start')
         try:
+            self.ui.control_panel.save_state()
             self.app._autosave.save(lambda path: save(self.app, path))
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))

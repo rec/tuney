@@ -159,12 +159,14 @@ class ControlPanel(QScrollArea):
         self.show_advanced = True
         self.eager_modes = eager_modes
         self.pages: dict[bool, QWidget] = {}
+        self.section_path: dict[QWidget, str] = {}
         self.setWidgetResizable(True)
         self.setMinimumHeight(min(height, 80))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content: QStackedWidget = QStackedWidget()
         self.content.setObjectName('control_panel_content')
         self.setWidget(self.content)
+        self.verticalScrollBar().valueChanged.connect(self._remember_scroll)
         if build:
             self.rebuild()
         else:
@@ -172,18 +174,22 @@ class ControlPanel(QScrollArea):
 
     def rebuild(self) -> None:
         instrument('control panel rebuild start', model=type(self.data).__name__)
+        if self.pages:
+            self.save_state()
         while self.content.count():
             page = self.content.widget(0)
             assert page is not None
             self.content.removeWidget(page)
             page.deleteLater()
         self.pages.clear()
+        self.section_path.clear()
         self.option_controls.clear()
         self.pages[self.show_advanced] = self._build_page(self.show_advanced)
         if self.eager_modes:
             other_mode = not self.show_advanced
             self.pages[other_mode] = self._build_page(other_mode)
         self.content.setCurrentWidget(self.pages[self.show_advanced])
+        self.restore_scroll()
         instrument('control panel rebuild end', model=type(self.data).__name__)
 
     def show_mode(self, advanced: bool) -> None:
@@ -194,6 +200,35 @@ class ControlPanel(QScrollArea):
         if advanced not in self.pages:
             self.pages[advanced] = self._build_page(advanced)
         self.content.setCurrentWidget(self.pages[advanced])
+        self.restore_scroll()
+
+    def save_state(self) -> None:
+        app = self.app
+        if app is None or not app.gui:
+            return
+        config = app.global_config
+        config.control_panel_scroll = self.verticalScrollBar().value()
+        page = self.content.currentWidget()
+        if page is None:
+            return
+        for button in page.findChildren(QToolButton, 'control_section_disclosure'):
+            if key := self.section_path.get(button):
+                config.control_panel_sections[key] = button.isChecked()
+        try:
+            config.save()
+        except OSError as error:
+            from ..app.platform_info import report_error
+
+            report_error(f'Could not save global config {config.path}: {error}')
+
+    def restore_scroll(self) -> None:
+        app = self.app
+        if app is not None and app.gui:
+            value = app.global_config.control_panel_scroll
+            QTimer.singleShot(
+                0,
+                lambda: self.verticalScrollBar().setValue(value),
+            )
 
     def _build_page(self, advanced: bool) -> QWidget:
         instrument('control panel build page start', advanced=advanced)
@@ -219,6 +254,14 @@ class ControlPanel(QScrollArea):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.addWidget(QLabel('Loading controls...', page))
         self.content.addWidget(page)
+
+    def _remember_scroll(self, value: int) -> None:
+        app = self.app
+        if app is not None and app.gui:
+            app.global_config.control_panel_scroll = value
+
+    def _uses_saved_state(self) -> bool:
+        return self.app is not None and self.app.gui
 
 
 def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None:
@@ -345,8 +388,16 @@ def _add_collapsible_section(
     button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
     button.setArrowType(Qt.ArrowType.DownArrow)
     button.setCheckable(True)
-    button.setChecked(True)
+    key = _section_key(title, data)
+    control_panel = _control_panel(parent)
+    control_panel.section_path[button] = key
+    expanded = True
+    if control_panel._uses_saved_state():
+        assert control_panel.app is not None
+        expanded = control_panel.app.global_config.control_panel_sections.get(key, True)
+    button.setChecked(expanded)
     button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    _set_section_expanded(button, body, button.isChecked())
     button.toggled.connect(lambda checked: _set_section_expanded(button, body, checked))
 
     header = QHBoxLayout()
@@ -360,9 +411,19 @@ def _add_collapsible_section(
     return body
 
 
+def _section_key(title: str, data: BaseModel | None) -> str:
+    return f'{type(data).__name__ if data is not None else "ControlPanel"}.{title}'
+
+
 def _set_section_expanded(button: QToolButton, body: QWidget, expanded: bool) -> None:
     body.setVisible(expanded)
     button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+    control_panel = _control_panel(button)
+    if control_panel._uses_saved_state():
+        assert control_panel.app is not None
+        control_panel.app.global_config.control_panel_sections[
+            control_panel.section_path[button]
+        ] = expanded
 
 
 def _add_section_preset_control(

@@ -281,6 +281,10 @@ def test_application_uses_cross_platform_style() -> None:
         def show_mode(self, checked: bool) -> None:
             self.show_advanced = checked
 
+        @staticmethod
+        def save_state() -> None:
+            pass
+
     class FakeTextItem:
         def __init__(self, text: str) -> None:
             self._text = text

@@ -8,6 +8,7 @@ import tomlkit
 from pydantic import BaseModel
 
 from tuney.app.app import App
+from tuney.app.global_config import GlobalConfig
 from tuney.audio import device as device_module
 from tuney.audio import midi as midi_module
 from tuney.audio.device import Device
@@ -531,6 +532,44 @@ def test_control_panel_sections_are_collapsible() -> None:
     button.click()
 
     assert not body.isHidden()
+
+
+def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
+    from PySide6.QtWidgets import QToolButton, QWidget
+
+    qt_app = _qt_app()
+    app = App(gui=True)
+    app.__dict__['global_config'] = GlobalConfig(
+        control_panel_sections={'Sound.sound': False},
+        control_panel_scroll=120,
+        file=tmp_path / 'global.toml',
+    )
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+    page = panel.content.currentWidget()
+    assert page is not None
+    button = next(
+        button
+        for button in page.findChildren(QToolButton)
+        if button.objectName() == 'control_section_disclosure'
+        and button.text() == 'Sound'
+    )
+    body = button.parent().findChild(QWidget, 'control_section_body')
+    assert body is not None
+    panel.verticalScrollBar().setRange(0, 200)
+
+    qt_app.processEvents()
+
+    assert body.isHidden()
+    assert panel.verticalScrollBar().value() == 120
+
+    button.click()
+    panel.verticalScrollBar().setValue(50)
+    panel.save_state()
+
+    saved = GlobalConfig.read(tmp_path / 'global.toml')
+    assert saved.control_panel_sections['Sound.sound']
+    assert saved.control_panel_scroll == 50
 
 
 def test_control_panel_sections_show_section_presets() -> None:

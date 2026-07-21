@@ -955,6 +955,20 @@ def test_global_config_persists_buffer_size() -> None:
         assert GlobalConfig.read(path).buffer_size == 64
 
 
+def test_global_config_persists_control_panel_state() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'global.toml'
+        config = GlobalConfig(file=path)
+        config.control_panel_sections['Tuney.sound'] = False
+        config.control_panel_scroll = 120
+
+        config.save()
+
+        saved = GlobalConfig.read(path)
+        assert saved.control_panel_sections == {'Tuney.sound': False}
+        assert saved.control_panel_scroll == 120
+
+
 def test_global_config_clamps_saved_buffer_size() -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'global.toml'
