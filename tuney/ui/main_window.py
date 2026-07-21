@@ -11,11 +11,10 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
-    QDesktopServices,
     QFocusEvent,
     QIcon,
     QKeyEvent,
@@ -23,7 +22,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
-    QLabel,
     QLineEdit,
     QMainWindow,
     QMessageBox,
@@ -37,18 +35,17 @@ from ..app.app import (
     randomize_timing,
     save,
 )
-from ..app.platform_info import (
-    crash_issue_url,
-    error_issue_url,
-    instrument,
-    log_exception,
-    log_path,
-    problem_issue_url,
-    set_windows_app_user_model_id,
-)
+from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
 from . import Action, StateChange, startup
+from .error_dialogs import (
+    on_report_problem,
+    on_show_log,
+    show_audio_error,
+    show_crash_report,
+    show_restore_error,
+)
 from .file_commands import config_path as _config_path
 from .file_commands import (
     on_copy_from_state,
@@ -320,57 +317,11 @@ class MainWindow(QMainWindow):
         instrument('ui help')
         show_help(self)
 
-    def on_show_log(self, *_: object) -> None:
-        QMessageBox.information(
-            self,
-            'Tuney log',
-            f'Log file:\n\n{log_path()}',
-        )
-
-    def on_report_problem(self, *_: object) -> None:
-        instrument('ui report problem')
-        QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
-
-    def show_restore_error(self, error: BaseException) -> None:
-        path = log_exception(error)
-        dialog = QMessageBox(self)
-        dialog.setIcon(QMessageBox.Icon.Critical)
-        dialog.setWindowTitle('Could not restore saved state')
-        dialog.setTextFormat(Qt.TextFormat.RichText)
-        url = QUrl.fromLocalFile(str(path)).toString()
-        dialog.setText(
-            'Tuney could not fully restore its saved state and will continue with '
-            'the available settings.<br><br>'
-            f'<a href="{url}">Open the log file</a>'
-        )
-        if label := dialog.findChild(QLabel):
-            label.setOpenExternalLinks(True)
-            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        report = dialog.addButton('Report Issue', QMessageBox.ButtonRole.ActionRole)
-        dialog.exec()
-        if dialog.clickedButton() is report:
-            QDesktopServices.openUrl(QUrl(error_issue_url(error, path)))
-
-    def show_crash_report(self) -> None:
-        path = log_path()
-        reply = QMessageBox.question(
-            self,
-            'File issue?',
-            'Tuney appears to have crashed during the previous run.\n\nFile issue?',
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            QDesktopServices.openUrl(QUrl(crash_issue_url(path)))
-
-    def show_audio_error(self, error: str) -> None:
-        dialog = QMessageBox(self)
-        dialog.setIcon(QMessageBox.Icon.Critical)
-        dialog.setWindowTitle('Audio error')
-        dialog.setText(error)
-        report = dialog.addButton('Report Issue', QMessageBox.ButtonRole.ActionRole)
-        dialog.addButton(QMessageBox.StandardButton.Ok)
-        dialog.exec()
-        if dialog.clickedButton() is report:
-            QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
+    on_show_log = on_show_log
+    on_report_problem = on_report_problem
+    show_restore_error = show_restore_error
+    show_crash_report = show_crash_report
+    show_audio_error = show_audio_error
 
     on_open_config_folder = on_open_config_folder
     on_trash_config_file = on_trash_config_file

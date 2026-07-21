@@ -14,6 +14,7 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
+from tuney.ui import error_dialogs as error_dialogs_module
 from tuney.ui import file_commands as file_commands_module
 from tuney.ui import file_dialogs as file_dialogs_module
 from tuney.ui import main_window as main_window_module
@@ -536,7 +537,7 @@ def test_app_activate_and_history() -> None:
             def information(parent: object, title: str, text: str) -> None:
                 messages.append((parent, title, text))
 
-        main_window_module.QMessageBox = FakeMessageBox
+        error_dialogs_module.QMessageBox = FakeMessageBox
         MainWindow.on_show_log(app)
 
         assert messages == [
@@ -616,7 +617,7 @@ def test_app_reports_problem() -> None:
             opened.append(url.toString())
             return True
 
-    main_window_module.QDesktopServices = FakeDesktopServices
+    error_dialogs_module.QDesktopServices = FakeDesktopServices
     app = HistoryApp()
 
     MainWindow.on_report_problem(app)
