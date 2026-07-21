@@ -13,6 +13,12 @@ from tuney.audio.sound import Sound
 from tuney.ui.layout import Layout
 
 
+@pytest.fixture(autouse=True)
+def clear_midi_name_caches() -> None:
+    midi_module.input_names.cache_clear()
+    midi_module.output_names.cache_clear()
+
+
 def test_sample_data_reports_channels_and_cuts_from_center():
     data = np.arange(8).reshape((4, 2))
     sample_data = SampleData(data=data, sample_rate=2)
@@ -79,13 +85,23 @@ def test_output_device_resolves_duplicate_name_to_index(monkeypatch) -> None:
 def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
     devices = [[{'name': 'first', 'max_output_channels': 2}]]
     monkeypatch.setattr(device_module.sounddevice, 'query_devices', lambda: devices[-1])
+    midi_outputs = [['first output']]
+
+    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+        return completed_process(f'{midi_outputs[-1]!r}'.replace("'", '"'))
+
+    monkeypatch.setattr(
+        midi_module.subprocess,
+        'run',
+        run,
+    )
     device_module.device_names.cache_clear()
 
     class OptionControl:
         names: list[str] = []
 
         def refresh(self) -> None:
-            self.names = device_module.device_names()
+            self.names = device_module.device_names() + midi_module.output_names()
 
     option = OptionControl()
     layout = type(
@@ -94,11 +110,13 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         {'control_panel': type('Panel', (), {'option_controls': [option]})()},
     )()
     assert device_module.device_names() == ['first']
+    assert midi_module.output_names() == ['first output']
     devices.append([{'name': 'second', 'max_output_channels': 2}])
+    midi_outputs.append(['second output'])
 
     Layout.refresh_devices(layout)
 
-    assert option.names == ['second']
+    assert option.names == ['second', 'second output']
 
 
 def test_midi_output_names_uses_subprocess(monkeypatch):

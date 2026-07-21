@@ -5,6 +5,7 @@ import inspect
 import json
 import math
 from collections.abc import Callable
+from functools import cache
 from typing import TYPE_CHECKING, Any, TypeAlias
 from weakref import WeakKeyDictionary
 
@@ -533,6 +534,7 @@ def _rewrap_hover_text(text: str) -> str:
     return '\n\n'.join(' '.join(paragraph.split()) for paragraph in text.split('\n\n'))
 
 
+@cache
 def _field_help(model: type[BaseModel], name: str) -> str | None:
     result = field_list_from_type_or_callable(
         model,
@@ -964,6 +966,7 @@ def _enum_hover_text(member: enum.Enum) -> str:
     return _enum_member_comments(type(member)).get(member.name, member.name)
 
 
+@cache
 def _enum_member_comments(enum_cls: type[enum.Enum]) -> dict[str, str]:
     try:
         lines, _ = inspect.getsourcelines(enum_cls)

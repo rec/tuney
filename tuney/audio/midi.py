@@ -2,7 +2,7 @@ import json
 import subprocess
 import sys
 from collections.abc import Callable
-from functools import cached_property
+from functools import cache, cached_property
 from typing import Annotated, Any, Literal
 
 import mido
@@ -22,10 +22,12 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
 MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
 
 
+@cache
 def input_names() -> list[str]:
     return _port_names(INTERNAL_LIST_MIDI_INPUTS, MIDO_INPUT_NAMES_SCRIPT, 'inputs')
 
 
+@cache
 def output_names() -> list[str]:
     return _port_names(INTERNAL_LIST_MIDI_OUTPUTS, MIDO_OUTPUT_NAMES_SCRIPT, 'outputs')
 

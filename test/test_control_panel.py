@@ -1,3 +1,4 @@
+import subprocess
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from typing import get_origin
@@ -7,6 +8,8 @@ import tomlkit
 from pydantic import BaseModel
 
 from tuney.app.app import App
+from tuney.audio import device as device_module
+from tuney.audio import midi as midi_module
 from tuney.audio.device import Device
 from tuney.audio.midi import MIDIIn, MidiOut
 from tuney.audio.oscillator import Oscillator
@@ -28,6 +31,19 @@ from tuney.ui import (
     control_panel_spin,
     control_panel_visibility,
 )
+
+
+@pytest.fixture(autouse=True)
+def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
+    midi_module.input_names.cache_clear()
+    midi_module.output_names.cache_clear()
+    device_module.device_names.cache_clear()
+    monkeypatch.setattr(
+        midi_module.subprocess,
+        'run',
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[]', ''),
+    )
+    monkeypatch.setattr(device_module.sounddevice, 'query_devices', lambda: [])
 
 
 def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
@@ -434,7 +450,7 @@ def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
     )
 
     parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
+    panel = control_panel.ControlPanel(parent, Mapper())
     startup_calls = len(calls)
 
     assert startup_calls > 0
@@ -470,7 +486,7 @@ def test_control_panel_can_defer_page_builds(monkeypatch) -> None:
     )
 
     parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney(), build=False, eager_modes=False)
+    panel = control_panel.ControlPanel(parent, Mapper(), build=False, eager_modes=False)
 
     assert calls == []
     assert panel.pages == {}
