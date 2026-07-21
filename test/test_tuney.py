@@ -960,6 +960,7 @@ def test_global_config_clamps_saved_buffer_size() -> None:
         path.write_text('buffer_size = 46624\n')
 
         assert GlobalConfig.read(path).buffer_size == 4096
+        assert tomllib.loads(path.read_text())['buffer_size'] == 4096
 
 
 def test_global_config_stops_increasing_buffer_size_at_limit() -> None:

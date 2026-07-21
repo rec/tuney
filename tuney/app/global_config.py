@@ -30,7 +30,14 @@ class GlobalConfig(BaseModel):
         if not file.exists():
             return cls(file=file)
         try:
-            return cls.model_validate(tomllib.loads(file.read_text()) | {'file': file})
+            data = tomllib.loads(file.read_text())
+            config = cls.model_validate(data | {'file': file})
+            if data.get('buffer_size') != config.buffer_size:
+                try:
+                    config.save()
+                except OSError as error:
+                    report_error(f'Could not save global config {file}: {error}')
+            return config
         except (OSError, ValueError) as error:
             report_error(f'Could not read global config {file}: {error}')
             return cls(file=file)
