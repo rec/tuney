@@ -11,6 +11,20 @@ class Message:
         **kwargs: Any,
     ) -> None: ...
 
+class MetaMessage:
+    is_meta: bool
+    def __init__(self, type: str, **kwargs: Any) -> None: ...
+
+class MidiTrack(list[Message | MetaMessage]): ...
+
+class MidiFile:
+    ticks_per_beat: int
+    tracks: list[MidiTrack]
+    def __init__(
+        self, filename: str | None = ..., *, ticks_per_beat: int = ...
+    ) -> None: ...
+    def save(self, filename: str | None = ...) -> None: ...
+
 def open_output(
     name: str | None = ...,
     virtual: bool = ...,

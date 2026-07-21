@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
                 try:
                     self.app.player.render_file(
                         Path(filename),
-                        note_events(self.app),
+                        note_events(self.app, self.app.player.sample_rate),
                         output_comment(self.app),
                     )
                 except (OSError, RuntimeError, ValueError) as error:

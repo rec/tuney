@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
 from collections.abc import Callable
 from functools import cache, cached_property
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import mido
@@ -11,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..app.platform_info import report_error
 from ..config.display import Beginner, Display, Numeric, Options
 from ..config.tyro_option import tyro_option
+from .mixer import NotePress
 
 ZERO_IS_NOTE_OFF = True
 INTERNAL_LIST_MIDI_INPUTS = '--internal-list-midi-inputs'
@@ -20,6 +24,39 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
 MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
+MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
+MIDI_FILE_TEMPO = 1_000_000
+MIDI_FILE_TICKS_PER_BEAT = 1000
+
+
+def is_midi_file(path: Path) -> bool:
+    return path.suffix.lower() in MIDI_FILE_SUFFIXES
+
+
+def write_midi_file(
+    path: Path, events: list[tuple[int, NotePress]], midi: MidiOut
+) -> None:
+    file = mido.MidiFile(ticks_per_beat=MIDI_FILE_TICKS_PER_BEAT)
+    track = mido.MidiTrack()
+    file.tracks.append(track)
+    track.append(mido.MetaMessage('set_tempo', tempo=MIDI_FILE_TEMPO, time=0))
+    previous = 0
+    for frame, note in events:
+        tick = max(0, round(frame))
+        track.append(_midi_file_message(midi, note, tick - previous))
+        previous = tick
+    file.save(str(path))
+
+
+def _midi_file_message(midi: MidiOut, note: NotePress, time: int) -> mido.Message:
+    kwargs = {} if midi.mido_channel is None else {'channel': midi.mido_channel}
+    return mido.Message(
+        **kwargs,
+        note=midi.midi_note(note.note_number),
+        time=time,
+        type='note_on' if note.is_press or ZERO_IS_NOTE_OFF else 'note_off',
+        velocity=max(0, min(127, note.is_press * midi.velocity)),
+    )
 
 
 @cache
@@ -177,7 +214,7 @@ class MIDI(BaseModel):
 
     def input_listener(
         self, callback: Callable[[int, bool], None]
-    ) -> 'MIDIInputListener':
+    ) -> MIDIInputListener:
         return MIDIInputListener(self, callback)
 
 
@@ -201,15 +238,13 @@ class MIDIInputListener:
             self.port.close()
             self.port = None
 
-    def on_message(self, message: Any) -> None:
-        if not self.midi.input.accepts(message):
+    def on_message(self, m: Any) -> None:
+        if not self.midi.input.accepts(m):
             return
-        if message.type == 'note_on':
-            self.callback(
-                self.midi.output.tuney_note(message.note), message.velocity > 0
-            )
-        elif message.type == 'note_off':
-            self.callback(self.midi.output.tuney_note(message.note), False)
+        if m.type == 'note_on':
+            self.callback(self.midi.output.tuney_note(m.note), m.velocity > 0)
+        elif m.type == 'note_off':
+            self.callback(self.midi.output.tuney_note(m.note), False)
 
 
 def _output_names() -> list[str]:

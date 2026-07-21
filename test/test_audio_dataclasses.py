@@ -173,7 +173,7 @@ def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
 
     monkeypatch.setattr(midi_module.mido, 'get_output_names', get_output_names)
 
-    assert midi_module._output_names() == []
+    assert midi_module.output_names_json() == '[]'
     assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
 
 
@@ -183,7 +183,7 @@ def test_midi_input_names_handles_frozen_probe_failure(monkeypatch, capsys):
 
     monkeypatch.setattr(midi_module.mido, 'get_input_names', get_input_names)
 
-    assert midi_module._input_names() == []
+    assert midi_module.input_names_json() == '[]'
     assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
 
 

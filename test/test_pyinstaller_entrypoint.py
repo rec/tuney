@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from install import pyinstaller_entrypoint
 from install.pyinstaller_entrypoint import app_args, main
 from tuney.app import platform_info
 from tuney.audio import midi as midi_module
@@ -49,7 +50,9 @@ def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
         'sys.argv',
         ['Tuney', midi_module.INTERNAL_LIST_MIDI_OUTPUTS],
     )
-    monkeypatch.setattr(midi_module, '_output_names', lambda: ['synth'])
+    monkeypatch.setattr(
+        pyinstaller_entrypoint, 'output_names_json', lambda: '["synth"]'
+    )
 
     main()
 
@@ -61,7 +64,9 @@ def test_internal_midi_input_mode_prints_json(monkeypatch, capsys) -> None:
         'sys.argv',
         ['Tuney', midi_module.INTERNAL_LIST_MIDI_INPUTS],
     )
-    monkeypatch.setattr(midi_module, '_input_names', lambda: ['keyboard'])
+    monkeypatch.setattr(
+        pyinstaller_entrypoint, 'input_names_json', lambda: '["keyboard"]'
+    )
 
     main()
 

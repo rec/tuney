@@ -13,7 +13,12 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from ..audio.midi import MIDIInputListener
+from ..audio.midi import (
+    MIDI_FILE_TICKS_PER_BEAT,
+    MIDIInputListener,
+    is_midi_file,
+    write_midi_file,
+)
 from ..audio.mixer import NotePress
 from ..audio.player import Player
 from ..config.serialize import serialize
@@ -466,16 +471,25 @@ def run_cli(app: App) -> None:
             }
         )
 
+    midi_file_output = app.output is not None and is_midi_file(app.output)
     try:
-        if app.output and app.silent:
-            app.player.render_file(app.output, note_events(app), comment)
+        if app.output and midi_file_output:
+            write_midi_file(
+                app.output,
+                note_events(app, MIDI_FILE_TICKS_PER_BEAT),
+                app.midi.output,
+            )
+        elif app.output and app.silent:
+            app.player.render_file(
+                app.output, note_events(app, app.player.sample_rate), comment
+            )
         else:
             if app.output:
                 app.player.start_recording(app.output, comment)
             play_cli(app)
         completed = True
     finally:
-        if not app.silent:
+        if not (app.silent or midi_file_output):
             app.player.stop_all()
             app.player.wait()
             if app.output:
@@ -485,11 +499,11 @@ def run_cli(app: App) -> None:
             app.output.unlink(missing_ok=True)
 
 
-def note_events(app: App) -> list[tuple[int, NotePress]]:
+def note_events(app: App, sample_rate: int) -> list[tuple[int, NotePress]]:
     events: list[tuple[int, NotePress]] = []
     for press in app.char_presses:
         if (note := app.mapper(press.char)) is not None:
-            frame = round(press.time * app.player.sample_rate / 1000)
+            frame = round(press.time * sample_rate / 1000)
             events.append((frame, NotePress(note, press.is_press)))
     return events
 

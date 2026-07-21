@@ -10,6 +10,7 @@ from pathlib import Path
 from queue import SimpleQueue
 from urllib.parse import parse_qs, urlparse
 
+import mido
 import pytest
 
 import tuney.app.app as app_module
@@ -1627,6 +1628,35 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch) -> None:
         (4800, False),
     ]
     assert callable(comment)
+
+
+def test_text_file_output_writes_midi_file_without_audio(monkeypatch, tmp_path) -> None:
+    def audio_call(*_: object) -> None:
+        raise AssertionError('MIDI file output should not use audio')
+
+    monkeypatch.setattr(Player, 'render_file', audio_call)
+    monkeypatch.setattr(Player, 'stop_all', audio_call)
+    text = tmp_path / 'input.txt'
+    text.write_text('a')
+    path = tmp_path / 'out.smf'
+    app = App(
+        output=path,
+        text_file=text,
+        text_timings=TextTimings(seed=1, overlap=0, timings=[100]),
+    )
+
+    run(app)
+
+    file = mido.MidiFile(path)
+    messages = [
+        message for track in file.tracks for message in track if not message.is_meta
+    ]
+
+    assert file.ticks_per_beat == 1000
+    assert [(i.type, i.time, i.note, i.velocity) for i in messages] == [
+        ('note_on', 0, app.midi.output.midi_note(app.mapper('a')), 64),
+        ('note_on', 100, app.midi.output.midi_note(app.mapper('a')), 0),
+    ]
 
 
 def test_live_cli_output_records_during_playback(monkeypatch) -> None:
