@@ -6,7 +6,7 @@ import json
 import math
 from collections.abc import Callable
 from functools import cache
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -415,7 +415,9 @@ def _apply_section_preset(
     _rebuild_note_grid_if_mapping_changed(parent, data)
 
 
-def _general_controls(data: Any, advanced: bool = True) -> list[tuple[BaseModel, str]]:
+def _general_controls(
+    data: BaseModel, advanced: bool = True
+) -> list[tuple[BaseModel, str]]:
     return [
         (model, name)
         for model in _model_tree(data)
@@ -507,9 +509,9 @@ def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> N
             )
 
 
-def _field_widgets(parent: Any) -> list[Any]:
-    if hasattr(parent, 'winfo_children'):
-        children = parent.winfo_children()
+def _field_widgets(parent: object) -> list[object]:
+    if callable(winfo_children := getattr(parent, 'winfo_children', None)):
+        children = winfo_children()
     elif isinstance(parent, QWidget):
         children = [
             child
@@ -700,14 +702,13 @@ def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
         player.close()
 
 
-def _control_panel(parent: Any) -> ControlPanel:
-    control_panel: Any = parent
+def _control_panel(parent: object) -> ControlPanel:
+    control_panel: object = parent
     while not isinstance(control_panel, ControlPanel):
-        next_parent = (
-            control_panel.parent()
-            if hasattr(control_panel, 'parent')
-            else getattr(control_panel, 'master', None)
-        )
+        if callable(qt_parent := getattr(control_panel, 'parent', None)):
+            next_parent = qt_parent()
+        else:
+            next_parent = getattr(control_panel, 'master', None)
         if next_parent is None:
             raise RuntimeError('control panel not found')
         control_panel = next_parent
@@ -722,12 +723,12 @@ def _rebuild_parent_control_panel(parent: QWidget) -> None:
     rebuild_control_panel(_control_panel(parent))
 
 
-def _rebuild_note_grid_if_mapping_changed(parent: Any, data: BaseModel) -> None:
+def _rebuild_note_grid_if_mapping_changed(parent: object, data: BaseModel) -> None:
     if isinstance(data, Scale | Mapper):
         _after(parent, 0, _rebuild_note_grid, parent)
 
 
-def _rebuild_note_grid(parent: Any) -> None:
+def _rebuild_note_grid(parent: QWidget) -> None:
     state = _control_panel(parent).app
     assert state is not None
     state.main_window.ui.rebuild_note_grid()
@@ -909,7 +910,7 @@ def _add_spin_control(
     _parent_layout(parent).addWidget(frame)
 
 
-def _can_use_spin_control(annotation: Any, value: object) -> bool:
+def _can_use_spin_control(annotation: object, value: object) -> bool:
     if value is None or isinstance(value, bool):
         return False
     return (
@@ -919,7 +920,7 @@ def _can_use_spin_control(annotation: Any, value: object) -> bool:
     )
 
 
-def _is_int_annotation(annotation: Any) -> bool:
+def _is_int_annotation(annotation: object) -> bool:
     types = _annotation_types(annotation)
     return int in types and float not in types and bool not in types
 
@@ -1011,7 +1012,7 @@ def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
 
 
 def _set_model_value(
-    data: BaseModel, name: str, value: object, parent: Any | None = None
+    data: BaseModel, name: str, value: object, parent: QWidget | None = None
 ) -> None:
     instrument('control value set start', model=type(data).__name__, field=name)
     values = data.model_dump()
@@ -1033,7 +1034,7 @@ def _set_model_value(
     instrument('control value set end', model=type(data).__name__, field=name)
 
 
-def _checkpoint_undo(parent: Any) -> None:
+def _checkpoint_undo(parent: QWidget) -> None:
     control_panel = _control_panel(parent)
     if type(control_panel.data).__name__ == 'Tuney':
         assert control_panel.app is not None
@@ -1048,7 +1049,7 @@ def _clear_cached_values(data: BaseModel) -> None:
 
 
 def _set_mapping_entry_state(
-    parent: Any, data: BaseModel, name: str, entry: QLineEdit, text_color: str
+    parent: QWidget, data: BaseModel, name: str, entry: QLineEdit, text_color: str
 ) -> bool:
     if isinstance(data, Mapper):
         _rebuild_note_grid_if_mapping_changed(parent, data)
@@ -1096,7 +1097,7 @@ def _clear_invalid_scale_widgets() -> None:
 
 
 def _parse_entry_value(
-    raw: str, annotation: Any, old_value: object, name: str = ''
+    raw: str, annotation: object, old_value: object, name: str = ''
 ) -> object:
     if raw == '':
         return None
@@ -1122,7 +1123,7 @@ def _tuning_expression_text(value: object) -> str:
     return '; '.join(str(i) for i in value)
 
 
-def _entry_text(data: BaseModel, name: str, value: object, annotation: Any) -> str:
+def _entry_text(data: BaseModel, name: str, value: object, annotation: object) -> str:
     if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
         return ''.join(str(i) for i in value)
     if isinstance(data, Tuning) and name in {'table', 'ratios'}:
@@ -1190,9 +1191,9 @@ def _parent_layout(parent: QWidget) -> QBoxLayout:
 
 
 def _after(
-    parent: Any, delay: int, callback: Callable[..., object], *args: object
+    parent: object, delay: int, callback: Callable[..., object], *args: object
 ) -> None:
-    if hasattr(parent, 'after'):
-        parent.after(delay, callback, *args)
+    if callable(after := getattr(parent, 'after', None)):
+        after(delay, callback, *args)
     else:
         QTimer.singleShot(delay, lambda: callback(*args))

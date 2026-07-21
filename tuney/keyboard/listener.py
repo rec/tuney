@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from functools import cached_property, wraps
-from typing import Any, Literal
+from typing import Literal, Protocol
 
 from ..app.runnable import Runnable
 from ..time.char_press import CharPress
@@ -13,10 +13,18 @@ WHITESPACE = {'space': ' ', 'enter': '\n', 'backspace': '\b'}
 IGNORED_KEYS = {'caps_lock'}
 
 
+class PynputListener(Protocol):
+    def __enter__(self) -> object: ...
+
+    def join(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+
 class KeyboardListener(Runnable):
     def __init__(
         self,
-        callback: Callable[[CharPress], Any],
+        callback: Callable[[CharPress], object],
         deduplicate_keys: bool = True,
     ) -> None:
         self.callback = callback
@@ -25,7 +33,7 @@ class KeyboardListener(Runnable):
         self.held_keys = set()
 
     @cached_property
-    def listener(self) -> Any:
+    def listener(self) -> PynputListener:
         return _make_listener(self)
 
     def on_press(self, key: object | None) -> None | Literal[False]:
@@ -62,7 +70,7 @@ class KeyboardListener(Runnable):
             self.listener.stop()
 
 
-def _make_listener(kl: KeyboardListener) -> Any:
+def _make_listener(kl: KeyboardListener) -> PynputListener:
     from pynput import keyboard
 
     listener = keyboard.Listener(
@@ -81,7 +89,7 @@ def _make_listener(kl: KeyboardListener) -> Any:
     warning = log.warning
 
     @wraps(warning)
-    def warning_(a: str, *args: Any, **kwargs: Any) -> None:
+    def warning_(a: str, *args: object, **kwargs: object) -> None:
         if not a.strip() or a.replace(BOGUS_WARNING, '').strip() or args or kwargs:
             warning(a, *args, **kwargs)
 

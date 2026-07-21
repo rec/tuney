@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
 from ..config.display import Display, Numeric
@@ -46,7 +44,7 @@ def _configure_flexible_editor(widget: QWidget, width: int | None = None) -> Non
 
 def _entry_width(
     name: str,
-    annotation: Any,
+    annotation: object,
     display: Display | None = None,
     numeric: Numeric | None = None,
 ) -> int | None:

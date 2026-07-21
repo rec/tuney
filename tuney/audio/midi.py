@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable
 from functools import cache, cached_property
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal, Protocol
 
 import mido
 from pydantic import BaseModel, Field, field_validator
@@ -27,6 +27,14 @@ MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
 MIDI_FILE_TICKS_PER_BEAT = 1000
+
+
+class MIDIInputPort(Protocol):
+    def close(self) -> None: ...
+
+
+class MIDIOutputPort(MIDIInputPort, Protocol):
+    def send(self, message: mido.Message) -> None: ...
 
 
 def is_midi_file(path: Path) -> bool:
@@ -128,7 +136,7 @@ class MIDIIn(BaseModel):
     def mido_channel(self) -> int | None:
         return None if self.channel == 'omni' else self.channel - 1
 
-    def accepts(self, message: Any) -> bool:
+    def accepts(self, message: mido.Message) -> bool:
         return (channel := self.mido_channel) is None or getattr(
             message, 'channel', None
         ) == channel
@@ -174,7 +182,7 @@ class MidiOut(BaseModel):
     ] = 0
 
     @cached_property
-    def outport(self) -> Any:
+    def outport(self) -> MIDIOutputPort:
         return mido.open_output(self.output)
 
     def midi_note(self, note_number: int) -> int:
@@ -222,7 +230,7 @@ class MIDIInputListener:
     def __init__(self, midi: MIDI, callback: Callable[[int, bool], None]) -> None:
         self.midi = midi
         self.callback = callback
-        self.port: Any | None = None
+        self.port: MIDIInputPort | None = None
 
     def start(self) -> None:
         if self.midi.input.enable and self.port is None:
@@ -238,7 +246,7 @@ class MIDIInputListener:
             self.port.close()
             self.port = None
 
-    def on_message(self, m: Any) -> None:
+    def on_message(self, m: mido.Message) -> None:
         if not self.midi.input.accepts(m):
             return
         if m.type == 'note_on':

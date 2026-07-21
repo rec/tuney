@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
 from threading import Event
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
@@ -152,7 +152,7 @@ class AudioEngine(BaseModel):
                 instrument('audio stream stopped after wait')
 
     def callback(
-        self, out: np.ndarray, frame_size: int, time: Any, status: Any
+        self, out: np.ndarray, frame_size: int, time: object, status: object
     ) -> None:
         if status:
             status_text = str(status)
@@ -234,16 +234,14 @@ def _display_value(value: object) -> object:
     return str(value) if value is not None else None
 
 
-def _sounddevice_defaults(sd: Any) -> object:
+def _sounddevice_defaults(sd: object) -> object:
     return getattr(sd, 'default', None)
 
 
-def _sounddevice_device_info(sd: Any, device: object) -> object:
+def _sounddevice_device_info(sd: object, device: object) -> object:
     if device is None:
         return None
-    try:
-        query_devices = sd.query_devices
-    except AttributeError:
+    if not callable(query_devices := getattr(sd, 'query_devices', None)):
         return None
     try:
         return query_devices(device)

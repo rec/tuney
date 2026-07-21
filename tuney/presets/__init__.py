@@ -21,7 +21,7 @@ SKIPPED_PRESET_FIELDS = [
 ]
 
 
-def is_str_dict(x: Any) -> TypeIs[dict[str, Any]]:
+def is_str_dict(x: object) -> TypeIs[dict[str, Any]]:
     return isinstance(x, dict) and all(isinstance(k, str) for k in x.keys())
 
 

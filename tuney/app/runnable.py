@@ -2,12 +2,11 @@ import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from threading import Thread
-from typing import Any
 
 from .platform_info import is_frozen, log_exception
 
 
-def start_thread(target: Callable[[], Any], daemon: bool = True) -> Thread:
+def start_thread(target: Callable[[], object], daemon: bool = True) -> Thread:
     """Start a thread and return it"""
 
     def catch_target() -> None:

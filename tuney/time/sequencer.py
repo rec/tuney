@@ -4,7 +4,7 @@ import time
 from collections.abc import Callable
 from itertools import pairwise
 from threading import Event
-from typing import Annotated, Any, override
+from typing import Annotated, override
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
@@ -25,7 +25,7 @@ class Sequencer(BaseModel, Runnable, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     char_presses: Annotated[list[CharPress], AfterValidator(is_sorted)]
-    callback: Callable[[CharPress | None], Any]
+    callback: Callable[[CharPress | None], object]
     stop_event: Event = Field(default_factory=Event, exclude=True)
 
     @override

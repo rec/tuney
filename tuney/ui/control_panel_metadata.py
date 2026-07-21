@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, get_args, get_origin
+from typing import get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -36,12 +36,12 @@ def _has_metadata(cls: type[BaseModel], name: str, metadata_type: type[object]) 
     )
 
 
-def _annotation_types(annotation: Any) -> tuple[Any, ...]:
+def _annotation_types(annotation: object) -> tuple[object, ...]:
     value = getattr(annotation, '__value__', annotation)
     return (value, *_flatten_type_args(value))
 
 
-def _expects_json(annotation: Any) -> bool:
+def _expects_json(annotation: object) -> bool:
     args = _flatten_type_args(annotation)
     if str in args:
         return False
@@ -49,7 +49,7 @@ def _expects_json(annotation: Any) -> bool:
     return bool(origins & {list, dict})
 
 
-def _enum_class(annotation: Any, value: object) -> type[enum.Enum] | None:
+def _enum_class(annotation: object, value: object) -> type[enum.Enum] | None:
     if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
         return annotation
     if isinstance(value, enum.Enum):
@@ -61,7 +61,7 @@ def _enum_class(annotation: Any, value: object) -> type[enum.Enum] | None:
     return None
 
 
-def _flatten_type_args(annotation: Any) -> tuple[Any, ...]:
+def _flatten_type_args(annotation: object) -> tuple[object, ...]:
     if get_origin(annotation) is None:
         return ()
 

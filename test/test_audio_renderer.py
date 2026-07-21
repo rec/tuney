@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from io import BytesIO
 from threading import Event, Thread
-from typing import Any
 
 import numpy as np
 import pytest
@@ -217,7 +216,7 @@ def test_configure_sets_synchronized_oscillators() -> None:
 class _EngineStream(Stream):
     instances: list['_EngineStream'] = []
 
-    def __init__(self, callback: Callable[..., None], **_: Any) -> None:
+    def __init__(self, callback: Callable[..., None], **_: object) -> None:
         self.callback = callback
         self.active = False
         self.closed = False
@@ -246,12 +245,12 @@ class _FailingEngineStream(_EngineStream):
 
 
 class _FailingOpenStream:
-    def __init__(self, **_: Any) -> None:
+    def __init__(self, **_: object) -> None:
         raise PortAudioError('cannot open device')
 
 
 class _FailingMixer(Mixer):
-    def render(self, *_: Any, **__: Any) -> np.ndarray:
+    def render(self, *_: object, **__: object) -> np.ndarray:
         raise ValueError('cannot render block')
 
 

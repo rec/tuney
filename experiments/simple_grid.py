@@ -1,5 +1,3 @@
-from typing import Any
-
 from textual.app import App, ComposeResult
 from textual.widgets import Static
 
@@ -14,7 +12,7 @@ class Grid(App):
     theme = 'textual-light'
     CSS = CSS
 
-    def __init__(self, *a: Any, **ka: Any) -> None:
+    def __init__(self, *a: object, **ka: object) -> None:
         super().__init__(*a, **ka)
         # self.resize_grid()  # Cannot be called here
 

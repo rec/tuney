@@ -1,6 +1,11 @@
 from typing import Any
 
 class Message:
+    type: str
+    channel: int
+    note: int
+    velocity: int
+
     def __init__(
         self,
         type: str,

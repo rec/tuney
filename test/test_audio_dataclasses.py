@@ -1,5 +1,5 @@
 import subprocess
-from typing import Any
+from collections.abc import Callable
 
 import numpy as np
 import pytest
@@ -87,7 +87,7 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
     monkeypatch.setattr(device_module.sounddevice, 'query_devices', lambda: devices[-1])
     midi_outputs = [['first output']]
 
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process(f'{midi_outputs[-1]!r}'.replace("'", '"'))
 
     monkeypatch.setattr(
@@ -120,7 +120,7 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
 
 
 def test_midi_output_names_uses_subprocess(monkeypatch):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["synth", "keyboard"]')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -129,7 +129,7 @@ def test_midi_output_names_uses_subprocess(monkeypatch):
 
 
 def test_midi_input_names_uses_subprocess(monkeypatch):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["keyboard", "controller"]')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -140,7 +140,7 @@ def test_midi_input_names_uses_subprocess(monkeypatch):
 def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
     calls: list[list[str]] = []
 
-    def run(args: list[str], **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(args: list[str], **__: object) -> subprocess.CompletedProcess[str]:
         calls.append(args)
         return completed_process('["synth"]', args=args)
 
@@ -155,7 +155,7 @@ def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
 def test_midi_input_names_uses_internal_subprocess_when_frozen(monkeypatch):
     calls: list[list[str]] = []
 
-    def run(args: list[str], **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(args: list[str], **__: object) -> subprocess.CompletedProcess[str]:
         calls.append(args)
         return completed_process('["keyboard"]', args=args)
 
@@ -188,7 +188,7 @@ def test_midi_input_names_handles_frozen_probe_failure(monkeypatch, capsys):
 
 
 def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -198,7 +198,7 @@ def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, caps
 
 
 def test_midi_input_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -208,7 +208,7 @@ def test_midi_input_names_returns_empty_list_on_probe_failure(monkeypatch, capsy
 
 
 def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -221,7 +221,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
 
 
 def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
-    def run(*_: Any, **__: Any) -> subprocess.CompletedProcess[str]:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
     monkeypatch.setattr(midi_module.subprocess, 'run', run)
@@ -333,7 +333,9 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         def close(self) -> None:
             pass
 
-    def open_input(port: str | None, *, callback: Any) -> Port:
+    def open_input(
+        port: str | None, *, callback: Callable[[midi_module.mido.Message], None]
+    ) -> Port:
         opened.append((port, callback))
         return Port()
 

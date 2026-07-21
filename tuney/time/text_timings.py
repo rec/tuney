@@ -4,7 +4,7 @@ import random
 from collections.abc import Callable, Iterable, Iterator
 from functools import cached_property, partial
 from random import Random
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 
@@ -132,7 +132,7 @@ class TextTimings(BaseModel):
         return iter(sorted(presses, key=lambda press: press.time))
 
     @staticmethod
-    def sequencer(s: str, callback: Callable[[CharPress | None], Any]) -> Sequencer:
+    def sequencer(s: str, callback: Callable[[CharPress | None], object]) -> Sequencer:
         timings = TextTimings()
         presses = list(timings.char_presses(s))
         assert s and presses, (s, presses)
