@@ -243,7 +243,13 @@ def _sounddevice_device_info(sd: object, device: object) -> object:
         return None
     if not callable(query_devices := getattr(sd, 'query_devices', None)):
         return None
+    port_audio_error = getattr(sd, 'PortAudioError', None)
+    errors = (OSError, RuntimeError, TypeError, ValueError)
+    if isinstance(port_audio_error, type) and issubclass(
+        port_audio_error, BaseException
+    ):
+        errors = (*errors, port_audio_error)
     try:
         return query_devices(device)
-    except (OSError, RuntimeError, TypeError, ValueError) as error:
+    except errors as error:
         return f'{type(error).__name__}: {error}'

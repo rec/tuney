@@ -518,6 +518,11 @@ def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
         ],
     )
 
+    def query_device_info(_: object) -> object:
+        raise PortAudioError('no host api')
+
+    monkeypatch.setattr(sounddevice, 'query_devices', query_device_info)
+
     Player(device=Device(device='speaker')).start(0)
 
     assert _EngineStream.instances[0].options['device'] == 0
