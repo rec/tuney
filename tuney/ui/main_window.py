@@ -55,17 +55,12 @@ from ..app.platform_info import (
 )
 from ..app.text_timing import edit_text_timing
 from ..presets import delete_presets, read_file, write_preset
-from ..scale.ratios import Ratios
-from ..scale.table import Table
-from ..scale.tuning import Computed, Tuning, Type
 from ..time.char_press import CharPress
 from . import Action, StateChange, startup
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
 from .main_menu import (
-    EXPORT_TUNING_COMMAND,
-    IMPORT_TUNING_COMMAND,
     OPEN_TEXT_FILE_COMMAND,
     SAVE_AS_AUDIO_COMMAND,
     SAVE_AUDIO_COMMAND,
@@ -74,6 +69,9 @@ from .main_menu import (
 )
 from .preset_dialogs import preset_name as _preset_name
 from .preset_dialogs import selected_preset_names as _selected_preset_names
+from .tuning_files import on_export_tuning, on_import_tuning
+from .tuning_files import set_tuning as _set_tuning
+from .tuning_files import update_export_tuning_action as _update_export_tuning_action
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -352,68 +350,10 @@ class MainWindow(QMainWindow):
             return
         self.ui.rebuild_control_panel()
 
-    def on_import_tuning(self, *_: object) -> None:
-        instrument('ui import tuning')
-        self._is_saving = True
-        try:
-            result = self._get_open_file_name(
-                IMPORT_TUNING_COMMAND,
-                'Import tuning',
-                'Scala (*.scl);;All files (*)',
-            )
-            if filename := result[0]:
-                try:
-                    self.history.checkpoint_undo()
-                    self._set_tuning(Ratios.read_scala_file(Path(filename)))
-                except (OSError, ValueError) as error:
-                    QMessageBox.critical(self, 'Import tuning', str(error))
-        finally:
-            self._is_saving = False
-            self._has_focus = False
-
-    def on_export_tuning(self, *_: object) -> None:
-        instrument('ui export tuning')
-        if (tuning := _export_tuning_source(self.app.tuning)) is None:
-            return
-
-        self._is_saving = True
-        try:
-            result = self._get_save_file_name(
-                EXPORT_TUNING_COMMAND,
-                'Export tuning',
-                'Scala (*.scl);;All files (*)',
-            )
-            if filename := result[0]:
-                try:
-                    ratios = (
-                        tuning if isinstance(tuning, Ratios) else tuning.as_ratios()
-                    )
-                    ratios.write_scala_file(Path(filename))
-                except (OSError, ValueError) as error:
-                    QMessageBox.critical(self, 'Export tuning', str(error))
-        finally:
-            self._is_saving = False
-            self._has_focus = False
-
-    def _set_tuning(self, tuning: Computed | Ratios | Table) -> None:
-        instrument('ui set tuning', tuning=type(tuning).__name__)
-        data = self.app.tuning.model_dump()
-        match tuning:
-            case Computed():
-                data |= {'type': Type.computed, 'computed': tuning}
-            case Ratios():
-                data |= {'type': Type.ratios, 'ratios': tuning}
-            case Table():
-                data |= {'type': Type.table, 'table': tuning}
-        validated = type(self.app.tuning).model_validate(data)
-        for field in type(self.app.tuning).model_fields:
-            setattr(self.app.tuning, field, getattr(validated, field))
-        self.ui.rebuild_control_panel()
-
-    def _update_export_tuning_action(self) -> None:
-        self.export_tuning_action.setEnabled(
-            _export_tuning_source(self.app.tuning) is not None
-        )
+    on_import_tuning = on_import_tuning
+    on_export_tuning = on_export_tuning
+    _set_tuning = _set_tuning
+    _update_export_tuning_action = _update_export_tuning_action
 
     def on_transport_state(self, change: StateChange) -> bool:
         instrument(
@@ -756,16 +696,6 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def _export_tuning_source(tuning: Tuning) -> Computed | Ratios | None:
-    match tuning.type:
-        case Type.computed:
-            return tuning.computed
-        case Type.ratios:
-            return tuning.ratios
-        case Type.table | None:
-            return None
 
 
 def _float_or_none(text: str) -> float | None:
