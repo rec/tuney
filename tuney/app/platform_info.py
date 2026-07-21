@@ -4,6 +4,7 @@ import ctypes
 import os
 import platform
 import sys
+from ctypes import wintypes
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import format_exception
@@ -215,16 +216,22 @@ def _process_is_alive(pid: int) -> bool:
 
 
 def _windows_process_is_alive(pid: int) -> bool:
-    import ctypes
-
     process_query_limited_information = 0x1000
     still_active = 259
-    windll = ctypes.__dict__['windll']
-    kernel32 = windll.kernel32
+    kernel32 = ctypes.__dict__['windll'].kernel32
+    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.GetExitCodeProcess.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
+    kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
     handle = kernel32.OpenProcess(process_query_limited_information, False, pid)
     if not handle:
         return False
-    exit_code = ctypes.c_ulong()
+    exit_code = wintypes.DWORD()
     try:
         if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
             return False

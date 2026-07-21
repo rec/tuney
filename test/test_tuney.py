@@ -14,6 +14,7 @@ import mido
 import pytest
 
 import tuney.app.app as app_module
+import tuney.app.platform_info as platform_info
 from tuney.app.app import (
     App,
     append_char_press,
@@ -202,6 +203,42 @@ def test_app_user_model_id_is_set_on_windows(monkeypatch) -> None:
     set_windows_app_user_model_id()
 
     assert calls == [APP_USER_MODEL_ID]
+
+
+def test_windows_process_check_uses_untruncated_handle(monkeypatch) -> None:
+    handle = 0x123456789
+    calls = []
+
+    class Kernel32:
+        @staticmethod
+        def OpenProcess(access: int, inherit: bool, pid: int) -> int:
+            calls.append(('open', access, inherit, pid))
+            return handle
+
+        @staticmethod
+        def GetExitCodeProcess(process: int, exit_code: object) -> int:
+            calls.append(('exit', process))
+            exit_code._obj.value = 259
+            return 1
+
+        @staticmethod
+        def CloseHandle(process: int) -> int:
+            calls.append(('close', process))
+            return 1
+
+    class Windll:
+        kernel32 = Kernel32()
+
+    monkeypatch.setattr(
+        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
+    )
+
+    assert platform_info._windows_process_is_alive(1234)
+    assert calls == [
+        ('open', 0x1000, False, 1234),
+        ('exit', handle),
+        ('close', handle),
+    ]
 
 
 def test_audio_diagnostics_use_reportable_dialog() -> None:
