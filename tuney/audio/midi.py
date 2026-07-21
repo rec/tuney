@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable
 from functools import cache, cached_property
 from pathlib import Path
-from typing import Annotated, Literal, Protocol
+from typing import Annotated, Literal
 
 import mido
 from pydantic import BaseModel, Field, field_validator
@@ -28,14 +28,6 @@ MIDI_CHANNEL_OPTIONS = ['omni', *CHANNELS]
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
 MIDI_FILE_TICKS_PER_BEAT = 1000
-
-
-class MIDIInputPort(Protocol):
-    def close(self) -> None: ...
-
-
-class MIDIOutputPort(MIDIInputPort, Protocol):
-    def send(self, message: mido.Message) -> None: ...
 
 
 def is_midi_file(path: Path) -> bool:
@@ -171,7 +163,7 @@ class MidiOut(MidiBase):
     ] = 0
 
     @cached_property
-    def outport(self) -> MIDIOutputPort:
+    def outport(self) -> mido.OutputPort:
         return mido.open_output(self.name)
 
     def midi_note(self, note_number: int) -> int:
@@ -208,7 +200,7 @@ class Listener:
     def __init__(self, midi: MIDI, callback: Callable[[int, bool], None]) -> None:
         self.midi = midi
         self.callback = callback
-        self.port: MIDIInputPort | None = None
+        self.port: mido.InputPort | None = None
 
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
