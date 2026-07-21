@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import signal
 import sys
-import time
 from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
@@ -11,13 +10,12 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
     QFocusEvent,
     QIcon,
-    QKeyEvent,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -61,6 +59,8 @@ from .file_commands import (
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
+from .key_events import eventFilter, keyPressEvent, keyReleaseEvent
+from .key_events import on_key_event as _on_key_event
 from .main_menu import build_menu
 from .replay_controls import (
     is_replaying,
@@ -85,16 +85,6 @@ QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 APP_NAME = 'Tuney'
-COMMAND_MODIFIERS = (
-    Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
-)
-OPTION_MODIFIER = Qt.KeyboardModifier.AltModifier
-KEY_TEXT = {
-    Qt.Key.Key_Backspace: '\b',
-    Qt.Key.Key_Enter: '\n',
-    Qt.Key.Key_Return: '\n',
-    Qt.Key.Key_Space: ' ',
-}
 
 
 class _AfterDispatcher(QObject):
@@ -353,51 +343,10 @@ class MainWindow(QMainWindow):
         self._has_focus = self.isActiveWindow()
         super().focusOutEvent(event)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if not self._on_key_event(event, True):
-            super().keyPressEvent(event)
-
-    def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        if not self._on_key_event(event, False):
-            super().keyReleaseEvent(event)
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if isinstance(event, QKeyEvent) and not self.focus_in_control_panel:
-            if event.type() == QEvent.Type.KeyPress:
-                return self._on_key_event(event, True)
-            if event.type() == QEvent.Type.KeyRelease:
-                return self._on_key_event(event, False)
-        return False
-
-    def _on_key_event(self, event: QKeyEvent, is_press: bool) -> bool:
-        if event.isAutoRepeat():
-            event.ignore()
-            return False
-        key = event.key()
-        if is_press:
-            modifiers = event.modifiers()
-            if modifiers & COMMAND_MODIFIERS or (
-                modifiers & OPTION_MODIFIER and sys.platform != 'darwin'
-            ):
-                c = ''
-            elif (
-                not modifiers & OPTION_MODIFIER
-                and (key_value := Qt.Key(key)) in KEY_TEXT
-            ):
-                c = KEY_TEXT[key_value]
-            else:
-                c = text if len(text := event.text()) == 1 else ''
-            if c:
-                self._key_chars[key] = c
-        else:
-            c = self._key_chars.pop(key, '')
-        if c:
-            on_char(self.app, CharPress(c, is_press, time=time.time()))
-            event.accept()
-            return True
-        else:
-            event.ignore()
-            return False
+    keyPressEvent = keyPressEvent
+    keyReleaseEvent = keyReleaseEvent
+    eventFilter = eventFilter
+    _on_key_event = _on_key_event
 
     @cached_property
     def menu(self):

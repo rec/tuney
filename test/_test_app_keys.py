@@ -17,6 +17,7 @@ from tuney.time.char_press import CharPress
 from tuney.ui import error_dialogs as error_dialogs_module
 from tuney.ui import file_commands as file_commands_module
 from tuney.ui import file_dialogs as file_dialogs_module
+from tuney.ui import key_events as key_events_module
 from tuney.ui import main_window as main_window_module
 from tuney.ui import preset_dialogs as preset_dialogs_module
 from tuney.ui import startup
@@ -48,8 +49,8 @@ def test_qt_key_events() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    main_window_module.on_char = lambda _, c: chars.append(c)
-    main_window_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
+    key_events_module.on_char = lambda _, c: chars.append(c)
+    key_events_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
 
     assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
     assert not MainWindow._on_key_event(
@@ -76,10 +77,10 @@ def test_macos_option_composed_characters() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    main_window_module.on_char = lambda _, c: chars.append(c)
-    main_window_module.time.time = iter([100.0, 100.25]).__next__
-    platform = main_window_module.sys.platform
-    main_window_module.sys.platform = 'darwin'
+    key_events_module.on_char = lambda _, c: chars.append(c)
+    key_events_module.time.time = iter([100.0, 100.25]).__next__
+    platform = key_events_module.sys.platform
+    key_events_module.sys.platform = 'darwin'
 
     try:
         assert MainWindow._on_key_event(
@@ -102,7 +103,7 @@ def test_macos_option_composed_characters() -> None:
             False,
         )
     finally:
-        main_window_module.sys.platform = platform
+        key_events_module.sys.platform = platform
 
     assert chars == [
         CharPress('é', time=100.0),
@@ -115,9 +116,9 @@ def test_macos_option_special_keys_remain_ignored() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    main_window_module.on_char = lambda _, c: chars.append(c)
-    platform = main_window_module.sys.platform
-    main_window_module.sys.platform = 'darwin'
+    key_events_module.on_char = lambda _, c: chars.append(c)
+    platform = key_events_module.sys.platform
+    key_events_module.sys.platform = 'darwin'
 
     try:
         assert not MainWindow._on_key_event(
@@ -131,7 +132,7 @@ def test_macos_option_special_keys_remain_ignored() -> None:
             True,
         )
     finally:
-        main_window_module.sys.platform = platform
+        key_events_module.sys.platform = platform
 
     assert chars == []
 
@@ -141,9 +142,9 @@ def test_non_macos_alt_characters_remain_ignored() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    main_window_module.on_char = lambda _, c: chars.append(c)
-    platform = main_window_module.sys.platform
-    main_window_module.sys.platform = 'linux'
+    key_events_module.on_char = lambda _, c: chars.append(c)
+    platform = key_events_module.sys.platform
+    key_events_module.sys.platform = 'linux'
 
     try:
         assert not MainWindow._on_key_event(
@@ -157,7 +158,7 @@ def test_non_macos_alt_characters_remain_ignored() -> None:
             True,
         )
     finally:
-        main_window_module.sys.platform = platform
+        key_events_module.sys.platform = platform
 
     assert chars == []
 
@@ -176,11 +177,11 @@ def test_app_event_filter() -> None:
     app._key_chars = {}
     app.focus_in_control_panel = False
     app.app = object()
-    main_window_module.on_char = lambda _, c: chars.append(c)
+    key_events_module.on_char = lambda _, c: chars.append(c)
     app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
         app, event, is_press
     )
-    main_window_module.time.time = lambda: 100.0
+    key_events_module.time.time = lambda: 100.0
 
     assert MainWindow.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
     assert chars == [CharPress('a', time=100.0)]
