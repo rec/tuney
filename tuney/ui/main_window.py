@@ -22,19 +22,12 @@ from PySide6.QtGui import (
     QKeyEvent,
 )
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QInputDialog,
     QLabel,
     QLineEdit,
-    QListWidget,
     QMainWindow,
     QMessageBox,
-    QVBoxLayout,
-    QWidget,
 )
 
 from ..app.app import (
@@ -61,7 +54,7 @@ from ..app.platform_info import (
     set_windows_app_user_model_id,
 )
 from ..app.text_timing import edit_text_timing
-from ..presets import delete_presets, read_file, user_preset_names, write_preset
+from ..presets import delete_presets, read_file, write_preset
 from ..scale.ratios import Ratios
 from ..scale.table import Table
 from ..scale.tuning import Computed, Tuning, Type
@@ -79,6 +72,8 @@ from .main_menu import (
     SAVE_COMMAND,
     build_menu,
 )
+from .preset_dialogs import preset_name as _preset_name
+from .preset_dialogs import selected_preset_names as _selected_preset_names
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -761,41 +756,6 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def _preset_name(parent: QWidget) -> str | None:
-    name, accepted = QInputDialog.getText(parent, 'Save preset', 'Preset name:')
-    name = name.strip()
-    return name if accepted and name else None
-
-
-def _selected_preset_names(parent: QWidget) -> list[str]:
-    names = user_preset_names()
-    if not names:
-        QMessageBox.information(parent, 'Delete presets', 'There are no user presets.')
-        return []
-
-    dialog = QDialog(parent)
-    dialog.setWindowTitle('Delete presets')
-    layout = QVBoxLayout(dialog)
-    layout.addWidget(QLabel('Select presets to delete:', dialog))
-
-    presets = QListWidget(dialog)
-    presets.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-    presets.addItems(names)
-    layout.addWidget(presets)
-
-    buttons = QDialogButtonBox(
-        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
-        dialog,
-    )
-    buttons.accepted.connect(dialog.accept)
-    buttons.rejected.connect(dialog.reject)
-    layout.addWidget(buttons)
-
-    if dialog.exec() != QDialog.DialogCode.Accepted:
-        return []
-    return [i.text() for i in presets.selectedItems()]
 
 
 def _export_tuning_source(tuning: Tuning) -> Computed | Ratios | None:

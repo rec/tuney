@@ -16,6 +16,7 @@ from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import file_dialogs as file_dialogs_module
 from tuney.ui import main_window as main_window_module
+from tuney.ui import preset_dialogs as preset_dialogs_module
 from tuney.ui import startup
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
@@ -777,7 +778,7 @@ def test_app_saves_audio_from_current_text() -> None:
 def test_app_saves_and_deletes_presets() -> None:
     app = HistoryApp()
     old_user_presets = presets_module.USER_PRESETS
-    old_input_dialog = main_window_module.QInputDialog
+    old_input_dialog = preset_dialogs_module.QInputDialog
     old_selected_preset_names = main_window_module._selected_preset_names
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -788,7 +789,7 @@ def test_app_saves_and_deletes_presets() -> None:
                 def getText(*_: object) -> tuple[str, bool]:
                     return 'mine', True
 
-            main_window_module.QInputDialog = FakeInputDialog
+            preset_dialogs_module.QInputDialog = FakeInputDialog
             app.app.max_gap = 2.0
 
             MainWindow.on_save_preset(app)
@@ -812,7 +813,7 @@ def test_app_saves_and_deletes_presets() -> None:
             assert not path.exists()
     finally:
         presets_module.USER_PRESETS = old_user_presets
-        main_window_module.QInputDialog = old_input_dialog
+        preset_dialogs_module.QInputDialog = old_input_dialog
         main_window_module._selected_preset_names = old_selected_preset_names
 
 
