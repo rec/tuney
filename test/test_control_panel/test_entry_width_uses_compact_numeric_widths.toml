@@ -31,4 +31,4 @@ sample_rate = 68
 dtype = 88
 space = 58
 root = 18
-output = 128
+midi_name = 128

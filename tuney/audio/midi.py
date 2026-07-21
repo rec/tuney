@@ -108,6 +108,13 @@ class MidiBase(BaseModel):
     # Enable MIDI
     enable: Annotated[bool, Beginner, Display(row=0)] = False
 
+    # MIDI port name
+    name: Annotated[
+        str | None,
+        Beginner,
+        Display(column=1, row=0, width=12),
+    ] = None
+
     # MIDI channel, or omni to use all channels
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
@@ -133,15 +140,6 @@ class MidiBase(BaseModel):
 
 
 class MIDIIn(MidiBase):
-    # MIDI input port name
-    input: Annotated[
-        str | None,
-        tyro_option(name='midi-input'),
-        Beginner,
-        Display(column=1, row=0, width=12),
-        Options(input_names),
-    ] = None
-
     def accepts(self, message: mido.Message) -> bool:
         return (channel := self.mido_channel) is None or getattr(
             message, 'channel', None
@@ -149,15 +147,6 @@ class MIDIIn(MidiBase):
 
 
 class MidiOut(MidiBase):
-    # MIDI output port name
-    output: Annotated[
-        str | None,
-        tyro_option(name='midi-output'),
-        Beginner,
-        Display(column=1, row=0, width=12),
-        Options(output_names),
-    ] = None
-
     # MIDI output channel, or omni to use the default channel
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
@@ -183,7 +172,7 @@ class MidiOut(MidiBase):
 
     @cached_property
     def outport(self) -> MIDIOutputPort:
-        return mido.open_output(self.output)
+        return mido.open_output(self.name)
 
     def midi_note(self, note_number: int) -> int:
         return (note_number + self.note_offset) % 128
@@ -224,7 +213,7 @@ class Listener:
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
             try:
-                self.port = mido.open_input(input.input, callback=self.on_message)
+                self.port = mido.open_input(input.name, callback=self.on_message)
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 

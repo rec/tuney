@@ -26,11 +26,11 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--type',
     '--table',
     '--midi.input.enable',
+    '--midi.input.name',
     '--midi.input.channel',
-    '--midi-input',
     '--midi.output.enable',
+    '--midi.output.name',
     '--midi.output.channel',
-    '--midi-output',
     '--midi-velocity',
     '--midi-note-offset',
     '--space',
@@ -123,7 +123,8 @@ def test_cli_help_uses_flat_unique_names(
         '.' not in option or option.startswith('--midi.') for option in long_options
     )
     assert len(positive_long_options) == len(set(positive_long_options))
-    assert '--midi-output' in positive_long_options
+    assert '--midi.output.name' in positive_long_options
+    assert '--midi-output' not in positive_long_options
     assert '--player.period' not in help_text
 
 
@@ -185,7 +186,7 @@ def test_cli_accepts_public_long_options() -> None:
             '--alphabet=abc',
             '--midi.input.enable',
             '--midi.input.channel=3',
-            '--midi-output=Port',
+            '--midi.output.name=Port',
             '--midi.output.channel=3',
             '--midi-velocity=80',
             '--midi-note-offset=12',
@@ -212,7 +213,7 @@ def test_cli_accepts_public_long_options() -> None:
     assert app.mapper.alphabet == 'abc'
     assert app.midi.input.enable
     assert app.midi.input.mido_channel == 2
-    assert app.midi.output.output == 'Port'
+    assert app.midi.output.name == 'Port'
     assert app.midi.output.channel == 3
     assert app.midi.output.velocity == 80
     assert app.midi.output.note_offset == 12

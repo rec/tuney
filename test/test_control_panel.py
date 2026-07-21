@@ -290,7 +290,7 @@ def test_entry_width_uses_compact_numeric_widths(
             'dtype': _entry_width(Device, 'dtype'),
             'space': _entry_width(TextTimings, 'space'),
             'root': _entry_width(Scale, 'root'),
-            'output': _entry_width(MidiOut, 'output'),
+            'midi_name': _entry_width(MidiOut, 'name'),
         },
     )
 
@@ -772,7 +772,7 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     }
 
     assert cells['enable'].isEnabled()
-    assert not cells['output'].isEnabled()
+    assert not cells['name'].isEnabled()
     assert not cells['channel'].isEnabled()
 
 
@@ -793,6 +793,7 @@ def test_midi_input_enable_control_stays_enabled_when_midi_is_disabled() -> None
     }
 
     assert cells['enable'].isEnabled()
+    assert not cells['name'].isEnabled()
     assert not cells['channel'].isEnabled()
 
 

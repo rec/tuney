@@ -337,7 +337,7 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         opened.append((port, callback))
         return Port()
 
-    midi = midi_module.MIDI(input=midi_module.MIDIIn(enable=True, input='keyboard'))
+    midi = midi_module.MIDI(input=midi_module.MIDIIn(enable=True, name='keyboard'))
     listener = midi.listener(lambda note, is_press: None)
     monkeypatch.setattr(midi_module.mido, 'open_input', open_input)
 

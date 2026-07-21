@@ -248,19 +248,18 @@ class MidiBase:
     # Enable MIDI
     enable: bool = False
 
+    # MIDI port name
+    name: str | None = None
+
     # MIDI channel, or omni to use all channels
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 'omni'
 
 
 class MIDIIn:
-    # MIDI input port name
-    input: str | None = None
+    pass
 
 
 class MidiOut:
-    # MIDI output port name
-    output: str | None = None
-
     # MIDI output channel, or omni to use the default channel
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 

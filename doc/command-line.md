@@ -48,7 +48,7 @@ For duplicate or ambiguous leaves, use a short domain prefix instead of the full
 model path:
 
 * `--audio-device`
-* `--midi-output`
+* `--midi.output.name`
 * `--audio-note-offset`
 * `--midi-note-offset`
 * `--oscillator-duty-cycle`

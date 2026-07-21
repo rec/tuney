@@ -154,10 +154,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --midi.input.enable, --midi.input.no-enable
         Enable MIDI (default: False)
+  --midi.input.name {None}|STR
+        MIDI port name (default: None)
   --midi.input.channel {omni}|INT
         MIDI channel, or omni to use all channels (default: omni)
-  --midi-input {None}|STR
-        MIDI input port name (default: None)
 
  midi.output options
  ----------------------------------------------------------------------------------------------------------------------
@@ -165,10 +165,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --midi.output.enable, --midi.output.no-enable
         Enable MIDI (default: False)
+  --midi.output.name {None}|STR
+        MIDI port name (default: None)
   --midi.output.channel {omni}|INT
         MIDI output channel, or omni to use the default channel (default: 1)
-  --midi-output {None}|STR
-        MIDI output port name (default: None)
   --midi-velocity INT
         Velocity used for MIDI note-on messages (default: 64)
   --midi-note-offset INT
