@@ -28,6 +28,7 @@ from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
 from ..audio.midi import input_names, output_names
 from . import constants
+from . import control_panel as control_panel_module
 from .control_panel import ControlPanel
 from .main_window import MainWindow
 from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
@@ -54,6 +55,10 @@ REPLAY_TOOLTIPS = {
 MASTER_GAIN_SCALE = 100
 MASTER_GAIN_DECIMALS = 4
 MASTER_GAIN_INCREMENT = 0.01
+LOOP_TEMPO_MINIMUM = 0.01
+LOOP_TEMPO_MAXIMUM = 100.0
+LOOP_TEMPO_INCREMENT = 0.01
+LOOP_TEMPO_DECIMALS = 2
 
 WIDTH, HEIGHT = 70, 80
 
@@ -218,7 +223,7 @@ class Layout(QWidget):
     def refresh_loop_controls(self) -> None:
         _set_entry_text(self.loop_before, str(self.main_window.history.loop_before))
         _set_entry_text(self.loop_after, str(self.main_window.history.loop_after))
-        _set_entry_text(self.loop_tempo, str(self.main_window.history.loop_tempo))
+        _set_spin_value(self.loop_tempo, self.main_window.history.loop_tempo)
 
     def set_randomize_on_each_loop_state(self, randomize_on_each_loop: bool) -> None:
         self.randomize_on_each_loop.setChecked(randomize_on_each_loop)
@@ -382,9 +387,17 @@ class Layout(QWidget):
         self.loop_after.editingFinished.connect(
             lambda: self.main_window.on_loop_after(self.loop_after.text())
         )
-        self.loop_tempo = labeled_entry('Tempo', self.main_window.history.loop_tempo)
+        layout.addWidget(QLabel('Tempo', frame))
+        self.loop_tempo = QDoubleSpinBox(frame)
+        self.loop_tempo.setLocale(control_panel_module.NUMERIC_LOCALE)
+        self.loop_tempo.setRange(LOOP_TEMPO_MINIMUM, LOOP_TEMPO_MAXIMUM)
+        self.loop_tempo.setSingleStep(LOOP_TEMPO_INCREMENT)
+        self.loop_tempo.setDecimals(LOOP_TEMPO_DECIMALS)
+        self.loop_tempo.setValue(self.main_window.history.loop_tempo)
+        self.loop_tempo.setFixedWidth(64)
+        layout.addWidget(self.loop_tempo)
         self.loop_tempo.editingFinished.connect(
-            lambda: self.main_window.on_loop_tempo(self.loop_tempo.text())
+            lambda: self.main_window.on_loop_tempo(self.loop_tempo.value())
         )
         self.randomize_on_each_loop = QCheckBox('Randomize each loop', frame)
         self.randomize_on_each_loop.toggled.connect(
@@ -465,6 +478,11 @@ class Layout(QWidget):
 
 def _set_entry_text(entry: QLineEdit, text: str) -> None:
     entry.setText(text)
+
+
+def _set_spin_value(spin: QDoubleSpinBox, value: float) -> None:
+    with QSignalBlocker(spin):
+        spin.setValue(value)
 
 
 def _clear_grid(layout: QGridLayout) -> None:

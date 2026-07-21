@@ -71,7 +71,7 @@ def on_master_gain(main_window: MainWindow, master_gain: float) -> None:
     main_window.app.player.set_master_gain(master_gain)
 
 
-def on_loop_tempo(main_window: MainWindow, tempo: str) -> None:
+def on_loop_tempo(main_window: MainWindow, tempo: float | str) -> None:
     instrument('ui loop tempo', tempo=tempo)
     try:
         value = float(tempo)

@@ -90,6 +90,30 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
     assert layout.main_window.master_gains[-1] == 0.75
 
 
+def test_loop_tempo_accepts_values_below_one() -> None:
+    from PySide6.QtWidgets import QApplication, QDoubleSpinBox, QVBoxLayout, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    layout = Layout.__new__(Layout)
+    layout.main_window = _FakeMainWindow()
+    layout.text_area = QWidget()
+    layout.text_area_layout = QVBoxLayout(layout.text_area)
+
+    frame = Layout.loop_controls.func(layout)
+    spin = frame.findChild(QDoubleSpinBox)
+
+    assert spin is not None
+    assert spin.minimum() < 1.0
+    assert spin.decimals() == 2
+
+    spin.setValue(0.5)
+    spin.editingFinished.emit()
+
+    assert layout.main_window.loop_tempos == [0.5]
+
+
 def test_finish_startup_layout_reveals_after_deferred_build() -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QApplication, QWidget
@@ -138,6 +162,8 @@ class _FakeMainWindow:
         self.columns = 1
         self.rows = 1
         self.master_gains: list[float] = []
+        self.loop_tempos: list[float] = []
+        self.history = _FakeHistory()
 
     def on_transport_state(self, *_: object) -> bool:
         return True
@@ -154,8 +180,26 @@ class _FakeMainWindow:
     def on_master_gain(self, gain: float) -> None:
         self.master_gains.append(gain)
 
+    def on_loop_before(self, _: str) -> None:
+        pass
+
+    def on_loop_after(self, _: str) -> None:
+        pass
+
+    def on_loop_tempo(self, tempo: float) -> None:
+        self.loop_tempos.append(tempo)
+
+    def on_randomize_on_each_loop(self, _: bool) -> None:
+        pass
+
     def on_help(self) -> None:
         pass
+
+
+class _FakeHistory:
+    loop_before = 0.0
+    loop_after = 0.0
+    loop_tempo = 1.0
 
 
 class _FakeSound:
