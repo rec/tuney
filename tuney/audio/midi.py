@@ -23,7 +23,8 @@ MIDO_INPUT_NAMES_SCRIPT = 'import json, mido; print(json.dumps(mido.get_input_na
 MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
-MIDI_CHANNEL_OPTIONS = ['omni', *[str(i) for i in range(1, 17)]]
+CHANNELS = tuple(str(i + 1) for i in range(16))
+MIDI_CHANNEL_OPTIONS = 'omni', *CHANNELS
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
 MIDI_FILE_TICKS_PER_BEAT = 1000
@@ -103,12 +104,35 @@ def _port_names(internal_command: str, script: str, kind: str) -> list[str]:
     return [name for name in names if isinstance(name, str)]
 
 
-class MIDIIn(BaseModel):
-    # Enable MIDI input
-    enable: Annotated[
-        bool, tyro_option(name='midi-in-enable'), Beginner, Display(row=0)
-    ] = False
+class MidiBase(BaseModel):
+    # Enable MIDI
+    enable: Annotated[bool, Beginner, Display(row=0)] = False
 
+    # MIDI channel, or omni to use all channels
+    channel: Annotated[
+        Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
+        Display(column=2, row=0),
+        Options(lambda: MIDI_CHANNEL_OPTIONS),
+    ] = 'omni'
+
+    @field_validator('channel', mode='before')
+    @classmethod
+    def _validate_channel(cls, value: object) -> Literal['omni'] | int:
+        if isinstance(value, (int, str, type(None))) and not isinstance(value, bool):
+            if value in _OMNI:
+                return 'omni'
+            if isinstance(value, int) and 1 <= value <= 16:
+                return value
+            if value in CHANNELS:
+                return int(value)
+        raise ValueError('MIDI channel must be omni, 0, or 1-16')
+
+    @property
+    def mido_channel(self) -> int | None:
+        return None if self.channel == 'omni' else self.channel - 1
+
+
+class MIDIIn(MidiBase):
     # MIDI input port name
     input: Annotated[
         str | None,
@@ -118,36 +142,13 @@ class MIDIIn(BaseModel):
         Options(input_names),
     ] = None
 
-    # MIDI input channel, or omni to receive all channels
-    channel: Annotated[
-        Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        tyro_option(name='midi-in-channel'),
-        Beginner,
-        Display(column=2, row=0),
-        Options(lambda: MIDI_CHANNEL_OPTIONS),
-    ] = 'omni'
-
-    @field_validator('channel', mode='before')
-    @classmethod
-    def _validate_channel(cls, value: object) -> Literal['omni'] | int:
-        return _validate_channel(value)
-
-    @property
-    def mido_channel(self) -> int | None:
-        return None if self.channel == 'omni' else self.channel - 1
-
     def accepts(self, message: mido.Message) -> bool:
         return (channel := self.mido_channel) is None or getattr(
             message, 'channel', None
         ) == channel
 
 
-class MidiOut(BaseModel):
-    # Enable MIDI output
-    enable: Annotated[
-        bool, tyro_option(name='midi-enable'), Beginner, Display(row=0)
-    ] = False
-
+class MidiOut(MidiBase):
     # MIDI output port name
     output: Annotated[
         str | None,
@@ -160,7 +161,6 @@ class MidiOut(BaseModel):
     # MIDI output channel, or omni to use the default channel
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        tyro_option(name='midi-channel'),
         Display(column=2, row=0),
         Options(lambda: MIDI_CHANNEL_OPTIONS),
     ] = 1
@@ -190,15 +190,6 @@ class MidiOut(BaseModel):
 
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
-
-    @field_validator('channel', mode='before')
-    @classmethod
-    def _validate_channel(cls, value: object) -> Literal['omni'] | int:
-        return _validate_channel(value)
-
-    @property
-    def mido_channel(self) -> int | None:
-        return None if self.channel == 'omni' else self.channel - 1
 
     def __call__(self, note_number: int, is_press: bool) -> None:
         if self.enable:
@@ -233,11 +224,9 @@ class MIDIInputListener:
         self.port: MIDIInputPort | None = None
 
     def start(self) -> None:
-        if self.midi.input.enable and self.port is None:
+        if (input := self.midi.input).enable and self.port is None:
             try:
-                self.port = mido.open_input(
-                    self.midi.input.input, callback=self.on_message
-                )
+                self.port = mido.open_input(input, callback=self.on_message)
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
@@ -247,52 +236,26 @@ class MIDIInputListener:
             self.port = None
 
     def on_message(self, m: mido.Message) -> None:
-        if not self.midi.input.accepts(m):
-            return
-        if m.type == 'note_on':
-            self.callback(self.midi.output.tuney_note(m.note), m.velocity > 0)
-        elif m.type == 'note_off':
-            self.callback(self.midi.output.tuney_note(m.note), False)
-
-
-def _output_names() -> list[str]:
-    return _direct_port_names(mido.get_output_names, 'outputs')
-
-
-def _input_names() -> list[str]:
-    return _direct_port_names(mido.get_input_names, 'inputs')
+        if self.midi.input.accepts(m) and m.type.startswith('note_'):
+            is_on = m.type == 'note_on' and m.velocity > 0
+            self.callback(self.midi.output.tuney_note(m.note), is_on)
 
 
 def output_names_json() -> str:
-    return json.dumps(_output_names())
+    return _direct_port_names(mido.get_output_names, 'outputs')
 
 
 def input_names_json() -> str:
-    return json.dumps(_input_names())
+    return _direct_port_names(mido.get_input_names, 'inputs')
 
 
-def _direct_port_names(names: Callable[[], object], kind: str) -> list[str]:
+def _direct_port_names(names: Callable[[], list[str]], kind: str) -> str:
     try:
         result = names()
     except (OSError, RuntimeError) as error:
         report_error(f'Could not list MIDI {kind}: {error}')
-        return []
-    if not isinstance(result, list):
-        return []
-    return [name for name in result if isinstance(name, str)]
+        result = []
+    return json.dumps([name for name in result if isinstance(name, str)])
 
 
-def _validate_channel(value: object) -> Literal['omni'] | int:
-    if isinstance(value, bool):
-        raise ValueError('MIDI channel must be omni, 0, or 1-16')
-    if value is None or value == '' or value == '0' or value == 0:
-        return 'omni'
-    elif isinstance(value, int):
-        if 1 <= value <= 16:
-            return value
-    elif isinstance(value, str):
-        if value == 'omni':
-            return 'omni'
-        if value in {str(i) for i in range(1, 17)}:
-            return int(value)
-    raise ValueError('MIDI channel must be omni, 0, or 1-16')
+_OMNI = None, '', '0', 0, 'omni'

@@ -13,12 +13,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from ..audio.midi import (
-    MIDI_FILE_TICKS_PER_BEAT,
-    MIDIInputListener,
-    is_midi_file,
-    write_midi_file,
-)
+from ..audio import midi
 from ..audio.mixer import NotePress
 from ..audio.player import Player
 from ..config.serialize import serialize
@@ -75,7 +70,7 @@ class App(Tuney):
         )
 
     @cached_property
-    def midi_input_listener(self) -> MIDIInputListener:
+    def midi_input_listener(self) -> midi.MIDIInputListener:
         return self.midi.input_listener(
             lambda note, is_press: play_note(self, note, is_press)
         )
@@ -471,12 +466,12 @@ def run_cli(app: App) -> None:
             }
         )
 
-    midi_file_output = app.output is not None and is_midi_file(app.output)
+    midi_file_output = app.output is not None and midi.is_midi_file(app.output)
     try:
         if app.output and midi_file_output:
-            write_midi_file(
+            midi.write_midi_file(
                 app.output,
-                note_events(app, MIDI_FILE_TICKS_PER_BEAT),
+                note_events(app, midi.MIDI_FILE_TICKS_PER_BEAT),
                 app.midi.output,
             )
         elif app.output and app.silent:

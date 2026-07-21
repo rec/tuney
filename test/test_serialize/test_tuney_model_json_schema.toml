@@ -162,15 +162,6 @@ default = false
 title = "Enable"
 type = "boolean"
 
-["$defs".MIDIIn.properties.input]
-default = "<null>"
-title = "Input"
-[["$defs".MIDIIn.properties.input.anyOf]]
-type = "string"
-
-[["$defs".MIDIIn.properties.input.anyOf]]
-type = "null"
-
 ["$defs".MIDIIn.properties.channel]
 default = "omni"
 title = "Channel"
@@ -182,6 +173,15 @@ type = "string"
 maximum = 16
 minimum = 1
 type = "integer"
+
+["$defs".MIDIIn.properties.input]
+default = "<null>"
+title = "Input"
+[["$defs".MIDIIn.properties.input.anyOf]]
+type = "string"
+
+[["$defs".MIDIIn.properties.input.anyOf]]
+type = "null"
 
 ["$defs".Map]
 enum = ["linear"]
@@ -245,15 +245,6 @@ default = false
 title = "Enable"
 type = "boolean"
 
-["$defs".MidiOut.properties.output]
-default = "<null>"
-title = "Output"
-[["$defs".MidiOut.properties.output.anyOf]]
-type = "string"
-
-[["$defs".MidiOut.properties.output.anyOf]]
-type = "null"
-
 ["$defs".MidiOut.properties.channel]
 default = 1
 title = "Channel"
@@ -265,6 +256,15 @@ type = "string"
 maximum = 16
 minimum = 1
 type = "integer"
+
+["$defs".MidiOut.properties.output]
+default = "<null>"
+title = "Output"
+[["$defs".MidiOut.properties.output.anyOf]]
+type = "string"
+
+[["$defs".MidiOut.properties.output.anyOf]]
+type = "null"
 
 ["$defs".MidiOut.properties.velocity]
 default = 64

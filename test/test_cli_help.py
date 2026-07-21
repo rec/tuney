@@ -8,7 +8,7 @@ from tuney.app.app import App
 from tuney.app.main import main
 from tuney.time.char_press import CharPress
 
-LONG_OPTION_RE = re.compile(r'(?<![\w-])--[a-z0-9][a-z0-9-]*')
+LONG_OPTION_RE = re.compile(r'(?<![\w.-])--[a-z0-9][a-z0-9.-]*')
 SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
 OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
@@ -22,12 +22,12 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--max-voices',
     '--type',
     '--table',
-    '--midi-in-enable',
+    '--midi.input.enable',
+    '--midi.input.channel',
     '--midi-input',
-    '--midi-in-channel',
-    '--midi-enable',
+    '--midi.output.enable',
+    '--midi.output.channel',
     '--midi-output',
-    '--midi-channel',
     '--midi-velocity',
     '--midi-note-offset',
     '--space',
@@ -114,11 +114,11 @@ def test_cli_help_uses_flat_unique_names(
     long_options = [
         option for option in LONG_OPTION_RE.findall(help_text) if option != '--help'
     ]
-    positive_long_options = [
-        option for option in long_options if not option.startswith('--no-')
-    ]
+    positive_long_options = [option for option in long_options if '.no-' not in option]
 
-    assert all('.' not in option for option in long_options)
+    assert all(
+        '.' not in option or option.startswith('--midi.') for option in long_options
+    )
     assert len(positive_long_options) == len(set(positive_long_options))
     assert '--midi-output' in positive_long_options
     assert '--player.period' not in help_text
@@ -175,15 +175,15 @@ def _has_option(line: str, options: set[str]) -> bool:
     )
 
 
-def test_cli_accepts_flat_long_options() -> None:
+def test_cli_accepts_public_long_options() -> None:
     app = tyro.cli(
         App,
         args=[
             '--alphabet=abc',
-            '--midi-in-enable',
-            '--midi-in-channel=3',
+            '--midi.input.enable',
+            '--midi.input.channel=3',
             '--midi-output=Port',
-            '--midi-channel=3',
+            '--midi.output.channel=3',
             '--midi-velocity=80',
             '--midi-note-offset=12',
             '--dot=301',
@@ -226,6 +226,15 @@ def test_cli_accepts_flat_long_options() -> None:
     assert app.text_timings.strip_accents
     assert app.text_timings.other == {'!': 500}
     assert app.text_timings.timings == [10, 20]
+
+
+@pytest.mark.parametrize(
+    'option',
+    ['--midi-in-enable', '--midi-in-channel=3', '--midi-enable', '--midi-channel=3'],
+)
+def test_cli_rejects_removed_flat_midi_base_options(option: str) -> None:
+    with pytest.raises(SystemExit):
+        tyro.cli(App, args=[option])
 
 
 def test_cli_rejects_old_nested_options() -> None:

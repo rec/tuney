@@ -229,21 +229,20 @@ class Polyphony:
     max_voices: int = 10
 
 
-class MIDIIn:
-    # Enable MIDI input
+class MidiBase:
+    # Enable MIDI
     enable: bool = False
 
-    # MIDI input port name
-    input: str | None = None
-
-    # MIDI input channel, or omni to receive all channels
+    # MIDI channel, or omni to use all channels
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 'omni'
 
 
-class MidiOut:
-    # Enable MIDI output
-    enable: bool = False
+class MIDIIn:
+    # MIDI input port name
+    input: str | None = None
 
+
+class MidiOut:
     # MIDI output port name
     output: str | None = None
 
