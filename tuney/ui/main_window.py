@@ -222,7 +222,7 @@ class MainWindow(QMainWindow):
             self.app._autosave.save(lambda path: save(self.app, path))
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
-        self.app.midi_input_listener.close()
+        self.app.midi_listener.close()
         self.app.player.close()
         super().closeEvent(event)
         instrument('close event end')

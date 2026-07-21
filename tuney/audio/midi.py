@@ -211,13 +211,11 @@ class MIDI(BaseModel):
     # MIDI output settings
     output: MidiOut = Field(default_factory=MidiOut)
 
-    def input_listener(
-        self, callback: Callable[[int, bool], None]
-    ) -> MIDIInputListener:
-        return MIDIInputListener(self, callback)
+    def listener(self, callback: Callable[[int, bool], None]) -> Listener:
+        return Listener(self, callback)
 
 
-class MIDIInputListener:
+class Listener:
     def __init__(self, midi: MIDI, callback: Callable[[int, bool], None]) -> None:
         self.midi = midi
         self.callback = callback

@@ -87,9 +87,9 @@ def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     main_window = object()
     listener = object()
     app.__dict__['main_window'] = main_window
-    app.__dict__['listener'] = listener
+    app.__dict__['keyboard_listener'] = listener
 
     apply_preset(app, 'white-notes')
 
     assert app.main_window is main_window
-    assert app.listener is listener
+    assert app.keyboard_listener is listener

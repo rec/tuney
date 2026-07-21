@@ -309,9 +309,7 @@ def test_midi_input_listener_converts_note_without_sending_output() -> None:
         input=midi_module.MIDIIn(enable=True, channel=3),
         output=midi_module.MidiOut(note_offset=12),
     )
-    listener = midi.input_listener(
-        lambda note, is_press: events.append((note, is_press))
-    )
+    listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
 
     listener.on_message(
         midi_module.mido.Message('note_on', channel=2, note=72, velocity=64)
@@ -340,7 +338,7 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         return Port()
 
     midi = midi_module.MIDI(input=midi_module.MIDIIn(enable=True, input='keyboard'))
-    listener = midi.input_listener(lambda note, is_press: None)
+    listener = midi.listener(lambda note, is_press: None)
     monkeypatch.setattr(midi_module.mido, 'open_input', open_input)
 
     listener.start()

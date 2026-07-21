@@ -748,9 +748,9 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
             _set_midi_controls_state(parent, checked)
             if isinstance(data, MIDIIn) and (state := _control_panel(parent).app):
                 if checked:
-                    state.midi_input_listener.start()
+                    state.midi_listener.start()
                 else:
-                    state.midi_input_listener.close()
+                    state.midi_listener.close()
 
     check.toggled.connect(command)
     _parent_layout(parent).addWidget(check)

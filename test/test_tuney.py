@@ -807,7 +807,7 @@ def test_gui_listener_queues_keys_through_app() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    assert app.listener.callback == main_window.on_key
+    assert app.keyboard_listener.callback == main_window.on_key
 
 
 def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None:
@@ -815,7 +815,7 @@ def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None
     app = App(gui=True)
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
-    monkeypatch.setattr(app.listener, 'start', lambda: started.append(True))
+    monkeypatch.setattr(app.keyboard_listener, 'start', lambda: started.append(True))
 
     start(app)
 
@@ -827,7 +827,7 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     app = App(gui=True, run_in_background=True)
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
-    monkeypatch.setattr(app.listener, 'start', lambda: started.append(True))
+    monkeypatch.setattr(app.keyboard_listener, 'start', lambda: started.append(True))
 
     start(app)
 

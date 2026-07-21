@@ -64,14 +64,14 @@ class App(Tuney):
         return MainWindow(self)
 
     @cached_property
-    def listener(self) -> KeyboardListener:
+    def keyboard_listener(self) -> KeyboardListener:
         return KeyboardListener(
             self.main_window.on_key if self.gui else lambda c: on_char(self, c)
         )
 
     @cached_property
-    def midi_input_listener(self) -> midi.MIDIInputListener:
-        return self.midi.input_listener(
+    def midi_listener(self) -> midi.Listener:
+        return self.midi.listener(
             lambda note, is_press: play_note(self, note, is_press)
         )
 
@@ -180,9 +180,9 @@ def run(app: App) -> None:
 def start(app: App) -> None:
     instrument('app start', run_in_background=app.run_in_background)
     app.main_window.start()
-    app.midi_input_listener.start()
+    app.midi_listener.start()
     if app.run_in_background:
-        app.listener.start()
+        app.keyboard_listener.start()
 
 
 def on_char(app: App, c: CharPress) -> None:
@@ -398,7 +398,7 @@ def play_note(app: App, note: int, is_press: bool) -> None:
 def clear_cached_values(app: App) -> None:
     keep = {
         'main_window',
-        'listener',
+        'keyboard_listener',
         'key_recorder',
         'audio_recorder',
     }
