@@ -13,6 +13,7 @@ from tuney.app.platform_info import (
 )
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.time import sequencer as sequencer_module
 from tuney.time.char_press import CharPress
 from tuney.ui import startup
 
@@ -118,6 +119,15 @@ def isolate_persistent_roots(
 
 
 def mock_live_audio(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = [0.0]
+
+    def wait(_event: object, timeout: float | None = None) -> bool:
+        if timeout is not None:
+            clock[0] += timeout
+        return False
+
+    monkeypatch.setattr(sequencer_module.time, 'time', lambda: clock[0])
+    monkeypatch.setattr(sequencer_module.Event, 'wait', wait)
     monkeypatch.setattr(Player, 'on_note', lambda self, note, is_press: True)
     monkeypatch.setattr(Player, 'stop_all', lambda self: None)
     monkeypatch.setattr(Player, 'wait', lambda self: None)

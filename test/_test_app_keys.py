@@ -266,10 +266,54 @@ def test_app_mainloop_exits_on_sigint() -> None:
 
 
 def test_application_uses_cross_platform_style() -> None:
+    from PySide6.QtWidgets import QWidget
+
+    from tuney.ui import layout as layout_module
+
+    class FakeControlPanel:
+        show_advanced = True
+
+        def show_mode(self, checked: bool) -> None:
+            self.show_advanced = checked
+
+    class FakeTextItem:
+        def __init__(self, text: str) -> None:
+            self._text = text
+
+        def text(self) -> str:
+            return self._text
+
+    class FakeTextTimings:
+        def __init__(self) -> None:
+            self.rows: list[list[str]] = []
+
+        def rowCount(self) -> int:
+            return len(self.rows)
+
+        def item(self, row: int, column: int) -> FakeTextItem:
+            return FakeTextItem(self.rows[row][column])
+
+    class FakeWindowLayout(QWidget):
+        def __init__(self, window: MainWindow) -> None:
+            super().__init__(window)
+            self.control_panel = FakeControlPanel()
+            self.text_timings = FakeTextTimings()
+
+        def set_text(self, _text: str) -> None:
+            pass
+
+        def set_text_timings(self, rows: list[list[str]]) -> None:
+            self.text_timings.rows = rows
+
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
         startup.autosave_file = path
-        window = MainWindow(App(gui=True, silent=True))
+        old_layout = layout_module.Layout
+        try:
+            layout_module.Layout = FakeWindowLayout
+            window = MainWindow(App(gui=True, silent=True))
+        finally:
+            layout_module.Layout = old_layout
         app = window.qt_app
 
         assert app.applicationName() == 'Tuney'
