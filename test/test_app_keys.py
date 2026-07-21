@@ -6,25 +6,15 @@ import sys
 # See _test_app_keys.py for the bodies of the functions.
 
 
-def test_app_key_events() -> None:
+def test_app_keys() -> None:
     _run_app_key_scripts(
         'test_qt_key_events',
         'test_macos_option_composed_characters',
         'test_macos_option_special_keys_remain_ignored',
         'test_non_macos_alt_characters_remain_ignored',
         'test_app_event_filter',
-    )
-
-
-def test_app_main_window() -> None:
-    _run_app_key_scripts(
         'test_application_uses_cross_platform_style',
         'test_app_mainloop_exits_on_sigint',
-    )
-
-
-def test_app_history_and_dialogs() -> None:
-    _run_app_key_scripts(
         'test_loop_state_restoration_does_not_retoggle_checkboxes',
         'test_app_activate_and_history',
         'test_app_reports_problem',
