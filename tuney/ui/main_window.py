@@ -11,8 +11,7 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from pydantic import ValidationError
-from PySide6.QtCore import QEvent, QFile, QObject, Qt, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -32,16 +31,10 @@ from PySide6.QtWidgets import (
 
 from ..app.app import (
     clear,
-    dump_data,
-    dump_toml,
-    load_text_file,
-    note_events,
     on_char,
     on_replay,
     output_comment,
     randomize_timing,
-    restore_data,
-    restore_text,
     save,
 )
 from ..app.platform_info import (
@@ -54,21 +47,26 @@ from ..app.platform_info import (
     set_windows_app_user_model_id,
 )
 from ..app.text_timing import edit_text_timing
-from ..presets import delete_presets, read_file, write_preset
 from ..time.char_press import CharPress
 from . import Action, StateChange, startup
+from .file_commands import config_path as _config_path
+from .file_commands import (
+    on_copy_from_state,
+    on_delete_presets,
+    on_load_autosave,
+    on_open_config_folder,
+    on_open_text_file,
+    on_paste_into_state,
+    on_save,
+    on_save_as_audio,
+    on_save_preset,
+    on_swap_with_autosave,
+    on_trash_config_file,
+)
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
-from .main_menu import (
-    OPEN_TEXT_FILE_COMMAND,
-    SAVE_AS_AUDIO_COMMAND,
-    SAVE_AUDIO_COMMAND,
-    SAVE_COMMAND,
-    build_menu,
-)
-from .preset_dialogs import preset_name as _preset_name
-from .preset_dialogs import selected_preset_names as _selected_preset_names
+from .main_menu import SAVE_AUDIO_COMMAND, build_menu
 from .tuning_files import on_export_tuning, on_import_tuning
 from .tuning_files import set_tuning as _set_tuning
 from .tuning_files import update_export_tuning_action as _update_export_tuning_action
@@ -271,84 +269,11 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Show Text Timings', str(error))
         self.update_text_display()
 
-    def on_open_text_file(self, *_: object) -> None:
-        instrument('ui open text file')
-        self._is_saving = True
-        try:
-            result = self._get_open_file_name(
-                OPEN_TEXT_FILE_COMMAND,
-                OPEN_TEXT_FILE_COMMAND,
-                'Text (*.txt);;All files (*)',
-            )
-            if filename := result[0]:
-                try:
-                    load_text_file(self.app, Path(filename))
-                except (OSError, ValueError) as error:
-                    QMessageBox.critical(self, 'Open Text File', str(error))
-        finally:
-            self._is_saving = False
-            self._has_focus = False
-
-    def on_save(self, *_: object) -> None:
-        instrument('ui save')
-        self._is_saving = True
-        try:
-            result = self._get_save_file_name(
-                SAVE_COMMAND, SAVE_COMMAND, 'TOML (*.toml);;JSON (*.json)'
-            )
-            if filename := result[0]:
-                try:
-                    save(self.app, Path(filename))
-                except (OSError, ValueError) as error:
-                    QMessageBox.critical(self, 'Save', str(error))
-        finally:
-            self._is_saving = False
-            self._has_focus = False
-
-    def on_save_as_audio(self, *_: object) -> None:
-        instrument('ui save as audio')
-        self._is_saving = True
-        try:
-            result = self._get_save_file_name(
-                SAVE_AS_AUDIO_COMMAND,
-                SAVE_AS_AUDIO_COMMAND,
-                'WAV (*.wav);;All files (*)',
-            )
-            if filename := result[0]:
-                try:
-                    self.app.player.render_file(
-                        Path(filename),
-                        note_events(self.app, self.app.player.sample_rate),
-                        output_comment(self.app),
-                    )
-                except (OSError, RuntimeError, ValueError) as error:
-                    QMessageBox.critical(self, SAVE_AS_AUDIO_COMMAND, str(error))
-        finally:
-            self._is_saving = False
-            self._has_focus = False
-
-    def on_save_preset(self, *_: object) -> None:
-        instrument('ui save preset')
-        if (name := _preset_name(self)) is None:
-            return
-        try:
-            write_preset(name, dump_data(self.app))
-        except (OSError, ValueError) as error:
-            QMessageBox.critical(self, 'Save preset', str(error))
-            return
-        self.ui.rebuild_control_panel()
-
-    def on_delete_presets(self, *_: object) -> None:
-        instrument('ui delete presets')
-        if not (names := _selected_preset_names(self)):
-            return
-        try:
-            self.history.checkpoint_undo()
-            delete_presets(names)
-        except (OSError, ValueError) as error:
-            QMessageBox.critical(self, 'Delete presets', str(error))
-            return
-        self.ui.rebuild_control_panel()
+    on_open_text_file = on_open_text_file
+    on_save = on_save
+    on_save_as_audio = on_save_as_audio
+    on_save_preset = on_save_preset
+    on_delete_presets = on_delete_presets
 
     on_import_tuning = on_import_tuning
     on_export_tuning = on_export_tuning
@@ -447,90 +372,13 @@ class MainWindow(QMainWindow):
         if dialog.clickedButton() is report:
             QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
 
-    def on_open_config_folder(self, *_: object) -> None:
-        instrument('ui open config folder')
-        path = self._config_path()
-        folder = path.expanduser().parent.resolve()
-        try:
-            folder.mkdir(parents=True, exist_ok=True)
-        except OSError as error:
-            QMessageBox.critical(
-                self,
-                'Open enclosing folder for config file',
-                f'Could not create {folder}:\n\n{error}',
-            )
-            return
-        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))):
-            QMessageBox.critical(
-                self,
-                'Open enclosing folder for config file',
-                f'Could not open {folder}',
-            )
-
-    def on_trash_config_file(self, *_: object) -> None:
-        instrument('ui trash config file')
-        path = self._config_path().expanduser().resolve()
-        if not path.exists():
-            QMessageBox.critical(
-                self,
-                'Put Config file in Trash',
-                f'Config file does not exist:\n\n{path}',
-            )
-            return
-        if not QFile.moveToTrash(str(path)):
-            QMessageBox.critical(
-                self,
-                'Put Config file in Trash',
-                f'Could not put config file in Trash:\n\n{path}',
-            )
-
-    def _config_path(self) -> Path:
-        return self.app.config_file or self.app._autosave.path
-
-    def on_copy_from_state(self, *_: object) -> None:
-        instrument('ui copy from state')
-        self.qt_app.clipboard().setText(dump_toml(self.app))
-
-    def on_paste_into_state(self, *_: object) -> None:
-        instrument('ui paste into state')
-        try:
-            self.history.checkpoint_undo()
-            restore_text(self.app, self.qt_app.clipboard().text())
-        except (ValueError, ValidationError) as error:
-            QMessageBox.critical(self, 'Paste into state', str(error))
-            return
-        self.ui.rebuild_control_panel()
-        self.ui.rebuild_note_grid()
-        self.sync_config_actions()
-        self.update_text_display()
-
-    def on_load_autosave(self, checked: bool) -> None:
-        instrument('ui load autosave', checked=checked)
-        if checked == self.app.load_autosave:
-            return
-        self.history.checkpoint_undo()
-        self.app.load_autosave = checked
-
-    def on_swap_with_autosave(self, *_: object) -> None:
-        instrument('ui swap with autosave')
-        path = self.app._autosave.path
-        try:
-            data = read_file(path)
-            type(self.app).model_validate(data)
-        except (OSError, ValueError, ValidationError) as error:
-            QMessageBox.critical(self, 'Swap with autosave', str(error))
-            return
-        try:
-            self.history.checkpoint_undo()
-            self.app._autosave.save(lambda path: save(self.app, path))
-            restore_data(self.app, data)
-        except (OSError, ValueError, ValidationError) as error:
-            QMessageBox.critical(self, 'Swap with autosave', str(error))
-            return
-        self.sync_config_actions()
-        self.ui.rebuild_control_panel()
-        self.ui.rebuild_note_grid()
-        self.update_text_display()
+    on_open_config_folder = on_open_config_folder
+    on_trash_config_file = on_trash_config_file
+    _config_path = _config_path
+    on_copy_from_state = on_copy_from_state
+    on_paste_into_state = on_paste_into_state
+    on_load_autosave = on_load_autosave
+    on_swap_with_autosave = on_swap_with_autosave
 
     def update_text_display(self) -> None:
         instrument('ui update text display', timings=self.app.show_text_timings)

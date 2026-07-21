@@ -14,6 +14,7 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
+from tuney.ui import file_commands as file_commands_module
 from tuney.ui import file_dialogs as file_dialogs_module
 from tuney.ui import main_window as main_window_module
 from tuney.ui import preset_dialogs as preset_dialogs_module
@@ -554,7 +555,7 @@ def test_app_activate_and_history() -> None:
             opened.append(url.toLocalFile())
             return True
 
-    main_window_module.QDesktopServices = FakeDesktopServices
+    file_commands_module.QDesktopServices = FakeDesktopServices
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
@@ -582,7 +583,7 @@ def test_app_activate_and_history() -> None:
             trashed.append(path)
             return True
 
-    main_window_module.QFile = FakeFile
+    file_commands_module.QFile = FakeFile
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
@@ -779,7 +780,7 @@ def test_app_saves_and_deletes_presets() -> None:
     app = HistoryApp()
     old_user_presets = presets_module.USER_PRESETS
     old_input_dialog = preset_dialogs_module.QInputDialog
-    old_selected_preset_names = main_window_module._selected_preset_names
+    old_selected_preset_names = file_commands_module.selected_preset_names
     try:
         with tempfile.TemporaryDirectory() as tmp:
             presets_module.USER_PRESETS = Path(tmp)
@@ -798,7 +799,7 @@ def test_app_saves_and_deletes_presets() -> None:
             assert path.exists()
             assert presets_module.read_preset('mine')['max_gap'] == 2.0
 
-            main_window_module._selected_preset_names = lambda _: ['mine']
+            file_commands_module.selected_preset_names = lambda _: ['mine']
 
             MainWindow.on_delete_presets(app)
 
@@ -814,7 +815,7 @@ def test_app_saves_and_deletes_presets() -> None:
     finally:
         presets_module.USER_PRESETS = old_user_presets
         preset_dialogs_module.QInputDialog = old_input_dialog
-        main_window_module._selected_preset_names = old_selected_preset_names
+        file_commands_module.selected_preset_names = old_selected_preset_names
 
 
 class FakeLoop:
