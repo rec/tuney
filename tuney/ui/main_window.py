@@ -27,7 +27,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QDialogButtonBox,
-    QFileDialog,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -68,6 +67,7 @@ from ..scale.table import Table
 from ..scale.tuning import Computed, Tuning, Type
 from ..time.char_press import CharPress
 from . import Action, StateChange, startup
+from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
 from .main_menu import (
@@ -159,23 +159,8 @@ class MainWindow(QMainWindow):
         self.qt_app.installEventFilter(self)
         instrument('main window init end')
 
-    def _get_open_file_name(
-        self, command: str, title: str, filter_: str
-    ) -> tuple[str, str]:
-        result = QFileDialog.getOpenFileName(
-            self, title, self.app.global_config.directory(command), filter_
-        )
-        self.app.global_config.remember_directory(command, result[0])
-        return result
-
-    def _get_save_file_name(
-        self, command: str, title: str, filter_: str
-    ) -> tuple[str, str]:
-        result = QFileDialog.getSaveFileName(
-            self, title, self.app.global_config.directory(command), filter_
-        )
-        self.app.global_config.remember_directory(command, result[0])
-        return result
+    _get_open_file_name = get_open_file_name
+    _get_save_file_name = get_save_file_name
 
     def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:
         after_id = f'after-{self._after_count}'

@@ -14,6 +14,7 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
+from tuney.ui import file_dialogs as file_dialogs_module
 from tuney.ui import main_window as main_window_module
 from tuney.ui import startup
 from tuney.ui.history import History
@@ -636,7 +637,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getOpenFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        main_window_module.QFileDialog = FakeOpenDialog
+        file_dialogs_module.QFileDialog = FakeOpenDialog
 
         MainWindow.on_import_tuning(app)
 
@@ -653,7 +654,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        main_window_module.QFileDialog = FakeSaveDialog
+        file_dialogs_module.QFileDialog = FakeSaveDialog
 
         MainWindow.on_export_tuning(app)
 
@@ -673,7 +674,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        main_window_module.QFileDialog = FakeComputedSaveDialog
+        file_dialogs_module.QFileDialog = FakeComputedSaveDialog
 
         MainWindow.on_export_tuning(app)
 
@@ -724,7 +725,7 @@ def test_file_dialogs_remember_last_directories() -> None:
                 calls.append(str(args[2]))
                 return str(second), ''
 
-        main_window_module.QFileDialog = FakeDialog
+        file_dialogs_module.QFileDialog = FakeDialog
 
         MainWindow._get_open_file_name(app, 'Open Text File', 'Open Text File', '*')
         MainWindow._get_save_file_name(app, 'Save', 'Save', '*')
@@ -755,7 +756,7 @@ def test_app_saves_audio_from_current_text() -> None:
         def render_file(output, events, comment):
             rendered.append((output, events, comment))
 
-        main_window_module.QFileDialog = FakeSaveDialog
+        file_dialogs_module.QFileDialog = FakeSaveDialog
         app.app.__dict__['player'] = type(
             'FakePlayer',
             (),

@@ -24,7 +24,7 @@ MIDO_OUTPUT_NAMES_SCRIPT = (
     'import json, mido; print(json.dumps(mido.get_output_names()))'
 )
 CHANNELS = tuple(str(i + 1) for i in range(16))
-MIDI_CHANNEL_OPTIONS = 'omni', *CHANNELS
+MIDI_CHANNEL_OPTIONS = ['omni', *CHANNELS]
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
 MIDI_FILE_TICKS_PER_BEAT = 1000
@@ -226,7 +226,7 @@ class MIDIInputListener:
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
             try:
-                self.port = mido.open_input(input, callback=self.on_message)
+                self.port = mido.open_input(input.input, callback=self.on_message)
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
