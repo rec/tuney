@@ -157,9 +157,14 @@ class Player(BaseModel, frozen=True):
         if note_number in self.pressed_notes:
             return False
         self.sync_engine_device()
-        stolen_note: NoteNumber | None = None
-        if len(self.pressed_notes) >= self.sound.polyphony.max_voices:
-            stolen_note = self.pressed_notes.pop(0)
+        stolen_notes: list[NoteNumber] = []
+        voice_count = 2 if self.sound.binaural.enable else 1
+        while (
+            self.pressed_notes
+            and len(self.pressed_notes) * voice_count + voice_count
+            > self.sound.polyphony.max_voices
+        ):
+            stolen_notes.append(self.pressed_notes.pop(0))
         self.pressed_notes.append(note_number)
         try:
             voice_maker = partial(
@@ -173,7 +178,7 @@ class Player(BaseModel, frozen=True):
                     synchronize_oscillators=self.sound.synchronize_oscillators,
                 )
             )
-            if stolen_note is not None:
+            for stolen_note in stolen_notes:
                 self.engine.submit(NotePress(stolen_note, False))
             self.engine.submit(NotePress(note_number))
             self.engine.start()
@@ -187,7 +192,7 @@ class Player(BaseModel, frozen=True):
                 error=str(e),
             )
             self.pressed_notes.remove(note_number)
-            if stolen_note is not None:
+            for stolen_note in reversed(stolen_notes):
                 self.pressed_notes.insert(0, stolen_note)
             self.engine.close()
             return False

@@ -433,6 +433,24 @@ def test_player_steals_oldest_voice_at_max_polyphony(monkeypatch) -> None:
     assert 7 in player.engine.mixer.voices
 
 
+def test_player_counts_binaural_notes_as_two_voices(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    player = Player(
+        sound=Sound(binaural=Binaural(enable=True), polyphony=Polyphony(max_voices=3))
+    )
+
+    assert player.start(0)
+    assert player.start(7)
+
+    out = np.zeros((128, 2), dtype=np.float32)
+    player.engine.callback(out, len(out), None, None)
+
+    assert player.pressed_notes == [7]
+    assert player.engine.mixer.pressed_notes == [7]
+    assert list(player.engine.mixer.voices) == [7]
+
+
 def test_player_uses_scale_note_subset_for_frequencies() -> None:
     chromatic = Player(sound=Sound(note_offset=0))
     white_notes = Player(sound=Sound(note_offset=0), scale=Scale(notes='ABCDEFG'))
@@ -575,6 +593,21 @@ def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:
     out = mixer.render(48_000, np.float32)
 
     assert np.max(np.abs(out)) <= 1
+
+
+def test_mixer_counts_binaural_notes_as_two_voices() -> None:
+    voice = Voice(
+        fade_in=0,
+        oscillator=Oscillator(waveform=Waveform.triangle),
+        binaural=Binaural(enable=True),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice, polyphony=Polyphony(max_voices=3))
+
+    assert mixer.apply(NotePress(0))
+    assert mixer.apply(NotePress(7))
+    assert mixer.pressed_notes == [7]
+    assert mixer.voices[0].release_frame is not None
+    assert 7 in mixer.voices
 
 
 def test_envelope_duration_is_stable_across_sample_rates_and_blocks() -> None:

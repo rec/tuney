@@ -33,9 +33,14 @@ class Mixer(BaseModel):
         if note.is_press:
             if note_number in self.voices:
                 return False
-            if len(self.pressed_notes) >= self.polyphony.max_voices:
-                self._release_oldest()
             voice = self.voice_maker(note_number)
+            voice_count = _voice_count(voice)
+            while (
+                self.pressed_notes
+                and self._pressed_voice_count() + voice_count
+                > self.polyphony.max_voices
+            ):
+                self._release_oldest()
             phase = self.frame_count % voice.period_samples
             self.voices[note_number] = VoiceState(
                 voice=voice,
@@ -65,6 +70,12 @@ class Mixer(BaseModel):
         if voice.complete:
             self.voices.pop(note_number)
 
+    def _pressed_voice_count(self) -> int:
+        return sum(
+            _voice_count(self.voices[note_number].voice)
+            for note_number in self.pressed_notes
+        )
+
     def render(
         self,
         frame_size: int,
@@ -90,3 +101,7 @@ class Mixer(BaseModel):
 
         self.frame_count += frame_size
         return mixed.astype(dtype, copy=False)
+
+
+def _voice_count(voice: Voice) -> int:
+    return 2 if voice.binaural.enable else 1
