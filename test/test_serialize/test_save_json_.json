@@ -69,7 +69,8 @@
       "channel": 1,
       "program": 0,
       "velocity": 64,
-      "note_offset": 0
+      "note_offset": 0,
+      "mute_audio_when_midi_enabled": true
     }
   },
   "text_timings": {

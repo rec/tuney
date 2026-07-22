@@ -175,6 +175,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Velocity used for MIDI note-on messages (default: 64)
   --midi.output.note-offset INT
         Offset added to MIDI note numbers (default: 0)
+  --midi.output.mute-audio-when-midi-enabled, --midi.output.no-mute-audio-when-midi-enabled
+        Mute synthesized audio when MIDI output is enabled (default: True)
 
  text-timings options
  ----------------------------------------------------------------------------------------------------------------------

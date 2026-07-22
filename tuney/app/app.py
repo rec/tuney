@@ -383,7 +383,10 @@ def dump_data(app: App) -> dict[str, object]:
 def play_char(app: App, c: CharPress) -> None:
     if (note := app.mapper(c.char)) is not None:
         trace('play char', char=c.char, is_press=c.is_press, note=note)
-        play_note(app, note, c.is_press)
+        if not (
+            app.midi.output.enable and app.midi.output.mute_audio_when_midi_enabled
+        ):
+            play_note(app, note, c.is_press)
         app.midi.output(note, c.is_press)
     if app.gui:
         app.main_window.on_char(c)

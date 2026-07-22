@@ -270,6 +270,9 @@ class MidiOut:
     # Offset added to MIDI note numbers
     note_offset: int = 0
 
+    # Mute synthesized audio when MIDI output is enabled
+    mute_audio_when_midi_enabled: bool = True
+
 
 class Midi:
     # MIDI input settings

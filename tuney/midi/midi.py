@@ -75,6 +75,11 @@ class MidiOut(MidiBase):
     # Offset added to MIDI note numbers
     note_offset: Annotated[int, Numeric(column=5, row=0, width=2)] = 0
 
+    # Mute synthesized audio when MIDI output is enabled
+    mute_audio_when_midi_enabled: Annotated[
+        bool, Beginner, Display(column=6, row=0)
+    ] = True
+
     @field_validator('program', mode='before')
     @classmethod
     def _validate_program(cls, value: object) -> object:

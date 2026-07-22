@@ -305,6 +305,11 @@ default = 0
 title = "Note Offset"
 type = "integer"
 
+["$defs".MidiOut.properties.mute_audio_when_midi_enabled]
+default = true
+title = "Mute Audio When Midi Enabled"
+type = "boolean"
+
 ["$defs".Milliseconds]
 type = "number"
 

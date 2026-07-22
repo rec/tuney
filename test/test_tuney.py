@@ -54,6 +54,7 @@ from tuney.app.runnable import start_thread
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.midi import Midi, MidiOut
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
@@ -1569,6 +1570,54 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
     assert lifecycle == ['stop_all', 'wait', 'close']
     assert 'main_window' not in app.__dict__
     assert 'listener' not in app.__dict__
+
+
+def test_midi_output_mutes_audio_by_default(monkeypatch) -> None:
+    events: list[tuple[int, bool]] = []
+    monkeypatch.setattr(
+        MidiOut, '__call__', lambda _, note, is_press: events.append((note, is_press))
+    )
+    monkeypatch.setattr(
+        Player, 'on_note', lambda *_: pytest.fail('audio should be muted')
+    )
+    app = App(
+        midi=Midi(output=MidiOut(enable=True)),
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 0),
+        ],
+    )
+
+    play_cli(app)
+
+    assert events == [(20, True), (20, False)]
+
+
+def test_midi_output_can_leave_audio_enabled(monkeypatch) -> None:
+    audio_events: list[tuple[int, bool]] = []
+    midi_events: list[tuple[int, bool]] = []
+    monkeypatch.setattr(
+        Player,
+        'on_note',
+        lambda _, note, is_press: audio_events.append((note, is_press)) or True,
+    )
+    monkeypatch.setattr(
+        MidiOut,
+        '__call__',
+        lambda _, note, is_press: midi_events.append((note, is_press)),
+    )
+    app = App(
+        midi=Midi(output=MidiOut(enable=True, mute_audio_when_midi_enabled=False)),
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 0),
+        ],
+    )
+
+    play_cli(app)
+
+    assert audio_events == [(20, True), (20, False)]
+    assert midi_events == [(20, True), (20, False)]
 
 
 def test_cli_mode_prints_characters_as_they_play(
