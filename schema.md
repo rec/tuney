@@ -263,6 +263,9 @@ class MidiOut:
     # MIDI output channel, or omni to use the default channel
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 
+    # General MIDI instrument program
+    program: int = 0
+
     # Velocity used for MIDI note-on messages
     velocity: int = 64
 

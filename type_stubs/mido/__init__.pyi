@@ -4,6 +4,7 @@ class Message:
     type: str
     channel: int
     note: int
+    program: int
     velocity: int
 
     def __init__(

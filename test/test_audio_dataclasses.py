@@ -298,9 +298,13 @@ def test_midi_output_sends_on_mido_channel(
 
     monkeypatch.setattr(midi_module.mido, 'open_output', lambda _: Port())
 
-    midi_module.MidiOut(enable=True, channel=channel)(60, True)
+    midi_module.MidiOut(enable=True, channel=channel, program=40)(60, True)
 
-    assert [m.channel for m in messages] == [expected]
+    assert [(m.type, m.channel) for m in messages] == [
+        ('program_change', expected),
+        ('note_on', expected),
+    ]
+    assert messages[0].program == 40
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:

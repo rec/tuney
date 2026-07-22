@@ -288,6 +288,13 @@ maximum = 16
 minimum = 1
 type = "integer"
 
+["$defs".MidiOut.properties.program]
+default = 0
+maximum = 127
+minimum = 0
+title = "Program"
+type = "integer"
+
 ["$defs".MidiOut.properties.velocity]
 default = 64
 title = "Velocity"

@@ -1704,7 +1704,10 @@ def test_text_file_output_writes_midi_file_without_audio(monkeypatch, tmp_path) 
     ]
 
     assert file.ticks_per_beat == 1000
-    assert [(i.type, i.time, i.note, i.velocity) for i in messages] == [
+    assert messages[0].type == 'program_change'
+    assert messages[0].time == 0
+    assert messages[0].program == app.midi.output.program
+    assert [(i.type, i.time, i.note, i.velocity) for i in messages[1:]] == [
         ('note_on', 0, app.midi.output.midi_note(app.mapper('a')), 64),
         ('note_on', 100, app.midi.output.midi_note(app.mapper('a')), 0),
     ]

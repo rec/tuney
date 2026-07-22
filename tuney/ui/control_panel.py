@@ -1076,6 +1076,7 @@ def _set_model_value(
     data: BaseModel, name: str, value: object, parent: QWidget | None = None
 ) -> None:
     instrument('control value set start', model=type(data).__name__, field=name)
+    old_value = getattr(data, name)
     values = data.model_dump()
     values[name] = value
     validated = type(data).model_validate(values)
@@ -1084,9 +1085,12 @@ def _set_model_value(
         raise ValueError('No frequency table configured')
     if isinstance(validated_value, Ratios) and not validated_value.ratios:
         raise ValueError('No tuning ratios configured')
-    if parent is not None and getattr(data, name) != getattr(validated, name):
+    if parent is not None and old_value != validated_value:
         _checkpoint_undo(parent)
     setattr(data, name, validated_value)
+    if isinstance(data, MidiOut) and name == 'program' and old_value != validated_value:
+        if 'outport' in data.__dict__:
+            data.outport.send(data.program_change())
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
@@ -1235,6 +1239,10 @@ def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
 def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) -> str:
     if value is None:
         return ''
+    if isinstance(data, MidiOut) and name == 'program' and isinstance(value, int):
+        prefix = f'{value + 1} '
+        if choice := next((i for i in choices if i.startswith(prefix)), ''):
+            return choice
     if isinstance(data, Device) and name == 'device' and isinstance(value, int):
         prefix = f'[{value}] '
         if choice := next((i for i in choices if i.startswith(prefix)), ''):

@@ -28,6 +28,136 @@ MIDI_CHANNEL_OPTIONS = ['omni', *CHANNELS]
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
 MIDI_FILE_TICKS_PER_BEAT = 1000
+GENERAL_MIDI_PROGRAMS = (
+    'Acoustic Grand Piano',
+    'Bright Acoustic Piano',
+    'Electric Grand Piano',
+    'Honky-tonk Piano',
+    'Electric Piano 1',
+    'Electric Piano 2',
+    'Harpsichord',
+    'Clavinet',
+    'Celesta',
+    'Glockenspiel',
+    'Music Box',
+    'Vibraphone',
+    'Marimba',
+    'Xylophone',
+    'Tubular Bells',
+    'Dulcimer',
+    'Drawbar Organ',
+    'Percussive Organ',
+    'Rock Organ',
+    'Church Organ',
+    'Reed Organ',
+    'Accordion',
+    'Harmonica',
+    'Tango Accordion',
+    'Acoustic Guitar (nylon)',
+    'Acoustic Guitar (steel)',
+    'Electric Guitar (jazz)',
+    'Electric Guitar (clean)',
+    'Electric Guitar (muted)',
+    'Overdriven Guitar',
+    'Distortion Guitar',
+    'Guitar Harmonics',
+    'Acoustic Bass',
+    'Electric Bass (finger)',
+    'Electric Bass (pick)',
+    'Fretless Bass',
+    'Slap Bass 1',
+    'Slap Bass 2',
+    'Synth Bass 1',
+    'Synth Bass 2',
+    'Violin',
+    'Viola',
+    'Cello',
+    'Contrabass',
+    'Tremolo Strings',
+    'Pizzicato Strings',
+    'Orchestral Harp',
+    'Timpani',
+    'String Ensemble 1',
+    'String Ensemble 2',
+    'Synth Strings 1',
+    'Synth Strings 2',
+    'Choir Aahs',
+    'Voice Oohs',
+    'Synth Voice',
+    'Orchestra Hit',
+    'Trumpet',
+    'Trombone',
+    'Tuba',
+    'Muted Trumpet',
+    'French Horn',
+    'Brass Section',
+    'Synth Brass 1',
+    'Synth Brass 2',
+    'Soprano Sax',
+    'Alto Sax',
+    'Tenor Sax',
+    'Baritone Sax',
+    'Oboe',
+    'English Horn',
+    'Bassoon',
+    'Clarinet',
+    'Piccolo',
+    'Flute',
+    'Recorder',
+    'Pan Flute',
+    'Blown Bottle',
+    'Shakuhachi',
+    'Whistle',
+    'Ocarina',
+    'Lead 1 (square)',
+    'Lead 2 (sawtooth)',
+    'Lead 3 (calliope)',
+    'Lead 4 (chiff)',
+    'Lead 5 (charang)',
+    'Lead 6 (voice)',
+    'Lead 7 (fifths)',
+    'Lead 8 (bass + lead)',
+    'Pad 1 (new age)',
+    'Pad 2 (warm)',
+    'Pad 3 (polysynth)',
+    'Pad 4 (choir)',
+    'Pad 5 (bowed)',
+    'Pad 6 (metallic)',
+    'Pad 7 (halo)',
+    'Pad 8 (sweep)',
+    'FX 1 (rain)',
+    'FX 2 (soundtrack)',
+    'FX 3 (crystal)',
+    'FX 4 (atmosphere)',
+    'FX 5 (brightness)',
+    'FX 6 (goblins)',
+    'FX 7 (echoes)',
+    'FX 8 (sci-fi)',
+    'Sitar',
+    'Banjo',
+    'Shamisen',
+    'Koto',
+    'Kalimba',
+    'Bagpipe',
+    'Fiddle',
+    'Shanai',
+    'Tinkle Bell',
+    'Agogo',
+    'Steel Drums',
+    'Woodblock',
+    'Taiko Drum',
+    'Melodic Tom',
+    'Synth Drum',
+    'Reverse Cymbal',
+    'Guitar Fret Noise',
+    'Breath Noise',
+    'Seashore',
+    'Bird Tweet',
+    'Telephone Ring',
+    'Helicopter',
+    'Applause',
+    'Gunshot',
+)
 
 
 def is_midi_file(path: Path) -> bool:
@@ -41,6 +171,7 @@ def write_midi_file(
     track = mido.MidiTrack()
     file.tracks.append(track)
     track.append(mido.MetaMessage('set_tempo', tempo=MIDI_FILE_TEMPO, time=0))
+    track.append(midi.program_change(0))
     previous = 0
     for frame, note in events:
         tick = max(0, round(frame))
@@ -146,11 +277,20 @@ class MidiOut(MidiBase):
         Options(lambda: MIDI_CHANNEL_OPTIONS),
     ] = 1
 
+    # General MIDI instrument program
+    program: Annotated[
+        int,
+        tyro_option(),
+        Beginner,
+        Display(column=3, row=0, width=24),
+        Options(lambda: general_midi_program_options()),
+    ] = Field(0, ge=0, le=127)
+
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
         int,
         tyro_option(name='midi-velocity'),
-        Display(column=3, row=0),
+        Display(column=4, row=0),
         Numeric(width=2),
     ] = 0x40
 
@@ -158,19 +298,39 @@ class MidiOut(MidiBase):
     note_offset: Annotated[
         int,
         tyro_option(name='midi-note-offset'),
-        Display(column=4, row=0),
+        Display(column=5, row=0),
         Numeric(width=2),
     ] = 0
 
+    @field_validator('program', mode='before')
+    @classmethod
+    def _validate_program(cls, value: object) -> object:
+        if isinstance(value, str):
+            prefix, _, _ = value.partition(' ')
+            if prefix.isdecimal():
+                return int(prefix) - 1
+        return value
+
     @cached_property
     def outport(self) -> mido.OutputPort:
-        return mido.open_output(self.name)
+        port = mido.open_output(self.name)
+        port.send(self.program_change())
+        return port
 
     def midi_note(self, note_number: int) -> int:
         return (note_number + self.note_offset) % 128
 
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
+
+    def program_change(self, time: int = 0) -> mido.Message:
+        kwargs = {} if self.mido_channel is None else {'channel': self.mido_channel}
+        return mido.Message(
+            **kwargs,
+            program=self.program,
+            time=time,
+            type='program_change',
+        )
 
     def __call__(self, note_number: int, is_press: bool) -> None:
         if self.enable:
@@ -226,6 +386,10 @@ def output_names_json() -> str:
 
 def input_names_json() -> str:
     return _direct_port_names(mido.get_input_names, 'inputs')
+
+
+def general_midi_program_options() -> list[str]:
+    return [f'{i + 1} {name}' for i, name in enumerate(GENERAL_MIDI_PROGRAMS)]
 
 
 def _direct_port_names(names: Callable[[], list[str]], kind: str) -> str:

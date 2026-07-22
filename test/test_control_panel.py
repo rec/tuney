@@ -357,6 +357,36 @@ def test_indexed_output_device_option_displays_choice_text() -> None:
     )
 
 
+def test_general_midi_program_option_displays_choice_text() -> None:
+    assert (
+        control_panel._option_text(
+            MidiOut(program=40),
+            'program',
+            40,
+            ['1 Acoustic Grand Piano', '41 Violin'],
+        )
+        == '41 Violin'
+    )
+
+
+def test_general_midi_program_change_is_sent_to_open_port() -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    midi = MidiOut(program=0)
+    midi.__dict__['outport'] = Port()
+
+    control_panel._set_model_value(midi, 'program', '41 Violin')
+
+    assert midi.program == 40
+    assert messages[0].type == 'program_change'
+    assert messages[0].program == 40
+    assert 'outport' not in midi.__dict__
+
+
 def test_control_flow_layout_wraps_to_available_width() -> None:
     from PySide6.QtCore import QRect
     from PySide6.QtWidgets import QLabel, QWidget

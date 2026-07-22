@@ -67,6 +67,7 @@
     "output": {
       "enable": false,
       "channel": 1,
+      "program": 0,
       "velocity": 64,
       "note_offset": 0
     }
