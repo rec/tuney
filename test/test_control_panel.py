@@ -378,14 +378,14 @@ def test_general_midi_program_change_is_sent_to_open_port() -> None:
             messages.append(message)
 
     midi = MidiOut(program=0)
-    midi.__dict__['outport'] = Port()
+    midi.__dict__['port'] = Port()
 
     control_panel._set_model_value(midi, 'program', '41 Violin')
 
     assert midi.program == 40
     assert messages[0].type == 'program_change'
     assert messages[0].program == 40
-    assert 'outport' not in midi.__dict__
+    assert 'port' not in midi.__dict__
 
 
 def test_control_flow_layout_wraps_to_available_width() -> None:

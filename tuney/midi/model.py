@@ -102,9 +102,9 @@ class MidiOut(MidiBase):
         return value
 
     @cached_property
-    def outport(self) -> mido.OutputPort:
+    def port(self) -> mido.OutputPort:
         port = mido.open_output(self.name)
-        port.send(self.program_change())
+        port.send(self.send_program_change())
         return port
 
     def midi_note(self, note_number: int) -> int:
@@ -113,7 +113,7 @@ class MidiOut(MidiBase):
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
 
-    def program_change(self, time: int = 0) -> mido.Message:
+    def send_program_change(self, time: int = 0) -> mido.Message:
         kwargs = {} if self.mido_channel is None else {'channel': self.mido_channel}
         return mido.Message(
             **kwargs,
@@ -125,7 +125,7 @@ class MidiOut(MidiBase):
     def __call__(self, note_number: int, is_press: bool) -> None:
         if self.enable:
             kwargs = {} if self.mido_channel is None else {'channel': self.mido_channel}
-            self.outport.send(
+            self.port.send(
                 mido.Message(
                     **kwargs,
                     note=self.midi_note(note_number),

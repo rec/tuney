@@ -1089,8 +1089,8 @@ def _set_model_value(
         _checkpoint_undo(parent)
     setattr(data, name, validated_value)
     if isinstance(data, MidiOut) and name == 'program' and old_value != validated_value:
-        if 'outport' in data.__dict__:
-            data.outport.send(data.program_change())
+        if 'port' in data.__dict__:
+            data.port.send(data.send_program_change())
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
