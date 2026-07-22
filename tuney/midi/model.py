@@ -70,16 +70,10 @@ class MidiOut(MidiBase):
     ] = Field(0, ge=0, le=127)
 
     # Velocity used for MIDI note-on messages
-    velocity: Annotated[
-        int,
-        Numeric(column=4, row=0, width=2),
-    ] = 0x40
+    velocity: Annotated[int, Numeric(column=4, row=0, width=2)] = 0x40
 
     # Offset added to MIDI note numbers
-    note_offset: Annotated[
-        int,
-        Numeric(column=5, row=0, width=2),
-    ] = 0
+    note_offset: Annotated[int, Numeric(column=5, row=0, width=2)] = 0
 
     @field_validator('program', mode='before')
     @classmethod
