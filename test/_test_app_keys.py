@@ -1,6 +1,7 @@
 import os
 import signal
 import tempfile
+from importlib.metadata import version
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
@@ -339,9 +340,16 @@ def test_application_uses_cross_platform_style() -> None:
                 }
         edit_actions = menu_actions['Edit']
         file_actions = menu_actions['File']
+        help_actions = menu_actions['Help']
+        version_label = f'Tuney {version("tuney")}'
 
-        assert all(action_shortcuts.values())
+        assert all(
+            shortcut
+            for text, shortcut in action_shortcuts.items()
+            if text != version_label
+        )
         help_shortcut = action_shortcuts.pop('Tuney Help')
+        action_shortcuts.pop(version_label)
         assert help_shortcut in {'Ctrl+?, Help', 'F1, Help'}
         expected_shortcuts = {
             'Undo': 'Ctrl+Z',
@@ -378,6 +386,7 @@ def test_application_uses_cross_platform_style() -> None:
         assert 'Advanced' in edit_actions
         assert 'Show Text Timings' in edit_actions
         assert 'Randomize Settings' in edit_actions
+        assert version_label in help_actions
         assert 'Clear' in edit_actions
         assert 'Clear Text' in edit_actions
         assert 'Clear' not in file_actions

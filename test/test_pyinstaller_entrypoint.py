@@ -13,6 +13,7 @@ PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
     '--hidden-import mido.backends.rtmidi',
     '--hidden-import _sounddevice',
     '--hidden-import _soundfile',
+    '--copy-metadata tuney',
     '--collect-binaries _sounddevice_data',
     '--collect-binaries _soundfile_data',
 ]

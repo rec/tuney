@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from importlib.metadata import version
 from typing import TYPE_CHECKING
 
 from PySide6.QtGui import QAction, QKeySequence
@@ -137,6 +138,7 @@ def build_menu(window: MainWindow) -> QMenuBar:
         REPORT_PROBLEM_ACCELERATOR,
         window.on_report_problem,
     )
+    _add_version_action(help_menu)
     return menu
 
 
@@ -192,5 +194,12 @@ def _add_action(
         return callback(*args)
 
     action.triggered.connect(instrumented_callback)
+    menu.addAction(action)
+    return action
+
+
+def _add_version_action(menu: QMenu) -> QAction:
+    action = QAction(f'Tuney {version("tuney")}', menu)
+    action.setEnabled(False)
     menu.addAction(action)
     return action

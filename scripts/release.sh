@@ -76,6 +76,7 @@ uv run --with pyinstaller --with pillow pyinstaller \
   "${platform_hidden_imports[@]}" \
   --hidden-import _sounddevice \
   --hidden-import _soundfile \
+  --copy-metadata tuney \
   --collect-binaries _sounddevice_data \
   --collect-binaries _soundfile_data \
   --add-data "$repo_root/tuney:tuney" \
