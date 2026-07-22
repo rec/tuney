@@ -19,6 +19,16 @@ def test_help_markdown_uses_bundled_readme(tmp_path, monkeypatch) -> None:
     assert read_help_markdown() == help_text
 
 
+def test_help_markdown_uses_nested_bundled_readme(tmp_path, monkeypatch) -> None:
+    help_text = '# Nested help'
+    directory = tmp_path / README
+    directory.mkdir()
+    (directory / README).write_text(help_text)
+    monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
+
+    assert read_help_markdown() == help_text
+
+
 def test_markdown_to_html_handles_readme_subset() -> None:
     assert markdown_to_html(
         '# Tuney 🎵\n\n'

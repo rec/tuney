@@ -79,7 +79,7 @@ def _strip_emoji(text: str) -> str:
 
 def _readme_path() -> Path | None:
     for path in _readme_paths():
-        if path.exists():
+        if path.is_file():
             return path
     return None
 
@@ -87,5 +87,6 @@ def _readme_path() -> Path | None:
 def _readme_paths() -> list[Path]:
     paths = [Path(__file__).resolve().parents[2] / README]
     if bundle_root := getattr(sys, '_MEIPASS', None):
-        paths.insert(0, Path(bundle_root) / README)
+        root = Path(bundle_root)
+        paths[:0] = [root / README, root / README / README]
     return paths

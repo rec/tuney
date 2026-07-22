@@ -88,6 +88,16 @@ def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:
         assert flag in release_workflow
 
 
+def test_release_builds_bundle_readme_as_file() -> None:
+    release_script = Path('scripts/release.sh').read_text()
+    release_workflow = Path('.github/workflows/release-builds.yml').read_text()
+
+    assert '--add-data "$repo_root/README.md:."' in release_script
+    assert '--add-data README.md:.' in release_workflow
+    assert 'README.md:README.md' not in release_script
+    assert 'README.md:README.md' not in release_workflow
+
+
 def test_macos_release_artifact_archives_one_source() -> None:
     release_workflow = Path('.github/workflows/release-builds.yml').read_text()
 
