@@ -15,6 +15,7 @@ from .general_midi import general_midi_program_options
 ZERO_IS_NOTE_OFF = True
 CHANNELS = tuple(str(i + 1) for i in range(16))
 MIDI_CHANNEL_OPTIONS = ['omni', *CHANNELS]
+OMNI = None, '', '0', 0, 'omni'
 
 
 class MidiBase(BaseModel):
@@ -39,7 +40,7 @@ class MidiBase(BaseModel):
     @classmethod
     def _validate_channel(cls, value: object) -> Literal['omni'] | int:
         if isinstance(value, (int, str, type(None))) and not isinstance(value, bool):
-            if value in _OMNI:
+            if value in OMNI:
                 return 'omni'
             if isinstance(value, int) and 1 <= value <= 16:
                 return value
@@ -54,9 +55,10 @@ class MidiBase(BaseModel):
 
 class MidiIn(MidiBase):
     def accepts(self, message: mido.Message) -> bool:
-        return (channel := self.mido_channel) is None or getattr(
-            message, 'channel', None
-        ) == channel
+        return (
+            self.mido_channel is None
+            or getattr(message, 'channel', None) == self.mido_channel
+        )
 
 
 class MidiOut(MidiBase):
@@ -79,7 +81,6 @@ class MidiOut(MidiBase):
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
         int,
-        tyro_option(name='midi-velocity'),
         Display(column=4, row=0),
         Numeric(width=2),
     ] = 0x40
@@ -87,7 +88,6 @@ class MidiOut(MidiBase):
     # Offset added to MIDI note numbers
     note_offset: Annotated[
         int,
-        tyro_option(name='midi-note-offset'),
         Display(column=5, row=0),
         Numeric(width=2),
     ] = 0
@@ -142,11 +142,11 @@ class Midi(BaseModel):
     # MIDI output settings
     output: MidiOut = Field(default_factory=MidiOut)
 
-    def listener(self, callback: Callable[[int, bool], None]) -> Listener:
-        return Listener(self, callback)
+    def listener(self, callback: Callable[[int, bool], None]) -> MidiListener:
+        return MidiListener(self, callback)
 
 
-class Listener:
+class MidiListener:
     def __init__(self, midi: Midi, callback: Callable[[int, bool], None]) -> None:
         self.midi = midi
         self.callback = callback
@@ -168,6 +168,3 @@ class Listener:
         if self.midi.input.accepts(m) and m.type.startswith('note_'):
             is_on = m.type == 'note_on' and m.velocity > 0
             self.callback(self.midi.output.tuney_note(m.note), is_on)
-
-
-_OMNI = None, '', '0', 0, 'omni'

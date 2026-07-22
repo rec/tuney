@@ -1,6 +1,6 @@
 # ruff: noqa: F401
 from .file import MIDI_FILE_TICKS_PER_BEAT, is_midi_file, write_midi_file
-from .model import Listener, Midi, MidiIn, MidiOut
+from .model import Midi, MidiIn, MidiListener, MidiOut
 from .ports import (
     INTERNAL_LIST_MIDI_INPUTS,
     INTERNAL_LIST_MIDI_OUTPUTS,

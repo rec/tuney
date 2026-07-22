@@ -70,7 +70,7 @@ class App(Tuney):
         )
 
     @cached_property
-    def midi_listener(self) -> midi.Listener:
+    def midi_listener(self) -> midi.MidiListener:
         return self.midi.listener(
             lambda note, is_press: play_note(self, note, is_press)
         )
