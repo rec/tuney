@@ -6,7 +6,7 @@ import pytest
 
 import tuney.audio.device
 import tuney.midi
-import tuney.midi.model
+import tuney.midi.midi
 import tuney.midi.ports
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform

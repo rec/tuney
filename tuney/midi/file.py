@@ -5,7 +5,7 @@ from pathlib import Path
 import mido
 
 from ..audio.mixer import NotePress
-from .model import ZERO_IS_NOTE_OFF, MidiOut
+from .midi import ZERO_IS_NOTE_OFF, MidiOut
 
 MIDI_FILE_SUFFIXES = {'.mid', '.midi', '.smf'}
 MIDI_FILE_TEMPO = 1_000_000
