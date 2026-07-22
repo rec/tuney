@@ -306,7 +306,7 @@ def test_midi_output_sends_on_mido_channel(
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(tuney.midi.model.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
 
     tuney.midi.MidiOut(enable=True, channel=channel, program=40)(60, True)
 
@@ -326,13 +326,13 @@ def test_midi_input_listener_converts_note_without_sending_output() -> None:
     listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
 
     listener.on_message(
-        tuney.midi.model.mido.Message('note_on', channel=2, note=72, velocity=64)
+        tuney.midi.midi.mido.Message('note_on', channel=2, note=72, velocity=64)
     )
     listener.on_message(
-        tuney.midi.model.mido.Message('note_on', channel=3, note=72, velocity=64)
+        tuney.midi.midi.mido.Message('note_on', channel=3, note=72, velocity=64)
     )
     listener.on_message(
-        tuney.midi.model.mido.Message('note_off', channel=2, note=72, velocity=0)
+        tuney.midi.midi.mido.Message('note_off', channel=2, note=72, velocity=0)
     )
 
     assert events == [(60, True), (60, False)]
@@ -346,14 +346,14 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
             pass
 
     def open_input(
-        port: str | None, *, callback: Callable[[tuney.midi.model.mido.Message], None]
+        port: str | None, *, callback: Callable[[tuney.midi.midi.mido.Message], None]
     ) -> Port:
         opened.append((port, callback))
         return Port()
 
     midi = tuney.midi.Midi(input=tuney.midi.MidiIn(enable=True, name='keyboard'))
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(tuney.midi.model.mido, 'open_input', open_input)
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_input', open_input)
 
     listener.start()
 

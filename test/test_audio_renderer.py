@@ -711,6 +711,23 @@ def test_binaural_voice_splits_frequencies_across_stereo_channels() -> None:
     assert not np.allclose(out[:, 0], out[:, 1])
 
 
+def test_binaural_voice_is_not_changed_by_later_config_edits() -> None:
+    binaural = Binaural(enable=True)
+    voice = Voice(
+        frequency=100,
+        sample_rate=SAMPLE_RATE,
+        oscillator=Oscillator(waveform=Waveform.sine),
+        binaural=binaural,
+    )
+    state = VoiceState(voice=voice)
+
+    state.render(128)
+    binaural.enable = False
+    out = state.render(128)
+
+    assert out.shape == (128, 2)
+
+
 def test_centered_binaural_width_mixes_both_frequencies_to_both_channels() -> None:
     state = VoiceState(
         voice=Voice(

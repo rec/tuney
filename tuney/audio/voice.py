@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..time import Seconds
 from .oscillator import Oscillator
@@ -21,6 +21,11 @@ class Voice(BaseModel, frozen=True):
     oscillator: Oscillator = Field(default_factory=Oscillator)
     sample_rate: int = 48_000
     binaural: Binaural = Field(default_factory=Binaural)
+
+    @field_validator('binaural')
+    @classmethod
+    def _copy_binaural(cls, binaural: Binaural) -> Binaural:
+        return binaural.model_copy()
 
     @cached_property
     def period(self) -> float:
