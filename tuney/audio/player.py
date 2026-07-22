@@ -208,7 +208,8 @@ class Player(BaseModel, frozen=True):
     def stop_all(self) -> None:
         instrument('player stop all')
         self.pressed_notes.clear()
-        self.engine.submit(StopAll())
+        if 'engine' in self.__dict__:
+            self.engine.submit(StopAll())
 
     def start_speech(self, text: str, duration: float, level: float) -> None:
         instrument(

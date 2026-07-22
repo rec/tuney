@@ -826,6 +826,59 @@ def test_app_saves_and_deletes_presets() -> None:
         file_commands.selected_preset_names = old_selected_preset_names
 
 
+def test_close_releases_audio_before_closing_player() -> None:
+    calls: list[str] = []
+
+    class ControlPanel:
+        @staticmethod
+        def save_state() -> None:
+            calls.append('save_state')
+
+    class UI:
+        control_panel = ControlPanel()
+
+    class Autosave:
+        @staticmethod
+        def save(callback: object) -> None:
+            calls.append('autosave')
+
+    class MidiListener:
+        @staticmethod
+        def close() -> None:
+            calls.append('midi_close')
+
+    class Player:
+        @staticmethod
+        def stop_all() -> None:
+            calls.append('stop_all')
+
+        @staticmethod
+        def wait() -> None:
+            calls.append('wait')
+
+        @staticmethod
+        def close() -> None:
+            calls.append('close')
+
+    class App:
+        _autosave = Autosave()
+        midi_listener = MidiListener()
+        player = Player()
+
+    window = type('Window', (), {'ui': UI(), 'app': App()})()
+
+    MainWindow._close_app(window)
+
+    assert calls == [
+        'save_state',
+        'autosave',
+        'midi_close',
+        'stop_all',
+        'wait',
+        'close',
+    ]
+
+
 class FakeLoop:
     def __init__(self) -> None:
         self.calls: list[str] = []

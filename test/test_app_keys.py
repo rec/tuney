@@ -22,6 +22,7 @@ def test_app_keys() -> None:
         'test_file_dialogs_remember_last_directories',
         'test_app_saves_audio_from_current_text',
         'test_app_saves_and_deletes_presets',
+        'test_close_releases_audio_before_closing_player',
     )
 
 

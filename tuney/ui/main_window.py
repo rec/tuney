@@ -214,15 +214,20 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         instrument('close event start')
+        self._close_app()
+        super().closeEvent(event)
+        instrument('close event end')
+
+    def _close_app(self) -> None:
         try:
             self.ui.control_panel.save_state()
             self.app._autosave.save(lambda path: save(self.app, path))
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.midi_listener.close()
+        self.app.player.stop_all()
+        self.app.player.wait()
         self.app.player.close()
-        super().closeEvent(event)
-        instrument('close event end')
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
