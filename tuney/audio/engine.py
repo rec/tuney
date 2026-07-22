@@ -168,11 +168,9 @@ class AudioEngine(BaseModel):
             mixed = self.mixer.render(frame_size, float, out.shape[1])
             if self.speech is not None:
                 mixed += self.speech.render(frame_size, float, out.shape[1])
-                np.clip(mixed, -1, 1, out=mixed)
                 if self.speech.complete:
                     self.speech = None
             mixed *= self.master_gain
-            np.clip(mixed, -1, 1, out=mixed)
             out[:] = mixed.astype(out.dtype, copy=False)
             if self.recorder:
                 self.recorder.write(out)

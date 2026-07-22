@@ -97,7 +97,6 @@ class Mixer(BaseModel):
             if voice.complete:
                 self.voices.pop(note_number)
         mixed /= self.polyphony.headroom
-        np.clip(mixed, -1, 1, out=mixed)
 
         self.frame_count += frame_size
         return mixed.astype(dtype, copy=False)

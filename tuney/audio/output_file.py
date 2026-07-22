@@ -103,5 +103,4 @@ def _set_comment(file: 'soundfile.SoundFile', comment: str) -> None:
 
 def _mastered(block: np.ndarray, master_gain: float) -> np.ndarray:
     block *= master_gain
-    np.clip(block, -1, 1, out=block)
     return block

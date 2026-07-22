@@ -40,7 +40,7 @@ class Player(BaseModel, frozen=True):
         )
         engine = AudioEngine(
             mixer=mixer,
-            master_gain=self.sound.master_gain,
+            master_gain=self.output_gain,
             buffer_size=self.buffer_size,
             increase_buffer_size=self.increase_buffer_size,
             device=(
@@ -55,7 +55,7 @@ class Player(BaseModel, frozen=True):
     def set_master_gain(self, master_gain: float) -> None:
         self.sound.master_gain = master_gain
         if 'engine' in self.__dict__:
-            self.engine.master_gain = master_gain
+            self.engine.master_gain = self.output_gain
 
     def sync_engine_device(self) -> bool:
         if 'engine' not in self.__dict__:
@@ -67,8 +67,10 @@ class Player(BaseModel, frozen=True):
         )
         if self.engine.device != device:
             self.engine.device = device
+            self.engine.master_gain = self.output_gain
             self.engine.reconfigure()
             return True
+        self.engine.master_gain = self.output_gain
         return False
 
     def reconfigure_device(self) -> None:
@@ -108,6 +110,12 @@ class Player(BaseModel, frozen=True):
             return 2
         return self.device.channels or 1
 
+    @property
+    def output_gain(self) -> float:
+        if self.sound.binaural.enable:
+            return self.sound.master_gain / 2
+        return self.sound.master_gain
+
     def render_file(
         self,
         path: Path,
@@ -127,7 +135,7 @@ class Player(BaseModel, frozen=True):
             self.sample_rate,
             self.channels,
             comment,
-            self.sound.master_gain,
+            self.output_gain,
         )
 
     def start_recording(
