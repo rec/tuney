@@ -36,7 +36,6 @@ from tyro._fields import field_list_from_type_or_callable
 from ..app.app import apply_preset
 from ..app.platform_info import instrument
 from ..audio.device import Device
-from ..audio.midi import MIDIIn, MidiOut
 from ..audio.polyphony import Polyphony
 from ..config.display import General
 from ..mapper.language import (
@@ -45,6 +44,7 @@ from ..mapper.language import (
     language_name_from_menu_name,
 )
 from ..mapper.mapper import Mapper
+from ..midi import MIDIIn, MidiOut
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale

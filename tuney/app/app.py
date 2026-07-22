@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 
-from ..audio import midi
+from .. import midi
 from ..audio.mixer import NotePress
 from ..audio.player import Player
 from ..config.serialize import serialize

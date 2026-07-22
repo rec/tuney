@@ -7,18 +7,19 @@ import pytest
 import tomlkit
 from pydantic import BaseModel
 
+from tuney import midi as midi_module
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.audio import device as device_module
-from tuney.audio import midi as midi_module
 from tuney.audio.device import Device
-from tuney.audio.midi import MIDIIn, MidiOut
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Sound
 from tuney.config.display import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
+from tuney.midi import MIDIIn, MidiOut
+from tuney.midi import ports as midi_ports
 from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
@@ -40,7 +41,7 @@ def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
     midi_module.output_names.cache_clear()
     device_module.device_names.cache_clear()
     monkeypatch.setattr(
-        midi_module.subprocess,
+        midi_ports.subprocess,
         'run',
         lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[]', ''),
     )

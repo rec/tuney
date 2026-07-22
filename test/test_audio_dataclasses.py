@@ -4,12 +4,14 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 
+from tuney import midi as midi_module
 from tuney.audio import device as device_module
-from tuney.audio import midi as midi_module
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Binaural, Sound
+from tuney.midi import model as midi_model
+from tuney.midi import ports as midi_ports
 from tuney.ui.layout import Layout
 
 
@@ -91,7 +93,7 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         return completed_process(f'{midi_outputs[-1]!r}'.replace("'", '"'))
 
     monkeypatch.setattr(
-        midi_module.subprocess,
+        midi_ports.subprocess,
         'run',
         run,
     )
@@ -123,7 +125,7 @@ def test_midi_output_names_uses_subprocess(monkeypatch):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["synth", "keyboard"]')
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.output_names() == ['synth', 'keyboard']
 
@@ -132,7 +134,7 @@ def test_midi_input_names_uses_subprocess(monkeypatch):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["keyboard", "controller"]')
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.input_names() == ['keyboard', 'controller']
 
@@ -144,9 +146,9 @@ def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
         calls.append(args)
         return completed_process('["synth"]', args=args)
 
-    monkeypatch.setattr(midi_module.sys, 'frozen', True, raising=False)
-    monkeypatch.setattr(midi_module.sys, 'executable', 'Tuney')
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(midi_ports.sys, 'executable', 'Tuney')
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.output_names() == ['synth']
     assert calls == [['Tuney', midi_module.INTERNAL_LIST_MIDI_OUTPUTS]]
@@ -159,9 +161,9 @@ def test_midi_input_names_uses_internal_subprocess_when_frozen(monkeypatch):
         calls.append(args)
         return completed_process('["keyboard"]', args=args)
 
-    monkeypatch.setattr(midi_module.sys, 'frozen', True, raising=False)
-    monkeypatch.setattr(midi_module.sys, 'executable', 'Tuney')
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(midi_ports.sys, 'executable', 'Tuney')
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.input_names() == ['keyboard']
     assert calls == [['Tuney', midi_module.INTERNAL_LIST_MIDI_INPUTS]]
@@ -171,7 +173,7 @@ def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
     def get_output_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
-    monkeypatch.setattr(midi_module.mido, 'get_output_names', get_output_names)
+    monkeypatch.setattr(midi_ports.mido, 'get_output_names', get_output_names)
 
     assert midi_module.output_names_json() == '[]'
     assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
@@ -181,7 +183,7 @@ def test_midi_input_names_handles_frozen_probe_failure(monkeypatch, capsys):
     def get_input_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
-    monkeypatch.setattr(midi_module.mido, 'get_input_names', get_input_names)
+    monkeypatch.setattr(midi_ports.mido, 'get_input_names', get_input_names)
 
     assert midi_module.input_names_json() == '[]'
     assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
@@ -191,7 +193,7 @@ def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, caps
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.output_names() == []
     assert 'Could not list MIDI outputs:' in capsys.readouterr().err
@@ -201,7 +203,7 @@ def test_midi_input_names_returns_empty_list_on_probe_failure(monkeypatch, capsy
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.input_names() == []
     assert 'Could not list MIDI inputs:' in capsys.readouterr().err
@@ -211,7 +213,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.output_names() == []
     assert (
@@ -224,7 +226,7 @@ def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys)
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
-    monkeypatch.setattr(midi_module.subprocess, 'run', run)
+    monkeypatch.setattr(midi_ports.subprocess, 'run', run)
 
     assert midi_module.input_names() == []
     assert (
@@ -296,7 +298,7 @@ def test_midi_output_sends_on_mido_channel(
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(midi_module.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(midi_model.mido, 'open_output', lambda _: Port())
 
     midi_module.MidiOut(enable=True, channel=channel, program=40)(60, True)
 
@@ -316,13 +318,13 @@ def test_midi_input_listener_converts_note_without_sending_output() -> None:
     listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
 
     listener.on_message(
-        midi_module.mido.Message('note_on', channel=2, note=72, velocity=64)
+        midi_model.mido.Message('note_on', channel=2, note=72, velocity=64)
     )
     listener.on_message(
-        midi_module.mido.Message('note_on', channel=3, note=72, velocity=64)
+        midi_model.mido.Message('note_on', channel=3, note=72, velocity=64)
     )
     listener.on_message(
-        midi_module.mido.Message('note_off', channel=2, note=72, velocity=0)
+        midi_model.mido.Message('note_off', channel=2, note=72, velocity=0)
     )
 
     assert events == [(60, True), (60, False)]
@@ -336,14 +338,14 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
             pass
 
     def open_input(
-        port: str | None, *, callback: Callable[[midi_module.mido.Message], None]
+        port: str | None, *, callback: Callable[[midi_model.mido.Message], None]
     ) -> Port:
         opened.append((port, callback))
         return Port()
 
     midi = midi_module.MIDI(input=midi_module.MIDIIn(enable=True, name='keyboard'))
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(midi_module.mido, 'open_input', open_input)
+    monkeypatch.setattr(midi_model.mido, 'open_input', open_input)
 
     listener.start()
 

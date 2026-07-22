@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 from ..app.app import on_char
 from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
-from ..audio.midi import input_names, output_names
+from ..midi import input_names, output_names
 from . import constants
 from . import control_panel as control_panel_module
 from .control_panel import ControlPanel

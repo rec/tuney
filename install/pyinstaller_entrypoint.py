@@ -12,7 +12,7 @@ from tuney.app.platform_info import (  # noqa: E402
     handle_frozen_exception,
     install_frozen_excepthook,
 )
-from tuney.audio.midi import (  # noqa: E402
+from tuney.midi import (  # noqa: E402
     INTERNAL_LIST_MIDI_INPUTS,
     INTERNAL_LIST_MIDI_OUTPUTS,
     input_names_json,

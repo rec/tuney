@@ -4,8 +4,8 @@ import pytest
 
 from install import pyinstaller_entrypoint
 from install.pyinstaller_entrypoint import app_args, main
+from tuney import midi as midi_module
 from tuney.app import platform_info
-from tuney.audio import midi as midi_module
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
     'uv run --with pyinstaller --with pillow pyinstaller',
