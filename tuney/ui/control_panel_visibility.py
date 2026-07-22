@@ -6,7 +6,7 @@ from typing import get_args
 from pydantic import BaseModel
 
 from ..config.annotations import Beginner, Display, General, Hidden
-from ..midi import Midi
+from ..midi.midi import Midi
 from ..scale.tuning import Tuning, Type
 from .control_panel_metadata import (
     _annotation_types,

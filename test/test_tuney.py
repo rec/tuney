@@ -54,7 +54,7 @@ from tuney.app.runnable import start_thread
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
-from tuney.midi import Midi, MidiOut
+from tuney.midi.midi import Midi, MidiOut
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer

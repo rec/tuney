@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..audio.device import Device
 from ..audio.sound import Sound
 from ..mapper.mapper import Mapper
-from ..midi import Midi
+from ..midi.midi import Midi
 from ..presets import preset_names
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning

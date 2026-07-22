@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 import tuney.audio.device
-import tuney.midi
 import tuney.midi.midi
 import tuney.midi.ports
 from tuney.audio.device import Device
@@ -17,8 +16,8 @@ from tuney.ui.layout import Layout
 
 @pytest.fixture(autouse=True)
 def clear_midi_name_caches() -> None:
-    tuney.midi.input_names.cache_clear()
-    tuney.midi.output_names.cache_clear()
+    tuney.midi.ports.input_names.cache_clear()
+    tuney.midi.ports.output_names.cache_clear()
 
 
 def test_sample_data_reports_channels_and_cuts_from_center():
@@ -111,7 +110,9 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         names: list[str] = []
 
         def refresh(self) -> None:
-            self.names = tuney.audio.device.device_names() + tuney.midi.output_names()
+            self.names = (
+                tuney.audio.device.device_names() + tuney.midi.ports.output_names()
+            )
 
     option = OptionControl()
     layout = type(
@@ -120,7 +121,7 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         {'control_panel': type('Panel', (), {'option_controls': [option]})()},
     )()
     assert tuney.audio.device.device_names() == ['first']
-    assert tuney.midi.output_names() == ['first output']
+    assert tuney.midi.ports.output_names() == ['first output']
     devices.append([{'name': 'second', 'max_output_channels': 2}])
     midi_outputs.append(['second output'])
 
@@ -135,7 +136,7 @@ def test_midi_output_names_uses_subprocess(monkeypatch):
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.output_names() == ['synth', 'keyboard']
+    assert tuney.midi.ports.output_names() == ['synth', 'keyboard']
 
 
 def test_midi_input_names_uses_subprocess(monkeypatch):
@@ -144,7 +145,7 @@ def test_midi_input_names_uses_subprocess(monkeypatch):
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.input_names() == ['keyboard', 'controller']
+    assert tuney.midi.ports.input_names() == ['keyboard', 'controller']
 
 
 def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
@@ -158,8 +159,8 @@ def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
     monkeypatch.setattr(tuney.midi.ports.sys, 'executable', 'Tuney')
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.output_names() == ['synth']
-    assert calls == [['Tuney', tuney.midi.INTERNAL_LIST_MIDI_OUTPUTS]]
+    assert tuney.midi.ports.output_names() == ['synth']
+    assert calls == [['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_OUTPUTS]]
 
 
 def test_midi_input_names_uses_internal_subprocess_when_frozen(monkeypatch):
@@ -173,8 +174,8 @@ def test_midi_input_names_uses_internal_subprocess_when_frozen(monkeypatch):
     monkeypatch.setattr(tuney.midi.ports.sys, 'executable', 'Tuney')
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.input_names() == ['keyboard']
-    assert calls == [['Tuney', tuney.midi.INTERNAL_LIST_MIDI_INPUTS]]
+    assert tuney.midi.ports.input_names() == ['keyboard']
+    assert calls == [['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_INPUTS]]
 
 
 def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
@@ -183,7 +184,7 @@ def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
 
     monkeypatch.setattr(tuney.midi.ports.mido, 'get_output_names', get_output_names)
 
-    assert tuney.midi.output_names_json() == '[]'
+    assert tuney.midi.ports.output_names_json() == '[]'
     assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
 
 
@@ -193,7 +194,7 @@ def test_midi_input_names_handles_frozen_probe_failure(monkeypatch, capsys):
 
     monkeypatch.setattr(tuney.midi.ports.mido, 'get_input_names', get_input_names)
 
-    assert tuney.midi.input_names_json() == '[]'
+    assert tuney.midi.ports.input_names_json() == '[]'
     assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
 
 
@@ -203,7 +204,7 @@ def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, caps
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.output_names() == []
+    assert tuney.midi.ports.output_names() == []
     assert 'Could not list MIDI outputs:' in capsys.readouterr().err
 
 
@@ -213,7 +214,7 @@ def test_midi_input_names_returns_empty_list_on_probe_failure(monkeypatch, capsy
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.input_names() == []
+    assert tuney.midi.ports.input_names() == []
     assert 'Could not list MIDI inputs:' in capsys.readouterr().err
 
 
@@ -223,7 +224,7 @@ def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.output_names() == []
+    assert tuney.midi.ports.output_names() == []
     assert (
         'Could not list MIDI outputs: expected list, got dict'
         in capsys.readouterr().err
@@ -236,7 +237,7 @@ def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys)
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.input_names() == []
+    assert tuney.midi.ports.input_names() == []
     assert (
         'Could not list MIDI inputs: expected list, got dict' in capsys.readouterr().err
     )
@@ -258,7 +259,7 @@ def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys)
 def test_midi_input_channel_accepts_omni_and_channel_numbers(
     raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    midi = tuney.midi.MidiIn(channel=raw)
+    midi = tuney.midi.midi.MidiIn(channel=raw)
 
     assert midi.channel == channel
     assert midi.mido_channel == mido_channel
@@ -269,9 +270,9 @@ def test_midi_input_channel_accepts_omni_and_channel_numbers(
 )
 def test_midi_channel_rejects_invalid_values(raw: object) -> None:
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
-        tuney.midi.MidiIn(channel=raw)
+        tuney.midi.midi.MidiIn(channel=raw)
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
-        tuney.midi.MidiOut(channel=raw)
+        tuney.midi.midi.MidiOut(channel=raw)
 
 
 @pytest.mark.parametrize(
@@ -290,7 +291,7 @@ def test_midi_channel_rejects_invalid_values(raw: object) -> None:
 def test_midi_output_channel_accepts_omni_and_channel_numbers(
     raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    midi = tuney.midi.MidiOut(channel=raw)
+    midi = tuney.midi.midi.MidiOut(channel=raw)
 
     assert midi.channel == channel
     assert midi.mido_channel == mido_channel
@@ -308,7 +309,7 @@ def test_midi_output_sends_on_mido_channel(
 
     monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
 
-    tuney.midi.MidiOut(enable=True, channel=channel, program=40)(60, True)
+    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40)(60, True)
 
     assert [(m.type, m.channel) for m in messages] == [
         ('program_change', expected),
@@ -319,9 +320,9 @@ def test_midi_output_sends_on_mido_channel(
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:
     events = []
-    midi = tuney.midi.Midi(
-        input=tuney.midi.MidiIn(enable=True, channel=3),
-        output=tuney.midi.MidiOut(note_offset=12),
+    midi = tuney.midi.midi.Midi(
+        input=tuney.midi.midi.MidiIn(enable=True, channel=3),
+        output=tuney.midi.midi.MidiOut(note_offset=12),
     )
     listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
 
@@ -351,7 +352,9 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         opened.append((port, callback))
         return Port()
 
-    midi = tuney.midi.Midi(input=tuney.midi.MidiIn(enable=True, name='keyboard'))
+    midi = tuney.midi.midi.Midi(
+        input=tuney.midi.midi.MidiIn(enable=True, name='keyboard')
+    )
     listener = midi.listener(lambda note, is_press: None)
     monkeypatch.setattr(tuney.midi.midi.mido, 'open_input', open_input)
 

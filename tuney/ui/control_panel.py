@@ -44,7 +44,7 @@ from ..mapper.language import (
     language_name_from_menu_name,
 )
 from ..mapper.mapper import Mapper
-from ..midi import MidiIn, MidiOut
+from ..midi.midi import MidiIn, MidiOut
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale

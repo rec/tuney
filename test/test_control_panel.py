@@ -8,7 +8,6 @@ import tomlkit
 from pydantic import BaseModel
 
 import tuney.audio.device
-import tuney.midi
 import tuney.midi.ports
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -19,7 +18,7 @@ from tuney.audio.sound import Sound
 from tuney.config.annotations import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
-from tuney.midi import MidiIn, MidiOut
+from tuney.midi.midi import MidiIn, MidiOut
 from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
@@ -37,8 +36,8 @@ from tuney.ui import (
 
 @pytest.fixture(autouse=True)
 def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
-    tuney.midi.input_names.cache_clear()
-    tuney.midi.output_names.cache_clear()
+    tuney.midi.ports.input_names.cache_clear()
+    tuney.midi.ports.output_names.cache_clear()
     tuney.audio.device.device_names.cache_clear()
     monkeypatch.setattr(
         tuney.midi.ports.subprocess,
