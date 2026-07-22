@@ -8,9 +8,9 @@ from shutil import move
 
 from pydantic import BaseModel
 
-from ..app.platform_info import instrument
 from ..audio.player import Player
 from ..ui import Action, State, StateChange
+from .platform_info import instrument
 
 
 class AudioRecorder(BaseModel):

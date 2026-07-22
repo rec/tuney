@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..app.platform_info import instrument
 from ..time import Milliseconds, Seconds, to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
+from .platform_info import instrument
 
 if TYPE_CHECKING:
-    from ..app.app import App
+    from .app import App
 
 
 class KeyRecorder(BaseModel):
@@ -70,8 +70,8 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: App) -> None:
-        from ..app.app import play_char, replay_char_presses
-        from ..app.text_timing import text_timing_active_indexes
+        from .app import play_char, replay_char_presses
+        from .text_timing import text_timing_active_indexes
 
         instrument(
             'key recorder replay start',
@@ -136,7 +136,7 @@ class KeyRecorder(BaseModel):
         instrument('key recorder replay end')
 
     def finish_replay(self, state: App) -> None:
-        from ..app.app import on_replay, replay_char_presses, stop_replaying
+        from .app import on_replay, replay_char_presses, stop_replaying
 
         instrument('key recorder finish replay')
         if state.main_window.history.loop_replay and replay_char_presses(state):

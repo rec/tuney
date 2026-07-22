@@ -1354,7 +1354,7 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
     main_window.ui = FakeUi()
     app.__dict__['main_window'] = main_window
     app.__dict__['player'] = FakePlayer()
-    monkeypatch.setattr('tuney.recorders.key_recorder.Sequencer', FakeSequencer)
+    monkeypatch.setattr('tuney.app.key_recorder.Sequencer', FakeSequencer)
     monkeypatch.setattr('tuney.app.app.play_char', lambda *_: None)
 
     app.key_recorder.on_replay(app)
@@ -1399,7 +1399,7 @@ def test_replay_starts_speech(monkeypatch) -> None:
     app.__dict__['main_window'] = main_window
     player = FakePlayer()
     app.__dict__['player'] = player
-    monkeypatch.setattr('tuney.recorders.key_recorder.Sequencer', FakeSequencer)
+    monkeypatch.setattr('tuney.app.key_recorder.Sequencer', FakeSequencer)
 
     app.key_recorder.on_replay(app)
 

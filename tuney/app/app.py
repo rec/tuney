@@ -22,15 +22,15 @@ from ..config.tuney import Tuney
 from ..keyboard.listener import KeyboardListener
 from ..presets import is_str_dict, merged_data, read_preset
 from ..presets.autosave import Autosave
-from ..recorders.audio_recorder import AudioRecorder
-from ..recorders.key_recorder import KeyRecorder
 from ..scale.accidentals import Accidentals
 from ..scale.tuning import Computed, Type
 from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..ui import startup
+from .audio_recorder import AudioRecorder
 from .global_config import GlobalConfig
+from .key_recorder import KeyRecorder
 from .platform_info import (
     acquire_single_instance,
     exit_with_message,
