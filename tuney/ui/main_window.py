@@ -34,7 +34,7 @@ from ..app.app import (
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
-from . import startup
+from . import file_commands, key_events, startup, tuning_files
 from .error_dialogs import (
     on_report_problem,
     on_show_log,
@@ -42,7 +42,6 @@ from .error_dialogs import (
     show_crash_report,
     show_restore_error,
 )
-from .file_commands import config_path as _config_path
 from .file_commands import (
     on_copy_from_state,
     on_delete_presets,
@@ -60,7 +59,6 @@ from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History
 from .key_events import eventFilter, keyPressEvent, keyReleaseEvent
-from .key_events import on_key_event as _on_key_event
 from .main_menu import build_menu
 from .replay_controls import (
     is_replaying,
@@ -75,8 +73,6 @@ from .replay_controls import (
     set_is_replaying,
 )
 from .tuning_files import on_export_tuning, on_import_tuning
-from .tuning_files import set_tuning as _set_tuning
-from .tuning_files import update_export_tuning_action as _update_export_tuning_action
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -275,8 +271,8 @@ class MainWindow(QMainWindow):
 
     on_import_tuning = on_import_tuning
     on_export_tuning = on_export_tuning
-    _set_tuning = _set_tuning
-    _update_export_tuning_action = _update_export_tuning_action
+    _set_tuning = tuning_files.set_tuning
+    _update_export_tuning_action = tuning_files.update_export_tuning_action
 
     on_transport_state = on_transport_state
 
@@ -300,7 +296,7 @@ class MainWindow(QMainWindow):
 
     on_open_config_folder = on_open_config_folder
     on_trash_config_file = on_trash_config_file
-    _config_path = _config_path
+    _config_path = file_commands.config_path
     on_copy_from_state = on_copy_from_state
     on_paste_into_state = on_paste_into_state
     on_load_autosave = on_load_autosave
@@ -347,7 +343,7 @@ class MainWindow(QMainWindow):
     keyPressEvent = keyPressEvent
     keyReleaseEvent = keyReleaseEvent
     eventFilter = eventFilter
-    _on_key_event = _on_key_event
+    _on_key_event = key_events.on_key_event
 
     @cached_property
     def menu(self):

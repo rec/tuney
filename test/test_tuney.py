@@ -13,8 +13,8 @@ from urllib.parse import parse_qs, urlparse
 import mido
 import pytest
 
-import tuney.app.app as app_module
-import tuney.app.platform_info as platform_info
+import tuney.app.app
+import tuney.app.platform_info
 from tuney.app.app import (
     App,
     append_char_press,
@@ -233,7 +233,7 @@ def test_windows_process_check_uses_untruncated_handle(monkeypatch) -> None:
         'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
     )
 
-    assert platform_info._windows_process_is_alive(1234)
+    assert tuney.app.platform_info._windows_process_is_alive(1234)
     assert calls == [
         ('open', 0x1000, False, 1234),
         ('exit', handle),
@@ -351,7 +351,7 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
             main_window = FakeWindow()
 
         monkeypatch.setattr(
-            app_module, 'show_already_running', lambda: calls.append('busy')
+            tuney.app.app, 'show_already_running', lambda: calls.append('busy')
         )
 
         run(FakeApp())
@@ -395,7 +395,7 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
                 return window
 
         app = FakeApp()
-        monkeypatch.setattr(app_module, 'start', lambda _: None)
+        monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
 
         run(app)
 
@@ -429,11 +429,11 @@ def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
             _autosave = Autosave()
             main_window = FakeWindow()
 
-        monkeypatch.setattr(app_module, 'is_frozen', lambda: True)
+        monkeypatch.setattr(tuney.app.app, 'is_frozen', lambda: True)
         monkeypatch.setattr(
             'tuney.app.platform_info._process_is_alive', lambda _: False
         )
-        monkeypatch.setattr(app_module, 'start', lambda _: None)
+        monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
 
         run(FakeApp())
 

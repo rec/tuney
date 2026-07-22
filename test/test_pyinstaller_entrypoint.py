@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
+import tuney.app.platform_info
+import tuney.midi
 from install import pyinstaller_entrypoint
 from install.pyinstaller_entrypoint import app_args, main
-from tuney import midi as midi_module
-from tuney.app import platform_info
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
     'uv run --with pyinstaller --with pillow pyinstaller',
@@ -48,7 +48,7 @@ def test_regular_script_preserves_cli_default() -> None:
 def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         'sys.argv',
-        ['Tuney', midi_module.INTERNAL_LIST_MIDI_OUTPUTS],
+        ['Tuney', tuney.midi.INTERNAL_LIST_MIDI_OUTPUTS],
     )
     monkeypatch.setattr(
         pyinstaller_entrypoint, 'output_names_json', lambda: '["synth"]'
@@ -62,7 +62,7 @@ def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
 def test_internal_midi_input_mode_prints_json(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         'sys.argv',
-        ['Tuney', midi_module.INTERNAL_LIST_MIDI_INPUTS],
+        ['Tuney', tuney.midi.INTERNAL_LIST_MIDI_INPUTS],
     )
     monkeypatch.setattr(
         pyinstaller_entrypoint, 'input_names_json', lambda: '["keyboard"]'
@@ -126,7 +126,9 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
         messages.append((error, path))
 
     monkeypatch.setattr('install.pyinstaller_entrypoint.app_args', fail)
-    monkeypatch.setattr(platform_info, 'show_frozen_exception', show_frozen_exception)
+    monkeypatch.setattr(
+        tuney.app.platform_info, 'show_frozen_exception', show_frozen_exception
+    )
 
     with pytest.raises(SystemExit) as error:
         main()

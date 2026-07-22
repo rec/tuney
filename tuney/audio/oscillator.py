@@ -9,8 +9,8 @@ from ..config.display import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
 from ..config.tyro_option import tyro_option
 from ..scale import NoteNumber
+from . import scipy
 from .scipy import sawtooth
-from .scipy import square as scipy_square
 
 
 def sine(out: np.ndarray, duty_cycle: float) -> np.ndarray:
@@ -23,7 +23,7 @@ def triangle(out: np.ndarray, duty_cycle: float) -> np.ndarray:
 
 
 def square(out: np.ndarray, duty_cycle: float) -> np.ndarray:
-    out[:] = scipy_square(out, duty_cycle)
+    out[:] = scipy.square(out, duty_cycle)
     return out
 
 

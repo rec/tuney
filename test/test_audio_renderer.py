@@ -8,7 +8,7 @@ import sounddevice
 import soundfile
 from sounddevice import CallbackAbort, PortAudioError
 
-from tuney.audio import device as device_module
+import tuney.audio.device
 from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
@@ -528,7 +528,7 @@ def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     monkeypatch.setattr(
-        device_module.sounddevice,
+        tuney.audio.device.sounddevice,
         'query_devices',
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},

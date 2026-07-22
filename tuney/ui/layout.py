@@ -27,8 +27,7 @@ from ..app.app import on_char
 from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
 from ..midi import input_names, output_names
-from . import constants
-from . import control_panel as control_panel_module
+from . import constants, control_panel
 from .control_panel import ControlPanel
 from .main_window import MainWindow
 from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
@@ -389,7 +388,7 @@ class Layout(QWidget):
         )
         layout.addWidget(QLabel('Tempo', frame))
         self.loop_tempo = QDoubleSpinBox(frame)
-        self.loop_tempo.setLocale(control_panel_module.NUMERIC_LOCALE)
+        self.loop_tempo.setLocale(control_panel.NUMERIC_LOCALE)
         self.loop_tempo.setRange(LOOP_TEMPO_MINIMUM, LOOP_TEMPO_MAXIMUM)
         self.loop_tempo.setSingleStep(LOOP_TEMPO_INCREMENT)
         self.loop_tempo.setDecimals(LOOP_TEMPO_DECIMALS)

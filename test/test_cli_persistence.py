@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-import tuney.presets as presets
+import tuney.presets
+import tuney.time.sequencer
 from tuney.app.app import App, run
 from tuney.app.main import main
 from tuney.app.platform_info import (
@@ -13,7 +14,6 @@ from tuney.app.platform_info import (
 )
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
-from tuney.time import sequencer as sequencer_module
 from tuney.time.char_press import CharPress
 from tuney.ui import startup
 
@@ -114,7 +114,7 @@ def isolate_persistent_roots(
     monkeypatch.setenv('XDG_STATE_HOME', str(state_home))
     monkeypatch.setenv('XDG_CONFIG_HOME', str(config_home))
     monkeypatch.setattr(startup, 'autosave_file', state_home / 'tuney' / 'state.toml')
-    monkeypatch.setattr(presets, 'USER_PRESETS', user_presets)
+    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', user_presets)
     return [state_home, config_home, user_presets]
 
 
@@ -126,8 +126,8 @@ def mock_live_audio(monkeypatch: pytest.MonkeyPatch) -> None:
             clock[0] += timeout
         return False
 
-    monkeypatch.setattr(sequencer_module.time, 'time', lambda: clock[0])
-    monkeypatch.setattr(sequencer_module.Event, 'wait', wait)
+    monkeypatch.setattr(tuney.time.sequencer.time, 'time', lambda: clock[0])
+    monkeypatch.setattr(tuney.time.sequencer.Event, 'wait', wait)
     monkeypatch.setattr(Player, 'on_note', lambda self, note, is_press: True)
     monkeypatch.setattr(Player, 'stop_all', lambda self: None)
     monkeypatch.setattr(Player, 'wait', lambda self: None)

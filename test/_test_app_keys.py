@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
 
-from tuney import presets as presets_module
+import tuney.presets
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
@@ -14,13 +14,15 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
-from tuney.ui import error_dialogs as error_dialogs_module
-from tuney.ui import file_commands as file_commands_module
-from tuney.ui import file_dialogs as file_dialogs_module
-from tuney.ui import key_events as key_events_module
-from tuney.ui import main_window as main_window_module
-from tuney.ui import preset_dialogs as preset_dialogs_module
-from tuney.ui import startup
+from tuney.ui import (
+    error_dialogs,
+    file_commands,
+    file_dialogs,
+    key_events,
+    main_window,
+    preset_dialogs,
+    startup,
+)
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
@@ -49,8 +51,8 @@ def test_qt_key_events() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    key_events_module.on_char = lambda _, c: chars.append(c)
-    key_events_module.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
+    key_events.on_char = lambda _, c: chars.append(c)
+    key_events.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
 
     assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
     assert not MainWindow._on_key_event(
@@ -77,10 +79,10 @@ def test_macos_option_composed_characters() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    key_events_module.on_char = lambda _, c: chars.append(c)
-    key_events_module.time.time = iter([100.0, 100.25]).__next__
-    platform = key_events_module.sys.platform
-    key_events_module.sys.platform = 'darwin'
+    key_events.on_char = lambda _, c: chars.append(c)
+    key_events.time.time = iter([100.0, 100.25]).__next__
+    platform = key_events.sys.platform
+    key_events.sys.platform = 'darwin'
 
     try:
         assert MainWindow._on_key_event(
@@ -103,7 +105,7 @@ def test_macos_option_composed_characters() -> None:
             False,
         )
     finally:
-        key_events_module.sys.platform = platform
+        key_events.sys.platform = platform
 
     assert chars == [
         CharPress('é', time=100.0),
@@ -116,9 +118,9 @@ def test_macos_option_special_keys_remain_ignored() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    key_events_module.on_char = lambda _, c: chars.append(c)
-    platform = key_events_module.sys.platform
-    key_events_module.sys.platform = 'darwin'
+    key_events.on_char = lambda _, c: chars.append(c)
+    platform = key_events.sys.platform
+    key_events.sys.platform = 'darwin'
 
     try:
         assert not MainWindow._on_key_event(
@@ -132,7 +134,7 @@ def test_macos_option_special_keys_remain_ignored() -> None:
             True,
         )
     finally:
-        key_events_module.sys.platform = platform
+        key_events.sys.platform = platform
 
     assert chars == []
 
@@ -142,9 +144,9 @@ def test_non_macos_alt_characters_remain_ignored() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.app = object()
-    key_events_module.on_char = lambda _, c: chars.append(c)
-    platform = key_events_module.sys.platform
-    key_events_module.sys.platform = 'linux'
+    key_events.on_char = lambda _, c: chars.append(c)
+    platform = key_events.sys.platform
+    key_events.sys.platform = 'linux'
 
     try:
         assert not MainWindow._on_key_event(
@@ -158,7 +160,7 @@ def test_non_macos_alt_characters_remain_ignored() -> None:
             True,
         )
     finally:
-        key_events_module.sys.platform = platform
+        key_events.sys.platform = platform
 
     assert chars == []
 
@@ -177,11 +179,11 @@ def test_app_event_filter() -> None:
     app._key_chars = {}
     app.focus_in_control_panel = False
     app.app = object()
-    key_events_module.on_char = lambda _, c: chars.append(c)
+    key_events.on_char = lambda _, c: chars.append(c)
     app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
         app, event, is_press
     )
-    key_events_module.time.time = lambda: 100.0
+    key_events.time.time = lambda: 100.0
 
     assert MainWindow.eventFilter(app, app, key_event(Qt.Key.Key_A, 'a'))
     assert chars == [CharPress('a', time=100.0)]
@@ -225,14 +227,14 @@ def test_app_mainloop_exits_on_sigint() -> None:
         def quit(self) -> None:
             calls.append('quit')
 
-    old_timer = main_window_module.QTimer
-    old_getsignal = main_window_module.signal.getsignal
-    old_signal = main_window_module.signal.signal
+    old_timer = main_window.QTimer
+    old_getsignal = main_window.signal.getsignal
+    old_signal = main_window.signal.signal
 
     try:
-        main_window_module.QTimer = FakeTimer
-        main_window_module.signal.getsignal = lambda signum: 'old'
-        main_window_module.signal.signal = lambda signum, handler: handlers.append(
+        main_window.QTimer = FakeTimer
+        main_window.signal.getsignal = lambda signum: 'old'
+        main_window.signal.signal = lambda signum, handler: handlers.append(
             (signum, handler)
         )
 
@@ -251,9 +253,9 @@ def test_app_mainloop_exits_on_sigint() -> None:
 
         MainWindow.mainloop(app)
     finally:
-        main_window_module.QTimer = old_timer
-        main_window_module.signal.getsignal = old_getsignal
-        main_window_module.signal.signal = old_signal
+        main_window.QTimer = old_timer
+        main_window.signal.getsignal = old_getsignal
+        main_window.signal.signal = old_signal
 
     assert calls == [
         ('timer', app),
@@ -273,7 +275,7 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_application_uses_cross_platform_style() -> None:
     from PySide6.QtWidgets import QWidget
 
-    from tuney.ui import layout as layout_module
+    import tuney.ui.layout
 
     class FakeControlPanel:
         show_advanced = True
@@ -317,12 +319,12 @@ def test_application_uses_cross_platform_style() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
         startup.autosave_file = path
-        old_layout = layout_module.Layout
+        old_layout = tuney.ui.layout.Layout
         try:
-            layout_module.Layout = FakeWindowLayout
+            tuney.ui.layout.Layout = FakeWindowLayout
             window = MainWindow(App(gui=True, silent=True))
         finally:
-            layout_module.Layout = old_layout
+            tuney.ui.layout.Layout = old_layout
         app = window.qt_app
 
         assert app.applicationName() == 'Tuney'
@@ -519,7 +521,7 @@ def test_app_activate_and_history() -> None:
         startup.autosave_file = path
         app.app.__dict__.pop('_autosave', None)
         autosaved = App(gui=False, max_gap=2.0, load_autosave=False)
-        autosaved._autosave.save(lambda path: main_window_module.save(autosaved, path))
+        autosaved._autosave.save(lambda path: main_window.save(autosaved, path))
         app.app.max_gap = 3.0
         app.app.load_autosave = True
 
@@ -527,7 +529,7 @@ def test_app_activate_and_history() -> None:
 
         assert app.app.max_gap == 2.0
         assert not app.app.load_autosave
-        assert App.model_validate(presets_module.read_file(path)).max_gap == 3.0
+        assert App.model_validate(tuney.presets.read_file(path)).max_gap == 3.0
         app.history.undo()
 
         assert app.app.max_gap == 3.0
@@ -542,7 +544,7 @@ def test_app_activate_and_history() -> None:
             def information(parent: object, title: str, text: str) -> None:
                 messages.append((parent, title, text))
 
-        error_dialogs_module.QMessageBox = FakeMessageBox
+        error_dialogs.QMessageBox = FakeMessageBox
         MainWindow.on_show_log(app)
 
         assert messages == [
@@ -561,7 +563,7 @@ def test_app_activate_and_history() -> None:
             opened.append(url.toLocalFile())
             return True
 
-    file_commands_module.QDesktopServices = FakeDesktopServices
+    file_commands.QDesktopServices = FakeDesktopServices
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
@@ -589,7 +591,7 @@ def test_app_activate_and_history() -> None:
             trashed.append(path)
             return True
 
-    file_commands_module.QFile = FakeFile
+    file_commands.QFile = FakeFile
 
     with tempfile.TemporaryDirectory() as tmp:
         config_file = Path(tmp) / 'configs' / 'settings.toml'
@@ -622,7 +624,7 @@ def test_app_reports_problem() -> None:
             opened.append(url.toString())
             return True
 
-    error_dialogs_module.QDesktopServices = FakeDesktopServices
+    error_dialogs.QDesktopServices = FakeDesktopServices
     app = HistoryApp()
 
     MainWindow.on_report_problem(app)
@@ -645,7 +647,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getOpenFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        file_dialogs_module.QFileDialog = FakeOpenDialog
+        file_dialogs.QFileDialog = FakeOpenDialog
 
         MainWindow.on_import_tuning(app)
 
@@ -662,7 +664,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        file_dialogs_module.QFileDialog = FakeSaveDialog
+        file_dialogs.QFileDialog = FakeSaveDialog
 
         MainWindow.on_export_tuning(app)
 
@@ -682,7 +684,7 @@ def test_app_imports_and_exports_tuning() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        file_dialogs_module.QFileDialog = FakeComputedSaveDialog
+        file_dialogs.QFileDialog = FakeComputedSaveDialog
 
         MainWindow.on_export_tuning(app)
 
@@ -733,7 +735,7 @@ def test_file_dialogs_remember_last_directories() -> None:
                 calls.append(str(args[2]))
                 return str(second), ''
 
-        file_dialogs_module.QFileDialog = FakeDialog
+        file_dialogs.QFileDialog = FakeDialog
 
         MainWindow._get_open_file_name(app, 'Open Text File', 'Open Text File', '*')
         MainWindow._get_save_file_name(app, 'Save', 'Save', '*')
@@ -764,7 +766,7 @@ def test_app_saves_audio_from_current_text() -> None:
         def render_file(output, events, comment):
             rendered.append((output, events, comment))
 
-        file_dialogs_module.QFileDialog = FakeSaveDialog
+        file_dialogs.QFileDialog = FakeSaveDialog
         app.app.__dict__['player'] = type(
             'FakePlayer',
             (),
@@ -784,28 +786,28 @@ def test_app_saves_audio_from_current_text() -> None:
 
 def test_app_saves_and_deletes_presets() -> None:
     app = HistoryApp()
-    old_user_presets = presets_module.USER_PRESETS
-    old_input_dialog = preset_dialogs_module.QInputDialog
-    old_selected_preset_names = file_commands_module.selected_preset_names
+    old_user_presets = tuney.presets.USER_PRESETS
+    old_input_dialog = preset_dialogs.QInputDialog
+    old_selected_preset_names = file_commands.selected_preset_names
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            presets_module.USER_PRESETS = Path(tmp)
+            tuney.presets.USER_PRESETS = Path(tmp)
 
             class FakeInputDialog:
                 @staticmethod
                 def getText(*_: object) -> tuple[str, bool]:
                     return 'mine', True
 
-            preset_dialogs_module.QInputDialog = FakeInputDialog
+            preset_dialogs.QInputDialog = FakeInputDialog
             app.app.max_gap = 2.0
 
             MainWindow.on_save_preset(app)
 
             path = Path(tmp) / 'mine.toml'
             assert path.exists()
-            assert presets_module.read_preset('mine')['max_gap'] == 2.0
+            assert tuney.presets.read_preset('mine')['max_gap'] == 2.0
 
-            file_commands_module.selected_preset_names = lambda _: ['mine']
+            file_commands.selected_preset_names = lambda _: ['mine']
 
             MainWindow.on_delete_presets(app)
 
@@ -819,9 +821,9 @@ def test_app_saves_and_deletes_presets() -> None:
 
             assert not path.exists()
     finally:
-        presets_module.USER_PRESETS = old_user_presets
-        preset_dialogs_module.QInputDialog = old_input_dialog
-        file_commands_module.selected_preset_names = old_selected_preset_names
+        tuney.presets.USER_PRESETS = old_user_presets
+        preset_dialogs.QInputDialog = old_input_dialog
+        file_commands.selected_preset_names = old_selected_preset_names
 
 
 class FakeLoop:

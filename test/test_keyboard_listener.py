@@ -1,4 +1,4 @@
-from tuney.keyboard import listener as listener_module
+import tuney.keyboard.listener
 from tuney.keyboard.listener import KeyboardListener
 from tuney.time.char_press import CharPress
 
@@ -32,7 +32,7 @@ def test_character_key_still_emits_char_press() -> None:
 def test_listener_is_created_lazily(monkeypatch) -> None:
     created = []
     monkeypatch.setattr(
-        listener_module,
+        tuney.keyboard.listener,
         '_make_listener',
         lambda listener: created.append(listener) or listener,
     )

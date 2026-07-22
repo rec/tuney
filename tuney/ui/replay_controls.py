@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..app.app import on_replay as app_on_replay
+from ..app import app
 from ..app.app import output_comment
 from ..app.platform_info import instrument
 from . import Action, StateChange
@@ -51,7 +51,7 @@ def set_is_replaying(main_window: MainWindow, is_replaying: bool) -> None:
         instrument('ui replay state', is_replaying=is_replaying)
         main_window._is_replaying = is_replaying
         main_window.ui.set_replay_state(is_replaying)
-        app_on_replay(main_window.app)
+        app.on_replay(main_window.app)
 
 
 def on_replay(main_window: MainWindow, *_: object) -> None:
