@@ -702,6 +702,20 @@ def test_mixer_maps_mono_signal_to_each_channel() -> None:
     np.testing.assert_array_equal(out[:, 1], out[:, 2])
 
 
+def test_mixer_maps_binaural_signal_to_mono_channel() -> None:
+    voice = Voice(
+        oscillator=Oscillator(waveform=Waveform.sine),
+        binaural=Binaural(enable=True),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice)
+    mixer.apply(NotePress(0))
+
+    out = mixer.render(4096, np.float32, channels=1)
+
+    assert out.shape == (4096, 1)
+    assert np.all(np.isfinite(out))
+
+
 def test_mixer_does_not_clip_floating_point_output() -> None:
     voice = Voice(
         fade_in=0,
