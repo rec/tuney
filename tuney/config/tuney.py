@@ -98,7 +98,7 @@ class Tuney(BaseModel):
         tyro_option('-p'),
         General,
         Beginner,
-        Options(preset_names),
+        Options(options=preset_names),
     ] = None
 
     # Load configs from a JSON or toml file

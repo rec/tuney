@@ -23,7 +23,7 @@ class Type(StrEnum):
 class Computed(BaseModel):
     #: If limit is greater than zero, use rounded N-limit just intonation
     limit: Annotated[
-        int, tyro_option('-v'), Display(column=1, row=0), Numeric(min=0, width=3)
+        int, tyro_option('-v'), Numeric(column=1, row=0, min=0, width=3)
     ] = Field(0, ge=0)
 
     #: Number of divisions of an octave
@@ -31,8 +31,7 @@ class Computed(BaseModel):
         int,
         tyro_option('-V'),
         Beginner,
-        Display(column=2, row=0),
-        Numeric(min=1, width=3),
+        Numeric(column=2, row=0, min=1, width=3),
     ] = Field(12, gt=0)
 
     #: Frequency change between octaves. For the default "power" pitch_to_frequency
@@ -42,8 +41,7 @@ class Computed(BaseModel):
     octave_ratio: Annotated[
         float,
         tyro_option('-J'),
-        Display(column=3, row=0),
-        Numeric(min=0.001, inc=0.001),
+        Numeric(column=3, row=0, min=0.001, inc=0.001),
     ] = Field(2, gt=0)
 
     def __call__(self, note_delta: NoteNumber) -> Number:
@@ -82,8 +80,7 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         float,
         tyro_option('-T'),
         Beginner,
-        Display(column=1, row=0),
-        Numeric(decimals=0, inc=1),
+        Numeric(column=1, row=0, decimals=0, inc=1),
     ] = 0
 
     #: The frequency of the reference `root_note`
@@ -91,16 +88,14 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         float,
         tyro_option('-U'),
         Beginner,
-        Display(column=4, row=0),
-        Numeric(min=0.001),
+        Numeric(column=4, row=0, min=0.001),
     ] = Field(440, gt=0)
 
     #: The note number of the reference note
     root_note: Annotated[
         NoteNumber,
         tyro_option('-W'),
-        Display(column=5, row=0),
-        Numeric(min=0, max=127, width=3),
+        Numeric(column=5, row=0, min=0, max=127, width=3),
     ] = Field(69, ge=0, le=127)  # MIDI note 69 is A440, for non-Yamaha units
 
     @cached_property

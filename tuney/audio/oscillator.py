@@ -49,21 +49,19 @@ class Oscillator(BaseModel):
     duty_cycle: Annotated[
         float,
         tyro_option('-u'),
-        Display(column=1, row=0),
-        Numeric(min=0, max=1.0, dial=True, inc=0.01),
+        Numeric(column=1, row=0, min=0, max=1.0, dial=True, inc=0.01),
     ] = 0.5
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
         NoteNumber,
         tyro_option('-K'),
-        Display(column=2, row=0),
-        Numeric(min=0, max=127, width=3),
+        Numeric(column=2, row=0, min=0, max=127, width=3),
     ] = Field(64, ge=0, le=127)
 
     # Gain decibels added per keyboard octave above key_scale_note
     key_scale: Annotated[
-        float, tyro_option('-k'), Display(column=3, row=0), Numeric(width=5)
+        float, tyro_option('-k'), Numeric(column=3, row=0, width=5)
     ] = 0.0
 
     def __call__(

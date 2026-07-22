@@ -7,7 +7,11 @@ from pydantic import BaseModel, GetCoreSchemaHandler, model_validator
 from pydantic_core import CoreSchema
 
 
-class _Base(BaseModel, frozen=True):
+class Display(BaseModel, frozen=True):
+    column: int = 0
+    row: int | None = None
+    width: int | None = None
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls, source: object, handler: GetCoreSchemaHandler
@@ -15,27 +19,19 @@ class _Base(BaseModel, frozen=True):
         return handler(source)
 
 
-class Display(_Base, frozen=True):
-    column: int = 0
-    row: int | None = None
-    width: int | None = None
-
-
-class Options(_Base, frozen=True):
+class Options(Display, frozen=True):
     options: Callable[[], list[str]]
 
-    def __init__(self, options: Callable[[], list[str]]) -> None:
-        super().__init__(**{'options': options})
 
-
-class Numeric(_Base, frozen=True):
+class Numeric(Display, frozen=True):
     min: float | None = None
     max: float | None = None
-    width: int | None = None
     dial: bool = False
     log: bool = False
+
     # Number of decimal places to display
     decimals: int | None = None
+
     # How much to increment or decrement when clicking on the arrows.
     # A percentage for exponential, an absolute value otherwise.
     inc: float | None = None

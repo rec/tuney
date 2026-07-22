@@ -59,20 +59,14 @@ class Scale(BaseModel):
     )
 
     #: The root note to start scales with
-    root: Annotated[
-        str, tyro_option('-q'), Beginner, Display(row=0), Numeric(width=1)
-    ] = 'C'
+    root: Annotated[str, tyro_option('-q'), Beginner, Numeric(row=0, width=1)] = 'C'
 
     #: The first note from the note names:
     # TODO: validate begin <= base <= end
-    begin: Annotated[
-        str, tyro_option('-j'), Display(column=1, row=0), Numeric(width=1)
-    ] = 'A'
+    begin: Annotated[str, tyro_option('-j'), Numeric(column=1, row=0, width=1)] = 'A'
 
     #: The Last note from the alphabet
-    end: Annotated[
-        str, tyro_option('-E'), Display(column=2, row=0), Numeric(width=1)
-    ] = 'G'
+    end: Annotated[str, tyro_option('-E'), Numeric(column=2, row=0, width=1)] = 'G'
 
     # If `notes` is set, once the scale is generated, only the notes in
     # `notes` are actually used in the list.
@@ -80,7 +74,7 @@ class Scale(BaseModel):
     # For example, notes='CDEFGAB' would correspond to only
     # the white notes on the piano.
     notes: Annotated[
-        str | None, tyro_option('-Q'), Beginner, Display(row=1), Numeric(width=12)
+        str | None, tyro_option('-Q'), Beginner, Numeric(row=1, width=12)
     ] = None
 
     # The intervals between notes. Can also be entered as a string: "2212221"
@@ -100,8 +94,7 @@ class Scale(BaseModel):
     offset: Annotated[
         int,
         tyro_option('-Y', name='scale-offset'),
-        Display(column=3, row=0),
-        Numeric(min=-99, max=99, width=3),
+        Numeric(column=3, row=0, min=-99, max=99, width=3),
     ] = Field(0, ge=-99, le=99)
 
     @model_validator(mode='after')

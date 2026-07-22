@@ -22,8 +22,7 @@ class Binaural(BaseModel):
         float,
         tyro_option(),
         Beginner,
-        Display(column=1, row=0),
-        Numeric(min=0.001, inc=0.1),
+        Numeric(column=1, row=0, min=0.001, inc=0.1),
     ] = Field(7.8, gt=0)
 
     # Stereo placement from reversed to centered to normal
@@ -31,8 +30,7 @@ class Binaural(BaseModel):
         float,
         tyro_option(),
         Beginner,
-        Display(column=2, row=0),
-        Numeric(min=-1, max=1, inc=0.01),
+        Numeric(column=2, row=0, min=-1, max=1, inc=0.01),
     ] = Field(1.0, ge=-1, le=1)
 
 
@@ -76,9 +74,9 @@ class Sound(BaseModel):
     polyphony: Polyphony = Field(default_factory=Polyphony)
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: Annotated[
-        float, tyro_option('-N'), Beginner, Display(row=0), Numeric()
-    ] = Field(0.5, ge=0)
+    minimum_note_time: Annotated[float, tyro_option('-N'), Beginner, Numeric(row=0)] = (
+        Field(0.5, ge=0)
+    )
 
     def note_gain(self, note_number: NoteNumber) -> float:
         return self.gain * self.oscillator.gain(note_number)

@@ -32,8 +32,7 @@ class MidiBase(BaseModel):
     # MIDI channel, or omni to use all channels
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        Display(column=2, row=0),
-        Options(lambda: MIDI_CHANNEL_OPTIONS),
+        Options(options=lambda: MIDI_CHANNEL_OPTIONS, column=2, row=0),
     ] = 'omni'
 
     @field_validator('channel', mode='before')
@@ -65,8 +64,7 @@ class MidiOut(MidiBase):
     # MIDI output channel, or omni to use the default channel
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        Display(column=2, row=0),
-        Options(lambda: MIDI_CHANNEL_OPTIONS),
+        Options(options=lambda: MIDI_CHANNEL_OPTIONS, column=2, row=0),
     ] = 1
 
     # General MIDI instrument program
@@ -74,22 +72,21 @@ class MidiOut(MidiBase):
         int,
         tyro_option(),
         Beginner,
-        Display(column=3, row=0, width=24),
-        Options(lambda: general_midi_program_options()),
+        Options(
+            options=lambda: general_midi_program_options(), column=3, row=0, width=24
+        ),
     ] = Field(0, ge=0, le=127)
 
     # Velocity used for MIDI note-on messages
     velocity: Annotated[
         int,
-        Display(column=4, row=0),
-        Numeric(width=2),
+        Numeric(column=4, row=0, width=2),
     ] = 0x40
 
     # Offset added to MIDI note numbers
     note_offset: Annotated[
         int,
-        Display(column=5, row=0),
-        Numeric(width=2),
+        Numeric(column=5, row=0, width=2),
     ] = 0
 
     @field_validator('program', mode='before')

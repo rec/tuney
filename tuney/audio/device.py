@@ -8,7 +8,7 @@ import tyro
 from pydantic import BaseModel, PrivateAttr, field_validator
 
 from ..app.platform_info import report_error
-from ..config.display import Beginner, Display, Numeric, Options
+from ..config.display import Beginner, Hidden, Numeric, Options
 from ..config.tyro_option import tyro_option
 
 
@@ -83,7 +83,7 @@ def dtype_names() -> list[str]:
 class Device(BaseModel):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
-        int | None, tyro_option(), Beginner, Display(row=0, width=6), Numeric()
+        int | None, tyro_option(), Beginner, Numeric(row=0, width=6)
     ] = None
 
     # Audio output device name or index
@@ -91,20 +91,17 @@ class Device(BaseModel):
         int | str | None,
         tyro_option('-d', name='audio-device'),
         Beginner,
-        Display(column=1, row=0),
-        Numeric(),
-        Options(device_names),
+        Options(options=device_names, column=1, row=0),
     ] = None
 
     # Sample data type sent to the audio output device
     dtype: Annotated[
         DType | None,
         tyro_option(),
-        Display(column=2, row=0, width=8),
-        Options(dtype_names),
+        Options(options=dtype_names, column=2, row=0, width=8),
     ] = None
 
-    channels: Annotated[tyro.conf.Suppress[int | None], Numeric()] = None
+    channels: Annotated[tyro.conf.Suppress[int | None], Hidden, Numeric()] = None
     extra_settings: tyro.conf.Suppress[str | None] = None
     clip_off: tyro.conf.Suppress[bool | None] = None
     dither_off: tyro.conf.Suppress[bool | None] = None
