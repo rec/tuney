@@ -8,7 +8,7 @@ import tyro
 from pydantic import BaseModel, PrivateAttr, field_validator
 
 from ..app.platform_info import report_error
-from ..config.display import Beginner, Hidden, Numeric, Options
+from ..config.annotations import Beginner, Hidden, Numeric, Options
 from ..config.tyro_option import tyro_option
 
 

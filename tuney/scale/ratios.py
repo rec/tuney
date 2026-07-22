@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import BaseModel, model_validator
 
 from ..app.platform_info import report_error
-from ..config.display import Display
+from ..config.annotations import Display
 from ..config.text_file import read_text_file
 from ..config.tyro_option import tyro_option
 from . import Number, evaluate, uncents

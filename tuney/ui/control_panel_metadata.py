@@ -5,7 +5,7 @@ from typing import get_args, get_origin
 
 from pydantic import BaseModel
 
-from ..config.display import Display, Numeric, Options
+from ..config.annotations import Display, Numeric, Options
 
 
 def _control_metadata(cls: type[BaseModel], name: str) -> Display:

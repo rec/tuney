@@ -16,7 +16,7 @@ from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Sound
-from tuney.config.display import Numeric, Options
+from tuney.config.annotations import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.midi import MidiIn, MidiOut

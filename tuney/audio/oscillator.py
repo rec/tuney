@@ -5,7 +5,7 @@ from typing import Annotated
 import numpy as np
 from pydantic import BaseModel, Field
 
-from ..config.display import Beginner, Display, Numeric
+from ..config.annotations import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
 from ..config.tyro_option import tyro_option
 from ..scale import NoteNumber

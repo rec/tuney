@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDoubleSpinBox, QSpinBox, QWidget
 
-from ..config.display import Numeric
+from ..config.annotations import Numeric
 
 
 class _NumericDoubleSpinBox(QDoubleSpinBox):

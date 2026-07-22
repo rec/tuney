@@ -8,7 +8,7 @@ import mido
 from pydantic import BaseModel, Field, field_validator
 
 from ..app.platform_info import report_error
-from ..config.display import Beginner, Display, Numeric, Options
+from ..config.annotations import Beginner, Display, Numeric, Options
 from ..config.tyro_option import tyro_option
 from .general_midi import general_midi_program_options
 

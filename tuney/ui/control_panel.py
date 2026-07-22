@@ -37,7 +37,7 @@ from ..app.app import apply_preset
 from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.polyphony import Polyphony
-from ..config.display import General
+from ..config.annotations import General
 from ..mapper.language import (
     alphabet_for_language_name,
     language_menu_names,

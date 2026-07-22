@@ -16,7 +16,7 @@ from ..scale.tuning import Tuning
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.text_timings import TextTimings
-from .display import Beginner, General, Hidden, Numeric, Options
+from .annotations import Beginner, General, Hidden, Numeric, Options
 from .tyro_option import tyro_option
 
 

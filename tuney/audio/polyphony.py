@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..config.display import Numeric
+from ..config.annotations import Numeric
 from ..config.tyro_option import tyro_option
 
 

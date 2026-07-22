@@ -8,7 +8,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ..config.display import Display, Numeric
+from ..config.annotations import Display, Numeric
 from ..config.tyro_option import tyro_option
 from . import Milliseconds
 from .char_press import CharPress

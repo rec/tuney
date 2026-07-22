@@ -5,7 +5,7 @@ from typing import Annotated
 import tyro
 from pydantic import BaseModel, Field
 
-from ..config.display import Beginner, Display, General, Hidden, Numeric
+from ..config.annotations import Beginner, Display, General, Hidden, Numeric
 from ..config.tyro_option import tyro_option
 from ..scale import NoteNumber
 from .oscillator import Oscillator

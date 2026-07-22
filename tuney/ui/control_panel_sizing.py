@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
-from ..config.display import Display, Numeric
+from ..config.annotations import Display, Numeric
 from .control_panel_metadata import _annotation_types
 
 ENTRY_CHAR_WIDTH = 10

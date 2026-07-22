@@ -5,7 +5,7 @@ from typing import Annotated
 
 from pydantic import BaseModel
 
-from ..config.display import Display
+from ..config.annotations import Display
 from ..config.tyro_option import tyro_option
 from . import Number, evaluate
 
