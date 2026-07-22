@@ -6,7 +6,6 @@ from typing import Annotated
 from pydantic import BaseModel
 
 from ..config.annotations import Display
-from ..config.tyro_option import tyro_option
 from . import Number, evaluate
 
 type Frequency = float  # Must be non-negative
@@ -14,7 +13,7 @@ type Frequency = float  # Must be non-negative
 
 class Table(BaseModel):
     #: Absolute frequency expressions, indexed by note number
-    text: Annotated[str, tyro_option(), Display(row=0, width=24)] = ''
+    text: Annotated[str, Display(row=0, width=24)] = ''
 
     def __call__(self, note_delta: int) -> Frequency:
         if not (values := self.values):

@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..app.platform_info import report_error
 from ..config.annotations import Beginner, Display, Numeric, Options
-from ..config.tyro_option import tyro_option
 from .general_midi import general_midi_program_options
 
 ZERO_IS_NOTE_OFF = True
@@ -23,11 +22,7 @@ class MidiBase(BaseModel):
     enable: Annotated[bool, Beginner, Display(row=0)] = False
 
     # MIDI port name
-    name: Annotated[
-        str | None,
-        Beginner,
-        Display(column=1, row=0, width=12),
-    ] = None
+    name: Annotated[str | None, Beginner, Display(column=1, row=0, width=12)] = None
 
     # MIDI channel, or omni to use all channels
     channel: Annotated[
@@ -70,11 +65,8 @@ class MidiOut(MidiBase):
     # General MIDI instrument program
     program: Annotated[
         int,
-        tyro_option(),
         Beginner,
-        Options(
-            options=lambda: general_midi_program_options(), column=3, row=0, width=24
-        ),
+        Options(options=general_midi_program_options, column=3, row=0, width=24),
     ] = Field(0, ge=0, le=127)
 
     # Velocity used for MIDI note-on messages

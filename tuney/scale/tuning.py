@@ -62,18 +62,16 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
     """
 
     #: Which tuning source to use
-    type: Annotated[Type | None, tyro_option(), Display(column=0, row=0)] = (
-        Type.computed
-    )
+    type: Annotated[Type | None, Display(column=0, row=0)] = Type.computed
 
     #: Computed tuning parameters
     computed: Annotated[Computed | None, Beginner] = Field(default_factory=Computed)
 
     #: Absolute frequencies, indexed by note number
-    table: Annotated[Table | None, tyro_option(), Display(row=1, width=24)] = None
+    table: Annotated[Table | None, Display(row=1, width=24)] = None
 
     #: Ratio expressions, relative to root_frequency
-    ratios: Annotated[Ratios | None, tyro_option(), Display(row=1, width=24)] = None
+    ratios: Annotated[Ratios | None, Display(row=1, width=24)] = None
 
     #: Detune everything, in cents of an octave division
     detune: Annotated[

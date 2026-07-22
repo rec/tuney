@@ -54,9 +54,7 @@ class Oscillator(BaseModel):
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
-        NoteNumber,
-        tyro_option('-K'),
-        Numeric(column=2, row=0, min=0, max=127, width=3),
+        NoteNumber, tyro_option('-K'), Numeric(column=2, row=0, min=0, max=127, width=3)
     ] = Field(64, ge=0, le=127)
 
     # Gain decibels added per keyboard octave above key_scale_note

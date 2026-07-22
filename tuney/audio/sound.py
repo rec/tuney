@@ -15,20 +15,16 @@ from .polyphony import Polyphony
 class Binaural(BaseModel):
     # Add a binaural beat by splitting each note into separate left and right
     # frequencies
-    enable: Annotated[bool, tyro_option(), Beginner, Display(row=0)] = False
+    enable: Annotated[bool, Beginner, Display(row=0)] = False
 
     # Difference between the left and right frequencies, in hertz
     frequency: Annotated[
-        float,
-        tyro_option(),
-        Beginner,
-        Numeric(column=1, row=0, min=0.001, inc=0.1),
+        float, Beginner, Numeric(column=1, row=0, min=0.001, inc=0.1)
     ] = Field(7.8, gt=0)
 
     # Stereo placement from reversed to centered to normal
     width: Annotated[
         float,
-        tyro_option(),
         Beginner,
         Numeric(column=2, row=0, min=-1, max=1, inc=0.01),
     ] = Field(1.0, ge=-1, le=1)
@@ -39,18 +35,16 @@ class Sound(BaseModel):
     oscillator: Oscillator = Field(default_factory=Oscillator)
 
     # Use the same time origin for every oscillator
-    synchronize_oscillators: Annotated[
-        bool, tyro_option('-F', name='synchronize-oscillators'), General, Beginner
-    ] = False
+    synchronize_oscillators: Annotated[bool, tyro_option('-F'), General, Beginner] = (
+        False
+    )
 
     # Binaural beat settings
     binaural: Binaural = Field(default_factory=Binaural)
 
     # Overall playback volume
     master_gain: Annotated[
-        tyro.conf.Suppress[float],
-        Hidden,
-        Numeric(min=0, max=2.0, dial=True, inc=0.01),
+        tyro.conf.Suppress[float], Hidden, Numeric(min=0, max=2.0, dial=True, inc=0.01)
     ] = Field(1.0, ge=0)
 
     # Audio output gain

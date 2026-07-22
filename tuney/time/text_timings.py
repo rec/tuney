@@ -9,7 +9,6 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from ..config.annotations import Display, Numeric
-from ..config.tyro_option import tyro_option
 from . import Milliseconds
 from .char_press import CharPress
 from .sequencer import Sequencer
@@ -19,75 +18,55 @@ MAX_GENERATED_SEED = 9999
 
 class TextTimings(BaseModel):
     # Base duration for a space, in milliseconds
-    space: Annotated[
-        Milliseconds, tyro_option(), Numeric(row=0, width=5, decimals=0, inc=1)
-    ] = 100
+    space: Annotated[Milliseconds, Numeric(row=0, width=5, decimals=0, inc=1)] = 100
 
     # Base duration for a dot, in milliseconds
     dot: Annotated[
-        Milliseconds,
-        tyro_option(),
-        Numeric(column=1, row=0, width=5, decimals=0, inc=1),
+        Milliseconds, Numeric(column=1, row=0, width=5, decimals=0, inc=1)
     ] = 300
 
     # Base duration for a comma, in milliseconds
     comma: Annotated[
-        Milliseconds,
-        tyro_option(),
-        Numeric(column=2, row=0, width=5, decimals=0, inc=1),
+        Milliseconds, Numeric(column=2, row=0, width=5, decimals=0, inc=1)
     ] = 200
 
     # Base duration for a colon, in milliseconds
     colon: Annotated[
-        Milliseconds,
-        tyro_option(),
-        Numeric(column=3, row=0, width=5, decimals=0, inc=1),
+        Milliseconds, Numeric(column=3, row=0, width=5, decimals=0, inc=1)
     ] = 400
 
     # Base duration for a semicolon, in milliseconds
     semicolon: Annotated[
-        Milliseconds,
-        tyro_option(),
-        Numeric(column=4, row=0, width=5, decimals=0, inc=1),
+        Milliseconds, Numeric(column=4, row=0, width=5, decimals=0, inc=1)
     ] = 400
 
     # Base duration for a blank line, in milliseconds
     blank_line: Annotated[
-        Milliseconds,
-        tyro_option(),
-        Numeric(column=5, row=0, width=5, decimals=0, inc=1),
+        Milliseconds, Numeric(column=5, row=0, width=5, decimals=0, inc=1)
     ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[
-        Milliseconds, tyro_option(), Numeric(row=1, decimals=0, inc=1)
-    ] = 20
+    overlap: Annotated[Milliseconds, Numeric(row=1, decimals=0, inc=1)] = 20
 
     # Seed for randomized character timings, or a random seed if empty
-    seed: Annotated[int | None, tyro_option(), Numeric(column=1, row=1)] = None
+    seed: Annotated[int | None, Numeric(column=1, row=1)] = None
 
     # Ignore characters without an explicit timing unless they are alphabetic
-    alpha_only: Annotated[bool, tyro_option(), Display(column=2, row=1)] = True
+    alpha_only: Annotated[bool, Display(column=2, row=1)] = True
 
     # Remove accents before generating character events
-    strip_accents: Annotated[bool, tyro_option(), Display(column=3, row=1)] = True
+    strip_accents: Annotated[bool, Display(column=3, row=1)] = True
 
     # Multiplier applied to all generated timing values
-    scale: Annotated[
-        float,
-        tyro_option(),
-        Numeric(column=4, row=1, min=0, max=4, inc=0.01),
-    ] = 1.0
+    scale: Annotated[float, Numeric(column=4, row=1, min=0, max=4, inc=0.01)] = 1.0
 
     # Additional per-character base durations, in milliseconds
-    other: Annotated[dict[str, Milliseconds], tyro_option(), Display(row=2)] = Field(
+    other: Annotated[dict[str, Milliseconds], Display(row=2)] = Field(
         default_factory=dict
     )
 
     # Possible durations for alphabetic characters, in milliseconds
-    timings: Annotated[
-        list[Milliseconds] | None, tyro_option(), Display(column=1, row=2)
-    ] = None
+    timings: Annotated[list[Milliseconds] | None, Display(column=1, row=2)] = None
 
     @cached_property
     def timings_(self) -> list[Milliseconds]:

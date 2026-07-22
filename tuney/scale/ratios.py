@@ -10,19 +10,18 @@ from pydantic import BaseModel, model_validator
 from ..app.platform_info import report_error
 from ..config.annotations import Display
 from ..config.text_file import read_text_file
-from ..config.tyro_option import tyro_option
 from . import Number, evaluate, uncents
 
 
 class Ratios(BaseModel):
     #: Ratio expressions for each step in the scale
-    text: Annotated[str, tyro_option(), Display(row=0, width=24)] = ''
+    text: Annotated[str, Display(row=0, width=24)] = ''
 
     #: Name of this ratio scale
-    name: Annotated[str, tyro_option(), Display(row=1, column=0)] = ''
+    name: Annotated[str, Display(row=1, column=0)] = ''
 
     #: Description of this ratio scale
-    desc: Annotated[str, tyro_option(), Display(row=1, column=1, width=24)] = ''
+    desc: Annotated[str, Display(row=1, column=1, width=24)] = ''
 
     @model_validator(mode='after')
     def _validate_text(self) -> Ratios:

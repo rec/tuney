@@ -82,9 +82,7 @@ def dtype_names() -> list[str]:
 
 class Device(BaseModel):
     # Audio output sample rate, in frames per second
-    sample_rate: Annotated[
-        int | None, tyro_option(), Beginner, Numeric(row=0, width=6)
-    ] = None
+    sample_rate: Annotated[int | None, Beginner, Numeric(row=0, width=6)] = None
 
     # Audio output device name or index
     device: Annotated[
@@ -96,9 +94,7 @@ class Device(BaseModel):
 
     # Sample data type sent to the audio output device
     dtype: Annotated[
-        DType | None,
-        tyro_option(),
-        Options(options=dtype_names, column=2, row=0, width=8),
+        DType | None, Options(options=dtype_names, column=2, row=0, width=8)
     ] = None
 
     channels: Annotated[tyro.conf.Suppress[int | None], Hidden, Numeric()] = None

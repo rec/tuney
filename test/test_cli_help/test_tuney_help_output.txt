@@ -1,4 +1,4 @@
-usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [TABLE] [RATIOS]
+usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [TUNING.TABLE] [TUNING.RATIOS]
 
 Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
 
@@ -84,7 +84,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
-  --type {None,computed,table,ratios}
+  --tuning.type {None,computed,table,ratios}
         Which tuning source to use (default: computed)
   -T FLOAT, --detune FLOAT
         Detune everything, in cents of an octave division (default: 0)
@@ -97,11 +97,11 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Audio output device settings
   ----------------------------------------------------------------------------------------------------------------------
-  --sample-rate {None}|INT
+  --device.sample-rate {None}|INT
         Audio output sample rate, in frames per second (default: None)
   -d {None}|INT|STR, --audio-device {None}|INT|STR
         Audio output device name or index (default: None)
-  --dtype {None,int8,uint8,int16,int32,float32}
+  --device.dtype {None,int8,uint8,int16,int32,float32}
         Sample data type sent to the audio output device (default: None)
 
  sound options
@@ -134,18 +134,18 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Binaural beat settings
   ----------------------------------------------------------------------------------------------------------------------
-  --enable, --no-enable
+  --sound.binaural.enable, --sound.binaural.no-enable
         Add a binaural beat by splitting each note into separate left and right frequencies (default: False)
-  --frequency FLOAT
+  --sound.binaural.frequency FLOAT
         Difference between the left and right frequencies, in hertz (default: 7.8)
-  --width FLOAT
+  --sound.binaural.width FLOAT
         Stereo placement from reversed to centered to normal (default: 1.0)
 
  sound.polyphony options
  ----------------------------------------------------------------------------------------------------------------------
-  --headroom FLOAT
+  --sound.polyphony.headroom FLOAT
         Divisor applied to mixed voices to provide polyphonic headroom (default: 4)
-  --max-voices INT
+  --sound.polyphony.max-voices INT
         Maximum number of notes that can play simultaneously (default: 10)
 
  midi.input options
@@ -169,7 +169,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         MIDI port name (default: None)
   --midi.output.channel {omni}|INT
         MIDI output channel, or omni to use the default channel (default: 1)
-  --program INT
+  --midi.output.program INT
         General MIDI instrument program (default: 0)
   --midi.output.velocity INT
         Velocity used for MIDI note-on messages (default: 64)
@@ -180,31 +180,31 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Timings for playing back texts
   ----------------------------------------------------------------------------------------------------------------------
-  --space FLOAT
+  --text-timings.space FLOAT
         Base duration for a space, in milliseconds (default: 100)
-  --dot FLOAT
+  --text-timings.dot FLOAT
         Base duration for a dot, in milliseconds (default: 300)
-  --comma FLOAT
+  --text-timings.comma FLOAT
         Base duration for a comma, in milliseconds (default: 200)
-  --colon FLOAT
+  --text-timings.colon FLOAT
         Base duration for a colon, in milliseconds (default: 400)
-  --semicolon FLOAT
+  --text-timings.semicolon FLOAT
         Base duration for a semicolon, in milliseconds (default: 400)
-  --blank-line FLOAT
+  --text-timings.blank-line FLOAT
         Base duration for a blank line, in milliseconds (default: 1000)
-  --overlap FLOAT
+  --text-timings.overlap FLOAT
         Time that consecutive characters overlap, in milliseconds (default: 20)
-  --seed {None}|INT
+  --text-timings.seed {None}|INT
         Seed for randomized character timings, or a random seed if empty (default: None)
-  --alpha-only, --no-alpha-only
+  --text-timings.alpha-only, --text-timings.no-alpha-only
         Ignore characters without an explicit timing unless they are alphabetic (default: True)
-  --strip-accents, --no-strip-accents
+  --text-timings.strip-accents, --text-timings.no-strip-accents
         Remove accents before generating character events (default: True)
-  --scale FLOAT
+  --text-timings.scale FLOAT
         Multiplier applied to all generated timing values (default: 3.0)
-  --other [STR FLOAT [STR FLOAT ...]]
+  --text-timings.other [STR FLOAT [STR FLOAT ...]]
         Additional per-character base durations, in milliseconds (default: )
-  --timings {None}|{[FLOAT [FLOAT ...]]}
+  --text-timings.timings {None}|{[FLOAT [FLOAT ...]]}
         Possible durations for alphabetic characters, in milliseconds (default: None)
 
  subcommands
@@ -213,10 +213,10 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
     - tuning.computed:computed
     - tuning.computed:none
   ----------------------------------------------------------------------------------------------------------------------
-  Absolute frequencies, indexed by note number (default: table:none)
-    - table:table
-    - table:none
+  Absolute frequencies, indexed by note number (default: tuning.table:none)
+    - tuning.table:table
+    - tuning.table:none
   ----------------------------------------------------------------------------------------------------------------------
-  Ratio expressions, relative to root_frequency (default: ratios:none)
-    - ratios:ratios
-    - ratios:none
+  Ratio expressions, relative to root_frequency (default: tuning.ratios:none)
+    - tuning.ratios:ratios
+    - tuning.ratios:none

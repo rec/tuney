@@ -63,14 +63,14 @@ class Limiter(StrEnum):
         match self:
             case Limiter.wrap:
                 return low + (note_number - low) % range_limit
+
             case Limiter.reflect:
                 if range_limit == 1:
                     return low
                 period = range_limit * 2 - 2
                 wrapped = (note_number - low) % period
-                return (
-                    low + wrapped if wrapped < range_limit else low + period - wrapped
-                )
+                return low + (wrapped if wrapped < range_limit else period - wrapped)
+
             case Limiter.reflect_repeat:
                 period = range_limit * 2
                 wrapped = (note_number - low) % period
@@ -128,7 +128,7 @@ class Mapper(BaseModel):
 
     @cached_property
     def char_to_number(self) -> dict[str, int]:
-        return {
-            char: self.limiter(note_number, self.range_limit, self.offset)
-            for char, note_number in self.map(self).items()
-        }
+        return {c: self._limit(n) for c, n in self.map(self).items()}
+
+    def _limit(self, note_number: int) -> int:
+        return self.limiter(note_number, self.range_limit, self.offset)
