@@ -6,7 +6,7 @@ from typing import get_args
 from pydantic import BaseModel
 
 from ..config.display import Beginner, Display, General, Hidden
-from ..midi import MIDI
+from ..midi import Midi
 from ..scale.tuning import Tuning, Type
 from .control_panel_metadata import (
     _annotation_types,
@@ -18,7 +18,7 @@ from .control_panel_metadata import (
 
 
 def _midi_child_title(data: BaseModel, name: str) -> str:
-    if isinstance(data, MIDI):
+    if isinstance(data, Midi):
         return {'input': 'in', 'output': 'out'}.get(name, name)
     return name
 

@@ -21,7 +21,7 @@ class Tuney:
     sound: Sound
 
     # MIDI input and output settings
-    midi: MIDI
+    midi: Midi
 
     # Timings for playing back texts
     text_timings: TextTimings

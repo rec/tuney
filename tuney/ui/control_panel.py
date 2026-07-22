@@ -44,7 +44,7 @@ from ..mapper.language import (
     language_name_from_menu_name,
 )
 from ..mapper.mapper import Mapper
-from ..midi import MIDIIn, MidiOut
+from ..midi import MidiIn, MidiOut
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
@@ -555,7 +555,7 @@ def _add_control_cell(
     _add_field_tooltips(cell, type(data), name)
     cell.setProperty('control_field_name', name)
     _bind_control(cell, data, name)
-    if isinstance(data, MIDIIn | MidiOut) and not data.enable and name != 'enable':
+    if isinstance(data, MidiIn | MidiOut) and not data.enable and name != 'enable':
         _set_widget_state(cell, False)
 
 
@@ -805,9 +805,9 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
     def command(checked: bool) -> None:
         _set_model_value(data, name, checked, parent)
         _rebuild_note_grid_if_mapping_changed(parent, data)
-        if isinstance(data, MIDIIn | MidiOut) and name == 'enable':
+        if isinstance(data, MidiIn | MidiOut) and name == 'enable':
             _set_midi_controls_state(parent, checked)
-            if isinstance(data, MIDIIn) and (state := _control_panel(parent).app):
+            if isinstance(data, MidiIn) and (state := _control_panel(parent).app):
                 if checked:
                     state.midi_listener.start()
                 else:

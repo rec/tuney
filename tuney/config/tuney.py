@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from ..audio.device import Device
 from ..audio.sound import Sound
 from ..mapper.mapper import Mapper
-from ..midi import MIDI
+from ..midi import Midi
 from ..presets import preset_names
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
@@ -44,7 +44,7 @@ class Tuney(BaseModel):
     sound: Sound = Field(default_factory=Sound)
 
     # MIDI input and output settings
-    midi: MIDI = Field(default_factory=MIDI)
+    midi: Midi = Field(default_factory=Midi)
 
     # Timings for playing back texts
     text_timings: TextTimings = Field(default_factory=lambda: TextTimings(scale=3.0))

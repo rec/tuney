@@ -19,7 +19,7 @@ from tuney.audio.sound import Sound
 from tuney.config.display import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
-from tuney.midi import MIDIIn, MidiOut
+from tuney.midi import MidiIn, MidiOut
 from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
@@ -811,7 +811,7 @@ def test_midi_input_enable_control_stays_enabled_when_midi_is_disabled() -> None
     from PySide6.QtWidgets import QWidget
 
     _qt_app()
-    midi = MIDIIn(enable=False)
+    midi = MidiIn(enable=False)
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi)
 

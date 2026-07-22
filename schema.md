@@ -24,7 +24,7 @@ class Tuney:
     sound: Sound
 
     # MIDI input and output settings
-    midi: MIDI
+    midi: Midi
 
     # Timings for playing back texts
     text_timings: TextTimings
@@ -255,7 +255,7 @@ class MidiBase:
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 'omni'
 
 
-class MIDIIn:
+class MidiIn:
     pass
 
 
@@ -273,9 +273,9 @@ class MidiOut:
     note_offset: int = 0
 
 
-class MIDI:
+class Midi:
     # MIDI input settings
-    input: MIDIIn
+    input: MidiIn
 
     # MIDI output settings
     output: MidiOut

@@ -258,7 +258,7 @@ def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys)
 def test_midi_input_channel_accepts_omni_and_channel_numbers(
     raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    midi = tuney.midi.MIDIIn(channel=raw)
+    midi = tuney.midi.MidiIn(channel=raw)
 
     assert midi.channel == channel
     assert midi.mido_channel == mido_channel
@@ -269,7 +269,7 @@ def test_midi_input_channel_accepts_omni_and_channel_numbers(
 )
 def test_midi_channel_rejects_invalid_values(raw: object) -> None:
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
-        tuney.midi.MIDIIn(channel=raw)
+        tuney.midi.MidiIn(channel=raw)
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
         tuney.midi.MidiOut(channel=raw)
 
@@ -319,8 +319,8 @@ def test_midi_output_sends_on_mido_channel(
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:
     events = []
-    midi = tuney.midi.MIDI(
-        input=tuney.midi.MIDIIn(enable=True, channel=3),
+    midi = tuney.midi.Midi(
+        input=tuney.midi.MidiIn(enable=True, channel=3),
         output=tuney.midi.MidiOut(note_offset=12),
     )
     listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
@@ -351,7 +351,7 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         opened.append((port, callback))
         return Port()
 
-    midi = tuney.midi.MIDI(input=tuney.midi.MIDIIn(enable=True, name='keyboard'))
+    midi = tuney.midi.Midi(input=tuney.midi.MidiIn(enable=True, name='keyboard'))
     listener = midi.listener(lambda note, is_press: None)
     monkeypatch.setattr(tuney.midi.model.mido, 'open_input', open_input)
 

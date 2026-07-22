@@ -165,46 +165,6 @@ enum = ["wrap", "reflect", "reflect_repeat"]
 title = "Limiter"
 type = "string"
 
-["$defs".MIDI]
-title = "MIDI"
-type = "object"
-
-["$defs".MIDI.properties.input]
-"$ref" = "#/$defs/MIDIIn"
-
-["$defs".MIDI.properties.output]
-"$ref" = "#/$defs/MidiOut"
-
-["$defs".MIDIIn]
-title = "MIDIIn"
-type = "object"
-
-["$defs".MIDIIn.properties.enable]
-default = false
-title = "Enable"
-type = "boolean"
-
-["$defs".MIDIIn.properties.name]
-default = "<null>"
-title = "Name"
-[["$defs".MIDIIn.properties.name.anyOf]]
-type = "string"
-
-[["$defs".MIDIIn.properties.name.anyOf]]
-type = "null"
-
-["$defs".MIDIIn.properties.channel]
-default = "omni"
-title = "Channel"
-[["$defs".MIDIIn.properties.channel.anyOf]]
-const = "omni"
-type = "string"
-
-[["$defs".MIDIIn.properties.channel.anyOf]]
-maximum = 16
-minimum = 1
-type = "integer"
-
 ["$defs".Map]
 enum = ["linear"]
 title = "Map"
@@ -257,6 +217,46 @@ type = "integer"
 ["$defs".Mapper.properties.limiter]
 "$ref" = "#/$defs/Limiter"
 default = "wrap"
+
+["$defs".Midi]
+title = "Midi"
+type = "object"
+
+["$defs".Midi.properties.input]
+"$ref" = "#/$defs/MidiIn"
+
+["$defs".Midi.properties.output]
+"$ref" = "#/$defs/MidiOut"
+
+["$defs".MidiIn]
+title = "MidiIn"
+type = "object"
+
+["$defs".MidiIn.properties.enable]
+default = false
+title = "Enable"
+type = "boolean"
+
+["$defs".MidiIn.properties.name]
+default = "<null>"
+title = "Name"
+[["$defs".MidiIn.properties.name.anyOf]]
+type = "string"
+
+[["$defs".MidiIn.properties.name.anyOf]]
+type = "null"
+
+["$defs".MidiIn.properties.channel]
+default = "omni"
+title = "Channel"
+[["$defs".MidiIn.properties.channel.anyOf]]
+const = "omni"
+type = "string"
+
+[["$defs".MidiIn.properties.channel.anyOf]]
+maximum = 16
+minimum = 1
+type = "integer"
 
 ["$defs".MidiOut]
 title = "MidiOut"
@@ -628,7 +628,7 @@ type = "integer"
 "$ref" = "#/$defs/Sound"
 
 [properties.midi]
-"$ref" = "#/$defs/MIDI"
+"$ref" = "#/$defs/Midi"
 
 [properties.text_timings]
 "$ref" = "#/$defs/TextTimings"

@@ -52,7 +52,7 @@ class MidiBase(BaseModel):
         return None if self.channel == 'omni' else self.channel - 1
 
 
-class MIDIIn(MidiBase):
+class MidiIn(MidiBase):
     def accepts(self, message: mido.Message) -> bool:
         return (channel := self.mido_channel) is None or getattr(
             message, 'channel', None
@@ -135,9 +135,9 @@ class MidiOut(MidiBase):
             )
 
 
-class MIDI(BaseModel):
+class Midi(BaseModel):
     # MIDI input settings
-    input: MIDIIn = Field(default_factory=MIDIIn)
+    input: MidiIn = Field(default_factory=MidiIn)
 
     # MIDI output settings
     output: MidiOut = Field(default_factory=MidiOut)
@@ -147,7 +147,7 @@ class MIDI(BaseModel):
 
 
 class Listener:
-    def __init__(self, midi: MIDI, callback: Callable[[int, bool], None]) -> None:
+    def __init__(self, midi: Midi, callback: Callable[[int, bool], None]) -> None:
         self.midi = midi
         self.callback = callback
         self.port: mido.InputPort | None = None
