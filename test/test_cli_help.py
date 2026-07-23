@@ -32,6 +32,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--midi.output.name',
     '--midi.output.channel',
     '--midi.output.program',
+    '--midi.output.volume',
     '--midi.output.velocity',
     '--midi.output.note-offset',
     '--midi.output.mute-audio-when-midi-enabled',
@@ -188,6 +189,7 @@ def test_cli_accepts_public_long_options() -> None:
             '--midi.output.name=Port',
             '--midi.output.channel=3',
             '--midi.output.program=40',
+            '--midi.output.volume=72',
             '--midi.output.velocity=80',
             '--midi.output.note-offset=12',
             '--text-timings.dot=301',
@@ -216,6 +218,7 @@ def test_cli_accepts_public_long_options() -> None:
     assert app.midi.output.name == 'Port'
     assert app.midi.output.channel == 3
     assert app.midi.output.program == 40
+    assert app.midi.output.volume == 72
     assert app.midi.output.velocity == 80
     assert app.midi.output.note_offset == 12
     assert app.text_timings.dot == 301

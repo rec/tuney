@@ -68,6 +68,7 @@
       "enable": false,
       "channel": 1,
       "program": 0,
+      "volume": 100,
       "velocity": 64,
       "note_offset": 0,
       "mute_audio_when_midi_enabled": true

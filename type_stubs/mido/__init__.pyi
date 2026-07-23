@@ -3,8 +3,10 @@ from typing import Any
 class Message:
     type: str
     channel: int
+    control: int
     note: int
     program: int
+    value: int
     velocity: int
 
     def __init__(
@@ -12,7 +14,11 @@ class Message:
         type: str,
         *,
         channel: int = ...,
+        control: int = ...,
         note: int = ...,
+        program: int = ...,
+        time: int = ...,
+        value: int = ...,
         velocity: int = ...,
         **kwargs: Any,
     ) -> None: ...

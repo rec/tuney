@@ -313,9 +313,12 @@ def test_midi_output_sends_on_mido_channel(
 
     assert [(m.type, m.channel) for m in messages] == [
         ('program_change', expected),
+        ('control_change', expected),
         ('note_on', expected),
     ]
     assert messages[0].program == 40
+    assert messages[1].control == 7
+    assert messages[1].value == 100
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:

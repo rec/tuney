@@ -387,6 +387,25 @@ def test_general_midi_program_change_is_sent_to_open_port() -> None:
     assert 'port' not in midi.__dict__
 
 
+def test_general_midi_volume_change_is_sent_to_open_port() -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    midi = MidiOut(volume=100)
+    midi.__dict__['port'] = Port()
+
+    control_panel._set_model_value(midi, 'volume', 72)
+
+    assert midi.volume == 72
+    assert messages[0].type == 'control_change'
+    assert messages[0].control == 7
+    assert messages[0].value == 72
+    assert 'port' not in midi.__dict__
+
+
 def test_control_flow_layout_wraps_to_available_width() -> None:
     from PySide6.QtCore import QRect
     from PySide6.QtWidgets import QLabel, QWidget

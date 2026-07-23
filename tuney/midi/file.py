@@ -24,6 +24,7 @@ def write_midi_file(
     file.tracks.append(track)
     track.append(mido.MetaMessage('set_tempo', tempo=MIDI_FILE_TEMPO, time=0))
     track.append(midi.send_program_change(0))
+    track.append(midi.send_volume_change(0))
     previous = 0
     for frame, note in events:
         tick = max(0, round(frame))

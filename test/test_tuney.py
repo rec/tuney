@@ -1756,7 +1756,11 @@ def test_text_file_output_writes_midi_file_without_audio(monkeypatch, tmp_path) 
     assert messages[0].type == 'program_change'
     assert messages[0].time == 0
     assert messages[0].program == app.midi.output.program
-    assert [(i.type, i.time, i.note, i.velocity) for i in messages[1:]] == [
+    assert messages[1].type == 'control_change'
+    assert messages[1].time == 0
+    assert messages[1].control == 7
+    assert messages[1].value == app.midi.output.volume
+    assert [(i.type, i.time, i.note, i.velocity) for i in messages[2:]] == [
         ('note_on', 0, app.midi.output.midi_note(app.mapper('a')), 64),
         ('note_on', 100, app.midi.output.midi_note(app.mapper('a')), 0),
     ]

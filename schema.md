@@ -264,6 +264,9 @@ class MidiOut:
     # General MIDI instrument program
     program: int = 0
 
+    # General MIDI channel volume
+    volume: int = 100
+
     # Velocity used for MIDI note-on messages
     velocity: int = 64
 

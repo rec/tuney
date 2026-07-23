@@ -1091,6 +1091,9 @@ def _set_model_value(
     if isinstance(data, MidiOut) and name == 'program' and old_value != validated_value:
         if 'port' in data.__dict__:
             data.port.send(data.send_program_change())
+    if isinstance(data, MidiOut) and name == 'volume' and old_value != validated_value:
+        if 'port' in data.__dict__:
+            data.port.send(data.send_volume_change())
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()

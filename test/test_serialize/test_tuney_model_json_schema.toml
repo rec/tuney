@@ -295,6 +295,13 @@ minimum = 0
 title = "Program"
 type = "integer"
 
+["$defs".MidiOut.properties.volume]
+default = 100
+maximum = 127
+minimum = 0
+title = "Volume"
+type = "integer"
+
 ["$defs".MidiOut.properties.velocity]
 default = 64
 title = "Velocity"

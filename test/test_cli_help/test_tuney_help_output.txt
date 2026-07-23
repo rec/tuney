@@ -171,6 +171,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         MIDI output channel, or omni to use the default channel (default: 1)
   --midi.output.program INT
         General MIDI instrument program (default: 0)
+  --midi.output.volume INT
+        General MIDI channel volume (default: 100)
   --midi.output.velocity INT
         Velocity used for MIDI note-on messages (default: 64)
   --midi.output.note-offset INT

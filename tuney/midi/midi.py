@@ -69,15 +69,20 @@ class MidiOut(MidiBase):
         Options(options=general_midi_program_options, column=3, row=0, width=24),
     ] = Field(0, ge=0, le=127)
 
+    # General MIDI channel volume
+    volume: Annotated[int, Beginner, Numeric(column=4, row=0, width=3)] = Field(
+        100, ge=0, le=127
+    )
+
     # Velocity used for MIDI note-on messages
-    velocity: Annotated[int, Numeric(column=4, row=0, width=2)] = 0x40
+    velocity: Annotated[int, Numeric(column=5, row=0, width=2)] = 0x40
 
     # Offset added to MIDI note numbers
-    note_offset: Annotated[int, Numeric(column=5, row=0, width=2)] = 0
+    note_offset: Annotated[int, Numeric(column=6, row=0, width=2)] = 0
 
     # Mute synthesized audio when MIDI output is enabled
     mute_audio_when_midi_enabled: Annotated[
-        bool, Beginner, Display(column=6, row=0)
+        bool, Beginner, Display(column=7, row=0)
     ] = True
 
     @field_validator('program', mode='before')
@@ -93,6 +98,7 @@ class MidiOut(MidiBase):
     def port(self) -> mido.OutputPort:
         port = mido.open_output(self.name)
         port.send(self.send_program_change())
+        port.send(self.send_volume_change())
         return port
 
     def midi_note(self, note_number: int) -> int:
@@ -108,6 +114,16 @@ class MidiOut(MidiBase):
             program=self.program,
             time=time,
             type='program_change',
+        )
+
+    def send_volume_change(self, time: int = 0) -> mido.Message:
+        kwargs = {} if self.mido_channel is None else {'channel': self.mido_channel}
+        return mido.Message(
+            **kwargs,
+            control=7,
+            time=time,
+            type='control_change',
+            value=self.volume,
         )
 
     def __call__(self, note_number: int, is_press: bool) -> None:
