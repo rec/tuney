@@ -81,6 +81,7 @@ if TYPE_CHECKING:
 
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
+SHUTDOWN_AUDIO_WAIT_SECONDS = 2.0
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 APP_NAME = 'Tuney'
 
@@ -230,7 +231,7 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.midi_listener.close()
         self.app.player.stop_all()
-        self.app.player.wait()
+        self.app.player.wait(SHUTDOWN_AUDIO_WAIT_SECONDS)
         self.app.player.close()
 
     def _restore_window_state(self) -> None:

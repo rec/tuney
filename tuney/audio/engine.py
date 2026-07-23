@@ -143,11 +143,13 @@ class AudioEngine(BaseModel):
         if restart:
             self.start()
 
-    def wait(self) -> None:
+    def wait(self, timeout: float | None = None) -> None:
         if (stream := self.__dict__.get('stream')) is not None:
             if stream.active:
-                instrument('audio stream wait')
-                self.playback_complete.wait()
+                instrument('audio stream wait', timeout=timeout)
+                completed = self.playback_complete.wait(timeout)
+                if not completed:
+                    instrument('audio stream wait timeout')
                 stream.stop()
                 instrument('audio stream stopped after wait')
 

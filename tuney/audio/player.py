@@ -274,7 +274,7 @@ class Player(BaseModel, frozen=True):
         if 'engine' in self.__dict__:
             self.engine.close()
 
-    def wait(self) -> None:
-        instrument('player wait')
+    def wait(self, timeout: float | None = None) -> None:
+        instrument('player wait', timeout=timeout)
         if 'engine' in self.__dict__:
-            self.engine.wait()
+            self.engine.wait(timeout)

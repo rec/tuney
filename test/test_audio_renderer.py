@@ -995,6 +995,19 @@ def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
     assert not engine.stream.active
 
 
+def test_engine_wait_timeout_stops_stream_without_callback(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer)
+    engine.submit(NotePress(0))
+    engine.submit(StopAll())
+    engine.start()
+
+    engine.wait(0.01)
+
+    assert not engine.stream.active
+
+
 def test_engine_wait_ignores_inactive_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)

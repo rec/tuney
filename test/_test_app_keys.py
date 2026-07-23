@@ -863,8 +863,8 @@ def test_close_releases_audio_before_closing_player() -> None:
             calls.append('stop_all')
 
         @staticmethod
-        def wait() -> None:
-            calls.append('wait')
+        def wait(timeout: float | None = None) -> None:
+            calls.append(('wait', timeout))
 
         @staticmethod
         def close() -> None:
@@ -884,7 +884,7 @@ def test_close_releases_audio_before_closing_player() -> None:
         'autosave',
         'midi_close',
         'stop_all',
-        'wait',
+        ('wait', 2.0),
         'close',
     ]
 
