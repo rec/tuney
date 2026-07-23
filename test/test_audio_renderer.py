@@ -871,7 +871,7 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
         lambda *_args, **_kwargs: (np.zeros((8, 1)), SAMPLE_RATE),
     )
 
-    speech._render_speech('hello', 50, tmp_path / 'speech.wav', 'Second')
+    speech._render_speech('hello', 200, tmp_path / 'speech.wav', 'Second')
 
     assert ('voice', 'voice-2') in calls
 
@@ -896,12 +896,39 @@ def test_render_speech_aligns_phrases_without_stretching(monkeypatch) -> None:
             ],
             sample_rate=4,
             level=1.0,
+            speed=1.0,
             voice=None,
         )
     )
 
     assert playback is not None
     np.testing.assert_allclose(playback.data[:, 0], [1.0, 1.0, 2.0, 2.0])
+
+
+def test_render_speech_scales_phrase_duration(monkeypatch) -> None:
+    rates = []
+
+    def render(
+        _text: str, rate: int, _path: Path, _voice: str | None
+    ) -> speech._SpeechFile | None:
+        rates.append(rate)
+        return speech._SpeechFile(data=np.ones((4, 1)), sample_rate=4)
+
+    monkeypatch.setattr(speech, '_render_speech', render)
+
+    playback = speech.render_speech(
+        SpeechRequest(
+            phrases=[SpeechPhrase(text='a', start=0.0)],
+            sample_rate=4,
+            level=1.0,
+            speed=0.8,
+            voice=None,
+        )
+    )
+
+    assert playback is not None
+    assert rates == [200]
+    assert len(playback.data) == 5
 
 
 def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
@@ -925,7 +952,9 @@ def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
     player = Player()
     engine = Engine()
     player.__dict__['engine'] = engine
-    request = player.speech_request([SpeechPhrase(text='a', start=0.0)], 1.0, 'Alex')
+    request = player.speech_request(
+        [SpeechPhrase(text='a', start=0.0)], 1.0, 0.8, 'Alex'
+    )
     player.prepared_speech.request = request
     player.prepared_speech.playback = playback
     monkeypatch.setattr(
@@ -933,7 +962,7 @@ def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
         lambda _: pytest.fail('prepared speech was not used'),
     )
 
-    player.start_speech([SpeechPhrase(text='a', start=0.0)], 1.0, 'Alex')
+    player.start_speech([SpeechPhrase(text='a', start=0.0)], 1.0, 0.8, 'Alex')
 
     assert engine.commands == [PlaySpeech(speech=playback)]
     assert engine.starts == 1

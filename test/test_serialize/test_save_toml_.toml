@@ -10,6 +10,7 @@ silent = false
 use_speech = false
 use_phrase_mode = true
 speech_level = 1.0
+speech_speed = 0.8
 run_in_background = false
 
 [mapper]

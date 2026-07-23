@@ -90,6 +90,11 @@ class Tuney(BaseModel):
         float, General, Beginner, Numeric(min=0, max=4, inc=0.01)
     ] = 1.0
 
+    # Speech speed multiplier
+    speech_speed: Annotated[float, General, Beginner, Numeric(min=0.1, inc=0.01)] = (
+        Field(0.8, gt=0)
+    )
+
     # Voice used for speech
     speech_voice: Annotated[
         str | None, General, Beginner, Options(options=voice_names)

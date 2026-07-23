@@ -237,29 +237,34 @@ class Player(BaseModel, frozen=True):
         return PreparedSpeech()
 
     def prepare_speech(
-        self, phrases: list[SpeechPhrase], level: float, voice: str | None
+        self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None
     ) -> None:
-        request = self.speech_request(phrases, level, voice)
-        instrument('player prepare speech', phrases=len(phrases), level=level)
+        request = self.speech_request(phrases, level, speed, voice)
+        instrument(
+            'player prepare speech', phrases=len(phrases), level=level, speed=speed
+        )
         self.prepared_speech.prepare(request)
 
     def start_speech(
-        self, phrases: list[SpeechPhrase], level: float, voice: str | None
+        self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None
     ) -> None:
-        instrument('player start speech', phrases=len(phrases), level=level)
-        request = self.speech_request(phrases, level, voice)
+        instrument(
+            'player start speech', phrases=len(phrases), level=level, speed=speed
+        )
+        request = self.speech_request(phrases, level, speed, voice)
         speech = self.prepared_speech.take(request) or render_speech(request)
         if speech is not None:
             self.engine.submit(PlaySpeech(speech=speech))
             self.engine.start()
 
     def speech_request(
-        self, phrases: list[SpeechPhrase], level: float, voice: str | None
+        self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None
     ) -> SpeechRequest:
         return SpeechRequest(
             phrases=phrases,
             sample_rate=int(self.engine.stream.samplerate),
             level=level,
+            speed=speed,
             voice=voice,
         )
 

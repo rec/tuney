@@ -88,7 +88,13 @@ from .control_panel_visibility import (
 )
 from .tooltip import Tooltip
 
-SPEECH_FIELDS = {'use_speech', 'use_phrase_mode', 'speech_level', 'speech_voice'}
+SPEECH_FIELDS = {
+    'use_speech',
+    'use_phrase_mode',
+    'speech_level',
+    'speech_speed',
+    'speech_voice',
+}
 APP_RUNTIME_CACHE = {
     'audio_recorder',
     'global_config',
@@ -1173,6 +1179,7 @@ def _prepare_speech_if_changed(parent: QWidget, data: BaseModel, name: str) -> N
         app.player.prepare_speech(
             speech_phrases(replay_char_presses(app), app.use_phrase_mode),
             app.speech_level,
+            app.speech_speed,
             app.speech_voice,
         )
 

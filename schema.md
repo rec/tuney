@@ -47,6 +47,9 @@ class Tuney:
     # Speech volume multiplier
     speech_level: float = 1.0
 
+    # Speech speed multiplier
+    speech_speed: float = 0.8
+
     # Voice used for speech
     speech_voice: str | None = None
 

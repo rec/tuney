@@ -15,6 +15,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--use-speech',
     '--use-phrase-mode',
     '--speech-level',
+    '--speech-speed',
     '--speech-voice',
     '--backspace-repeat-delay',
     '--backspace-repeat-rate',

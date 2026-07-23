@@ -1610,16 +1610,20 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
 def test_replay_starts_speech(monkeypatch) -> None:
     class FakePlayer:
         def __init__(self) -> None:
-            self.speech: list[tuple[list[SpeechPhrase], float, str | None]] = []
+            self.speech: list[tuple[list[SpeechPhrase], float, float, str | None]] = []
 
         @staticmethod
         def stop_all() -> None:
             pass
 
         def start_speech(
-            self, phrases: list[SpeechPhrase], level: float, voice: str | None
+            self,
+            phrases: list[SpeechPhrase],
+            level: float,
+            speed: float,
+            voice: str | None,
         ) -> None:
-            self.speech.append((phrases, level, voice))
+            self.speech.append((phrases, level, speed, voice))
 
     class FakeSequencer:
         def __init__(self, *_: object, **__: object) -> None:
@@ -1650,7 +1654,7 @@ def test_replay_starts_speech(monkeypatch) -> None:
 
     app.key_recorder.on_replay(app)
 
-    assert player.speech == [([SpeechPhrase(text='ab', start=0.0)], 0.5, 'Alex')]
+    assert player.speech == [([SpeechPhrase(text='ab', start=0.0)], 0.5, 0.8, 'Alex')]
 
 
 def test_speech_phrases_split_on_punctuation_and_align_to_note_starts() -> None:

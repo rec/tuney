@@ -28,6 +28,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Fit speech to phrase starts instead of rendering the whole replay text at once (default: True)
   --speech-level FLOAT
         Speech volume multiplier (default: 1.0)
+  --speech-speed FLOAT
+        Speech speed multiplier (default: 0.8)
   --speech-voice {None}|STR
         Voice used for speech (default: None)
   -o {None}|PATH, --output {None}|PATH

@@ -94,6 +94,7 @@ class KeyRecorder(BaseModel):
                 state.player.start_speech(
                     speech_phrases(char_presses, state.use_phrase_mode),
                     state.speech_level,
+                    state.speech_speed,
                     state.speech_voice,
                 )
             active_indexes = text_timing_active_indexes(char_presses)

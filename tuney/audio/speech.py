@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ..app.platform_info import report_error
 
-BASE_SPEECH_RATE = 50
+BASE_SPEECH_RATE = 200
 PHRASE_PUNCTUATION = '.:;!?'
 
 
@@ -46,6 +46,7 @@ class SpeechRequest(BaseModel, frozen=True):
     phrases: list[SpeechPhrase]
     sample_rate: int
     level: float
+    speed: float
     voice: str | None
 
 
@@ -56,7 +57,9 @@ def render_speech(
     if not phrases:
         return None
     with TemporaryDirectory() as directory:
-        rendered = _render_phrases(Path(directory), phrases, request.voice)
+        rendered = _render_phrases(
+            Path(directory), phrases, request.speed, request.voice
+        )
         if not rendered:
             return None
         return SpeechPlayback(
@@ -121,14 +124,27 @@ def _set_voice(engine: _SpeechEngine, name: str) -> None:
 
 
 def _render_phrases(
-    directory: Path, phrases: list[SpeechPhrase], voice: str | None
+    directory: Path, phrases: list[SpeechPhrase], speed: float, voice: str | None
 ) -> list[tuple[SpeechPhrase, _SpeechFile]]:
     rendered = []
     for i, phrase in enumerate(phrases):
         path = directory / f'phrase-{i}.wav'
         if speech_file := _render_speech(phrase.text, BASE_SPEECH_RATE, path, voice):
+            speech_file.data = _scale_duration(speech_file.data, speed)
             rendered.append((phrase, speech_file))
     return rendered
+
+
+def _scale_duration(data: np.ndarray, speed: float) -> np.ndarray:
+    if speed == 1:
+        return data
+    old = np.arange(len(data))
+    new_count = max(1, round(len(data) / speed))
+    new = np.linspace(0, len(data) - 1, new_count)
+    return np.stack(
+        [np.interp(new, old, data[:, i]) for i in range(data.shape[1])],
+        axis=1,
+    )
 
 
 def _align_phrases(

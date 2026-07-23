@@ -147,12 +147,12 @@ def test_speech_change_during_looped_replay_prepares_next_speech() -> None:
 
     class Player:
         def __init__(self) -> None:
-            self.speech: list[tuple[object, float, str | None]] = []
+            self.speech: list[tuple[object, float, float, str | None]] = []
 
         def prepare_speech(
-            self, phrases: object, level: float, voice: str | None
+            self, phrases: object, level: float, speed: float, voice: str | None
         ) -> None:
-            self.speech.append((phrases, level, voice))
+            self.speech.append((phrases, level, speed, voice))
 
     _qt_app()
     app = App(
@@ -188,7 +188,7 @@ def test_speech_change_during_looped_replay_prepares_next_speech() -> None:
     control_panel._set_model_value(app, 'speech_voice', 'Alex', panel)
 
     assert len(player.speech) == 1
-    assert player.speech[0][1:] == (1.0, 'Alex')
+    assert player.speech[0][1:] == (1.0, 0.8, 'Alex')
 
 
 def test_mapper_length_spinbox_cannot_go_below_zero() -> None:

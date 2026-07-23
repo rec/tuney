@@ -714,6 +714,12 @@ default = 1.0
 title = "Speech Level"
 type = "number"
 
+[properties.speech_speed]
+default = 0.8
+exclusiveMinimum = 0
+title = "Speech Speed"
+type = "number"
+
 [properties.speech_voice]
 default = "<null>"
 title = "Speech Voice"
