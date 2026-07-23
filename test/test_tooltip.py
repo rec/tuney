@@ -143,6 +143,7 @@ def test_replay_bar_tooltips_cover_all_widgets() -> None:
         'replay': 'Play recorded text, or stop playback',
         'randomize': 'Randomize time for the recorded text',
         'loop': 'Repeat replay until stopped',
+        'loop_clock': 'Elapsed time in the current replay loop',
         'master_gain': 'Playback volume',
         'help': 'Help',
     }

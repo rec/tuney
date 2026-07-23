@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from functools import cached_property
 
-from PySide6.QtCore import QSignalBlocker, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QFont, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -48,6 +48,7 @@ REPLAY_TOOLTIPS = {
     'replay': 'Play recorded text, or stop playback',
     'randomize': 'Randomize time for the recorded text',
     'loop': 'Repeat replay until stopped',
+    'loop_clock': 'Elapsed time in the current replay loop',
     'master_gain': 'Playback volume',
     'help': 'Help',
 }
@@ -236,6 +237,40 @@ class Layout(QWidget):
         self.replay.setStyleSheet(
             'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
         )
+        if not is_replaying:
+            self.stop_loop_clock()
+
+    def start_loop_clock(self) -> None:
+        if 'loop_clock' not in self.__dict__:
+            return
+        self.loop_clock_elapsed.start()
+        self.set_loop_clock(0)
+        self.loop_clock_timer.start(100)
+
+    def stop_loop_clock(self) -> None:
+        if 'loop_clock_timer' in self.__dict__:
+            self.loop_clock_timer.stop()
+        if 'loop_clock' in self.__dict__:
+            self.set_loop_clock(0)
+
+    def refresh_loop_clock(self) -> None:
+        self.set_loop_clock(self.loop_clock_elapsed.elapsed())
+
+    def set_loop_clock(self, elapsed_ms: int) -> None:
+        total_tenths = max(0, elapsed_ms // 100)
+        minutes, tenths = divmod(total_tenths, 600)
+        seconds, tenths = divmod(tenths, 10)
+        self.loop_clock.setText(f'{minutes}:{seconds:02}.{tenths}')
+
+    @cached_property
+    def loop_clock_elapsed(self) -> QElapsedTimer:
+        return QElapsedTimer()
+
+    @cached_property
+    def loop_clock_timer(self) -> QTimer:
+        timer = QTimer(self)
+        timer.timeout.connect(self.refresh_loop_clock)
+        return timer
 
     @cached_property
     def stats_frame(self) -> QWidget:
@@ -404,6 +439,16 @@ class Layout(QWidget):
             self.main_window.on_randomize_on_each_loop
         )
         layout.addWidget(self.randomize_on_each_loop)
+        self.loop_clock = QLabel('0:00.0', frame)
+        self.loop_clock.setObjectName('loop_clock')
+        self.loop_clock.setFont(QFont(FONT_FAMILY, FONT_SIZE))
+        self.loop_clock.setFixedWidth(56)
+        Tooltip(
+            self.loop_clock,
+            REPLAY_TOOLTIPS['loop_clock'],
+            lambda: self.main_window.app.hover_time,
+        )
+        layout.addWidget(self.loop_clock)
         layout.addStretch()
         self.text_area_layout.addWidget(frame)
         return frame

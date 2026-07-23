@@ -89,6 +89,7 @@ class KeyRecorder(BaseModel):
         if state.main_window.is_replaying:
             char_presses = replay_char_presses(state)
             instrument('key recorder replay events', count=len(char_presses))
+            state.main_window.ui.start_loop_clock()
             if state.use_speech and char_presses:
                 state.player.start_speech(
                     speech_phrases(char_presses),

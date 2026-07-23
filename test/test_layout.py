@@ -91,7 +91,13 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
 
 
 def test_loop_tempo_accepts_values_below_one() -> None:
-    from PySide6.QtWidgets import QApplication, QDoubleSpinBox, QVBoxLayout, QWidget
+    from PySide6.QtWidgets import (
+        QApplication,
+        QDoubleSpinBox,
+        QLabel,
+        QVBoxLayout,
+        QWidget,
+    )
 
     if QApplication.instance() is None:
         QApplication([])
@@ -107,6 +113,14 @@ def test_loop_tempo_accepts_values_below_one() -> None:
     assert spin is not None
     assert spin.minimum() < 1.0
     assert spin.decimals() == 2
+    clock = frame.findChild(QLabel, 'loop_clock')
+
+    assert clock is not None
+    assert clock.text() == '0:00.0'
+
+    layout.set_loop_clock(65_432)
+
+    assert clock.text() == '1:05.4'
 
     spin.setValue(0.5)
     spin.editingFinished.emit()

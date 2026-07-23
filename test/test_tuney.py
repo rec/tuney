@@ -486,6 +486,10 @@ class FakeApp:
         def set_active_text_timing(_: int | None) -> None:
             pass
 
+        @staticmethod
+        def start_loop_clock() -> None:
+            pass
+
     ui = layout
 
     def update_text_display(self) -> None:
@@ -1362,6 +1366,10 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
 
         def set_play_cursor(self, index: int | None) -> None:
             self.cursor.append(index)
+
+        @staticmethod
+        def start_loop_clock() -> None:
+            pass
 
     class FakeReplayWindow(FakeApp):
         def after(self, delay: int, callback: object, *args: object) -> str:
