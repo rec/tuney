@@ -217,12 +217,14 @@ class Player(BaseModel, frozen=True):
         if 'engine' in self.__dict__:
             self.engine.submit(StopAll())
 
-    def start_speech(self, text: str, duration: float, level: float) -> None:
+    def start_speech(
+        self, text: str, duration: float, level: float, voice: str | None
+    ) -> None:
         instrument(
             'player start speech', length=len(text), duration=duration, level=level
         )
         stream = self.engine.stream
-        speech = speech_playback(text, duration, int(stream.samplerate), level)
+        speech = speech_playback(text, duration, int(stream.samplerate), level, voice)
         if speech is not None:
             self.engine.submit(PlaySpeech(speech=speech))
             self.engine.start()

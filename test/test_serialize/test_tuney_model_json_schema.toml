@@ -709,6 +709,15 @@ default = 1.0
 title = "Speech Level"
 type = "number"
 
+[properties.speech_voice]
+default = "<null>"
+title = "Speech Voice"
+[[properties.speech_voice.anyOf]]
+type = "string"
+
+[[properties.speech_voice.anyOf]]
+type = "null"
+
 [properties.output]
 default = "<null>"
 title = "Output"

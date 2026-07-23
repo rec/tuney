@@ -41,6 +41,9 @@ class Tuney:
     # Speech volume multiplier
     speech_level: float = 1.0
 
+    # Voice used for speech
+    speech_voice: str | None = None
+
     # If True, listen to the keyboard even when other applications are in front
     run_in_background: bool = False
 

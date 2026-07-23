@@ -14,6 +14,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
     '--use-speech',
     '--speech-level',
+    '--speech-voice',
     '--backspace-repeat-delay',
     '--backspace-repeat-rate',
     '--device.sample-rate',

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..audio.device import Device
 from ..audio.sound import Sound
+from ..audio.speech import voice_names
 from ..mapper.mapper import Mapper
 from ..midi.midi import Midi
 from ..presets import preset_names
@@ -85,6 +86,11 @@ class Tuney(BaseModel):
     speech_level: Annotated[
         float, General, Beginner, Numeric(min=0, max=4, inc=0.01)
     ] = 1.0
+
+    # Voice used for speech
+    speech_voice: Annotated[
+        str | None, General, Beginner, Options(options=voice_names)
+    ] = None
 
     # Audio file to write while playing text
     output: Annotated[Path | None, tyro_option('-o'), Hidden] = None

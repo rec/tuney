@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Protocol
 
 import numpy as np
 from numpy.typing import DTypeLike
 from pydantic import BaseModel, ConfigDict
+
+from ..app.platform_info import report_error
 
 BASE_SPEECH_RATE = 50
 SPEECH_TARGET = 0.99
@@ -35,20 +38,22 @@ class SpeechPlayback(BaseModel):
 
 
 def speech_playback(
-    text: str, duration: float, sample_rate: int, level: float
+    text: str, duration: float, sample_rate: int, level: float, voice: str | None
 ) -> SpeechPlayback | None:
     if not text or duration <= 0:
         return None
     with TemporaryDirectory() as directory:
         directory_path = Path(directory)
-        first = _render_speech(text, BASE_SPEECH_RATE, directory_path / 'first.wav')
+        first = _render_speech(
+            text, BASE_SPEECH_RATE, directory_path / 'first.wav', voice
+        )
         if first is None:
             return None
         target_duration = duration * SPEECH_TARGET
         first_duration = len(first.data) / first.sample_rate
         rate = max(1, round(BASE_SPEECH_RATE * first_duration / target_duration))
         if (
-            scaled := _render_speech(text, rate, directory_path / 'scaled.wav')
+            scaled := _render_speech(text, rate, directory_path / 'scaled.wav', voice)
         ) is None:
             return None
         return SpeechPlayback(
@@ -64,18 +69,52 @@ class _SpeechFile(BaseModel):
     sample_rate: int
 
 
-def _render_speech(text: str, rate: int, path: Path) -> _SpeechFile | None:
+class _SpeechEngine(Protocol):
+    def getProperty(self, name: str) -> list[object]: ...
+
+    def setProperty(self, name: str, value: object) -> None: ...
+
+
+def voice_names() -> list[str]:
+    import pyttsx3
+
+    try:
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+    except (OSError, RuntimeError) as error:
+        report_error(f'Could not list speech voices: {error}')
+        return []
+    return sorted(
+        str(name)
+        for voice in voices
+        if (name := getattr(voice, 'name', None)) is not None
+    )
+
+
+def _render_speech(
+    text: str, rate: int, path: Path, voice: str | None
+) -> _SpeechFile | None:
     import pyttsx3
     import soundfile
 
     engine = pyttsx3.init()
     engine.setProperty('rate', rate)
+    if voice is not None:
+        _set_voice(engine, voice)
     engine.save_to_file(text, str(path))
     engine.runAndWait()
     if not path.exists():
         return None
     data, sample_rate = soundfile.read(path, always_2d=True)
     return _SpeechFile(data=data, sample_rate=sample_rate)
+
+
+def _set_voice(engine: _SpeechEngine, name: str) -> None:
+    for voice in engine.getProperty('voices'):
+        voice_id = getattr(voice, 'id', None)
+        if getattr(voice, 'name', None) == name or voice_id == name:
+            engine.setProperty('voice', voice_id)
+            return
 
 
 def _resample(speech_file: _SpeechFile, sample_rate: int) -> np.ndarray:

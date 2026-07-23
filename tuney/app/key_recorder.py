@@ -91,7 +91,9 @@ class KeyRecorder(BaseModel):
             if state.use_speech and char_presses:
                 text = ''.join(c.char for c in char_presses if c.is_press)
                 duration = max(c.time for c in char_presses) / 1000
-                state.player.start_speech(text, duration, state.speech_level)
+                state.player.start_speech(
+                    text, duration, state.speech_level, state.speech_voice
+                )
             active_indexes = text_timing_active_indexes(char_presses)
             if state.show_text_timings:
                 state.main_window.update_text_display()

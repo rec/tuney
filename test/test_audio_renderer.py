@@ -1,6 +1,9 @@
+import sys
 from collections.abc import Callable
 from io import BytesIO
+from pathlib import Path
 from threading import Event, Thread
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -9,6 +12,7 @@ import soundfile
 from sounddevice import CallbackAbort, PortAudioError
 
 import tuney.audio.device
+from tuney.audio import speech
 from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
@@ -832,6 +836,44 @@ def test_engine_stop_all_clears_speech_playback() -> None:
     engine.callback(np.zeros((4, 1)), 4, None, None)
 
     assert engine.speech is None
+
+
+def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    class Engine:
+        def getProperty(self, name: str) -> object:
+            if name == 'voices':
+                return [
+                    SimpleNamespace(id='voice-1', name='First'),
+                    SimpleNamespace(id='voice-2', name='Second'),
+                ]
+            raise AssertionError(name)
+
+        def setProperty(self, name: str, value: object) -> None:
+            calls.append((name, value))
+
+        def save_to_file(self, _: str, path: str) -> None:
+            Path(path).touch()
+
+        @staticmethod
+        def runAndWait() -> None:
+            pass
+
+    monkeypatch.setitem(
+        sys.modules,
+        'pyttsx3',
+        SimpleNamespace(init=lambda: Engine()),
+    )
+    monkeypatch.setattr(
+        soundfile,
+        'read',
+        lambda *_args, **_kwargs: (np.zeros((8, 1)), SAMPLE_RATE),
+    )
+
+    speech._render_speech('hello', 50, tmp_path / 'speech.wav', 'Second')
+
+    assert ('voice', 'voice-2') in calls
 
 
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
