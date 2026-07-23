@@ -160,6 +160,7 @@ class ControlPanel(QScrollArea):
         self.eager_modes = eager_modes
         self.pages: dict[bool, QWidget] = {}
         self.section_path: dict[QWidget, str] = {}
+        self.pending_scroll: int | None = None
         self.setWidgetResizable(True)
         self.setMinimumHeight(min(height, 80))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -167,6 +168,7 @@ class ControlPanel(QScrollArea):
         self.content.setObjectName('control_panel_content')
         self.setWidget(self.content)
         self.verticalScrollBar().valueChanged.connect(self._remember_scroll)
+        self.verticalScrollBar().rangeChanged.connect(self._restore_pending_scroll)
         if build:
             self.rebuild()
         else:
@@ -224,11 +226,18 @@ class ControlPanel(QScrollArea):
     def restore_scroll(self) -> None:
         app = self.app
         if app is not None and app.gui:
-            value = app.global_config.control_panel_scroll
+            self.pending_scroll = app.global_config.control_panel_scroll
             QTimer.singleShot(
                 0,
-                lambda: self.verticalScrollBar().setValue(value),
+                self._restore_pending_scroll,
             )
+
+    def _restore_pending_scroll(self, *_: object) -> None:
+        if self.pending_scroll is None:
+            return
+        self.verticalScrollBar().setValue(self.pending_scroll)
+        if self.verticalScrollBar().value() == self.pending_scroll:
+            self.pending_scroll = None
 
     def _build_page(self, advanced: bool) -> QWidget:
         instrument('control panel build page start', advanced=advanced)
@@ -257,7 +266,7 @@ class ControlPanel(QScrollArea):
 
     def _remember_scroll(self, value: int) -> None:
         app = self.app
-        if app is not None and app.gui:
+        if app is not None and app.gui and self.pending_scroll is None:
             app.global_config.control_panel_scroll = value
 
     def _uses_saved_state(self) -> bool:

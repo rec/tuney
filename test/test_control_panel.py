@@ -605,8 +605,13 @@ def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
     )
     body = button.parent().findChild(QWidget, 'control_section_body')
     assert body is not None
-    panel.verticalScrollBar().setRange(0, 200)
 
+    qt_app.processEvents()
+
+    assert app.global_config.control_panel_scroll == 120
+    assert panel.verticalScrollBar().value() == 0
+
+    panel.verticalScrollBar().setRange(0, 200)
     qt_app.processEvents()
 
     assert body.isHidden()
