@@ -583,6 +583,50 @@ def test_control_panel_sections_are_collapsible() -> None:
     assert not body.isHidden()
 
 
+def test_control_panel_shows_general_section_for_app() -> None:
+    from PySide6.QtWidgets import QToolButton, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    app = App(gui=True)
+    app.__dict__['global_config'] = GlobalConfig()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+
+    section_names = [
+        button.text()
+        for button in panel.findChildren(QToolButton)
+        if button.objectName() == 'control_section_disclosure'
+    ]
+
+    assert 'General' in section_names
+
+
+def test_control_panel_groups_midi_input_and_output_sections() -> None:
+    from PySide6.QtWidgets import QToolButton, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    app = App(gui=True)
+    app.__dict__['global_config'] = GlobalConfig()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+    midi = next(
+        button
+        for button in panel.findChildren(QToolButton)
+        if button.objectName() == 'control_section_disclosure'
+        and button.text() == 'MIDI'
+    )
+    midi_body = midi.parent().findChild(QWidget, 'control_section_body')
+    assert midi_body is not None
+
+    names = [
+        button.text()
+        for button in midi_body.findChildren(QToolButton)
+        if button.objectName() == 'control_section_disclosure'
+    ]
+
+    assert {'In', 'Out'} <= set(names)
+
+
 def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 

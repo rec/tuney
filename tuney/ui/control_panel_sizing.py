@@ -14,6 +14,8 @@ MIN_TEXT_EDITOR_WIDTH = 160
 
 
 def _display_label(name: str) -> str:
+    if name.isupper():
+        return name
     return name.replace('_', ' ').capitalize()
 
 

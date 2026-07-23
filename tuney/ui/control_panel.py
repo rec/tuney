@@ -44,7 +44,7 @@ from ..mapper.language import (
     language_name_from_menu_name,
 )
 from ..mapper.mapper import Mapper
-from ..midi.midi import MidiIn, MidiOut
+from ..midi.midi import Midi, MidiIn, MidiOut
 from ..presets import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
@@ -227,6 +227,9 @@ class ControlPanel(QScrollArea):
         app = self.app
         if app is not None and app.gui:
             self.pending_scroll = app.global_config.control_panel_scroll
+            if self.pending_scroll == 0:
+                self._restore_pending_scroll()
+                return
             QTimer.singleShot(
                 0,
                 self._restore_pending_scroll,
@@ -246,13 +249,12 @@ class ControlPanel(QScrollArea):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(8)
         self.content.addWidget(page)
-        if type(self.data).__name__ == 'Tuney':
-            _add_general_controls(
-                page,
-                self.data,
-                self.option_controls,
-                advanced,
-            )
+        _add_general_controls(
+            page,
+            self.data,
+            self.option_controls,
+            advanced,
+        )
         _add_model_controls(page, self.data, self.option_controls, advanced=advanced)
         instrument('control panel build page end', advanced=advanced)
         return page
@@ -309,7 +311,12 @@ def _add_model_controls(
         if not _has_visible_fields(child, advanced):
             continue
         if not _visible_control_names(child, advanced):
-            _add_model_controls(parent, child, option_controls, advanced=advanced)
+            child_parent = (
+                _add_collapsible_section(parent, 'MIDI', child)
+                if isinstance(child, Midi)
+                else parent
+            )
+            _add_model_controls(child_parent, child, option_controls, advanced=advanced)
             continue
         _add_model_controls(
             parent,
