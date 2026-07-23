@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
-from PySide6.QtCore import QFile, QUrl
+from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
@@ -25,6 +26,8 @@ from .preset_dialogs import preset_name, selected_preset_names
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
+
+CHAR_PRESSES_MIME = 'application/x-tuney-char-presses+json'
 
 
 def on_open_text_file(main_window: MainWindow, *_: object) -> None:
@@ -170,6 +173,30 @@ def on_paste_into_state(main_window: MainWindow, *_: object) -> None:
     main_window.ui.rebuild_control_panel()
     main_window.ui.rebuild_note_grid()
     main_window.sync_config_actions()
+    main_window.update_text_display()
+
+
+def on_copy_text(main_window: MainWindow, *_: object) -> None:
+    instrument('ui copy text')
+    mime = QMimeData()
+    mime.setText(main_window.app.display_text)
+    mime.setData(
+        CHAR_PRESSES_MIME,
+        json.dumps([c.model_dump() for c in main_window.app.char_presses]).encode(),
+    )
+    main_window.qt_app.clipboard().setMimeData(mime)
+
+
+def on_paste_text(main_window: MainWindow, *_: object) -> None:
+    instrument('ui paste text')
+    text = main_window.qt_app.clipboard().text()
+    if not text:
+        return
+    main_window.history.checkpoint_undo()
+    main_window.app.__dict__['char_presses'] = list(
+        main_window.app.text_timings.char_presses(text)
+    )
+    main_window.app.key_recorder.clear()
     main_window.update_text_display()
 
 

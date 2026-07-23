@@ -24,6 +24,10 @@ KEY_TEXT = {
     Qt.Key.Key_Return: '\n',
     Qt.Key.Key_Space: ' ',
 }
+TEXT_SHORTCUTS = {
+    Qt.Key.Key_C: 'copy',
+    Qt.Key.Key_V: 'paste',
+}
 
 
 def keyPressEvent(main_window: MainWindow, event: QKeyEvent) -> None:
@@ -50,6 +54,8 @@ def on_key_event(main_window: MainWindow, event: QKeyEvent, is_press: bool) -> b
         event.ignore()
         return False
     key = event.key()
+    if _handle_text_shortcut(main_window, event, is_press):
+        return True
     if is_press:
         modifiers = event.modifiers()
         if modifiers & COMMAND_MODIFIERS or (
@@ -69,4 +75,23 @@ def on_key_event(main_window: MainWindow, event: QKeyEvent, is_press: bool) -> b
         event.accept()
         return True
     event.ignore()
+    return False
+
+
+def _handle_text_shortcut(
+    main_window: MainWindow, event: QKeyEvent, is_press: bool
+) -> bool:
+    modifiers = event.modifiers()
+    if (
+        modifiers & COMMAND_MODIFIERS
+        and not modifiers & OPTION_MODIFIER
+        and (action := TEXT_SHORTCUTS.get(Qt.Key(event.key()))) is not None
+    ):
+        if is_press:
+            if action == 'copy':
+                main_window.on_copy_text()
+            else:
+                main_window.on_paste_text()
+        event.accept()
+        return True
     return False

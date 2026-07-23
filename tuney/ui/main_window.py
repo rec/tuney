@@ -44,11 +44,13 @@ from .error_dialogs import (
 )
 from .file_commands import (
     on_copy_from_state,
+    on_copy_text,
     on_delete_presets,
     on_load_autosave,
     on_open_config_folder,
     on_open_text_file,
     on_paste_into_state,
+    on_paste_text,
     on_save,
     on_save_as_audio,
     on_save_preset,
@@ -305,6 +307,8 @@ class MainWindow(QMainWindow):
     _config_path = file_commands.config_path
     on_copy_from_state = on_copy_from_state
     on_paste_into_state = on_paste_into_state
+    on_copy_text = on_copy_text
+    on_paste_text = on_paste_text
     on_load_autosave = on_load_autosave
     on_swap_with_autosave = on_swap_with_autosave
 

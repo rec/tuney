@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import subprocess
@@ -62,7 +63,9 @@ from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
+from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_text
 from tuney.ui.history import History
+from tuney.ui.key_events import on_key_event
 from tuney.ui.main_window import MainWindow
 
 
@@ -520,6 +523,77 @@ class FakeApp:
     @staticmethod
     def on_key(_: CharPress) -> None:
         pass
+
+
+class _FakeClipboard:
+    def __init__(self, text: str = '') -> None:
+        self._text = text
+        self.mime = None
+
+    def setMimeData(self, mime: object) -> None:
+        self.mime = mime
+
+    def text(self) -> str:
+        return self._text
+
+
+class _FakeQtApp:
+    def __init__(self, clipboard: _FakeClipboard) -> None:
+        self._clipboard = clipboard
+
+    def clipboard(self) -> _FakeClipboard:
+        return self._clipboard
+
+
+class _TextClipboardWindow:
+    def __init__(self, app: App, clipboard: _FakeClipboard) -> None:
+        self.app = app
+        self.qt_app = _FakeQtApp(clipboard)
+        self.history = self
+        self.undo_count = 0
+        self.update_count = 0
+
+    def checkpoint_undo(self) -> None:
+        self.undo_count += 1
+
+    def update_text_display(self) -> None:
+        self.update_count += 1
+
+
+class _ShortcutWindow:
+    _key_chars: dict[int, str] = {}
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def on_copy_text(self) -> None:
+        self.calls.append('copy')
+
+    def on_paste_text(self) -> None:
+        self.calls.append('paste')
+
+
+class _FakeKeyEvent:
+    def __init__(self, key: object, modifiers: object) -> None:
+        self._key = key
+        self._modifiers = modifiers
+        self.accepted = False
+
+    @staticmethod
+    def isAutoRepeat() -> bool:
+        return False
+
+    def key(self) -> object:
+        return self._key
+
+    def modifiers(self) -> object:
+        return self._modifiers
+
+    def accept(self) -> None:
+        self.accepted = True
+
+    def ignore(self) -> None:
+        self.accepted = False
 
 
 def test_recorded_char_press_uses_time_relative_to_first_key_press():
@@ -1502,6 +1576,54 @@ def test_replay_char_presses_cut_loop_start_and_end() -> None:
         CharPress('a', False, 0),
         CharPress('b', time=500),
     ]
+
+
+def test_copy_text_exports_text_and_char_presses_json() -> None:
+    app = App(
+        gui=True,
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, 100),
+        ],
+    )
+    clipboard = _FakeClipboard()
+    window = _TextClipboardWindow(app, clipboard)
+
+    on_copy_text(window)
+
+    assert clipboard.mime is not None
+    assert clipboard.mime.text() == 'a'
+    assert json.loads(bytes(clipboard.mime.data(CHAR_PRESSES_MIME))) == [
+        {'char': 'a', 'is_press': True, 'time': 0.0},
+        {'char': 'a', 'is_press': False, 'time': 100.0},
+    ]
+
+
+def test_paste_text_replaces_text_with_timed_clipboard_text() -> None:
+    app = App(gui=True, text=[CharPress('x', time=0)])
+    clipboard = _FakeClipboard('ab')
+    window = _TextClipboardWindow(app, clipboard)
+
+    on_paste_text(window)
+
+    assert app.display_text == 'ab'
+    assert window.undo_count == 1
+    assert window.update_count == 1
+
+
+def test_command_copy_and_paste_use_text_clipboard_commands() -> None:
+    from PySide6.QtCore import Qt
+
+    window = _ShortcutWindow()
+
+    assert on_key_event(
+        window, _FakeKeyEvent(Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier), True
+    )
+    assert on_key_event(
+        window, _FakeKeyEvent(Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier), True
+    )
+
+    assert window.calls == ['copy', 'paste']
 
 
 def test_replay_char_presses_add_loop_start_and_end_space() -> None:
