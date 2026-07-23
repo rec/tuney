@@ -111,6 +111,7 @@ class Layout(QWidget):
         self.main_window.qt_app.processEvents()
         self.setEnabled(True)
         self.show()
+        self.main_window.setFocus(Qt.FocusReason.OtherFocusReason)
         instrument('layout startup build end')
 
     def set_text(self, s: str) -> None:

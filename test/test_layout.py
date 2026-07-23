@@ -135,7 +135,7 @@ def test_finish_startup_layout_reveals_after_deferred_build() -> None:
 
     Layout.finish_startup_layout(layout)
 
-    assert calls == ['control_panel', 'grid', 'root', 'splitter', 'events']
+    assert calls == ['control_panel', 'grid', 'root', 'splitter', 'events', 'focus']
     assert layout.isEnabled()
     assert not layout.isHidden()
 
@@ -240,7 +240,11 @@ class _FakeStartupQtApp:
 
 class _FakeStartupMainWindow:
     def __init__(self, calls: list[str]) -> None:
+        self.calls = calls
         self.qt_app = _FakeStartupQtApp(calls)
+
+    def setFocus(self, _: object) -> None:
+        self.calls.append('focus')
 
 
 class _FakeCursor:
