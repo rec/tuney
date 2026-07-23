@@ -111,6 +111,7 @@ class MainWindow(QMainWindow):
             instrument('main window icon set', path=ICON_PATH)
             self.setWindowIcon(QIcon(str(ICON_PATH)))
         self.app = app
+        app.__dict__['main_window'] = self
         self.queue = Queue[CharPress]()
         self.key_queue = Queue[CharPress]()
         self._key_chars: dict[int, str] = {}

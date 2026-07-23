@@ -328,6 +328,7 @@ def test_application_uses_cross_platform_style() -> None:
             tuney.ui.layout.Layout = old_layout
         app = window.qt_app
 
+        assert window.app.main_window is window
         assert app.applicationName() == 'Tuney'
         assert app.style().objectName().lower() == 'fusion'
         menu_actions: dict[str, list[str]] = {}
