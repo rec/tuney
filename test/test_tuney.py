@@ -1395,6 +1395,21 @@ def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
     assert main_window.is_replaying
 
 
+def test_stale_finished_replay_does_not_restart_when_stopped(monkeypatch) -> None:
+    calls: list[str] = []
+    app = App(gui=True, text=[CharPress('a', time=0)])
+    main_window = FakeApp()
+    main_window.is_replaying = False
+    main_window.loop_replay = True
+    app.__dict__['main_window'] = main_window
+    monkeypatch.setattr('tuney.app.app.on_replay', lambda _: calls.append('replay'))
+
+    app.key_recorder.finish_replay(app)
+
+    assert calls == []
+    assert not main_window.is_replaying
+
+
 def test_finished_empty_replay_stops_when_looping() -> None:
     app = App(gui=True)
     main_window = FakeApp()

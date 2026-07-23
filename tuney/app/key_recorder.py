@@ -143,6 +143,8 @@ class KeyRecorder(BaseModel):
         from .app import on_replay, replay_char_presses, stop_replaying
 
         instrument('key recorder finish replay')
+        if not state.main_window.is_replaying:
+            return
         if state.main_window.history.loop_replay and replay_char_presses(state):
             on_replay(state)
             return
