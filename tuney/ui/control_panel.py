@@ -137,7 +137,7 @@ class _OptionControl:
         value = getattr(self.data, self.name)
         choices = self.values()
         self.menu.clear()
-        self.menu.addItems(['', *choices])
+        self.menu.addItems(_option_choices(self.data, self.name, choices))
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
 
 
@@ -683,7 +683,7 @@ def _add_option_control(
     )
     _configure_editor(menu, width)
     choices = values()
-    menu.addItems(['', *choices])
+    menu.addItems(_option_choices(data, name, choices))
     menu.setCurrentText(_option_text(data, name, value, choices))
     _bind_control(menu, data, name)
 
@@ -1118,8 +1118,8 @@ def _set_model_value(
         _checkpoint_undo(parent)
     setattr(data, name, validated_value)
     if isinstance(data, MidiOut) and name == 'program' and old_value != validated_value:
-        if 'port' in data.__dict__:
-            data.port.send(data.send_program_change())
+        if 'port' in data.__dict__ and (message := data.send_program_change()):
+            data.port.send(message)
     if isinstance(data, MidiOut) and name == 'volume' and old_value != validated_value:
         if 'port' in data.__dict__:
             data.port.send(data.send_volume_change())
@@ -1277,6 +1277,8 @@ def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
 
 def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) -> str:
     if value is None:
+        if isinstance(data, MidiOut) and name == 'program':
+            return '(none)'
         return ''
     if isinstance(data, MidiOut) and name == 'program' and isinstance(value, int):
         prefix = f'{value + 1} '
@@ -1287,6 +1289,12 @@ def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) 
         if choice := next((i for i in choices if i.startswith(prefix)), ''):
             return choice
     return str(value)
+
+
+def _option_choices(data: BaseModel, name: str, choices: list[str]) -> list[str]:
+    if isinstance(data, MidiOut) and name == 'program':
+        return choices
+    return ['', *choices]
 
 
 def _parent_layout(parent: QWidget) -> QBoxLayout:

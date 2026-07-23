@@ -323,6 +323,20 @@ def test_midi_output_sends_on_mido_channel(
     assert messages[1].value == 100
 
 
+def test_midi_output_skips_program_change_when_program_is_none(monkeypatch) -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+
+    tuney.midi.midi.MidiOut(enable=True, program=None)(60, True)
+
+    assert [m.type for m in messages] == ['control_change', 'note_on']
+
+
 def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
     midi = tuney.midi.midi.MidiOut(send_tuning=True)
 

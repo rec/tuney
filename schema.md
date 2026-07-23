@@ -262,7 +262,7 @@ class MidiOut:
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 
     # General MIDI instrument program
-    program: int = 0
+    program: int | None = 0
 
     # General MIDI channel volume
     volume: int = 100

@@ -76,7 +76,7 @@ class MidiOut(MidiBase):
 
     # General MIDI instrument program
     program: Annotated[
-        int,
+        int | None,
         Beginner,
         Options(options=general_midi_program_options, column=3, row=0, width=24),
     ] = Field(0, ge=0, le=127)
@@ -103,6 +103,8 @@ class MidiOut(MidiBase):
     @field_validator('program', mode='before')
     @classmethod
     def _validate_program(cls, value: object) -> object:
+        if value in (None, '', '(none)'):
+            return None
         if isinstance(value, str):
             prefix, _, _ = value.partition(' ')
             if prefix.isdecimal():
@@ -112,7 +114,8 @@ class MidiOut(MidiBase):
     @cached_property
     def port(self) -> mido.OutputPort:
         port = mido.open_output(self.name)
-        port.send(self.send_program_change())
+        if message := self.send_program_change():
+            port.send(message)
         port.send(self.send_volume_change())
         return port
 
@@ -122,7 +125,9 @@ class MidiOut(MidiBase):
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
 
-    def send_program_change(self, time: int = 0) -> mido.Message:
+    def send_program_change(self, time: int = 0) -> mido.Message | None:
+        if self.program is None:
+            return None
         if self.mido_channel is None:
             return mido.Message(
                 'program_change',

@@ -290,10 +290,14 @@ type = "integer"
 
 ["$defs".MidiOut.properties.program]
 default = 0
+title = "Program"
+[["$defs".MidiOut.properties.program.anyOf]]
 maximum = 127
 minimum = 0
-title = "Program"
 type = "integer"
+
+[["$defs".MidiOut.properties.program.anyOf]]
+type = "null"
 
 ["$defs".MidiOut.properties.volume]
 default = 100

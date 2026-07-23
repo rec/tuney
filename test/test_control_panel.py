@@ -359,6 +359,9 @@ def test_indexed_output_device_option_displays_choice_text() -> None:
 
 
 def test_general_midi_program_option_displays_choice_text() -> None:
+    assert control_panel._option_choices(
+        MidiOut(), 'program', ['(none)', '1 Acoustic Grand Piano']
+    ) == ['(none)', '1 Acoustic Grand Piano']
     assert (
         control_panel._option_text(
             MidiOut(program=40),
@@ -367,6 +370,15 @@ def test_general_midi_program_option_displays_choice_text() -> None:
             ['1 Acoustic Grand Piano', '41 Violin'],
         )
         == '41 Violin'
+    )
+    assert (
+        control_panel._option_text(
+            MidiOut(program=None),
+            'program',
+            None,
+            ['(none)', '1 Acoustic Grand Piano'],
+        )
+        == '(none)'
     )
 
 
@@ -385,6 +397,23 @@ def test_general_midi_program_change_is_sent_to_open_port() -> None:
     assert midi.program == 40
     assert messages[0].type == 'program_change'
     assert messages[0].program == 40
+    assert 'port' not in midi.__dict__
+
+
+def test_general_midi_program_none_sends_no_program_change() -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    midi = MidiOut(program=0)
+    midi.__dict__['port'] = Port()
+
+    control_panel._set_model_value(midi, 'program', '(none)')
+
+    assert midi.program is None
+    assert messages == []
     assert 'port' not in midi.__dict__
 
 
