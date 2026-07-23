@@ -65,7 +65,7 @@ from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
 from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_text
-from tuney.ui.history import History, LoopState
+from tuney.ui.history import History, LoopState, WindowState
 from tuney.ui.key_events import on_key_event
 from tuney.ui.main_window import MainWindow
 
@@ -559,6 +559,29 @@ class _TextClipboardWindow:
 
     def update_text_display(self) -> None:
         self.update_count += 1
+
+
+class _AutosaveWindow:
+    history: object
+
+    def __init__(self, history: object) -> None:
+        self.history = history
+
+    @staticmethod
+    def x() -> int:
+        return 10
+
+    @staticmethod
+    def y() -> int:
+        return 20
+
+    @staticmethod
+    def width() -> int:
+        return 640
+
+    @staticmethod
+    def height() -> int:
+        return 480
 
 
 class _ShortcutWindow:
@@ -1246,7 +1269,7 @@ def test_autosave_writes_loop_state(monkeypatch) -> None:
                 )
             },
         )()
-        app.__dict__['main_window'] = type('Window', (), {'history': history})()
+        app.__dict__['main_window'] = _AutosaveWindow(history)
 
         app._autosave.save(lambda path: save_autosave(app, path))
 
@@ -1260,6 +1283,7 @@ def test_autosave_writes_loop_state(monkeypatch) -> None:
         'tempo': 2.0,
         'randomize_on_each_loop': True,
     }
+    assert data['window'] == {'x': 10, 'y': 20, 'width': 640, 'height': 480}
 
 
 def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
@@ -1301,6 +1325,12 @@ def test_restore_autosave_restores_loop_state(monkeypatch) -> None:
             'after = 0.25\n'
             'tempo = 2.0\n'
             'randomize_on_each_loop = true\n'
+            '\n'
+            '[window]\n'
+            'x = 10\n'
+            'y = 20\n'
+            'width = 640\n'
+            'height = 480\n'
         )
         app = App(gui=True)
 
@@ -1315,6 +1345,30 @@ def test_restore_autosave_restores_loop_state(monkeypatch) -> None:
         tempo=2.0,
         randomize_on_each_loop=True,
     )
+    assert app.__dict__['_autosave_window_state'] == WindowState(
+        x=10, y=20, width=640, height=480
+    )
+
+
+def test_main_window_restores_autosaved_window_state() -> None:
+    app = App(gui=True)
+    app.__dict__['_autosave_window_state'] = WindowState(
+        x=10, y=20, width=640, height=480
+    )
+    window = type(
+        'Window',
+        (),
+        {
+            'app': app,
+            'geometry': None,
+            'setGeometry': lambda self, *args: setattr(self, 'geometry', args),
+        },
+    )()
+
+    MainWindow._restore_window_state(window)
+
+    assert window.geometry == (10, 20, 640, 480)
+    assert '_autosave_window_state' not in app.__dict__
 
 
 def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:

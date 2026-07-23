@@ -965,6 +965,22 @@ class HistoryApp:
         self.load_autosave_action.setChecked(self.app.load_autosave)
         self.show_text_timings_action.setChecked(self.app.show_text_timings)
 
+    @staticmethod
+    def x() -> int:
+        return 10
+
+    @staticmethod
+    def y() -> int:
+        return 20
+
+    @staticmethod
+    def width() -> int:
+        return 640
+
+    @staticmethod
+    def height() -> int:
+        return 480
+
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name
     _get_save_file_name = MainWindow._get_save_file_name

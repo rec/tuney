@@ -21,6 +21,13 @@ class LoopState(BaseModel, frozen=True):
     randomize_on_each_loop: bool = False
 
 
+class WindowState(BaseModel, frozen=True):
+    x: int
+    y: int
+    width: int
+    height: int
+
+
 class HistoryState(BaseModel, frozen=True):
     tuney: dict[str, object]
     key_recorder: KeyRecorder = Field(default_factory=KeyRecorder)

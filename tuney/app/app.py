@@ -344,7 +344,15 @@ def save(app: App, path: Path) -> None:
 def save_autosave(app: App, path: Path) -> None:
     data = serialize(dump_data(app))
     if main_window := app.__dict__.get('main_window'):
+        from ..ui.history import WindowState
+
         data['loop'] = main_window.history.loop_state.model_dump()
+        data['window'] = WindowState(
+            x=main_window.x(),
+            y=main_window.y(),
+            width=main_window.width(),
+            height=main_window.height(),
+        ).model_dump()
     path.write_text(tomlkit.dumps(data))
 
 

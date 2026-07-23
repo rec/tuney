@@ -13,7 +13,7 @@ from . import read_file
 
 if TYPE_CHECKING:
     from ..app.app import App
-    from ..ui.history import LoopState
+    from ..ui.history import LoopState, WindowState
 
 AUTOSAVE_FILE = Path('tuney') / 'state.toml'
 
@@ -49,13 +49,16 @@ class Autosave(BaseModel, frozen=True):
         except (OSError, ValueError) as error:
             return AutosaveRestoreError(f'Could not restore {self.path}: {error}')
         loop_state, loop_error = _loop_state(data.pop('loop', None))
+        window_state, window_error = _window_state(data.pop('window', None))
         if data.get('load_autosave') is False:
             from ..app.app import restore_data
 
             restore_data(state, {'gui': state.gui, 'load_autosave': False})
             if loop_state is not None:
                 state.__dict__['_autosave_loop_state'] = loop_state
-            return loop_error
+            if window_state is not None:
+                state.__dict__['_autosave_window_state'] = window_state
+            return loop_error or window_error
         restore_error: ValidationError | None = None
         while True:
             try:
@@ -64,10 +67,12 @@ class Autosave(BaseModel, frozen=True):
                 restore_data(state, data)
                 if loop_state is not None:
                     state.__dict__['_autosave_loop_state'] = loop_state
+                if window_state is not None:
+                    state.__dict__['_autosave_window_state'] = window_state
                 if restore_error is None:
-                    return loop_error
-                if loop_error is not None:
-                    return loop_error
+                    return loop_error or window_error
+                if loop_error is not None or window_error is not None:
+                    return loop_error or window_error
                 return AutosaveRestoreError(
                     f'Could not restore fields from {self.path}: {restore_error}'
                 )
@@ -89,6 +94,19 @@ def _loop_state(data: object) -> tuple[LoopState | None, AutosaveRestoreError | 
         return LoopState.model_validate(data), None
     except ValidationError as error:
         return None, AutosaveRestoreError(f'Could not restore loop state: {error}')
+
+
+def _window_state(
+    data: object,
+) -> tuple[WindowState | None, AutosaveRestoreError | None]:
+    if data is None:
+        return None, None
+    from ..ui.history import WindowState
+
+    try:
+        return WindowState.model_validate(data), None
+    except ValidationError as error:
+        return None, AutosaveRestoreError(f'Could not restore window state: {error}')
 
 
 def _delete_data_path(data: dict[str, object], loc: tuple[object, ...]) -> bool:

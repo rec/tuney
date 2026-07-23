@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.ui = Layout(self)
         instrument('layout construct end')
         self.setCentralWidget(self.ui)
+        self._restore_window_state()
         self.update_text_display()
         self.qt_app.installEventFilter(self)
         instrument('main window init end')
@@ -231,6 +232,15 @@ class MainWindow(QMainWindow):
         self.app.player.stop_all()
         self.app.player.wait()
         self.app.player.close()
+
+    def _restore_window_state(self) -> None:
+        if window_state := self.app.__dict__.pop('_autosave_window_state', None):
+            self.setGeometry(
+                window_state.x,
+                window_state.y,
+                window_state.width,
+                window_state.height,
+            )
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
