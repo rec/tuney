@@ -179,6 +179,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Offset added to MIDI note numbers (default: 0)
   --midi.output.mute-audio-when-midi-enabled, --midi.output.no-mute-audio-when-midi-enabled
         Mute synthesized audio when MIDI output is enabled (default: True)
+  --midi.output.send-tuning, --midi.output.no-send-tuning
+        Send a MIDI Tuning Standard bulk tuning dump (default: False)
 
  text-timings options
  ----------------------------------------------------------------------------------------------------------------------

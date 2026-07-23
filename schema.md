@@ -276,6 +276,9 @@ class MidiOut:
     # Mute synthesized audio when MIDI output is enabled
     mute_audio_when_midi_enabled: bool = True
 
+    # Send a MIDI Tuning Standard bulk tuning dump
+    send_tuning: bool = False
+
 
 class Midi:
     # MIDI input settings

@@ -872,6 +872,32 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     assert started == [True]
 
 
+def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))
+    main_window = FakeApp()
+    app.__dict__['main_window'] = main_window
+    app.__dict__['midi_listener'] = type(
+        'FakeMidiListener',
+        (),
+        {'start': lambda self: None},
+    )()
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+
+    start(app)
+
+    assert [m.type for m in messages] == [
+        'program_change',
+        'control_change',
+        'sysex',
+    ]
+
+
 def test_backspace_autorepeat_starts_after_configured_delay() -> None:
     app = App(
         gui=True,

@@ -490,6 +490,7 @@ def _apply_section_preset(
     _clear_cached_values(data)
     _after(parent, 0, _rebuild_parent_control_panel, parent)
     _rebuild_note_grid_if_mapping_changed(parent, data)
+    _send_tuning_if_tuning_changed(parent, data)
 
 
 def _general_controls(
@@ -805,6 +806,16 @@ def _rebuild_note_grid_if_mapping_changed(parent: object, data: BaseModel) -> No
         _after(parent, 0, _rebuild_note_grid, parent)
 
 
+def _send_tuning_if_tuning_changed(parent: object, data: BaseModel) -> None:
+    if isinstance(data, Scale | Tuning | MidiOut):
+        _send_tuning(parent)
+
+
+def _send_tuning(parent: object) -> None:
+    if isinstance(parent, QWidget) and (app := _control_panel(parent).app):
+        app.midi.output.send_tuning_dump(app.scale, app.tuning)
+
+
 def _rebuild_note_grid(parent: QWidget) -> None:
     state = _control_panel(parent).app
     assert state is not None
@@ -823,6 +834,8 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
         _rebuild_note_grid_if_mapping_changed(parent, data)
         if isinstance(data, MidiIn | MidiOut) and name == 'enable':
             _set_midi_controls_state(parent, checked)
+            if isinstance(data, MidiOut):
+                _send_tuning(parent)
             if isinstance(data, MidiIn) and (state := _control_panel(parent).app):
                 if checked:
                     state.midi_listener.start()
@@ -1113,6 +1126,13 @@ def _set_model_value(
     _clear_cached_values(data)
     if isinstance(data, Device):
         data.notify_change()
+    if parent is not None and old_value != validated_value:
+        if not (
+            isinstance(data, MidiOut)
+            and name != 'note_offset'
+            and name != 'send_tuning'
+        ):
+            _send_tuning_if_tuning_changed(parent, data)
     if parent is not None:
         _sync_model_controls(parent, data, name)
     instrument('control value set end', model=type(data).__name__, field=name)

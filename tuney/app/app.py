@@ -182,6 +182,7 @@ def start(app: App) -> None:
     instrument('app start', run_in_background=app.run_in_background)
     app.main_window.start()
     app.midi_listener.start()
+    app.midi.output.send_tuning_dump(app.scale, app.tuning)
     if app.run_in_background:
         app.keyboard_listener.start()
 
@@ -315,6 +316,7 @@ def randomize_settings(app: App, rng: random.Random | None = None) -> None:
     if app.gui:
         app.main_window.ui.rebuild_control_panel()
         app.main_window.ui.rebuild_note_grid()
+        send_midi_tuning_dump(app)
 
 
 def load_text_file(app: App, path: Path) -> None:
@@ -359,6 +361,7 @@ def apply_preset(app: App, name: str) -> None:
     clear_cached_values(app)
     if char_presses is not None:
         app.__dict__['char_presses'] = char_presses
+    send_midi_tuning_dump(app)
 
 
 def restore_data(app: App, data: dict[str, object]) -> None:
@@ -369,6 +372,7 @@ def restore_data(app: App, data: dict[str, object]) -> None:
     for field in type(app).model_fields:
         setattr(app, field, getattr(validated, field))
     clear_cached_values(app)
+    send_midi_tuning_dump(app)
     instrument('restore data end')
 
 
@@ -391,6 +395,11 @@ def play_char(app: App, c: CharPress) -> None:
         app.midi.output(note, c.is_press)
     if app.gui:
         app.main_window.on_char(c)
+
+
+def send_midi_tuning_dump(app: App) -> None:
+    if app.gui and 'main_window' in app.__dict__:
+        app.midi.output.send_tuning_dump(app.scale, app.tuning)
 
 
 def play_note(app: App, note: int, is_press: bool) -> None:

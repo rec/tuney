@@ -11,6 +11,8 @@ from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Binaural, Sound
+from tuney.scale.scale import Scale
+from tuney.scale.tuning import Tuning
 from tuney.ui.layout import Layout
 
 
@@ -319,6 +321,20 @@ def test_midi_output_sends_on_mido_channel(
     assert messages[0].program == 40
     assert messages[1].control == 7
     assert messages[1].value == 100
+
+
+def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
+    midi = tuney.midi.midi.MidiOut(send_tuning=True)
+
+    message = midi.tuning_dump(Scale(), Tuning())
+
+    assert message.type == 'sysex'
+    assert message.data[:5] == (0x7E, 0x7F, 0x08, 0x01, 0)
+    assert bytes(message.data[5:21]).decode('ascii') == 'Tuney           '
+    assert len(message.data) == 406
+    assert message.data[21 : 21 + 6] == (0, 0, 0, 1, 0, 0)
+    assert message.data[21 + 69 * 3 : 21 + 70 * 3] == (69, 0, 0)
+    assert message.data[-1] == tuney.midi.midi._tuning_checksum(list(message.data[:-1]))
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:

@@ -8,6 +8,7 @@ import tomlkit
 from pydantic import BaseModel
 
 import tuney.audio.device
+import tuney.midi.midi
 import tuney.midi.ports
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -18,7 +19,7 @@ from tuney.audio.sound import Sound
 from tuney.config.annotations import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
-from tuney.midi.midi import MidiIn, MidiOut
+from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
@@ -404,6 +405,27 @@ def test_general_midi_volume_change_is_sent_to_open_port() -> None:
     assert messages[0].control == 7
     assert messages[0].value == 72
     assert 'port' not in midi.__dict__
+
+
+def test_tuning_change_sends_midi_tuning_dump_when_enabled(monkeypatch) -> None:
+    from PySide6.QtWidgets import QWidget
+
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+    _qt_app()
+    app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))
+    app.__dict__['global_config'] = GlobalConfig()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, app, app=app)
+
+    control_panel._set_model_value(app.tuning, 'detune', 1, panel)
+
+    assert messages[-1].type == 'sysex'
 
 
 def test_control_flow_layout_wraps_to_available_width() -> None:

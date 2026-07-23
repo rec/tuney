@@ -317,6 +317,11 @@ default = true
 title = "Mute Audio When Midi Enabled"
 type = "boolean"
 
+["$defs".MidiOut.properties.send_tuning]
+default = false
+title = "Send Tuning"
+type = "boolean"
+
 ["$defs".Milliseconds]
 type = "number"
 

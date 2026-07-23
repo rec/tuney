@@ -34,11 +34,19 @@ def write_midi_file(
 
 
 def _midi_file_message(midi: MidiOut, note: NotePress, time: int) -> mido.Message:
-    kwargs = {} if midi.mido_channel is None else {'channel': midi.mido_channel}
+    message_type = 'note_on' if note.is_press or ZERO_IS_NOTE_OFF else 'note_off'
+    velocity = max(0, min(127, note.is_press * midi.velocity))
+    if midi.mido_channel is None:
+        return mido.Message(
+            message_type,
+            note=midi.midi_note(note.note_number),
+            time=time,
+            velocity=velocity,
+        )
     return mido.Message(
-        **kwargs,
+        message_type,
+        channel=midi.mido_channel,
         note=midi.midi_note(note.note_number),
         time=time,
-        type='note_on' if note.is_press or ZERO_IS_NOTE_OFF else 'note_off',
-        velocity=max(0, min(127, note.is_press * midi.velocity)),
+        velocity=velocity,
     )

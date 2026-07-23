@@ -72,6 +72,9 @@ def set_tuning(main_window: MainWindow, tuning: Computed | Ratios | Table) -> No
     for field in type(main_window.app.tuning).model_fields:
         setattr(main_window.app.tuning, field, getattr(validated, field))
     main_window.ui.rebuild_control_panel()
+    main_window.app.midi.output.send_tuning_dump(
+        main_window.app.scale, main_window.app.tuning
+    )
 
 
 def update_export_tuning_action(main_window: MainWindow) -> None:

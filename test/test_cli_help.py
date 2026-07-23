@@ -36,6 +36,7 @@ OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--midi.output.velocity',
     '--midi.output.note-offset',
     '--midi.output.mute-audio-when-midi-enabled',
+    '--midi.output.send-tuning',
     '--text-timings.space',
     '--text-timings.comma',
     '--text-timings.colon',

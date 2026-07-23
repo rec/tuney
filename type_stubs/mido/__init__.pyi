@@ -4,6 +4,7 @@ class Message:
     type: str
     channel: int
     control: int
+    data: tuple[int, ...]
     note: int
     program: int
     value: int
@@ -15,6 +16,7 @@ class Message:
         *,
         channel: int = ...,
         control: int = ...,
+        data: list[int] | tuple[int, ...] = ...,
         note: int = ...,
         program: int = ...,
         time: int = ...,
