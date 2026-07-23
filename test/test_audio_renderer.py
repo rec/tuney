@@ -22,7 +22,7 @@ from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Binaural, Sound
-from tuney.audio.speech import SpeechPhrase, SpeechPlayback
+from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
 
@@ -876,7 +876,7 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
     assert ('voice', 'voice-2') in calls
 
 
-def test_speech_playback_aligns_phrases_without_stretching(monkeypatch) -> None:
+def test_render_speech_aligns_phrases_without_stretching(monkeypatch) -> None:
     def render(
         text: str, _rate: int, _path: Path, _voice: str | None
     ) -> speech._SpeechFile | None:
@@ -888,15 +888,55 @@ def test_speech_playback_aligns_phrases_without_stretching(monkeypatch) -> None:
 
     monkeypatch.setattr(speech, '_render_speech', render)
 
-    playback = speech.speech_playback(
-        [SpeechPhrase(text='a', start=0.0), SpeechPhrase(text='b', start=0.5)],
-        sample_rate=4,
-        level=1.0,
-        voice=None,
+    playback = speech.render_speech(
+        SpeechRequest(
+            phrases=[
+                SpeechPhrase(text='a', start=0.0),
+                SpeechPhrase(text='b', start=0.5),
+            ],
+            sample_rate=4,
+            level=1.0,
+            voice=None,
+        )
     )
 
     assert playback is not None
     np.testing.assert_allclose(playback.data[:, 0], [1.0, 1.0, 2.0, 2.0])
+
+
+def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
+    class Stream:
+        samplerate = SAMPLE_RATE
+
+    class Engine:
+        stream = Stream()
+
+        def __init__(self) -> None:
+            self.commands: list[object] = []
+            self.starts = 0
+
+        def submit(self, command: object) -> None:
+            self.commands.append(command)
+
+        def start(self) -> None:
+            self.starts += 1
+
+    playback = SpeechPlayback(data=np.ones((8, 1), dtype=np.float32), level=1.0)
+    player = Player()
+    engine = Engine()
+    player.__dict__['engine'] = engine
+    request = player.speech_request([SpeechPhrase(text='a', start=0.0)], 1.0, 'Alex')
+    player.prepared_speech.request = request
+    player.prepared_speech.playback = playback
+    monkeypatch.setattr(
+        'tuney.audio.player.render_speech',
+        lambda _: pytest.fail('prepared speech was not used'),
+    )
+
+    player.start_speech([SpeechPhrase(text='a', start=0.0)], 1.0, 'Alex')
+
+    assert engine.commands == [PlaySpeech(speech=playback)]
+    assert engine.starts == 1
 
 
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:

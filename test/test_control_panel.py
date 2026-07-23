@@ -25,6 +25,7 @@ from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
+from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.ui import (
     control_panel,
@@ -124,6 +125,70 @@ def test_set_model_value_validates_and_clears_cached_values(
             'after': mapper.char_to_number['b'],
         },
     )
+
+
+def test_set_app_value_preserves_runtime_objects() -> None:
+    app = App(gui=True)
+    main_window = object()
+    player = object()
+    app.__dict__['main_window'] = main_window
+    app.__dict__['player'] = player
+    app.__dict__['note_labels'] = {'a': 'A'}
+
+    control_panel._set_model_value(app, 'speech_voice', 'Alex')
+
+    assert app.main_window is main_window
+    assert app.player is player
+    assert 'note_labels' not in app.__dict__
+
+
+def test_speech_change_during_looped_replay_prepares_next_speech() -> None:
+    from PySide6.QtWidgets import QWidget
+
+    class Player:
+        def __init__(self) -> None:
+            self.speech: list[tuple[object, float, str | None]] = []
+
+        def prepare_speech(
+            self, phrases: object, level: float, voice: str | None
+        ) -> None:
+            self.speech.append((phrases, level, voice))
+
+    _qt_app()
+    app = App(
+        gui=True,
+        use_speech=True,
+        text=[CharPress('a', time=0), CharPress('a', False, 100)],
+    )
+    player = Player()
+    app.__dict__['player'] = player
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, app, app=app, build=False)
+    panel.main_window = type(
+        'Window',
+        (),
+        {
+            'is_replaying': True,
+            'history': type(
+                'History',
+                (),
+                {
+                    'loop_replay': True,
+                    'loop_before': 0.0,
+                    'loop_after': 0.0,
+                    'loop_tempo': 1.0,
+                    'randomize_on_each_loop': False,
+                    'checkpoint_undo': lambda _: None,
+                },
+            )(),
+        },
+    )()
+    app.__dict__['main_window'] = panel.main_window
+
+    control_panel._set_model_value(app, 'speech_voice', 'Alex', panel)
+
+    assert len(player.speech) == 1
+    assert player.speech[0][1:] == (1.0, 'Alex')
 
 
 def test_mapper_length_spinbox_cannot_go_below_zero() -> None:

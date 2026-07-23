@@ -33,7 +33,8 @@ from PySide6.QtWidgets import (
 )
 from tyro._fields import field_list_from_type_or_callable
 
-from ..app.app import apply_preset
+from ..app.app import apply_preset, replay_char_presses
+from ..app.key_recorder import speech_phrases
 from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.polyphony import Polyphony
@@ -86,6 +87,17 @@ from .control_panel_visibility import (
     _visible_control_names,
 )
 from .tooltip import Tooltip
+
+SPEECH_FIELDS = {'use_speech', 'speech_level', 'speech_voice'}
+APP_RUNTIME_CACHE = {
+    'audio_recorder',
+    'global_config',
+    'keyboard_listener',
+    'key_recorder',
+    'main_window',
+    'midi_listener',
+    'player',
+}
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -1127,6 +1139,8 @@ def _set_model_value(
     if isinstance(data, Device):
         data.notify_change()
     if parent is not None and old_value != validated_value:
+        _prepare_speech_if_changed(parent, data, name)
+    if parent is not None and old_value != validated_value:
         if not (
             isinstance(data, MidiOut)
             and name != 'note_offset'
@@ -1145,10 +1159,30 @@ def _checkpoint_undo(parent: QWidget) -> None:
         control_panel.app.main_window.history.checkpoint_undo()
 
 
+def _prepare_speech_if_changed(parent: QWidget, data: BaseModel, name: str) -> None:
+    if type(data).__name__ != 'App' or name not in SPEECH_FIELDS:
+        return
+    control_panel = _control_panel(parent)
+    app = control_panel.app
+    if (
+        app is not None
+        and app.use_speech
+        and app.main_window.is_replaying
+        and app.main_window.history.loop_replay
+    ):
+        app.player.prepare_speech(
+            speech_phrases(replay_char_presses(app)),
+            app.speech_level,
+            app.speech_voice,
+        )
+
+
 def _clear_cached_values(data: BaseModel) -> None:
     fields = type(data).model_fields
     for key in tuple(data.__dict__):
-        if key not in fields:
+        if key not in fields and not (
+            type(data).__name__ == 'App' and key in APP_RUNTIME_CACHE
+        ):
             data.__dict__.pop(key, None)
 
 

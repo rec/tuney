@@ -42,18 +42,26 @@ class SpeechPhrase(BaseModel, frozen=True):
     start: float
 
 
-def speech_playback(
-    phrases: list[SpeechPhrase], sample_rate: int, level: float, voice: str | None
+class SpeechRequest(BaseModel, frozen=True):
+    phrases: list[SpeechPhrase]
+    sample_rate: int
+    level: float
+    voice: str | None
+
+
+def render_speech(
+    request: SpeechRequest,
 ) -> SpeechPlayback | None:
+    phrases = request.phrases
     if not phrases:
         return None
     with TemporaryDirectory() as directory:
-        rendered = _render_phrases(Path(directory), phrases, voice)
+        rendered = _render_phrases(Path(directory), phrases, request.voice)
         if not rendered:
             return None
         return SpeechPlayback(
-            data=_align_phrases(rendered, sample_rate),
-            level=level,
+            data=_align_phrases(rendered, request.sample_rate),
+            level=request.level,
         )
 
 

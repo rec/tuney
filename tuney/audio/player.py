@@ -15,8 +15,23 @@ from .engine import AudioEngine, Configure, PlaySpeech, StopAll
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter, render_file
 from .sound import Sound
-from .speech import SpeechPhrase, speech_playback
+from .speech import SpeechPhrase, SpeechPlayback, SpeechRequest, render_speech
 from .voice import Voice
+
+
+class PreparedSpeech(BaseModel):
+    request: SpeechRequest | None = None
+    playback: SpeechPlayback | None = None
+
+    def prepare(self, request: SpeechRequest) -> None:
+        self.request = request
+        self.playback = render_speech(request)
+
+    def take(self, request: SpeechRequest) -> SpeechPlayback | None:
+        if self.request != request:
+            return None
+        playback, self.playback = self.playback, None
+        return playback
 
 
 class Player(BaseModel, frozen=True):
@@ -217,15 +232,36 @@ class Player(BaseModel, frozen=True):
         if 'engine' in self.__dict__:
             self.engine.submit(StopAll())
 
+    @cached_property
+    def prepared_speech(self) -> PreparedSpeech:
+        return PreparedSpeech()
+
+    def prepare_speech(
+        self, phrases: list[SpeechPhrase], level: float, voice: str | None
+    ) -> None:
+        request = self.speech_request(phrases, level, voice)
+        instrument('player prepare speech', phrases=len(phrases), level=level)
+        self.prepared_speech.prepare(request)
+
     def start_speech(
         self, phrases: list[SpeechPhrase], level: float, voice: str | None
     ) -> None:
         instrument('player start speech', phrases=len(phrases), level=level)
-        stream = self.engine.stream
-        speech = speech_playback(phrases, int(stream.samplerate), level, voice)
+        request = self.speech_request(phrases, level, voice)
+        speech = self.prepared_speech.take(request) or render_speech(request)
         if speech is not None:
             self.engine.submit(PlaySpeech(speech=speech))
             self.engine.start()
+
+    def speech_request(
+        self, phrases: list[SpeechPhrase], level: float, voice: str | None
+    ) -> SpeechRequest:
+        return SpeechRequest(
+            phrases=phrases,
+            sample_rate=int(self.engine.stream.samplerate),
+            level=level,
+            voice=voice,
+        )
 
     def close(self) -> None:
         instrument('player close')
