@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
 
 import tuney.presets
-from tuney.app.app import App
+from tuney.app.app import App, save
 from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
@@ -531,7 +531,7 @@ def test_app_activate_and_history() -> None:
         startup.autosave_file = path
         app.app.__dict__.pop('_autosave', None)
         autosaved = App(gui=False, max_gap=2.0, load_autosave=False)
-        autosaved._autosave.save(lambda path: main_window.save(autosaved, path))
+        autosaved._autosave.save(lambda path: save(autosaved, path))
         app.app.max_gap = 3.0
         app.app.load_autosave = True
 

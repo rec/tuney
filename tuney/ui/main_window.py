@@ -29,7 +29,7 @@ from ..app.app import (
     clear,
     on_char,
     randomize_timing,
-    save,
+    save_autosave,
 )
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
     def _close_app(self) -> None:
         try:
             self.ui.control_panel.save_state()
-            self.app._autosave.save(lambda path: save(self.app, path))
+            self.app._autosave.save(lambda path: save_autosave(self.app, path))
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.midi_listener.close()

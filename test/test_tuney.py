@@ -30,6 +30,7 @@ from tuney.app.app import (
     restore_data,
     run,
     save,
+    save_autosave,
     start,
 )
 from tuney.app.global_config import GlobalConfig
@@ -64,7 +65,7 @@ from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
 from tuney.ui import Action, State, StateChange, startup
 from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_text
-from tuney.ui.history import History
+from tuney.ui.history import History, LoopState
 from tuney.ui.key_events import on_key_event
 from tuney.ui.main_window import MainWindow
 
@@ -1227,6 +1228,40 @@ def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
     assert 'loop_replay' not in data
 
 
+def test_autosave_writes_loop_state(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
+        app = App(gui=True, max_gap=2.0)
+        history = type(
+            'History',
+            (),
+            {
+                'loop_state': LoopState(
+                    replay=True,
+                    before=0.5,
+                    after=0.25,
+                    tempo=2.0,
+                    randomize_on_each_loop=True,
+                )
+            },
+        )()
+        app.__dict__['main_window'] = type('Window', (), {'history': history})()
+
+        app._autosave.save(lambda path: save_autosave(app, path))
+
+        data = tomllib.loads(path.read_text())
+
+    assert data['max_gap'] == 2.0
+    assert data['loop'] == {
+        'replay': True,
+        'before': 0.5,
+        'after': 0.25,
+        'tempo': 2.0,
+        'randomize_on_each_loop': True,
+    }
+
+
 def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
     monkeypatch,
 ) -> None:
@@ -1251,6 +1286,35 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
             CharPress('a', time=0),
             CharPress('a', False, 100),
         ]
+
+
+def test_restore_autosave_restores_loop_state(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'state.toml'
+        set_autosave_file(monkeypatch, path)
+        path.write_text(
+            'gui = true\n'
+            '\n'
+            '[loop]\n'
+            'replay = true\n'
+            'before = 0.5\n'
+            'after = 0.25\n'
+            'tempo = 2.0\n'
+            'randomize_on_each_loop = true\n'
+        )
+        app = App(gui=True)
+
+        error = app._autosave.restore(app)
+        history = History(type('Window', (), {'app': app})())
+
+    assert error is None
+    assert history.loop_state == LoopState(
+        replay=True,
+        before=0.5,
+        after=0.25,
+        tempo=2.0,
+        randomize_on_each_loop=True,
+    )
 
 
 def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:

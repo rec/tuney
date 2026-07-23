@@ -31,7 +31,9 @@ class HistoryState(BaseModel, frozen=True):
 class History:
     def __init__(self, main_window: MainWindow) -> None:
         self.main_window = main_window
-        self.loop_state = LoopState()
+        self.loop_state = main_window.app.__dict__.pop(
+            '_autosave_loop_state', LoopState()
+        )
         self.undo_stack: list[HistoryState] = []
         self.redo_stack: list[HistoryState] = []
 

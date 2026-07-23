@@ -18,6 +18,7 @@ from ..app.app import (
     restore_data,
     restore_text,
     save,
+    save_autosave,
 )
 from ..app.platform_info import instrument
 from ..presets import delete_presets, read_file, write_preset
@@ -219,7 +220,9 @@ def on_swap_with_autosave(main_window: MainWindow, *_: object) -> None:
         return
     try:
         main_window.history.checkpoint_undo()
-        main_window.app._autosave.save(lambda path: save(main_window.app, path))
+        main_window.app._autosave.save(
+            lambda path: save_autosave(main_window.app, path)
+        )
         restore_data(main_window.app, data)
     except (OSError, ValueError, ValidationError) as error:
         QMessageBox.critical(main_window, 'Swap with autosave', str(error))
