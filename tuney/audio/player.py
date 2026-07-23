@@ -112,8 +112,6 @@ class Player(BaseModel, frozen=True):
 
     @property
     def output_gain(self) -> float:
-        if self.sound.binaural.enable:
-            return self.sound.master_gain / 2
         return self.sound.master_gain
 
     def render_file(

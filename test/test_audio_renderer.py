@@ -476,7 +476,7 @@ def test_player_forces_stereo_for_binaural_sound() -> None:
     assert player.channels == 2
     assert player.engine.device.channels == 2
     assert player.voice_maker(0).binaural.enable
-    assert player.engine.master_gain == 0.5
+    assert player.engine.master_gain == 1.0
 
 
 def test_player_updates_cached_engine_channels_for_binaural_sound() -> None:
@@ -500,14 +500,14 @@ def test_player_updates_live_master_gain() -> None:
     assert player.engine.master_gain == 0.5
 
 
-def test_player_halves_live_master_gain_for_binaural_sound() -> None:
+def test_player_preserves_live_master_gain_for_binaural_sound() -> None:
     player = Player(sound=Sound(binaural=Binaural(enable=True)))
     _ = player.engine
 
     player.set_master_gain(0.5)
 
     assert player.sound.master_gain == 0.5
-    assert player.engine.master_gain == 0.25
+    assert player.engine.master_gain == 0.5
 
 
 def test_device_change_restarts_active_stream(monkeypatch) -> None:
