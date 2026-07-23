@@ -1672,6 +1672,22 @@ def test_speech_phrases_split_on_punctuation_and_align_to_note_starts() -> None:
     ]
 
 
+def test_speech_phrases_can_render_whole_text_as_one_phrase() -> None:
+    assert speech_phrases(
+        [
+            CharPress(' ', time=0),
+            CharPress('H', time=100),
+            CharPress('i', time=200),
+            CharPress('!', time=300),
+            CharPress(' ', time=400),
+            CharPress('B', time=500),
+            CharPress('y', time=600),
+            CharPress('e', time=700),
+        ],
+        False,
+    ) == [SpeechPhrase(text='Hi! Bye', start=0.1)]
+
+
 def test_replay_char_presses_use_loop_tempo() -> None:
     app = App(
         gui=True,

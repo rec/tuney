@@ -38,6 +38,9 @@ class Tuney:
     # Speak the replay text along with the synthesized notes
     use_speech: bool = False
 
+    # Fit speech to phrase starts instead of rendering the whole replay text at once
+    use_phrase_mode: bool = True
+
     # Speech volume multiplier
     speech_level: float = 1.0
 

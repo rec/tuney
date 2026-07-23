@@ -8,6 +8,7 @@ audition_scala = true
 gui = false
 silent = false
 use_speech = false
+use_phrase_mode = true
 speech_level = 1.0
 run_in_background = false
 

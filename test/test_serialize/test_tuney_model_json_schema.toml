@@ -704,6 +704,11 @@ default = false
 title = "Use Speech"
 type = "boolean"
 
+[properties.use_phrase_mode]
+default = true
+title = "Use Phrase Mode"
+type = "boolean"
+
 [properties.speech_level]
 default = 1.0
 title = "Speech Level"

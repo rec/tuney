@@ -24,6 +24,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Disable synthesized audio output (default: False)
   --use-speech, --no-use-speech
         Speak the replay text along with the synthesized notes (default: False)
+  --use-phrase-mode, --no-use-phrase-mode
+        Fit speech to phrase starts instead of rendering the whole replay text at once (default: True)
   --speech-level FLOAT
         Speech volume multiplier (default: 1.0)
   --speech-voice {None}|STR

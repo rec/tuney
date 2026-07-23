@@ -92,7 +92,7 @@ class KeyRecorder(BaseModel):
             state.main_window.ui.start_loop_clock()
             if state.use_speech and char_presses:
                 state.player.start_speech(
-                    speech_phrases(char_presses),
+                    speech_phrases(char_presses, state.use_phrase_mode),
                     state.speech_level,
                     state.speech_voice,
                 )
@@ -159,7 +159,23 @@ class KeyRecorder(BaseModel):
         self.replay_text = ''
 
 
-def speech_phrases(char_presses: list[CharPress]) -> list[SpeechPhrase]:
+def speech_phrases(
+    char_presses: list[CharPress], use_phrase_mode: bool = True
+) -> list[SpeechPhrase]:
+    if not use_phrase_mode:
+        text = ''.join(c.char for c in char_presses if c.is_press).strip()
+        start = next(
+            (
+                c.time / 1000
+                for c in char_presses
+                if c.is_press and not c.char.isspace()
+            ),
+            None,
+        )
+        if text and start is not None:
+            return [SpeechPhrase(text=text, start=start)]
+        return []
+
     phrases = []
     phrase = ''
     start = None

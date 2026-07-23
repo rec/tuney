@@ -13,6 +13,7 @@ SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
 OPTIONS_WITHOUT_SHORT_ALIAS = {
     '--hover-time',
     '--use-speech',
+    '--use-phrase-mode',
     '--speech-level',
     '--speech-voice',
     '--backspace-repeat-delay',

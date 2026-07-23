@@ -82,6 +82,9 @@ class Tuney(BaseModel):
     # Speak the replay text along with the synthesized notes
     use_speech: Annotated[bool, General, Beginner] = False
 
+    # Fit speech to phrase starts instead of rendering the whole replay text at once
+    use_phrase_mode: Annotated[bool, General, Beginner] = True
+
     # Speech volume multiplier
     speech_level: Annotated[
         float, General, Beginner, Numeric(min=0, max=4, inc=0.01)
