@@ -32,6 +32,7 @@ from tuney.app.app import (
     start,
 )
 from tuney.app.global_config import GlobalConfig
+from tuney.app.key_recorder import speech_phrases
 from tuney.app.platform_info import (
     APP_USER_MODEL_ID,
     ISSUE_URL,
@@ -54,6 +55,7 @@ from tuney.app.runnable import start_thread
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.audio.speech import SpeechPhrase
 from tuney.midi.midi import Midi, MidiOut
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
@@ -1393,16 +1395,16 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
 def test_replay_starts_speech(monkeypatch) -> None:
     class FakePlayer:
         def __init__(self) -> None:
-            self.speech: list[tuple[str, float, float, str | None]] = []
+            self.speech: list[tuple[list[SpeechPhrase], float, str | None]] = []
 
         @staticmethod
         def stop_all() -> None:
             pass
 
         def start_speech(
-            self, text: str, duration: float, level: float, voice: str | None
+            self, phrases: list[SpeechPhrase], level: float, voice: str | None
         ) -> None:
-            self.speech.append((text, duration, level, voice))
+            self.speech.append((phrases, level, voice))
 
     class FakeSequencer:
         def __init__(self, *_: object, **__: object) -> None:
@@ -1433,7 +1435,26 @@ def test_replay_starts_speech(monkeypatch) -> None:
 
     app.key_recorder.on_replay(app)
 
-    assert player.speech == [('ab', 0.4, 0.5, 'Alex')]
+    assert player.speech == [([SpeechPhrase(text='ab', start=0.0)], 0.5, 'Alex')]
+
+
+def test_speech_phrases_split_on_punctuation_and_align_to_note_starts() -> None:
+    assert speech_phrases(
+        [
+            CharPress(' ', time=0),
+            CharPress('H', time=100),
+            CharPress('i', time=200),
+            CharPress('!', time=300),
+            CharPress('!', False, 350),
+            CharPress(' ', time=400),
+            CharPress('B', time=500),
+            CharPress('y', time=600),
+            CharPress('e', time=700),
+        ]
+    ) == [
+        SpeechPhrase(text='Hi!', start=0.1),
+        SpeechPhrase(text='Bye', start=0.5),
+    ]
 
 
 def test_replay_char_presses_use_loop_tempo() -> None:

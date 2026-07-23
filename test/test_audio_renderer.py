@@ -22,7 +22,7 @@ from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Binaural, Sound
-from tuney.audio.speech import SpeechPlayback
+from tuney.audio.speech import SpeechPhrase, SpeechPlayback
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
 
@@ -874,6 +874,29 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
     speech._render_speech('hello', 50, tmp_path / 'speech.wav', 'Second')
 
     assert ('voice', 'voice-2') in calls
+
+
+def test_speech_playback_aligns_phrases_without_stretching(monkeypatch) -> None:
+    def render(
+        text: str, _rate: int, _path: Path, _voice: str | None
+    ) -> speech._SpeechFile | None:
+        values = {'a': 1.0, 'b': 2.0}
+        return speech._SpeechFile(
+            data=np.ones((2, 1), dtype=np.float32) * values[text],
+            sample_rate=4,
+        )
+
+    monkeypatch.setattr(speech, '_render_speech', render)
+
+    playback = speech.speech_playback(
+        [SpeechPhrase(text='a', start=0.0), SpeechPhrase(text='b', start=0.5)],
+        sample_rate=4,
+        level=1.0,
+        voice=None,
+    )
+
+    assert playback is not None
+    np.testing.assert_allclose(playback.data[:, 0], [1.0, 1.0, 2.0, 2.0])
 
 
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:

@@ -15,7 +15,7 @@ from .engine import AudioEngine, Configure, PlaySpeech, StopAll
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter, render_file
 from .sound import Sound
-from .speech import speech_playback
+from .speech import SpeechPhrase, speech_playback
 from .voice import Voice
 
 
@@ -218,13 +218,11 @@ class Player(BaseModel, frozen=True):
             self.engine.submit(StopAll())
 
     def start_speech(
-        self, text: str, duration: float, level: float, voice: str | None
+        self, phrases: list[SpeechPhrase], level: float, voice: str | None
     ) -> None:
-        instrument(
-            'player start speech', length=len(text), duration=duration, level=level
-        )
+        instrument('player start speech', phrases=len(phrases), level=level)
         stream = self.engine.stream
-        speech = speech_playback(text, duration, int(stream.samplerate), level, voice)
+        speech = speech_playback(phrases, int(stream.samplerate), level, voice)
         if speech is not None:
             self.engine.submit(PlaySpeech(speech=speech))
             self.engine.start()

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase
 from ..time import Milliseconds, Seconds, to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
@@ -89,10 +90,10 @@ class KeyRecorder(BaseModel):
             char_presses = replay_char_presses(state)
             instrument('key recorder replay events', count=len(char_presses))
             if state.use_speech and char_presses:
-                text = ''.join(c.char for c in char_presses if c.is_press)
-                duration = max(c.time for c in char_presses) / 1000
                 state.player.start_speech(
-                    text, duration, state.speech_level, state.speech_voice
+                    speech_phrases(char_presses),
+                    state.speech_level,
+                    state.speech_voice,
                 )
             active_indexes = text_timing_active_indexes(char_presses)
             if state.show_text_timings:
@@ -153,3 +154,22 @@ class KeyRecorder(BaseModel):
         self.time_offset = 0.0
         self.insert_time = None
         self.replay_text = ''
+
+
+def speech_phrases(char_presses: list[CharPress]) -> list[SpeechPhrase]:
+    phrases = []
+    phrase = ''
+    start = None
+    for c in char_presses:
+        if not c.is_press:
+            continue
+        if start is None and not c.char.isspace():
+            start = c.time / 1000
+        phrase += c.char
+        if c.char in PHRASE_PUNCTUATION and start is not None:
+            phrases.append(SpeechPhrase(text=phrase.strip(), start=start))
+            phrase = ''
+            start = None
+    if phrase.strip() and start is not None:
+        phrases.append(SpeechPhrase(text=phrase.strip(), start=start))
+    return phrases

@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from ..app.platform_info import report_error
 
 BASE_SPEECH_RATE = 50
-SPEECH_TARGET = 0.99
+PHRASE_PUNCTUATION = '.:;!?'
 
 
 class SpeechPlayback(BaseModel):
@@ -37,27 +37,22 @@ class SpeechPlayback(BaseModel):
         return (out * self.level).astype(dtype, copy=False)
 
 
+class SpeechPhrase(BaseModel, frozen=True):
+    text: str
+    start: float
+
+
 def speech_playback(
-    text: str, duration: float, sample_rate: int, level: float, voice: str | None
+    phrases: list[SpeechPhrase], sample_rate: int, level: float, voice: str | None
 ) -> SpeechPlayback | None:
-    if not text or duration <= 0:
+    if not phrases:
         return None
     with TemporaryDirectory() as directory:
-        directory_path = Path(directory)
-        first = _render_speech(
-            text, BASE_SPEECH_RATE, directory_path / 'first.wav', voice
-        )
-        if first is None:
-            return None
-        target_duration = duration * SPEECH_TARGET
-        first_duration = len(first.data) / first.sample_rate
-        rate = max(1, round(BASE_SPEECH_RATE * first_duration / target_duration))
-        if (
-            scaled := _render_speech(text, rate, directory_path / 'scaled.wav', voice)
-        ) is None:
+        rendered = _render_phrases(Path(directory), phrases, voice)
+        if not rendered:
             return None
         return SpeechPlayback(
-            data=_resample(scaled, sample_rate),
+            data=_align_phrases(rendered, sample_rate),
             level=level,
         )
 
@@ -115,6 +110,38 @@ def _set_voice(engine: _SpeechEngine, name: str) -> None:
         if getattr(voice, 'name', None) == name or voice_id == name:
             engine.setProperty('voice', voice_id)
             return
+
+
+def _render_phrases(
+    directory: Path, phrases: list[SpeechPhrase], voice: str | None
+) -> list[tuple[SpeechPhrase, _SpeechFile]]:
+    rendered = []
+    for i, phrase in enumerate(phrases):
+        path = directory / f'phrase-{i}.wav'
+        if speech_file := _render_speech(phrase.text, BASE_SPEECH_RATE, path, voice):
+            rendered.append((phrase, speech_file))
+    return rendered
+
+
+def _align_phrases(
+    rendered: list[tuple[SpeechPhrase, _SpeechFile]], sample_rate: int
+) -> np.ndarray:
+    resampled = [
+        (phrase, _resample(speech_file, sample_rate))
+        for phrase, speech_file in rendered
+    ]
+    channels = max(data.shape[1] for _, data in resampled)
+    length = max(
+        round(phrase.start * sample_rate) + len(data) for phrase, data in resampled
+    )
+    out = np.zeros((length, channels))
+    for phrase, data in resampled:
+        start = round(phrase.start * sample_rate)
+        end = start + len(data)
+        if data.shape[1] != channels:
+            data = np.repeat(data.mean(axis=1)[:, np.newaxis], channels, axis=1)
+        out[start:end] += data
+    return out
 
 
 def _resample(speech_file: _SpeechFile, sample_rate: int) -> np.ndarray:
