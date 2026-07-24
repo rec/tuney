@@ -309,7 +309,9 @@ def test_midi_output_sends_on_mido_channel(
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(
+        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
 
     tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40)(60, True)
 
@@ -330,7 +332,9 @@ def test_midi_output_skips_program_change_when_program_is_none(monkeypatch) -> N
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(
+        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
 
     tuney.midi.midi.MidiOut(enable=True, program=None)(60, True)
 
@@ -380,9 +384,12 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
             pass
 
     def open_input(
-        port: str | None, *, callback: Callable[[tuney.midi.midi.mido.Message], None]
+        port: str | None,
+        *,
+        callback: Callable[[tuney.midi.midi.mido.Message], None],
+        virtual: bool,
     ) -> Port:
-        opened.append((port, callback))
+        opened.append((port, virtual, callback))
         return Port()
 
     midi = tuney.midi.midi.Midi(
@@ -393,7 +400,79 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
 
     listener.start()
 
-    assert opened == [('keyboard', listener.on_message)]
+    assert opened == [('keyboard', False, listener.on_message)]
+
+
+@pytest.mark.parametrize('platform', ['darwin', 'linux'])
+def test_midi_output_creates_virtual_port_by_default(
+    monkeypatch: pytest.MonkeyPatch, platform: str
+) -> None:
+    opened = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            pass
+
+    def open_output(port: str | None, *, virtual: bool) -> Port:
+        opened.append((port, virtual))
+        return Port()
+
+    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', platform)
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+
+    tuney.midi.midi.MidiOut(enable=True).start()
+
+    assert opened == [('Tuney MIDI Out', True)]
+
+
+@pytest.mark.parametrize('platform', ['darwin', 'linux'])
+def test_midi_input_creates_virtual_port_by_default(
+    monkeypatch: pytest.MonkeyPatch, platform: str
+) -> None:
+    opened = []
+
+    class Port:
+        def close(self) -> None:
+            pass
+
+    def open_input(
+        port: str | None,
+        *,
+        callback: Callable[[tuney.midi.midi.mido.Message], None],
+        virtual: bool,
+    ) -> Port:
+        opened.append((port, virtual, callback))
+        return Port()
+
+    midi = tuney.midi.midi.Midi(input=tuney.midi.midi.MidiIn(enable=True))
+    listener = midi.listener(lambda note, is_press: None)
+    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', platform)
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_input', open_input)
+
+    listener.start()
+
+    assert opened == [('Tuney MIDI In', True, listener.on_message)]
+
+
+def test_midi_output_uses_selected_port_instead_of_virtual_port(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            pass
+
+    def open_output(port: str | None, *, virtual: bool) -> Port:
+        opened.append((port, virtual))
+        return Port()
+
+    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', 'darwin')
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+
+    tuney.midi.midi.MidiOut(enable=True, name='External Synth').start()
+
+    assert opened == [('External Synth', False)]
 
 
 def test_oscillator_uses_one_cycle_per_note_period():

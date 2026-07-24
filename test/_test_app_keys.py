@@ -857,6 +857,14 @@ def test_close_releases_audio_before_closing_player() -> None:
         def close() -> None:
             calls.append('midi_close')
 
+    class MidiOutput:
+        @staticmethod
+        def close() -> None:
+            calls.append('midi_output_close')
+
+    class Midi:
+        output = MidiOutput()
+
     class Player:
         @staticmethod
         def stop_all() -> None:
@@ -872,6 +880,7 @@ def test_close_releases_audio_before_closing_player() -> None:
 
     class App:
         _autosave = Autosave()
+        midi = Midi()
         midi_listener = MidiListener()
         player = Player()
 
@@ -883,6 +892,7 @@ def test_close_releases_audio_before_closing_player() -> None:
         'save_state',
         'autosave',
         'midi_close',
+        'midi_output_close',
         'stop_all',
         ('wait', 2.0),
         'close',

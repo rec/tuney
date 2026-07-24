@@ -991,7 +991,9 @@ def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
         (),
         {'start': lambda self: None},
     )()
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(
+        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
 
     start(app)
 

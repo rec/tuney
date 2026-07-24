@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from functools import cached_property
 from math import floor, log2
@@ -28,6 +29,8 @@ MTS_NO_CHANGE = [0x7F, 0x7F, 0x7F]
 MIDI_A4 = 69
 A4_FREQUENCY = 440.0
 SEMITONE_FRACTIONS = 16_384
+VIRTUAL_MIDI_INPUT_NAME = 'Tuney MIDI In'
+VIRTUAL_MIDI_OUTPUT_NAME = 'Tuney MIDI Out'
 
 
 class MidiBase(BaseModel):
@@ -128,11 +131,22 @@ class MidiOut(MidiBase):
 
     @cached_property
     def port(self) -> mido.OutputPort:
-        port = mido.open_output(self.name)
+        port = mido.open_output(
+            midi_port_name(self.name, VIRTUAL_MIDI_OUTPUT_NAME),
+            virtual=use_virtual_midi_port(self.name),
+        )
         if message := self.send_program_change():
             port.send(message)
         port.send(self.send_volume_change())
         return port
+
+    def start(self) -> None:
+        if self.enable:
+            _ = self.port
+
+    def close(self) -> None:
+        if port := self.__dict__.pop('port', None):
+            port.close()
 
     def midi_note(self, note_number: int) -> int:
         return (note_number + self.note_offset) % 128
@@ -233,7 +247,11 @@ class MidiListener:
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
             try:
-                self.port = mido.open_input(input.name, callback=self.on_message)
+                self.port = mido.open_input(
+                    midi_port_name(input.name, VIRTUAL_MIDI_INPUT_NAME),
+                    virtual=use_virtual_midi_port(input.name),
+                    callback=self.on_message,
+                )
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
@@ -251,6 +269,16 @@ class MidiListener:
 def _ascii_bytes(text: str, length: int) -> list[int]:
     data = [ord(c) if 32 <= ord(c) <= 127 else ord(' ') for c in text[:length]]
     return data + [ord(' ')] * (length - len(data))
+
+
+def midi_port_name(name: str | None, virtual_name: str) -> str | None:
+    return virtual_name if use_virtual_midi_port(name) else name
+
+
+def use_virtual_midi_port(name: str | None) -> bool:
+    return name is None and (
+        sys.platform == 'darwin' or sys.platform.startswith('linux')
+    )
 
 
 def _frequency_bytes(frequency: float) -> list[int]:

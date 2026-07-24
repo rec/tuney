@@ -182,6 +182,7 @@ def start(app: App) -> None:
     instrument('app start', run_in_background=app.run_in_background)
     app.main_window.start()
     app.midi_listener.start()
+    app.midi.output.start()
     app.midi.output.send_tuning_dump(app.scale, app.tuning)
     if app.run_in_background:
         app.keyboard_listener.start()

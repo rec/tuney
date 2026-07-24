@@ -510,7 +510,9 @@ def test_tuning_change_sends_midi_tuning_dump_when_enabled(monkeypatch) -> None:
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', lambda _: Port())
+    monkeypatch.setattr(
+        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
     _qt_app()
     app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))
     app.__dict__['global_config'] = GlobalConfig()
