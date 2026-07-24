@@ -263,10 +263,14 @@ class MidiBase:
 
 
 class MidiIn:
-    pass
+    # MIDI port name
+    name: str | None = None
 
 
 class MidiOut:
+    # MIDI port name
+    name: str | None = None
+
     # MIDI output channel, or omni to use the default channel
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 

@@ -990,6 +990,46 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     assert not cells['channel'].isEnabled()
 
 
+@pytest.mark.parametrize(
+    'cls, stdout, expected',
+    [
+        (MidiIn, '["keyboard"]', ['keyboard']),
+        (MidiOut, '["synth"]', ['synth']),
+    ],
+)
+def test_midi_port_name_uses_port_menu(
+    monkeypatch: pytest.MonkeyPatch,
+    cls: type[MidiIn | MidiOut],
+    stdout: str,
+    expected: list[str],
+) -> None:
+    from PySide6.QtWidgets import QComboBox, QWidget
+
+    tuney.midi.ports.input_names.cache_clear()
+    tuney.midi.ports.output_names.cache_clear()
+    monkeypatch.setattr(
+        tuney.midi.ports.subprocess,
+        'run',
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, stdout, ''),
+    )
+    _qt_app()
+    midi = cls(enable=True)
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, midi)
+    menus = [
+        widget
+        for widget in panel.findChildren(QComboBox)
+        if control_panel.CONTROL_BINDINGS.get(widget, (None,))[0] is midi
+        and control_panel.CONTROL_BINDINGS[widget][1] == 'name'
+    ]
+
+    assert len(menus) == 2
+    assert all(
+        [menu.itemText(i) for i in range(menu.count())] == ['', *expected]
+        for menu in menus
+    )
+
+
 def test_midi_input_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     from PySide6.QtWidgets import QWidget
 

@@ -13,6 +13,7 @@ from ..config.annotations import Beginner, Display, Numeric, Options
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .general_midi import general_midi_program_options
+from .ports import input_names, output_names
 
 ZERO_IS_NOTE_OFF = True
 CHANNELS = tuple(str(i + 1) for i in range(16))
@@ -60,6 +61,13 @@ class MidiBase(BaseModel):
 
 
 class MidiIn(MidiBase):
+    # MIDI port name
+    name: Annotated[
+        str | None,
+        Beginner,
+        Options(options=input_names, column=1, row=0, width=12),
+    ] = None
+
     def accepts(self, message: mido.Message) -> bool:
         return (
             self.mido_channel is None
@@ -68,6 +76,13 @@ class MidiIn(MidiBase):
 
 
 class MidiOut(MidiBase):
+    # MIDI port name
+    name: Annotated[
+        str | None,
+        Beginner,
+        Options(options=output_names, column=1, row=0, width=12),
+    ] = None
+
     # MIDI output channel, or omni to use the default channel
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
