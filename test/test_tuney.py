@@ -1363,13 +1363,18 @@ def test_main_window_restores_autosaved_window_state() -> None:
         {
             'app': app,
             'geometry': None,
+            '_restored_window_state': None,
             'setGeometry': lambda self, *args: setattr(self, 'geometry', args),
+            '_apply_restored_window_state': MainWindow._apply_restored_window_state,
         },
     )()
 
     MainWindow._restore_window_state(window)
 
     assert window.geometry == (10, 20, 640, 480)
+    assert window._restored_window_state == WindowState(
+        x=10, y=20, width=640, height=480
+    )
     assert '_autosave_window_state' not in app.__dict__
 
 

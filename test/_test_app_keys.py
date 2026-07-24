@@ -440,6 +440,8 @@ def test_app_activate_and_history() -> None:
             'raise_': lambda self: calls.append('raise'),
             'activateWindow': lambda self: calls.append('activate'),
             'setFocus': lambda self: calls.append('focus'),
+            '_apply_restored_window_state': lambda self: None,
+            '_finish_activate': lambda self: None,
             '_has_focus': False,
         },
     )()

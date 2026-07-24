@@ -59,7 +59,7 @@ from .file_commands import (
 )
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
-from .history import History
+from .history import History, WindowState
 from .key_events import eventFilter, keyPressEvent, keyReleaseEvent
 from .main_menu import build_menu
 from .replay_controls import (
@@ -132,6 +132,7 @@ class MainWindow(QMainWindow):
         self.history = History(self)
         self._is_saving = False
         self._has_focus = True
+        self._restored_window_state: WindowState | None = None
         self._queue_timer = QTimer(self)
         self._queue_timer.timeout.connect(self._handle_queue)
         self.advanced_action: QAction
@@ -212,10 +213,16 @@ class MainWindow(QMainWindow):
     def activate(self) -> None:
         instrument('main window activate')
         self.show()
+        self._apply_restored_window_state()
         self.raise_()
         self.activateWindow()
         self.setFocus()
         self._has_focus = True
+        QTimer.singleShot(0, self._finish_activate)
+
+    def _finish_activate(self) -> None:
+        self._apply_restored_window_state()
+        self.ui.refresh_note_button_fonts()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         instrument('close event start')
@@ -237,6 +244,11 @@ class MainWindow(QMainWindow):
 
     def _restore_window_state(self) -> None:
         if window_state := self.app.__dict__.pop('_autosave_window_state', None):
+            self._restored_window_state = window_state
+            self._apply_restored_window_state()
+
+    def _apply_restored_window_state(self) -> None:
+        if window_state := self._restored_window_state:
             self.setGeometry(
                 window_state.x,
                 window_state.y,

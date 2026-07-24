@@ -109,9 +109,10 @@ class Layout(QWidget):
         self.rebuild_note_grid()
         self.root.activate()
         self.splitter.updateGeometry()
-        self.main_window.qt_app.processEvents()
         self.setEnabled(True)
         self.show()
+        self.main_window.qt_app.processEvents()
+        self.refresh_note_button_fonts()
         self.main_window.setFocus(Qt.FocusReason.OtherFocusReason)
         instrument('layout startup build end')
 

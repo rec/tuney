@@ -146,10 +146,20 @@ def test_finish_startup_layout_reveals_after_deferred_build() -> None:
     layout.splitter = _FakeStartupSplitter(calls)
     layout.main_window = _FakeStartupMainWindow(calls)
     layout.rebuild_note_grid = lambda: calls.append('grid')
+    layout.refresh_note_button_fonts = lambda: calls.append('fonts')
 
     Layout.finish_startup_layout(layout)
 
-    assert calls == ['control_panel', 'grid', 'root', 'splitter', 'events', 'focus']
+    assert calls == [
+        'control_panel',
+        'grid',
+        'root',
+        'splitter',
+        'fonts',
+        'events',
+        'fonts',
+        'focus',
+    ]
     assert layout.isEnabled()
     assert not layout.isHidden()
 
