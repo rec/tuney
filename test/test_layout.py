@@ -1,3 +1,4 @@
+import tuney.ui.layout
 from tuney.ui.layout import Layout
 
 
@@ -155,13 +156,37 @@ def test_finish_startup_layout_reveals_after_deferred_build() -> None:
         'grid',
         'root',
         'splitter',
-        'fonts',
         'events',
         'fonts',
         'focus',
     ]
     assert layout.isEnabled()
     assert not layout.isHidden()
+
+
+def test_note_font_refresh_is_debounced_during_resize(monkeypatch) -> None:
+    callbacks = []
+    calls = []
+    layout = Layout.__new__(Layout)
+    layout._note_font_refresh_pending = False
+    layout.refresh_note_button_fonts = lambda: calls.append('fonts')
+    monkeypatch.setattr(
+        tuney.ui.layout.QTimer,
+        'singleShot',
+        lambda delay, callback: callbacks.append((delay, callback)),
+    )
+
+    layout.schedule_note_button_font_refresh()
+    layout.schedule_note_button_font_refresh()
+
+    assert len(callbacks) == 1
+    assert callbacks[0][0] == tuney.ui.layout.NOTE_FONT_REFRESH_DELAY_MS
+    assert calls == []
+
+    callbacks[0][1]()
+
+    assert calls == ['fonts']
+    assert not layout._note_font_refresh_pending
 
 
 class _FakeScale:

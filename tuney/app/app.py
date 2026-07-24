@@ -36,7 +36,6 @@ from .platform_info import (
     acquire_single_instance,
     exit_with_message,
     instrument,
-    is_frozen,
     mark_session_clean_exit,
     mark_session_started,
     release_single_instance,
@@ -150,7 +149,7 @@ def run(app: App) -> None:
             show_already_running()
             return
         try:
-            crashed = is_frozen() and mark_session_started()
+            crashed = mark_session_started()
             restore_error = None
             try:
                 instrument('autosave restore start')
@@ -169,8 +168,7 @@ def run(app: App) -> None:
             start(app)
             instrument('mainloop start')
             main_window.mainloop()
-            if is_frozen():
-                mark_session_clean_exit()
+            mark_session_clean_exit()
             instrument('mainloop end')
         finally:
             release_single_instance()

@@ -410,7 +410,7 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
         assert calls == ['restore', 'window', 'error', 'mainloop']
 
 
-def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
+def test_run_reports_previous_gui_crash(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         crash_marker_path().parent.mkdir(parents=True)
@@ -436,7 +436,6 @@ def test_run_reports_previous_frozen_crash(monkeypatch) -> None:
             _autosave = Autosave()
             main_window = FakeWindow()
 
-        monkeypatch.setattr(tuney.app.app, 'is_frozen', lambda: True)
         monkeypatch.setattr(
             'tuney.app.platform_info._process_is_alive', lambda _: False
         )

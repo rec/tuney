@@ -59,6 +59,7 @@ LOOP_TEMPO_MINIMUM = 0.01
 LOOP_TEMPO_MAXIMUM = 100.0
 LOOP_TEMPO_INCREMENT = 0.01
 LOOP_TEMPO_DECIMALS = 2
+NOTE_FONT_REFRESH_DELAY_MS = 50
 
 WIDTH, HEIGHT = 70, 80
 
@@ -79,6 +80,7 @@ class Layout(QWidget):
         main_window.resize(width, height)
 
         self.main_window = main_window
+        self._note_font_refresh_pending = False
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(
             constants.PAD, constants.PAD, constants.PAD, constants.PAD
@@ -161,6 +163,16 @@ class Layout(QWidget):
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
+        self.schedule_note_button_font_refresh()
+
+    def schedule_note_button_font_refresh(self) -> None:
+        if self.__dict__.get('_note_font_refresh_pending', False):
+            return
+        self._note_font_refresh_pending = True
+        QTimer.singleShot(NOTE_FONT_REFRESH_DELAY_MS, self._refresh_note_button_fonts)
+
+    def _refresh_note_button_fonts(self) -> None:
+        self._note_font_refresh_pending = False
         self.refresh_note_button_fonts()
 
     def refresh_note_button_fonts(self) -> None:
