@@ -63,7 +63,7 @@ from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
-from tuney.ui import Action, State, StateChange, startup
+from tuney.ui import Action, State, StateChange, error_dialogs, startup
 from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_text
 from tuney.ui.history import History, LoopState, WindowState
 from tuney.ui.key_events import on_key_event
@@ -148,6 +148,57 @@ def test_crash_issue_url_includes_log(monkeypatch) -> None:
     body = query['body'][0]
     assert 'Tuney appears to have crashed during the previous run.' in body
     assert 'TRACE one\nTRACE two' in body
+
+
+def test_crash_issue_url_describes_empty_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        log.parent.mkdir(parents=True)
+        log.write_text('\n')
+
+        url = crash_issue_url(log)
+
+    body = parse_qs(urlparse(url).query)['body'][0]
+    assert 'No text found in crash report' in body
+
+
+def test_crash_report_brings_window_forward(monkeypatch) -> None:
+    calls = []
+
+    class Window:
+        def raise_(self) -> None:
+            calls.append('raise')
+
+        def activateWindow(self) -> None:
+            calls.append('activate')
+
+    class MessageBox:
+        class StandardButton:
+            Yes = object()
+            No = object()
+
+        @staticmethod
+        def question(parent: object, title: str, text: str) -> object:
+            calls.append(('question', parent, title, text))
+            return MessageBox.StandardButton.No
+
+    monkeypatch.setattr(error_dialogs, 'QMessageBox', MessageBox)
+
+    window = Window()
+
+    error_dialogs.show_crash_report(window)
+
+    assert calls == [
+        'raise',
+        'activate',
+        (
+            'question',
+            window,
+            'File issue?',
+            'Tuney appears to have crashed during the previous run.\n\nFile issue?',
+        ),
+    ]
 
 
 def test_problem_issue_url_includes_log(monkeypatch) -> None:

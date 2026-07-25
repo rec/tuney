@@ -55,6 +55,8 @@ def show_restore_error(main_window: MainWindow, error: BaseException) -> None:
 
 def show_crash_report(main_window: MainWindow) -> None:
     path = log_path()
+    main_window.raise_()
+    main_window.activateWindow()
     reply = QMessageBox.question(
         main_window,
         'File issue?',

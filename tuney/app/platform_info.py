@@ -285,6 +285,8 @@ def log_issue_url(path: Path, title: str, message: str) -> str:
         log = path.read_text(errors='replace')
     except OSError as error:
         log = f'Could not read {path}: {error}'
+    if not log.strip():
+        log = 'No text found in crash report'
     report = '\n'.join(
         [
             '## Error',
