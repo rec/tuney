@@ -55,11 +55,24 @@ def show_restore_error(main_window: MainWindow, error: BaseException) -> None:
 
 def show_crash_report(main_window: MainWindow) -> None:
     path = log_path()
-    reply = QMessageBox.question(
-        main_window,
-        'File issue?',
-        'Tuney appears to have crashed during the previous run.\n\nFile issue?',
+    main_window.show()
+    main_window.raise_()
+    main_window.activateWindow()
+    dialog = QMessageBox(main_window)
+    dialog.setIcon(QMessageBox.Icon.Question)
+    dialog.setWindowTitle('File issue?')
+    dialog.setText(
+        'Tuney appears to have crashed during the previous run.\n\nFile issue?'
     )
+    dialog.setStandardButtons(
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+    )
+    dialog.setDefaultButton(QMessageBox.StandardButton.Yes)
+    dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+    dialog.show()
+    dialog.raise_()
+    dialog.activateWindow()
+    reply = dialog.exec()
     if reply == QMessageBox.StandardButton.Yes:
         QDesktopServices.openUrl(QUrl(crash_issue_url(path)))
 

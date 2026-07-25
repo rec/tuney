@@ -11,7 +11,7 @@ if not getattr(sys, 'frozen', False) and str(SOURCE_ROOT) not in sys.path:
 
 from tuney.app.platform_info import (  # noqa: E402
     handle_frozen_exception,
-    install_frozen_excepthook,
+    start_crash_logging,
 )
 from tuney.midi.ports import (  # noqa: E402
     INTERNAL_LIST_MIDI_INPUTS,
@@ -30,7 +30,7 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 def main() -> None:
     frozen = bool(getattr(sys, 'frozen', False))
     if frozen:
-        install_frozen_excepthook()
+        start_crash_logging(show_frozen_errors=True)
     try:
         if sys.argv[1:] == [INTERNAL_LIST_MIDI_INPUTS]:
             print(input_names_json())

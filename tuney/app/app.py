@@ -41,6 +41,7 @@ from .platform_info import (
     release_single_instance,
     report_error,
     show_already_running,
+    start_crash_logging,
     trace,
 )
 from .text_timing import text_timing_rows
@@ -145,6 +146,7 @@ class App(Tuney):
 def run(app: App) -> None:
     instrument('run', gui=app.gui, frozen=getattr(sys, 'frozen', False))
     if app.gui:
+        start_crash_logging()
         if not acquire_single_instance():
             show_already_running()
             return
