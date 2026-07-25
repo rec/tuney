@@ -144,6 +144,7 @@ class MainWindow(QMainWindow):
         self.ui = Layout(self)
         instrument('layout construct end')
         self.setCentralWidget(self.ui)
+        self.setMinimumSize(0, 0)
         self._restore_window_state()
         self.update_text_display()
         self.qt_app.installEventFilter(self)

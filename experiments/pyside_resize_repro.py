@@ -31,8 +31,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         f'PySide6 {pyside_version}, '
         f'Qt {qVersion()}, '
         f'style {qt_app.style().objectName()}, '
-        f"LC_ALL={os.environ.get('LC_ALL')!r}, "
-        f"LANG={os.environ.get('LANG')!r}, "
+        f'LC_ALL={os.environ.get("LC_ALL")!r}, '
+        f'LANG={os.environ.get("LANG")!r}, '
         f'window={options.window}'
     )
     if options.window == 'widget':
