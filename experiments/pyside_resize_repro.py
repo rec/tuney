@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -36,7 +37,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         'bare-widget',
         'label-widget',
         'layout-empty-widget',
+        'layout-min-empty-widget',
         'layout-fixed-empty-widget',
+        'layout-fixed-zero-widget',
         'layout-hidden-label',
         'layout-label-widget',
         'widget',
@@ -85,9 +88,17 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
         layout.addStretch()
     elif options.mode == 'layout-empty-widget':
         layout.addWidget(QWidget(widget))
+    elif options.mode == 'layout-min-empty-widget':
+        child = QWidget(widget)
+        child.setMinimumSize(120, 40)
+        layout.addWidget(child)
     elif options.mode == 'layout-fixed-empty-widget':
         child = QWidget(widget)
         child.setFixedSize(120, 40)
+        layout.addWidget(child)
+    elif options.mode == 'layout-fixed-zero-widget':
+        child = QWidget(widget)
+        child.setFixedSize(0, 0)
         layout.addWidget(child)
     elif options.mode == 'layout-hidden-label':
         label = QLabel('Pure PySide hidden label in layout', widget)
@@ -97,6 +108,18 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
         layout.addWidget(QLabel('', widget))
     elif options.mode == 'layout-label':
         layout.addWidget(QLabel('Pure PySide label in layout', widget))
+    elif options.mode == 'layout-label-ignored':
+        label = QLabel('Pure PySide ignored label in layout', widget)
+        label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        layout.addWidget(label)
+    elif options.mode == 'layout-label-min-zero':
+        label = QLabel('Pure PySide min-zero label in layout', widget)
+        label.setMinimumSize(0, 0)
+        layout.addWidget(label)
+    elif options.mode == 'layout-label-pixmapless':
+        label = QLabel(widget)
+        label.setFixedSize(120, 40)
+        layout.addWidget(label)
     elif options.mode == 'layout-label-centered':
         label = QLabel('Pure PySide centered label in layout', widget)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -136,10 +159,15 @@ def _parser() -> argparse.ArgumentParser:
             'label-widget',
             'layout',
             'layout-empty-widget',
+            'layout-min-empty-widget',
             'layout-fixed-empty-widget',
+            'layout-fixed-zero-widget',
             'layout-hidden-label',
             'layout-empty-label',
             'layout-label',
+            'layout-label-ignored',
+            'layout-label-min-zero',
+            'layout-label-pixmapless',
             'layout-label-centered',
             'layout-label-widget',
             'layout-button',
