@@ -188,20 +188,55 @@ def test_crash_report_brings_window_forward(monkeypatch) -> None:
     calls = []
 
     class Window:
+        def show(self) -> None:
+            calls.append('window show')
+
         def raise_(self) -> None:
-            calls.append('raise')
+            calls.append('window raise')
 
         def activateWindow(self) -> None:
-            calls.append('activate')
+            calls.append('window activate')
 
     class MessageBox:
-        class StandardButton:
-            Yes = object()
-            No = object()
+        class Icon:
+            Question = object()
 
-        @staticmethod
-        def question(parent: object, title: str, text: str) -> object:
-            calls.append(('question', parent, title, text))
+        class StandardButton:
+            Yes = 1
+            No = 2
+
+        def __init__(self, parent: object) -> None:
+            calls.append(('dialog', parent))
+
+        def setIcon(self, icon: object) -> None:
+            calls.append(('icon', icon))
+
+        def setWindowTitle(self, title: str) -> None:
+            calls.append(('title', title))
+
+        def setText(self, text: str) -> None:
+            calls.append(('text', text))
+
+        def setStandardButtons(self, buttons: object) -> None:
+            calls.append(('buttons', buttons))
+
+        def setDefaultButton(self, button: object) -> None:
+            calls.append(('default', button))
+
+        def setWindowFlag(self, flag: object, enabled: bool) -> None:
+            calls.append(('flag', flag, enabled))
+
+        def show(self) -> None:
+            calls.append('dialog show')
+
+        def raise_(self) -> None:
+            calls.append('dialog raise')
+
+        def activateWindow(self) -> None:
+            calls.append('dialog activate')
+
+        def exec(self) -> object:
+            calls.append('exec')
             return MessageBox.StandardButton.No
 
     monkeypatch.setattr(error_dialogs, 'QMessageBox', MessageBox)
@@ -211,14 +246,23 @@ def test_crash_report_brings_window_forward(monkeypatch) -> None:
     error_dialogs.show_crash_report(window)
 
     assert calls == [
-        'raise',
-        'activate',
+        'window show',
+        'window raise',
+        'window activate',
+        ('dialog', window),
+        ('icon', MessageBox.Icon.Question),
+        ('title', 'File issue?'),
         (
-            'question',
-            window,
-            'File issue?',
+            'text',
             'Tuney appears to have crashed during the previous run.\n\nFile issue?',
         ),
+        ('buttons', MessageBox.StandardButton.Yes | MessageBox.StandardButton.No),
+        ('default', MessageBox.StandardButton.Yes),
+        ('flag', error_dialogs.Qt.WindowType.WindowStaysOnTopHint, True),
+        'dialog show',
+        'dialog raise',
+        'dialog activate',
+        'exec',
     ]
 
 
