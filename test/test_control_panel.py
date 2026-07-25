@@ -788,6 +788,43 @@ def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
     assert saved.control_panel_scroll == 50
 
 
+def test_control_panel_rewraps_to_viewport_without_horizontal_scrollbar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, App(gui=True))
+    widths = [360]
+
+    class Viewport:
+        @staticmethod
+        def width() -> int:
+            return widths[-1]
+
+    monkeypatch.setattr(panel, 'isVisible', lambda: True)
+    monkeypatch.setattr(panel, 'viewport', Viewport)
+
+    assert panel.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+
+    panel._rewrap_to_viewport()
+
+    assert panel.content.minimumWidth() == 360
+    assert panel.content.maximumWidth() == 360
+    assert panel.content.currentWidget().minimumWidth() == 360
+    assert panel.content.currentWidget().maximumWidth() == 360
+
+    widths.append(220)
+    panel._rewrap_to_viewport()
+
+    assert panel.content.minimumWidth() == 220
+    assert panel.content.maximumWidth() == 220
+    assert panel.content.currentWidget().minimumWidth() == 220
+    assert panel.content.currentWidget().maximumWidth() == 220
+
+
 def test_control_panel_sections_show_section_presets() -> None:
     from PySide6.QtWidgets import QComboBox, QWidget
 
