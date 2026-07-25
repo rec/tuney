@@ -1,4 +1,7 @@
+from pytest import MonkeyPatch
+
 import tuney.ui.layout
+import tuney.ui.main_window
 from tuney.ui.control_panel_layout import _FlowLayout
 from tuney.ui.layout import Layout
 
@@ -38,6 +41,7 @@ def test_note_grid_reuses_buttons() -> None:
     layout.main_window = _FakeMainWindow()
     layout.note_grid_widget = QWidget()
     layout.note_grid = QGridLayout(layout.note_grid_widget)
+    layout.splitter = _FakeSplitter()
     layout.__dict__['note_button_cache'] = {}
 
     layout.rebuild_note_grid()
@@ -51,6 +55,59 @@ def test_note_grid_reuses_buttons() -> None:
     assert layout.note_buttons['a'].note_name == 'A2'
     assert first_b.isHidden()
     assert first_b.parent() is layout.note_grid_widget
+
+
+def test_note_grid_updates_program_minimum_height() -> None:
+    from PySide6.QtWidgets import QApplication, QGridLayout, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    layout = Layout.__new__(Layout)
+    layout.main_window = _FakeMainWindow()
+    layout.note_grid_widget = QWidget()
+    layout.note_grid = QGridLayout(layout.note_grid_widget)
+    layout.splitter = _FakeSplitter()
+    layout.__dict__['note_button_cache'] = {}
+
+    layout.rebuild_note_grid()
+
+    assert layout.note_grid_widget.minimumHeight() == tuney.ui.layout.MIN_BUTTON_HEIGHT
+    assert layout.main_window.minimum_content_height == (
+        tuney.ui.layout._minimum_program_height(1, _FakeSplitter.handle_width)
+    )
+    assert layout.main_window.enforce_minimum_size_count == 1
+
+
+def test_program_minimum_size_resizes_without_qt_minimum_constraints() -> None:
+    assert tuney.ui.main_window.MIN_PROGRAM_WIDTH == 500
+
+    window = _FakeResizeWindow(width=320, height=120, minimum_content_height=360)
+
+    tuney.ui.main_window.MainWindow.enforce_minimum_size(window)
+
+    assert window.sizes == [(500, 360)]
+
+
+def test_program_minimum_size_enforcement_waits_for_mouse_release(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    window = _FakeResizeWindow(width=320, height=120, minimum_content_height=360)
+    timer = _FakeMinimumSizeTimer()
+    window._minimum_size_timer = timer
+    monkeypatch.setattr(tuney.ui.main_window, 'QApplication', _FakePressedApplication)
+
+    tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
+
+    assert timer.delays == [tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
+    assert window.sizes == []
+
+    monkeypatch.setattr(tuney.ui.main_window, 'QApplication', _FakeReleasedApplication)
+
+    tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
+
+    assert timer.delays == [tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
+    assert window.sizes == [(500, 360)]
 
 
 def test_master_gain_has_numeric_box_synced_with_dial() -> None:
@@ -249,6 +306,8 @@ class _FakeMainWindow:
         self.rows = 1
         self.master_gains: list[float] = []
         self.loop_tempos: list[float] = []
+        self.minimum_content_height = 0
+        self.enforce_minimum_size_count = 0
         self.history = _FakeHistory()
 
     def on_transport_state(self, *_: object) -> bool:
@@ -263,6 +322,12 @@ class _FakeMainWindow:
     def on_loop_replay(self, _: bool) -> None:
         pass
 
+    def on_randomize_on_each_loop(self, _: bool) -> None:
+        pass
+
+    def on_help(self) -> None:
+        pass
+
     def on_master_gain(self, gain: float) -> None:
         self.master_gains.append(gain)
 
@@ -275,11 +340,65 @@ class _FakeMainWindow:
     def on_loop_tempo(self, tempo: float) -> None:
         self.loop_tempos.append(tempo)
 
-    def on_randomize_on_each_loop(self, _: bool) -> None:
-        pass
+    def enforce_minimum_size(self) -> None:
+        self.enforce_minimum_size_count += 1
 
-    def on_help(self) -> None:
-        pass
+
+class _FakeResizeWindow:
+    def __init__(self, width: int, height: int, minimum_content_height: int) -> None:
+        self._width = width
+        self._height = height
+        self.minimum_content_height = minimum_content_height
+        self.sizes: list[tuple[int, int]] = []
+
+    def width(self) -> int:
+        return self._width
+
+    def height(self) -> int:
+        return self._height
+
+    def resize(self, width: int, height: int) -> None:
+        self.sizes.append((width, height))
+        self._width = width
+        self._height = height
+
+    def schedule_minimum_size_enforcement(self) -> None:
+        self._minimum_size_timer.start(
+            tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS
+        )
+
+    def enforce_minimum_size(self) -> None:
+        width = max(self.width(), tuney.ui.main_window.MIN_PROGRAM_WIDTH)
+        height = max(self.height(), self.minimum_content_height)
+        if width != self.width() or height != self.height():
+            self.resize(width, height)
+
+
+class _FakeMinimumSizeTimer:
+    def __init__(self) -> None:
+        self.delays: list[int] = []
+
+    def start(self, delay: int) -> None:
+        self.delays.append(delay)
+
+
+class _FakePressedApplication:
+    @staticmethod
+    def mouseButtons() -> tuney.ui.main_window.Qt.MouseButton:
+        return tuney.ui.main_window.Qt.MouseButton.LeftButton
+
+
+class _FakeReleasedApplication:
+    @staticmethod
+    def mouseButtons() -> tuney.ui.main_window.Qt.MouseButton:
+        return tuney.ui.main_window.Qt.MouseButton.NoButton
+
+
+class _FakeSplitter:
+    handle_width = 26
+
+    def handleWidth(self) -> int:
+        return self.handle_width
 
 
 class _FakeHistory:
