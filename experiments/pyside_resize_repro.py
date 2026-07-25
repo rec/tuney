@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QGridLayout,
     QLabel,
+    QLayout,
     QMainWindow,
     QPushButton,
     QSizePolicy,
@@ -82,6 +83,8 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
         child.move(20, 20)
         return widget
     layout = QVBoxLayout(widget)
+    if options.no_layout_constraint:
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
     layout.setContentsMargins(6, 6, 6, 6)
     if options.mode == 'layout':
         layout.addStretch()
@@ -190,6 +193,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--buttons', type=int, default=52)
     parser.add_argument('--style')
     parser.add_argument('--log-resize', action='store_true')
+    parser.add_argument('--no-layout-constraint', action='store_true')
     return parser
 
 
