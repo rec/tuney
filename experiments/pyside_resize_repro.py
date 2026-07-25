@@ -31,19 +31,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         f'Qt {qVersion()}, '
         f'style {qt_app.style().objectName()}, '
         f"LC_ALL={os.environ.get('LC_ALL')!r}, "
-        f"LANG={os.environ.get('LANG')!r}"
+        f"LANG={os.environ.get('LANG')!r}, "
+        f'window={options.window}'
     )
-    if options.mode in {
-        'bare-widget',
-        'label-widget',
-        'layout-empty-widget',
-        'layout-min-empty-widget',
-        'layout-fixed-empty-widget',
-        'layout-fixed-zero-widget',
-        'layout-hidden-label',
-        'layout-label-widget',
-        'widget',
-    }:
+    if options.window == 'widget':
         window = _widget_window(options)
         window.setWindowTitle('Pure PySide QWidget resize repro')
         window.resize(640, 720)
@@ -59,7 +50,7 @@ class ResizeRepro(QMainWindow):
         super().__init__()
         self.options = options
         self.setWindowTitle('Pure PySide QMainWindow resize repro')
-        if options.mode != 'empty-main-window':
+        if options.mode != 'empty':
             self.setCentralWidget(_widget_window(options))
         self.resize(640, 720)
 
@@ -76,7 +67,7 @@ class ResizeRepro(QMainWindow):
 
 def _widget_window(options: argparse.Namespace) -> QWidget:
     widget = QWidget()
-    if options.mode == 'bare-widget':
+    if options.mode == 'empty':
         return widget
     if options.mode == 'label-widget':
         label = QLabel('Pure PySide top-level label', widget)
@@ -154,8 +145,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '--mode',
         choices=[
-            'empty-main-window',
-            'bare-widget',
+            'empty',
             'label-widget',
             'layout',
             'layout-empty-widget',
@@ -178,6 +168,7 @@ def _parser() -> argparse.ArgumentParser:
         ],
         default='blank',
     )
+    parser.add_argument('--window', choices=['main', 'widget'], default='main')
     parser.add_argument('--buttons', type=int, default=52)
     parser.add_argument('--style')
     parser.add_argument('--log-resize', action='store_true')
