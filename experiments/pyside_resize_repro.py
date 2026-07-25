@@ -52,7 +52,14 @@ class ResizeRepro(QMainWindow):
         self.options = options
         self.setWindowTitle('Pure PySide QMainWindow resize repro')
         if options.mode != 'empty':
-            self.setCentralWidget(_widget_window(options))
+            central = _widget_window(options)
+            if options.central_ignored:
+                central.setSizePolicy(
+                    QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored
+                )
+            self.setCentralWidget(central)
+        if options.clear_window_minimum:
+            self.setMinimumSize(0, 0)
         self.resize(640, 720)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -194,6 +201,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--style')
     parser.add_argument('--log-resize', action='store_true')
     parser.add_argument('--no-layout-constraint', action='store_true')
+    parser.add_argument('--central-ignored', action='store_true')
+    parser.add_argument('--clear-window-minimum', action='store_true')
     return parser
 
 
