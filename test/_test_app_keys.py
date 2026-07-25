@@ -959,6 +959,26 @@ class FakeLayout:
             self.randomize_on_each_loop.deselect()
 
 
+class FakeGeometry:
+    def __init__(self, x: int, y: int, width: int, height: int) -> None:
+        self._x = x
+        self._y = y
+        self._width = width
+        self._height = height
+
+    def x(self) -> int:
+        return self._x
+
+    def y(self) -> int:
+        return self._y
+
+    def width(self) -> int:
+        return self._width
+
+    def height(self) -> int:
+        return self._height
+
+
 class HistoryApp:
     def __init__(self) -> None:
         self.app = App(max_gap=1.0)
@@ -992,6 +1012,10 @@ class HistoryApp:
     @staticmethod
     def height() -> int:
         return 480
+
+    @staticmethod
+    def geometry() -> FakeGeometry:
+        return FakeGeometry(x=10, y=20, width=640, height=480)
 
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name
