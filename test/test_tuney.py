@@ -681,6 +681,26 @@ class _TextClipboardWindow:
         self.update_count += 1
 
 
+class _Geometry:
+    def __init__(self, x: int, y: int, width: int, height: int) -> None:
+        self._x = x
+        self._y = y
+        self._width = width
+        self._height = height
+
+    def x(self) -> int:
+        return self._x
+
+    def y(self) -> int:
+        return self._y
+
+    def width(self) -> int:
+        return self._width
+
+    def height(self) -> int:
+        return self._height
+
+
 class _AutosaveWindow:
     history: object
 
@@ -689,19 +709,23 @@ class _AutosaveWindow:
 
     @staticmethod
     def x() -> int:
-        return 10
+        return 33
 
     @staticmethod
     def y() -> int:
-        return 20
+        return 44
 
     @staticmethod
     def width() -> int:
-        return 640
+        return 660
 
     @staticmethod
     def height() -> int:
-        return 480
+        return 500
+
+    @staticmethod
+    def geometry() -> _Geometry:
+        return _Geometry(x=10, y=20, width=640, height=480)
 
 
 class _ShortcutWindow:
@@ -1440,7 +1464,7 @@ def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
     assert 'loop_replay' not in data
 
 
-def test_autosave_writes_loop_state(monkeypatch) -> None:
+def test_autosave_writes_loop_state_and_geometry_window_state(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         set_autosave_file(monkeypatch, path)
@@ -1458,12 +1482,14 @@ def test_autosave_writes_loop_state(monkeypatch) -> None:
                 )
             },
         )()
-        app.__dict__['main_window'] = _AutosaveWindow(history)
+        window = _AutosaveWindow(history)
+        app.__dict__['main_window'] = window
 
         app._autosave.save(lambda path: save_autosave(app, path))
 
         data = tomllib.loads(path.read_text())
 
+    assert {'x': window.x(), 'y': window.y()} == {'x': 33, 'y': 44}
     assert data['max_gap'] == 2.0
     assert data['loop'] == {
         'replay': True,

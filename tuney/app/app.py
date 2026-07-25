@@ -347,12 +347,13 @@ def save_autosave(app: App, path: Path) -> None:
     if main_window := app.__dict__.get('main_window'):
         from ..ui.history import WindowState
 
+        geometry = main_window.geometry()
         data['loop'] = main_window.history.loop_state.model_dump()
         data['window'] = WindowState(
-            x=main_window.x(),
-            y=main_window.y(),
-            width=main_window.width(),
-            height=main_window.height(),
+            x=geometry.x(),
+            y=geometry.y(),
+            width=geometry.width(),
+            height=geometry.height(),
         ).model_dump()
     path.write_text(tomlkit.dumps(data))
 
