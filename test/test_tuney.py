@@ -1506,8 +1506,12 @@ def test_main_window_restores_autosaved_window_state() -> None:
         {
             'app': app,
             'geometry': None,
+            'enforce_count': 0,
             '_restored_window_state': None,
             'setGeometry': lambda self, *args: setattr(self, 'geometry', args),
+            'enforce_minimum_size': lambda self: setattr(
+                self, 'enforce_count', self.enforce_count + 1
+            ),
             '_apply_restored_window_state': MainWindow._apply_restored_window_state,
         },
     )()
@@ -1515,6 +1519,7 @@ def test_main_window_restores_autosaved_window_state() -> None:
     MainWindow._restore_window_state(window)
 
     assert window.geometry == (10, 20, 640, 480)
+    assert window.enforce_count == 1
     assert window._restored_window_state == WindowState(
         x=10, y=20, width=640, height=480
     )

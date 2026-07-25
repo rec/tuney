@@ -107,6 +107,7 @@ class Layout(QWidget):
             ]
         )
         self.set_text(main_window.app.display_text)
+        self.update_minimum_height()
         QTimer.singleShot(0, self.finish_startup_layout)
         instrument('layout init end')
 
@@ -191,6 +192,12 @@ class Layout(QWidget):
         )
         for button in buttons:
             button.set_note_font_size(font_size)
+
+    def update_minimum_height(self) -> None:
+        self.main_window.minimum_content_height = _minimum_program_height(
+            self.main_window.rows, self.splitter.handleWidth()
+        )
+        self.main_window.enforce_minimum_size()
 
     @cached_property
     def splitter(self) -> SpacedSplitter:
@@ -479,9 +486,7 @@ class Layout(QWidget):
     @cached_property
     def note_grid_widget(self) -> QWidget:
         widget = QWidget(self)
-        widget.setMinimumHeight(
-            max(MIN_BUTTON_HEIGHT * self.main_window.rows, MIN_BUTTON_HEIGHT)
-        )
+        widget.setMinimumHeight(_note_grid_minimum_height(self.main_window.rows))
         self.note_grid = QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
         self.note_grid.setSpacing(constants.QUARTER)
@@ -520,8 +525,9 @@ class Layout(QWidget):
                 1, (n + self.main_window.columns - 1) // self.main_window.columns
             )
             self.note_grid_widget.setMinimumHeight(
-                max(MIN_BUTTON_HEIGHT * self.main_window.rows, MIN_BUTTON_HEIGHT)
+                _note_grid_minimum_height(self.main_window.rows)
             )
+            self.update_minimum_height()
             _ = self.note_buttons
         self.refresh_note_button_fonts()
         instrument('layout rebuild note grid end', has_note_buttons=has_note_buttons)
@@ -556,3 +562,19 @@ def _set_spin_value(spin: QDoubleSpinBox, value: float) -> None:
 def _clear_grid(layout: QGridLayout) -> None:
     while layout.count():
         layout.takeAt(0)
+
+
+def _note_grid_minimum_height(rows: int) -> int:
+    return max(MIN_BUTTON_HEIGHT * rows, MIN_BUTTON_HEIGHT)
+
+
+def _minimum_program_height(rows: int, splitter_handle_width: int) -> int:
+    return (
+        constants.PAD * 2
+        + CONTROL_PANEL_HEIGHT
+        + TEXT_BOX_HEIGHT
+        + REPLAY_FRAME_HEIGHT
+        + LOOP_CONTROLS_HEIGHT
+        + _note_grid_minimum_height(rows)
+        + splitter_handle_width * 2
+    )

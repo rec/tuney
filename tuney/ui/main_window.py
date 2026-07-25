@@ -10,12 +10,13 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
     QFocusEvent,
     QIcon,
+    QResizeEvent,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -84,6 +85,8 @@ SIGNAL_POLL_IN_MS = 100
 SHUTDOWN_AUDIO_WAIT_SECONDS = 2.0
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 APP_NAME = 'Tuney'
+MIN_PROGRAM_WIDTH = 500
+MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS = 200
 
 
 class _AfterDispatcher(QObject):
@@ -132,6 +135,12 @@ class MainWindow(QMainWindow):
         self.history = History(self)
         self._is_saving = False
         self._has_focus = True
+        self.minimum_content_height = 0
+        self._minimum_size_timer = QTimer(self)
+        self._minimum_size_timer.setSingleShot(True)
+        self._minimum_size_timer.timeout.connect(
+            self._enforce_minimum_size_after_resize
+        )
         self._restored_window_state: WindowState | None = None
         self._queue_timer = QTimer(self)
         self._queue_timer.timeout.connect(self._handle_queue)
@@ -144,7 +153,7 @@ class MainWindow(QMainWindow):
         self.ui = Layout(self)
         instrument('layout construct end')
         self.setCentralWidget(self.ui)
-        self.setMinimumSize(0, 0)
+        self.enforce_minimum_size()
         self._restore_window_state()
         self.update_text_display()
         self.qt_app.installEventFilter(self)
@@ -223,7 +232,31 @@ class MainWindow(QMainWindow):
 
     def _finish_activate(self) -> None:
         self._apply_restored_window_state()
+        self.enforce_minimum_size()
         self.ui.refresh_note_button_fonts()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        if (
+            self.width() < MIN_PROGRAM_WIDTH
+            or self.height() < self.minimum_content_height
+        ):
+            self.schedule_minimum_size_enforcement()
+
+    def schedule_minimum_size_enforcement(self) -> None:
+        self._minimum_size_timer.start(MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS)
+
+    def _enforce_minimum_size_after_resize(self) -> None:
+        if QApplication.mouseButtons() != Qt.MouseButton.NoButton:
+            self.schedule_minimum_size_enforcement()
+        else:
+            self.enforce_minimum_size()
+
+    def enforce_minimum_size(self) -> None:
+        width = max(self.width(), MIN_PROGRAM_WIDTH)
+        height = max(self.height(), self.minimum_content_height)
+        if width != self.width() or height != self.height():
+            self.resize(width, height)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         instrument('close event start')
@@ -256,6 +289,7 @@ class MainWindow(QMainWindow):
                 window_state.width,
                 window_state.height,
             )
+            self.enforce_minimum_size()
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
