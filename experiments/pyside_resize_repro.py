@@ -25,7 +25,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if options.style:
         qt_app.setStyle(options.style)
     print(f'PySide6 {pyside_version}, style {qt_app.style().objectName()}')
-    if options.mode == 'widget':
+    if options.mode in {'bare-widget', 'label-widget', 'widget'}:
         window = _widget_window(options)
         window.setWindowTitle('Pure PySide QWidget resize repro')
         window.resize(640, 720)
@@ -58,9 +58,17 @@ class ResizeRepro(QMainWindow):
 
 def _widget_window(options: argparse.Namespace) -> QWidget:
     widget = QWidget()
+    if options.mode == 'bare-widget':
+        return widget
+    if options.mode == 'label-widget':
+        label = QLabel('Pure PySide top-level label', widget)
+        label.move(20, 20)
+        return widget
     layout = QVBoxLayout(widget)
     layout.setContentsMargins(6, 6, 6, 6)
-    if options.mode == 'text':
+    if options.mode == 'layout':
+        layout.addStretch()
+    elif options.mode == 'text':
         text = QTextEdit(widget)
         text.setPlainText('Resize diagonally from the lower-right corner.\n' * 10)
         layout.addWidget(text)
@@ -85,7 +93,16 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--mode',
-        choices=['empty-main-window', 'blank', 'widget', 'buttons', 'text'],
+        choices=[
+            'empty-main-window',
+            'bare-widget',
+            'label-widget',
+            'layout',
+            'blank',
+            'widget',
+            'buttons',
+            'text',
+        ],
         default='blank',
     )
     parser.add_argument('--buttons', type=int, default=52)
