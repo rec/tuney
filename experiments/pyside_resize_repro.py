@@ -5,7 +5,7 @@ import sys
 from collections.abc import Sequence
 
 from PySide6 import __version__ as pyside_version
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, qVersion
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -24,7 +24,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     qt_app = QApplication(sys.argv[:1])
     if options.style:
         qt_app.setStyle(options.style)
-    print(f'PySide6 {pyside_version}, style {qt_app.style().objectName()}')
+    print(
+        f'PySide6 {pyside_version}, '
+        f'Qt {qVersion()}, '
+        f'style {qt_app.style().objectName()}'
+    )
     if options.mode in {
         'bare-widget',
         'label-widget',
