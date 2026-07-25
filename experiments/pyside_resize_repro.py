@@ -69,13 +69,27 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
     widget = QWidget()
     if options.mode == 'empty':
         return widget
+    if options.mode == 'min-widget':
+        widget.setMinimumSize(120, 40)
+        return widget
     if options.mode == 'label-widget':
         label = QLabel('Pure PySide top-level label', widget)
         label.move(20, 20)
         return widget
+    if options.mode == 'min-child-widget':
+        child = QWidget(widget)
+        child.setMinimumSize(120, 40)
+        child.move(20, 20)
+        return widget
     layout = QVBoxLayout(widget)
     layout.setContentsMargins(6, 6, 6, 6)
     if options.mode == 'layout':
+        layout.addStretch()
+    elif options.mode == 'layout-parent-min':
+        widget.setMinimumSize(120, 40)
+        layout.addStretch()
+    elif options.mode == 'layout-parent-fixed':
+        widget.setFixedSize(120, 40)
         layout.addStretch()
     elif options.mode == 'layout-empty-widget':
         layout.addWidget(QWidget(widget))
@@ -146,8 +160,12 @@ def _parser() -> argparse.ArgumentParser:
         '--mode',
         choices=[
             'empty',
+            'min-widget',
             'label-widget',
+            'min-child-widget',
             'layout',
+            'layout-parent-min',
+            'layout-parent-fixed',
             'layout-empty-widget',
             'layout-min-empty-widget',
             'layout-fixed-empty-widget',
