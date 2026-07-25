@@ -11,6 +11,7 @@ from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
@@ -180,6 +181,7 @@ class ControlPanel(QScrollArea):
         self.section_path: dict[QWidget, str] = {}
         self.pending_scroll: int | None = None
         self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setMinimumHeight(min(height, 80))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content: QStackedWidget = QStackedWidget()
@@ -191,6 +193,10 @@ class ControlPanel(QScrollArea):
             self.rebuild()
         else:
             self._add_placeholder()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._rewrap_to_viewport()
 
     def rebuild(self) -> None:
         instrument('control panel rebuild start', model=type(self.data).__name__)
@@ -209,6 +215,7 @@ class ControlPanel(QScrollArea):
             other_mode = not self.show_advanced
             self.pages[other_mode] = self._build_page(other_mode)
         self.content.setCurrentWidget(self.pages[self.show_advanced])
+        self._rewrap_to_viewport()
         self.restore_scroll()
         instrument('control panel rebuild end', model=type(self.data).__name__)
 
@@ -220,6 +227,7 @@ class ControlPanel(QScrollArea):
         if advanced not in self.pages:
             self.pages[advanced] = self._build_page(advanced)
         self.content.setCurrentWidget(self.pages[advanced])
+        self._rewrap_to_viewport()
         self.restore_scroll()
 
     def save_state(self) -> None:
@@ -283,6 +291,22 @@ class ControlPanel(QScrollArea):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.addWidget(QLabel('Loading controls...', page))
         self.content.addWidget(page)
+        self._rewrap_to_viewport()
+
+    def _rewrap_to_viewport(self) -> None:
+        if not self.isVisible():
+            return
+        width = self.viewport().width()
+        if width <= 0:
+            return
+        self.content.setFixedWidth(width)
+        for page in self.pages.values():
+            page.setFixedWidth(width)
+            if layout := page.layout():
+                layout.invalidate()
+        if layout := self.content.layout():
+            layout.invalidate()
+        self.content.updateGeometry()
 
     def _remember_scroll(self, value: int) -> None:
         app = self.app
