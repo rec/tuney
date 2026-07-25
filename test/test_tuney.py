@@ -4,11 +4,13 @@ import random
 import subprocess
 import sys
 import tempfile
+import threading
 import tomllib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from queue import SimpleQueue
+from typing import TextIO
 from urllib.parse import parse_qs, urlparse
 
 import mido
@@ -51,6 +53,7 @@ from tuney.app.platform_info import (
     release_single_instance,
     report_error,
     set_windows_app_user_model_id,
+    start_crash_logging,
     trace,
 )
 from tuney.app.runnable import start_thread
@@ -74,6 +77,24 @@ from tuney.ui.main_window import MainWindow
 def temporary_path() -> Iterator[Path]:
     with tempfile.TemporaryDirectory() as directory:
         yield Path(directory)
+
+
+@contextmanager
+def temporary_crash_logging_state(monkeypatch) -> Iterator[None]:
+    old_excepthook = sys.excepthook
+    old_threading_excepthook = threading.excepthook
+    old_crash_log_file = tuney.app.platform_info._crash_log_file
+    monkeypatch.setattr(tuney.app.platform_info, '_crash_logging_started', False)
+    monkeypatch.setattr(tuney.app.platform_info, '_crash_log_file', None)
+    try:
+        yield
+    finally:
+        sys.excepthook = old_excepthook
+        threading.excepthook = old_threading_excepthook
+        if crash_log_file := tuney.app.platform_info._crash_log_file:
+            crash_log_file.close()
+        tuney.app.platform_info._crash_log_file = old_crash_log_file
+        tuney.app.platform_info._crash_logging_started = False
 
 
 def on_transport_state(
@@ -409,12 +430,15 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
             main_window = FakeWindow()
 
         monkeypatch.setattr(
+            tuney.app.app, 'start_crash_logging', lambda: calls.append('crash logging')
+        )
+        monkeypatch.setattr(
             tuney.app.app, 'show_already_running', lambda: calls.append('busy')
         )
 
         run(FakeApp())
 
-        assert calls == ['busy']
+        assert calls == ['crash logging', 'busy']
 
 
 def test_run_restores_autosave_before_constructing_window_and_continues(
@@ -453,6 +477,7 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
                 return window
 
         app = FakeApp()
+        monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
         monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
 
         run(app)
@@ -490,6 +515,7 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
         monkeypatch.setattr(
             'tuney.app.platform_info._process_is_alive', lambda _: False
         )
+        monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
         monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
 
         run(FakeApp())
@@ -1247,6 +1273,73 @@ def test_trace_appends_to_app_state_log(monkeypatch) -> None:
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'TRACE note event: note=12' in log.read_text()
+
+
+def test_start_crash_logging_enables_faulthandler_and_hooks(monkeypatch) -> None:
+    with temporary_path() as tmp_path, temporary_crash_logging_state(monkeypatch):
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        calls: list[tuple[str, bool]] = []
+
+        def enable(file: TextIO, all_threads: bool) -> None:
+            calls.append((file.name, all_threads))
+
+        monkeypatch.setattr(tuney.app.platform_info.faulthandler, 'enable', enable)
+
+        start_crash_logging()
+
+        assert calls == [(str(tmp_path / 'tuney' / 'tuney.txt'), True)]
+        assert sys.excepthook is tuney.app.platform_info.logging_excepthook
+        assert (
+            threading.excepthook is tuney.app.platform_info.logging_threading_excepthook
+        )
+        assert (
+            'Python crash logging started'
+            in (tmp_path / 'tuney' / 'tuney.txt').read_text()
+        )
+
+
+def test_logging_excepthook_appends_to_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        calls: list[tuple[type[BaseException], BaseException]] = []
+        monkeypatch.setattr(
+            tuney.app.platform_info,
+            '_original_excepthook',
+            lambda cls, error, traceback: calls.append((cls, error)),
+        )
+        try:
+            raise RuntimeError('main thread failed')
+        except RuntimeError as error:
+            tuney.app.platform_info.logging_excepthook(
+                RuntimeError, error, error.__traceback__
+            )
+
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        assert 'RuntimeError: main thread failed' in log.read_text()
+        assert calls[0][0] is RuntimeError
+        assert str(calls[0][1]) == 'main thread failed'
+
+
+def test_logging_threading_excepthook_appends_to_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        calls = []
+        monkeypatch.setattr(
+            tuney.app.platform_info,
+            '_original_threading_excepthook',
+            lambda args: calls.append(args),
+        )
+        try:
+            raise RuntimeError('worker failed')
+        except RuntimeError as error:
+            args = threading.ExceptHookArgs(
+                (RuntimeError, error, error.__traceback__, None)
+            )
+            tuney.app.platform_info.logging_threading_excepthook(args)
+
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        assert 'RuntimeError: worker failed' in log.read_text()
+        assert calls == [args]
 
 
 def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:

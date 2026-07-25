@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import ctypes
+import faulthandler
 import os
 import platform
 import sys
+import threading
 from ctypes import wintypes
 from datetime import datetime, timezone
 from pathlib import Path
 from traceback import format_exception
 from types import TracebackType
-from typing import NoReturn
+from typing import NoReturn, TextIO
 from urllib.parse import urlencode
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
@@ -25,6 +27,10 @@ APP_USER_MODEL_ID = 'rec.tuney.Tuney'
 
 _instance_lock_fd: int | None = None
 _instance_lock_path: Path | None = None
+_crash_log_file: TextIO | None = None
+_crash_logging_started = False
+_original_excepthook = sys.excepthook
+_original_threading_excepthook = threading.excepthook
 
 
 def app_config_dir() -> Path:
@@ -121,6 +127,54 @@ def exit_with_message(message: str, code: int | None = None) -> NoReturn:
 
 def log_exception(error: BaseException) -> Path:
     return append_log(''.join(format_exception(error)).rstrip())
+
+
+def start_crash_logging(*, show_frozen_errors: bool = False) -> None:
+    global _crash_logging_started
+
+    if _crash_logging_started:
+        return
+    _crash_logging_started = True
+    _enable_faulthandler()
+    sys.excepthook = frozen_excepthook if show_frozen_errors else logging_excepthook
+    threading.excepthook = logging_threading_excepthook
+
+
+def _enable_faulthandler() -> None:
+    global _crash_log_file
+
+    try:
+        path = append_log('Python crash logging started')
+        _crash_log_file = path.open('a')
+        faulthandler.enable(file=_crash_log_file, all_threads=True)
+    except (OSError, RuntimeError, ValueError):
+        _crash_log_file = None
+
+
+def logging_excepthook(
+    cls: type[BaseException],
+    error: BaseException,
+    traceback: TracebackType | None,
+) -> None:
+    _append_exception_log(cls, error, traceback)
+    _original_excepthook(cls, error, traceback)
+
+
+def logging_threading_excepthook(args: threading.ExceptHookArgs) -> None:
+    if args.exc_value is not None:
+        _append_exception_log(type(args.exc_value), args.exc_value, args.exc_traceback)
+    _original_threading_excepthook(args)
+
+
+def _append_exception_log(
+    cls: type[BaseException],
+    error: BaseException,
+    traceback: TracebackType | None,
+) -> None:
+    try:
+        append_log(''.join(format_exception(cls, error, traceback)).rstrip())
+    except OSError:
+        pass
 
 
 def mark_session_started() -> bool:
@@ -373,8 +427,3 @@ def frozen_excepthook(
 ) -> None:
     path = append_log(''.join(format_exception(cls, error, traceback)).rstrip())
     show_frozen_exception(error, path)
-
-
-def install_frozen_excepthook() -> None:
-    if is_frozen():
-        sys.excepthook = frozen_excepthook
