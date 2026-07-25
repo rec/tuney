@@ -25,7 +25,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     if options.style:
         qt_app.setStyle(options.style)
     print(f'PySide6 {pyside_version}, style {qt_app.style().objectName()}')
-    if options.mode in {'bare-widget', 'label-widget', 'widget'}:
+    if options.mode in {
+        'bare-widget',
+        'label-widget',
+        'layout-label-widget',
+        'widget',
+    }:
         window = _widget_window(options)
         window.setWindowTitle('Pure PySide QWidget resize repro')
         window.resize(640, 720)
@@ -68,6 +73,16 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
     layout.setContentsMargins(6, 6, 6, 6)
     if options.mode == 'layout':
         layout.addStretch()
+    elif options.mode == 'layout-label':
+        layout.addWidget(QLabel('Pure PySide label in layout', widget))
+    elif options.mode == 'layout-label-centered':
+        label = QLabel('Pure PySide centered label in layout', widget)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+    elif options.mode == 'layout-label-widget':
+        layout.addWidget(QLabel('Pure PySide top-level label in layout', widget))
+    elif options.mode == 'layout-button':
+        layout.addWidget(QPushButton('Pure PySide button in layout', widget))
     elif options.mode == 'text':
         text = QTextEdit(widget)
         text.setPlainText('Resize diagonally from the lower-right corner.\n' * 10)
@@ -98,6 +113,10 @@ def _parser() -> argparse.ArgumentParser:
             'bare-widget',
             'label-widget',
             'layout',
+            'layout-label',
+            'layout-label-centered',
+            'layout-label-widget',
+            'layout-button',
             'blank',
             'widget',
             'buttons',
