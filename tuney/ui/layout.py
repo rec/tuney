@@ -13,8 +13,10 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
@@ -81,7 +83,9 @@ class Layout(QWidget):
 
         self.main_window = main_window
         self._note_font_refresh_pending = False
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.root = QVBoxLayout(self)
+        self.root.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.root.setContentsMargins(
             constants.PAD, constants.PAD, constants.PAD, constants.PAD
         )
