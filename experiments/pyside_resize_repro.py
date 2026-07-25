@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Sequence
 
@@ -27,11 +28,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     print(
         f'PySide6 {pyside_version}, '
         f'Qt {qVersion()}, '
-        f'style {qt_app.style().objectName()}'
+        f'style {qt_app.style().objectName()}, '
+        f"LC_ALL={os.environ.get('LC_ALL')!r}, "
+        f"LANG={os.environ.get('LANG')!r}"
     )
     if options.mode in {
         'bare-widget',
         'label-widget',
+        'layout-empty-widget',
+        'layout-fixed-empty-widget',
+        'layout-hidden-label',
         'layout-label-widget',
         'widget',
     }:
@@ -77,6 +83,18 @@ def _widget_window(options: argparse.Namespace) -> QWidget:
     layout.setContentsMargins(6, 6, 6, 6)
     if options.mode == 'layout':
         layout.addStretch()
+    elif options.mode == 'layout-empty-widget':
+        layout.addWidget(QWidget(widget))
+    elif options.mode == 'layout-fixed-empty-widget':
+        child = QWidget(widget)
+        child.setFixedSize(120, 40)
+        layout.addWidget(child)
+    elif options.mode == 'layout-hidden-label':
+        label = QLabel('Pure PySide hidden label in layout', widget)
+        label.hide()
+        layout.addWidget(label)
+    elif options.mode == 'layout-empty-label':
+        layout.addWidget(QLabel('', widget))
     elif options.mode == 'layout-label':
         layout.addWidget(QLabel('Pure PySide label in layout', widget))
     elif options.mode == 'layout-label-centered':
@@ -117,6 +135,10 @@ def _parser() -> argparse.ArgumentParser:
             'bare-widget',
             'label-widget',
             'layout',
+            'layout-empty-widget',
+            'layout-fixed-empty-widget',
+            'layout-hidden-label',
+            'layout-empty-label',
             'layout-label',
             'layout-label-centered',
             'layout-label-widget',
