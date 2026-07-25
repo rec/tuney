@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
@@ -17,6 +18,21 @@ def test_help_markdown_uses_bundled_readme(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
 
     assert read_help_markdown() == help_text
+
+
+def test_help_markdown_reads_bundled_readme_as_utf8(tmp_path, monkeypatch) -> None:
+    encodings: list[str | None] = []
+
+    def read_text(path: Path, encoding: str | None = None) -> str:
+        encodings.append(encoding)
+        return '# Tuney 🎵'
+
+    (tmp_path / README).write_text('')
+    monkeypatch.setattr(Path, 'read_text', read_text)
+    monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
+
+    assert read_help_markdown() == '# Tuney 🎵'
+    assert encodings == ['utf-8']
 
 
 def test_help_markdown_uses_nested_bundled_readme(tmp_path, monkeypatch) -> None:
@@ -36,10 +52,15 @@ def test_markdown_to_html_handles_readme_subset() -> None:
         'Escape <this>.\n\n'
         '## Install\n'
     ) == (
+        '<html><head><style>'
+        'body { font-family: "Segoe UI", Arial, sans-serif; }'
+        'code { font-family: Consolas, monospace; }'
+        '</style></head><body>'
         '<h1>Tuney </h1>'
         '<p>See <a href="https://example.com">docs</a> and '
         '<code>tuney --help</code>. Escape &lt;this&gt;.</p>'
         '<h2>Install</h2>'
+        '</body></html>'
     )
 
 

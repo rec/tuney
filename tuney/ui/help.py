@@ -40,7 +40,7 @@ def _help_dialog(parent: QWidget) -> QDialog:
 def read_help_markdown() -> str:
     if (path := _readme_path()) is None:
         return '# Tuney\n\nREADME.md was not found.'
-    return path.read_text()
+    return path.read_text(encoding='utf-8')
 
 
 def markdown_to_html(markdown: str) -> str:
@@ -64,7 +64,14 @@ def markdown_to_html(markdown: str) -> str:
         else:
             paragraph.append(_inline_markdown(line))
     flush_paragraph()
-    return ''.join(blocks)
+    return (
+        '<html><head><style>'
+        'body { font-family: "Segoe UI", Arial, sans-serif; }'
+        'code { font-family: Consolas, monospace; }'
+        '</style></head><body>'
+        f'{"".join(blocks)}'
+        '</body></html>'
+    )
 
 
 def _inline_markdown(text: str) -> str:
