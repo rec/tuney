@@ -31,6 +31,7 @@ from ..audio.device import device_names
 from ..midi.ports import input_names, output_names
 from . import constants, control_panel
 from .control_panel import ControlPanel
+from .control_panel_layout import _FlowLayout
 from .main_window import MainWindow
 from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
 from .platform import command_key
@@ -337,19 +338,15 @@ class Layout(QWidget):
     @cached_property
     def replay_frame(self) -> QWidget:
         frame = QWidget(self.text_area)
-        frame.setFixedHeight(REPLAY_FRAME_HEIGHT)
-        layout = QGridLayout(frame)
+        frame.setMinimumHeight(REPLAY_FRAME_HEIGHT)
+        layout = _FlowLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setHorizontalSpacing(6)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
         self.transport = Transport(
             frame,
             self.main_window.on_transport_state,
             lambda: self.main_window.app.hover_time,
         )
-        layout.addWidget(self.transport, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.transport)
 
         def hover_time() -> float:
             return self.main_window.app.hover_time
@@ -359,21 +356,21 @@ class Layout(QWidget):
         self.replay.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         self.replay.clicked.connect(self.main_window.on_replay)
         Tooltip(self.replay, REPLAY_TOOLTIPS['replay'], hover_time)
-        layout.addWidget(self.replay, 0, 1, alignment=Qt.AlignmentFlag.AlignCenter)
-        right = QWidget(frame)
-        right_layout = QHBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(6)
+        layout.addWidget(self.replay)
         self.randomize = QPushButton('Randomize time', frame)
         self.randomize.setFixedWidth(116)
         self.randomize.clicked.connect(self.main_window.on_randomize_timing)
         Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
-        right_layout.addWidget(self.randomize)
+        layout.addWidget(self.randomize)
         self.loop = QCheckBox('Loop', frame)
         self.loop.toggled.connect(self.main_window.on_loop_replay)
         Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
-        right_layout.addWidget(self.loop)
-        self.master_gain = QDial(frame)
+        layout.addWidget(self.loop)
+        gain = QWidget(frame)
+        gain_layout = QHBoxLayout(gain)
+        gain_layout.setContentsMargins(0, 0, 0, 0)
+        gain_layout.setSpacing(6)
+        self.master_gain = QDial(gain)
         self.master_gain.setFixedSize(34, 34)
         self.master_gain.setRange(0, 200)
         self.master_gain.setValue(
@@ -382,8 +379,8 @@ class Layout(QWidget):
         self.master_gain.setNotchesVisible(True)
         self.master_gain.setObjectName('master_gain_dial')
         Tooltip(self.master_gain, REPLAY_TOOLTIPS['master_gain'], hover_time)
-        right_layout.addWidget(self.master_gain)
-        self.master_gain_value = QDoubleSpinBox(frame)
+        gain_layout.addWidget(self.master_gain)
+        self.master_gain_value = QDoubleSpinBox(gain)
         self.master_gain_value.setObjectName('master_gain')
         self.master_gain_value.setDecimals(MASTER_GAIN_DECIMALS)
         self.master_gain_value.setSingleStep(MASTER_GAIN_INCREMENT)
@@ -391,16 +388,16 @@ class Layout(QWidget):
         self.master_gain_value.setValue(self.main_window.app.sound.master_gain)
         self.master_gain_value.setFixedWidth(74)
         Tooltip(self.master_gain_value, REPLAY_TOOLTIPS['master_gain'], hover_time)
-        right_layout.addWidget(self.master_gain_value)
+        gain_layout.addWidget(self.master_gain_value)
         self.master_gain.valueChanged.connect(self._on_master_gain_dial)
         self.master_gain_value.valueChanged.connect(self._on_master_gain_value)
+        layout.addWidget(gain)
         self.help = QPushButton('?', frame)
         self.help.setFixedSize(32, 32)
         self.help.setFont(QFont(FONT_FAMILY, 18))
         Tooltip(self.help, REPLAY_TOOLTIPS['help'], hover_time)
         self.help.clicked.connect(self.main_window.on_help)
-        right_layout.addWidget(self.help)
-        layout.addWidget(right, 0, 2, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.help)
         self.text_area_layout.addWidget(frame)
         self.set_replay_state(False)
         return frame
@@ -419,16 +416,21 @@ class Layout(QWidget):
     @cached_property
     def loop_controls(self) -> QWidget:
         frame = QWidget(self.text_area)
-        frame.setFixedHeight(LOOP_CONTROLS_HEIGHT)
-        layout = QHBoxLayout(frame)
+        frame.setMinimumHeight(LOOP_CONTROLS_HEIGHT)
+        layout = _FlowLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
         def labeled_entry(label: str, value: float) -> QLineEdit:
-            layout.addWidget(QLabel(label, frame))
-            entry = QLineEdit(str(value), frame)
+            group = QWidget(frame)
+            group_layout = QHBoxLayout(group)
+            group_layout.setContentsMargins(0, 0, 0, 0)
+            group_layout.setSpacing(4)
+            group_layout.addWidget(QLabel(label, group))
+            entry = QLineEdit(str(value), group)
             entry.setFixedWidth(48)
-            layout.addWidget(entry)
+            group_layout.addWidget(entry)
+            layout.addWidget(group)
             return entry
 
         self.loop_before = labeled_entry('Before', self.main_window.history.loop_before)
@@ -439,15 +441,20 @@ class Layout(QWidget):
         self.loop_after.editingFinished.connect(
             lambda: self.main_window.on_loop_after(self.loop_after.text())
         )
-        layout.addWidget(QLabel('Tempo', frame))
-        self.loop_tempo = QDoubleSpinBox(frame)
+        tempo = QWidget(frame)
+        tempo_layout = QHBoxLayout(tempo)
+        tempo_layout.setContentsMargins(0, 0, 0, 0)
+        tempo_layout.setSpacing(4)
+        tempo_layout.addWidget(QLabel('Tempo', tempo))
+        self.loop_tempo = QDoubleSpinBox(tempo)
         self.loop_tempo.setLocale(control_panel.NUMERIC_LOCALE)
         self.loop_tempo.setRange(LOOP_TEMPO_MINIMUM, LOOP_TEMPO_MAXIMUM)
         self.loop_tempo.setSingleStep(LOOP_TEMPO_INCREMENT)
         self.loop_tempo.setDecimals(LOOP_TEMPO_DECIMALS)
         self.loop_tempo.setValue(self.main_window.history.loop_tempo)
         self.loop_tempo.setFixedWidth(64)
-        layout.addWidget(self.loop_tempo)
+        tempo_layout.addWidget(self.loop_tempo)
+        layout.addWidget(tempo)
         self.loop_tempo.editingFinished.connect(
             lambda: self.main_window.on_loop_tempo(self.loop_tempo.value())
         )
@@ -466,7 +473,6 @@ class Layout(QWidget):
             lambda: self.main_window.app.hover_time,
         )
         layout.addWidget(self.loop_clock)
-        layout.addStretch()
         self.text_area_layout.addWidget(frame)
         return frame
 

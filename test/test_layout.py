@@ -1,4 +1,5 @@
 import tuney.ui.layout
+from tuney.ui.control_panel_layout import _FlowLayout
 from tuney.ui.layout import Layout
 
 
@@ -91,6 +92,24 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
     assert layout.main_window.master_gains[-1] == 0.75
 
 
+def test_replay_frame_uses_dynamic_flow_layout() -> None:
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    layout = Layout.__new__(Layout)
+    layout.main_window = _FakeMainWindow()
+    layout.text_area = QWidget()
+    layout.text_area_layout = QVBoxLayout(layout.text_area)
+
+    frame = Layout.replay_frame.func(layout)
+
+    assert isinstance(frame.layout(), _FlowLayout)
+    assert frame.minimumHeight() == tuney.ui.layout.REPLAY_FRAME_HEIGHT
+    assert frame.minimumHeight() != frame.maximumHeight()
+
+
 def test_loop_tempo_accepts_values_below_one() -> None:
     from PySide6.QtWidgets import (
         QApplication,
@@ -127,6 +146,24 @@ def test_loop_tempo_accepts_values_below_one() -> None:
     spin.editingFinished.emit()
 
     assert layout.main_window.loop_tempos == [0.5]
+
+
+def test_loop_controls_use_dynamic_flow_layout() -> None:
+    from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    layout = Layout.__new__(Layout)
+    layout.main_window = _FakeMainWindow()
+    layout.text_area = QWidget()
+    layout.text_area_layout = QVBoxLayout(layout.text_area)
+
+    frame = Layout.loop_controls.func(layout)
+
+    assert isinstance(frame.layout(), _FlowLayout)
+    assert frame.minimumHeight() == tuney.ui.layout.LOOP_CONTROLS_HEIGHT
+    assert frame.minimumHeight() != frame.maximumHeight()
 
 
 def test_finish_startup_layout_reveals_after_deferred_build() -> None:
