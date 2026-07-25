@@ -57,7 +57,16 @@ class ResizeRepro(QMainWindow):
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(6, 6, 6, 6)
-        layout.addWidget(self._splitter(), stretch=1)
+        if self.options.mode == 'blank':
+            layout.addWidget(QLabel('Blank QWidget in QMainWindow', widget), stretch=1)
+        elif self.options.mode == 'buttons':
+            layout.addWidget(self._button_grid(), stretch=1)
+        elif self.options.mode == 'scroll':
+            layout.addWidget(self._control_panel(), stretch=1)
+        elif self.options.mode == 'text':
+            layout.addWidget(self._text_area(), stretch=1)
+        else:
+            layout.addWidget(self._splitter(), stretch=1)
         return widget
 
     def _splitter(self) -> QSplitter:
@@ -124,6 +133,13 @@ class ResizeRepro(QMainWindow):
             layout.addWidget(button, i // columns, i % columns)
         return frame
 
+    def _button_grid(self) -> QWidget:
+        frame = QWidget(self)
+        layout = QGridLayout(frame)
+        for i in range(max(self.options.notes, 52)):
+            layout.addWidget(QPushButton(chr(ord('A') + i % 26), frame), i // 8, i % 8)
+        return frame
+
 
 def _control_cell(parent: QWidget, index: int) -> QWidget:
     frame = QWidget(parent)
@@ -145,6 +161,11 @@ def _control_cell(parent: QWidget, index: int) -> QWidget:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--mode',
+        choices=['full', 'blank', 'buttons', 'scroll', 'text'],
+        default='full',
+    )
     parser.add_argument('--splitter', choices=['spaced', 'standard'], default='spaced')
     parser.add_argument('--panel', choices=['flow', 'grid', 'empty'], default='flow')
     parser.add_argument('--controls', type=int, default=180)
