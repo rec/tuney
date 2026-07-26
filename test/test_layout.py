@@ -54,8 +54,28 @@ def test_note_grid_reuses_buttons() -> None:
 
     assert layout.note_buttons == {'a': first_a}
     assert layout.note_buttons['a'].note_name == 'A2'
+    assert layout.note_buttons['a'].tooltip.text == 'A2\n440 Hz'
     assert first_b.isHidden()
     assert first_b.parent() is layout.note_grid_widget
+
+
+def test_note_grid_tooltips_include_note_frequency() -> None:
+    from PySide6.QtWidgets import QApplication, QGridLayout, QWidget
+
+    if QApplication.instance() is None:
+        QApplication([])
+
+    layout = Layout.__new__(Layout)
+    layout.main_window = _FakeMainWindow()
+    layout.note_grid_widget = QWidget()
+    layout.note_grid = QGridLayout(layout.note_grid_widget)
+    layout.splitter = _FakeSplitter()
+    layout.__dict__['note_button_cache'] = {}
+
+    layout.rebuild_note_grid()
+
+    assert layout.note_buttons['a'].tooltip.text == 'A\n440 Hz'
+    assert layout.note_buttons['b'].tooltip.text == 'B\n466.164 Hz'
 
 
 def test_note_grid_updates_program_minimum_height() -> None:
@@ -321,13 +341,23 @@ def test_note_font_refresh_is_debounced_during_resize(monkeypatch) -> None:
 class _FakeScale:
     note_count = 1
 
+    @staticmethod
+    def frequency(_: object, note_number: int) -> float:
+        return 440 * 2 ** ((note_number - 69) / 12)
+
+
+class _FakeMapper:
+    char_to_number = {'a': 69, 'b': 70}
+
 
 class _FakeApp:
     def __init__(self) -> None:
         self.labels = {'a': 'A', 'b': 'B'}
+        self.mapper = _FakeMapper()
         self.scale = _FakeScale()
         self.sound = _FakeSound()
         self.hover_time = 1.0
+        self.tuning = object()
 
     @property
     def note_labels(self) -> dict[str, str]:

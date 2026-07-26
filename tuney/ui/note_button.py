@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QGridLayout, QPushButton, QSizePolicy
 
 from ..time.char_press import CharPress
 from . import constants
+from .tooltip import Tooltip
 
 FONT_FAMILY = 'Arial'
 MIN_BUTTON_WIDTH = 8
@@ -29,6 +30,8 @@ class NoteButton(QPushButton):
         column: int,
         char: str,
         text: str,
+        tooltip_text: str,
+        hover_time: Callable[[], float],
         on_char: Callable[[CharPress], object],
     ) -> None:
         super().__init__(text)
@@ -36,6 +39,7 @@ class NoteButton(QPushButton):
         self._on_char = on_char
         self._font_size = MAX_FONT_SIZE
         self.note_name = text
+        self.tooltip = Tooltip(self, tooltip_text, hover_time)
         self.setFont(QFont(FONT_FAMILY, MAX_FONT_SIZE, QFont.Weight.Bold))
         self.setMinimumSize(MIN_BUTTON_WIDTH, MIN_BUTTON_HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
@@ -53,6 +57,9 @@ class NoteButton(QPushButton):
         if text != self.note_name:
             self.note_name = text
             self.setText(text)
+
+    def set_tooltip_text(self, text: str) -> None:
+        self.tooltip.text = text
 
     @property
     def is_press(self) -> bool:

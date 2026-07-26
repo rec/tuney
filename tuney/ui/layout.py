@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QElapsedTimer, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QFont, QResizeEvent
@@ -65,6 +66,9 @@ LOOP_TEMPO_DECIMALS = 2
 NOTE_FONT_REFRESH_DELAY_MS = 50
 
 WIDTH, HEIGHT = 70, 80
+
+if TYPE_CHECKING:
+    from ..app.app import App
 
 
 class Layout(QWidget):
@@ -541,10 +545,13 @@ class Layout(QWidget):
                 column,
                 char,
                 text,
+                _note_tooltip_text(self.main_window.app, char, text),
+                lambda: self.main_window.app.hover_time,
                 lambda c: on_char(self.main_window.app, c),
             )
         button = self.note_button_cache[char]
         button.set_note(text)
+        button.set_tooltip_text(_note_tooltip_text(self.main_window.app, char, text))
         button.show()
         self.note_grid.addWidget(button, row, column)
         return button
@@ -578,3 +585,9 @@ def _minimum_program_height(rows: int, splitter_handle_width: int) -> int:
         + _note_grid_minimum_height(rows)
         + splitter_handle_width * 2
     )
+
+
+def _note_tooltip_text(app: App, char: str, text: str) -> str:
+    note_number = app.mapper.char_to_number[char]
+    frequency = app.scale.frequency(app.tuning, note_number)
+    return f'{text}\n{frequency:.6g} Hz'
