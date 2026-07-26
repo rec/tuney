@@ -37,6 +37,6 @@ def test_scala_trie_navigates_prefixes() -> None:
 
     assert trie.choices('') == ['a', 'b']
     assert trie.choices('ab') == ['c', 'd']
-    assert trie.terminal('ab') is None
-    assert trie.terminal('abc') == ratios['abc']
+    assert trie.terminal('abc') is None
+    assert trie.terminal('abc.scl') == ratios['abc']
     assert trie.first('ab') == ratios['abc']

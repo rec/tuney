@@ -67,9 +67,9 @@ def scala_scales() -> dict[str, Ratios]:
 
 def build_trie(scales: dict[str, Ratios]) -> ScalaTrie:
     root = ScalaTrie()
-    for key, value in scales.items():
+    for value in scales.values():
         node = root
-        for c in key:
+        for c in value.name.casefold():
             node = node.children.setdefault(c, ScalaTrie())
         node.value = value
     instrument('scala trie build end', count=len(scales))

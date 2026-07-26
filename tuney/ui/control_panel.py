@@ -344,8 +344,6 @@ def _add_model_controls(
 
     if controls:
         _add_control_grid(parent, data, controls, option_controls, advanced)
-        if isinstance(data, Scale):
-            _add_scala_browser_control(parent, data)
 
     for name in children:
         child = getattr(data, name)
@@ -381,6 +379,7 @@ def _add_tuning_controls(
         if advanced or _is_beginner_field(data, name)
     ]
     _add_control_grid(parent, data, controls, option_controls, advanced)
+    _add_scala_browser_control(parent)
 
     stack = _CurrentPageStackedWidget(parent)
     stack.setObjectName('tuning_form_stack')
@@ -747,7 +746,7 @@ def _add_option_control(
     option_controls.append(_OptionControl(menu, data, name, values))
 
 
-def _add_scala_browser_control(parent: QWidget, data: Scale) -> None:
+def _add_scala_browser_control(parent: QWidget) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
     app = _control_panel(parent).app
     entry = ScalaBrowserEdit(frame, app, _load_scala_browser_tuning, _set_app_tuning)
@@ -803,7 +802,7 @@ def _load_scala_browser_tuning(entry: ScalaBrowserEdit) -> None:
 
 def _set_loaded_scala_fields(control_panel: ControlPanel, ratios: Ratios) -> None:
     if name := control_panel.findChild(QLineEdit, 'tuning_name'):
-        name.setText(ratios.name.removesuffix('.scl'))
+        name.setText(ratios.name)
     if description := control_panel.findChild(QLineEdit, 'tuning_description'):
         description.setText(ratios.desc)
 

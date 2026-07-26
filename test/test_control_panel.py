@@ -1320,43 +1320,69 @@ def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
     panel = control_panel.ControlPanel(parent, Tuney())
     browser = panel.findChild(QLineEdit, 'scala_browser')
     assert browser is not None
+    assert browser.text() == 'abc.scl'
+    assert browser.cursorPosition() == 0
+    assert browser.isReadOnly()
+    assert browser.selectedText() == ''
+    assert 'color: #909090;' in browser.styleSheet()
 
     _press(browser, Qt.Key.Key_A, 'a')
     _press(browser, Qt.Key.Key_X, 'x')
     _press(browser, Qt.Key.Key_B, 'b')
     _press(browser, Qt.Key.Key_Down)
 
-    assert browser.text() == 'abd'
+    assert browser.text() == 'abd.scl'
     assert browser.selectionStart() == 2
-    assert browser.selectedText() == 'd'
-    assert browser.toolTip() == 'second scale'
+    assert browser.selectedText() == 'd.scl'
+    assert browser.toolTip() == ''
 
     _press(browser, Qt.Key.Key_Down)
-    assert browser.text() == 'abc'
-    assert browser.selectedText() == 'c'
-    assert browser.toolTip() == 'first scale'
+    assert browser.text() == 'abc.scl'
+    assert browser.selectedText() == 'c.scl'
+    assert browser.toolTip() == ''
 
     _press(browser, Qt.Key.Key_Left)
     _press(browser, Qt.Key.Key_Up)
-    assert browser.text() == 'abc'
-    assert browser.selectionStart() == 1
+    assert browser.text() == 'xyz.scl'
+    assert browser.selectionStart() == 0
 
-    _press(browser, Qt.Key.Key_Left)
     _press(browser, Qt.Key.Key_X, 'x')
-    assert browser.text() == 'xyz'
+    assert browser.text() == 'xyz.scl'
     assert browser.selectionStart() == 1
-    assert browser.selectedText() == 'yz'
+    assert browser.selectedText() == 'yz.scl'
 
     _press(browser, Qt.Key.Key_Down)
-    assert browser.text() == 'xyz'
+    assert browser.text() == 'xyz.scl'
     assert browser.selectionStart() == 1
 
     _press(browser, Qt.Key.Key_Right)
-    assert browser.cursorPosition() == 3
+    assert browser.cursorPosition() == 7
 
     _press(browser, Qt.Key.Key_Left)
-    assert browser.selectionStart() == 2
-    assert browser.selectedText() == 'z'
+    assert browser.selectionStart() == 0
+    assert browser.selectedText() == 'xyz.scl'
+
+
+def test_scala_browser_is_in_tuning_section(monkeypatch) -> None:
+    from PySide6.QtWidgets import QLineEdit, QToolButton, QWidget
+
+    ratios = {'abc': Ratios(text='2', name='abc.scl', desc='first scale')}
+    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+
+    section: object = browser
+    while isinstance(section, QWidget) and section.objectName() != 'control_section':
+        section = section.parentWidget()
+
+    assert isinstance(section, QWidget)
+    button = section.findChild(QToolButton, 'control_section_disclosure')
+    assert button is not None
+    assert button.text() == 'Tuning'
 
 
 def test_scala_description_does_not_force_panel_width() -> None:
@@ -1377,7 +1403,7 @@ def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QLineEdit, QWidget
 
-    ratios = Ratios(text='3/2', name='xyz.scl', desc='first scale')
+    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
     app = App(gui=True)
     original = app.tuning.model_copy(deep=True)
     closed = []
@@ -1448,12 +1474,11 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
     assert app.tuning.ratios == ratios
     assert app.main_window.history.undo_count == 1
     assert app.main_window.ui.rebuild_count == 1
-    assert name.text() == 'abc'
+    assert name.text() == 'abc.scl'
     assert description.text() == 'first scale'
 
 
-def test_scala_browser_data_is_lazy_loaded(monkeypatch) -> None:
-    from PySide6.QtCore import Qt
+def test_scala_browser_starts_with_first_scala_file(monkeypatch) -> None:
     from PySide6.QtWidgets import QLineEdit, QWidget
 
     calls = []
@@ -1469,11 +1494,49 @@ def test_scala_browser_data_is_lazy_loaded(monkeypatch) -> None:
     panel = control_panel.ControlPanel(parent, Tuney())
     browser = panel.findChild(QLineEdit, 'scala_browser')
     assert browser is not None
-    assert calls == []
+    assert calls == ['load', 'load']
+    assert browser.text() == 'abc.scl'
+    assert browser.cursorPosition() == 0
+    assert browser.selectedText() == ''
+    assert 'color: #909090;' in browser.styleSheet()
+
+
+def test_scala_browser_keeps_current_tooltip_open_while_active(monkeypatch) -> None:
+    from PySide6.QtCore import QEvent, QPoint, Qt
+    from PySide6.QtGui import QFocusEvent
+    from PySide6.QtWidgets import QLabel, QLineEdit, QWidget
+
+    ratios = {
+        'abc': Ratios(text='2', name='abc.scl', desc='first scale'),
+        'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
+    }
+    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    browser = panel.findChild(QLineEdit, 'scala_browser')
+    assert browser is not None
+    tooltip = browser.findChild(QLabel, 'scala_browser_active_tooltip')
+    assert tooltip is not None
+
+    browser.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
+    assert browser.toolTip() == ''
+    assert tooltip.text() == 'first scale'
+    assert not tooltip.isHidden()
+    assert tooltip.pos() == browser.mapToGlobal(browser.rect().bottomLeft()) + QPoint(
+        0, 10
+    )
 
     _press(browser, Qt.Key.Key_A, 'a')
+    _press(browser, Qt.Key.Key_B, 'b')
+    _press(browser, Qt.Key.Key_Down)
+    assert browser.toolTip() == ''
+    assert tooltip.text() == 'second scale'
+    assert not tooltip.isHidden()
 
-    assert calls == ['load']
+    browser.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
+    assert tooltip.isHidden()
 
 
 def _press(widget, key: object, text: str = '') -> None:
