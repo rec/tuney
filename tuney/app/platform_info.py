@@ -330,8 +330,23 @@ def crash_issue_url(path: Path) -> str:
     )
 
 
-def problem_issue_url(path: Path) -> str:
-    return log_issue_url(path, 'Tuney problem report', 'Problem report from Tuney.')
+def problem_issue_url(path: Path, *, include_log: bool = True) -> str:
+    if include_log:
+        return log_issue_url(path, 'Tuney problem report', 'Problem report from Tuney.')
+    report = '\n'.join(
+        [
+            '## Error',
+            '',
+            'Problem report from Tuney.',
+            '',
+            '## Environment',
+            '',
+            f'- Platform: {platform.platform()}',
+            f'- Python: {platform.python_version()}',
+            f'- Frozen app: {is_frozen()}',
+        ]
+    )
+    return f'{ISSUE_URL}?{urlencode({"title": "Tuney problem report", "body": report})}'
 
 
 def log_issue_url(path: Path, title: str, message: str) -> str:

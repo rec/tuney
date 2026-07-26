@@ -266,6 +266,106 @@ def test_crash_report_brings_window_forward(monkeypatch) -> None:
     ]
 
 
+def test_report_problem_dialog_asks_before_opening_issue(monkeypatch) -> None:
+    calls = []
+
+    class Signal:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def connect(self, callback: Callable[[], None]) -> None:
+            calls.append(('connect', self.name, callback.__name__))
+
+    class Dialog:
+        class DialogCode:
+            Accepted = 1
+
+        def __init__(self, parent: object) -> None:
+            calls.append(('dialog', parent))
+
+        def setWindowTitle(self, title: str) -> None:
+            calls.append(('title', title))
+
+        def accept(self) -> None:
+            calls.append('accept')
+
+        def reject(self) -> None:
+            calls.append('reject')
+
+        def exec(self) -> int:
+            calls.append('exec')
+            return Dialog.DialogCode.Accepted
+
+    class PushButton:
+        def __init__(self, text: str, parent: object) -> None:
+            self.checked = False
+            calls.append(('push', text, parent))
+
+        def setCheckable(self, checkable: bool) -> None:
+            calls.append(('checkable', checkable))
+
+        def setChecked(self, checked: bool) -> None:
+            self.checked = checked
+            calls.append(('checked', checked))
+
+        def isChecked(self) -> bool:
+            return self.checked
+
+    class Label:
+        def __init__(self, text: str, parent: object) -> None:
+            calls.append(('label', text, parent))
+
+    class BoxLayout:
+        def __init__(self, parent: object | None = None) -> None:
+            calls.append(('layout', parent))
+
+        def addWidget(self, widget: object) -> None:
+            calls.append(('widget', type(widget).__name__))
+
+        def addLayout(self, layout: object) -> None:
+            calls.append(('sub_layout', type(layout).__name__))
+
+    class ButtonBox:
+        class StandardButton:
+            Yes = 1
+            Cancel = 2
+
+        def __init__(self, buttons: object, parent: object) -> None:
+            self.accepted = Signal('accepted')
+            self.rejected = Signal('rejected')
+            calls.append(('buttons', buttons, parent))
+
+    monkeypatch.setattr(error_dialogs, 'QDialog', Dialog)
+    monkeypatch.setattr(error_dialogs, 'QPushButton', PushButton)
+    monkeypatch.setattr(error_dialogs, 'QLabel', Label)
+    monkeypatch.setattr(error_dialogs, 'QHBoxLayout', BoxLayout)
+    monkeypatch.setattr(error_dialogs, 'QVBoxLayout', BoxLayout)
+    monkeypatch.setattr(error_dialogs, 'QDialogButtonBox', ButtonBox)
+
+    window = object()
+
+    assert error_dialogs.report_problem_include_log(window) is False
+    assert ('title', 'Report a problem') in calls
+    assert any(i[:2] == ('push', 'Include log?') for i in calls)
+    assert ('checked', False) in calls
+    assert any(i[:2] == ('label', 'Open an issue on Github?') for i in calls)
+    assert any(
+        i[:2]
+        == (
+            'label',
+            'Turn this on if the problem just happened a few seconds ago',
+        )
+        for i in calls
+    )
+    assert any(
+        i[:2]
+        == ('buttons', ButtonBox.StandardButton.Yes | ButtonBox.StandardButton.Cancel)
+        for i in calls
+    )
+    assert ('connect', 'accepted', 'accept') in calls
+    assert ('connect', 'rejected', 'reject') in calls
+
+
 def test_problem_issue_url_includes_log(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
@@ -282,6 +382,26 @@ def test_problem_issue_url_includes_log(monkeypatch) -> None:
     body = query['body'][0]
     assert 'Problem report from Tuney.' in body
     assert 'TRACE problem' in body
+
+
+def test_problem_issue_url_can_omit_log(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        log.parent.mkdir(parents=True)
+        log.write_text('TRACE problem\n')
+
+        url = problem_issue_url(log, include_log=False)
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert query['title'] == ['Tuney problem report']
+    body = query['body'][0]
+    assert 'Problem report from Tuney.' in body
+    assert 'TRACE problem' not in body
+    assert f'Log file: {log}' not in body
+    assert '## Log' not in body
 
 
 def test_app_user_model_id_is_windows_only(monkeypatch) -> None:

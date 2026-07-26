@@ -637,6 +637,7 @@ def test_app_reports_problem() -> None:
             return True
 
     error_dialogs.QDesktopServices = FakeDesktopServices
+    error_dialogs.report_problem_include_log = lambda _: False
     app = HistoryApp()
 
     MainWindow.on_report_problem(app)
@@ -644,6 +645,7 @@ def test_app_reports_problem() -> None:
     assert opened
     assert opened[0].startswith('https://github.com/rec/tuney/issues/new?')
     assert 'Tuney+problem+report' in opened[0]
+    assert 'TRACE' not in opened[0]
 
 
 def test_app_imports_and_exports_tuning() -> None:

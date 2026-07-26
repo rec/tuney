@@ -4,7 +4,15 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QLabel, QMessageBox
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
 
 from ..app.platform_info import (
     crash_issue_url,
@@ -29,7 +37,42 @@ def on_show_log(main_window: MainWindow, *_: object) -> None:
 
 def on_report_problem(main_window: MainWindow, *_: object) -> None:
     instrument('ui report problem')
-    QDesktopServices.openUrl(QUrl(problem_issue_url(log_path())))
+    if (include_log := report_problem_include_log(main_window)) is None:
+        return
+    QDesktopServices.openUrl(
+        QUrl(problem_issue_url(log_path(), include_log=include_log))
+    )
+
+
+def report_problem_include_log(main_window: MainWindow) -> bool | None:
+    dialog = QDialog(main_window)
+    dialog.setWindowTitle('Report a problem')
+
+    include_log = QPushButton('Include log?', dialog)
+    include_log.setCheckable(True)
+    include_log.setChecked(False)
+
+    toggle_layout = QHBoxLayout()
+    toggle_layout.addWidget(include_log)
+    toggle_layout.addWidget(
+        QLabel('Turn this on if the problem just happened a few seconds ago', dialog)
+    )
+
+    buttons = QDialogButtonBox(
+        QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.Cancel,
+        dialog,
+    )
+    buttons.accepted.connect(dialog.accept)
+    buttons.rejected.connect(dialog.reject)
+
+    layout = QVBoxLayout(dialog)
+    layout.addWidget(QLabel('Open an issue on Github?', dialog))
+    layout.addLayout(toggle_layout)
+    layout.addWidget(buttons)
+
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+        return None
+    return include_log.isChecked()
 
 
 def show_restore_error(main_window: MainWindow, error: BaseException) -> None:
