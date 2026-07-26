@@ -987,6 +987,7 @@ def test_note_number_spinboxes_use_musical_ranges() -> None:
     assert ranges['Mapper.offset'] == (-99, 99)
     assert ranges['Scale.offset'] == (-99, 99)
     assert ranges['Sound.note_offset'] == (-99, 99)
+    assert ranges['Polyphony.max_voices'] == (1, 9999)
     assert ranges['Oscillator.key_scale_note'] == (0, 127)
     assert ranges['Tuning.root_note'] == (0, 127)
 
