@@ -142,7 +142,11 @@ class MidiOut(MidiBase):
 
     def start(self) -> None:
         if self.enable:
-            _ = self.port
+            try:
+                _ = self.port
+            except (OSError, RuntimeError, SystemError) as error:
+                self.enable = False
+                report_error(f'Could not open MIDI output: {error}')
 
     def close(self) -> None:
         if port := self.__dict__.pop('port', None):

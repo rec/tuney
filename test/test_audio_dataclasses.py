@@ -475,6 +475,25 @@ def test_midi_output_uses_selected_port_instead_of_virtual_port(
     assert opened == [('External Synth', False)]
 
 
+def test_midi_output_open_failure_disables_output(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def open_output(*_: object, **__: object) -> object:
+        raise SystemError('MidiOutWinMM::openPort: error creating port')
+
+    midi = tuney.midi.midi.MidiOut(enable=True)
+    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+
+    midi.start()
+    midi.send_tuning_dump(Scale(), Tuning())
+    midi(60, True)
+
+    assert not midi.enable
+    assert (
+        'Could not open MIDI output: MidiOutWinMM::openPort' in capsys.readouterr().err
+    )
+
+
 def test_oscillator_uses_one_cycle_per_note_period():
     actual = Oscillator(waveform=Waveform.sine)(start=0, length=8, period=8)
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
