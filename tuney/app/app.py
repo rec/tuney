@@ -348,6 +348,7 @@ def save_autosave(app: App, path: Path) -> None:
         from ..ui.history import WindowState
 
         geometry = main_window.geometry()
+        instrument('autosave window geometry', **window_geometry_log_data(main_window))
         data['loop'] = main_window.history.loop_state.model_dump()
         data['window'] = WindowState(
             x=geometry.x(),
@@ -356,6 +357,44 @@ def save_autosave(app: App, path: Path) -> None:
             height=geometry.height(),
         ).model_dump()
     path.write_text(tomlkit.dumps(data))
+
+
+def window_geometry_log_data(window: object) -> dict[str, object]:
+    return {
+        'direct': {
+            'x': _window_method_value(window, 'x'),
+            'y': _window_method_value(window, 'y'),
+            'width': _window_method_value(window, 'width'),
+            'height': _window_method_value(window, 'height'),
+        },
+        'geometry': _window_rect_value(window, 'geometry'),
+        'frame_geometry': _window_rect_value(window, 'frameGeometry'),
+        'normal_geometry': _window_rect_value(window, 'normalGeometry'),
+        'window_state': _window_method_value(window, 'windowState'),
+        'is_maximized': _window_method_value(window, 'isMaximized'),
+        'is_minimized': _window_method_value(window, 'isMinimized'),
+        'is_full_screen': _window_method_value(window, 'isFullScreen'),
+    }
+
+
+def _window_method_value(window: object, name: str) -> object:
+    method = getattr(window, name, None)
+    if not callable(method):
+        return None
+    return method()
+
+
+def _window_rect_value(window: object, name: str) -> dict[str, object] | None:
+    method = getattr(window, name, None)
+    if not callable(method):
+        return None
+    rect = method()
+    return {
+        'x': _window_method_value(rect, 'x'),
+        'y': _window_method_value(rect, 'y'),
+        'width': _window_method_value(rect, 'width'),
+        'height': _window_method_value(rect, 'height'),
+    }
 
 
 def dump_toml(app: App) -> str:

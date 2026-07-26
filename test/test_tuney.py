@@ -34,6 +34,7 @@ from tuney.app.app import (
     save,
     save_autosave,
     start,
+    window_geometry_log_data,
 )
 from tuney.app.global_config import GlobalConfig
 from tuney.app.key_recorder import speech_phrases
@@ -1619,6 +1620,21 @@ def test_autosave_writes_loop_state_and_geometry_window_state(monkeypatch) -> No
         'randomize_on_each_loop': True,
     }
     assert data['window'] == {'x': 10, 'y': 20, 'width': 640, 'height': 480}
+
+
+def test_window_geometry_log_data_records_direct_and_geometry_values() -> None:
+    window = _AutosaveWindow(object())
+
+    assert window_geometry_log_data(window) == {
+        'direct': {'x': 33, 'y': 44, 'width': 660, 'height': 500},
+        'geometry': {'x': 10, 'y': 20, 'width': 640, 'height': 480},
+        'frame_geometry': None,
+        'normal_geometry': None,
+        'window_state': None,
+        'is_maximized': None,
+        'is_minimized': None,
+        'is_full_screen': None,
+    }
 
 
 def test_restore_autosave_restores_gui_state_without_explicit_startup_data(

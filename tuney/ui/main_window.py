@@ -31,6 +31,7 @@ from ..app.app import (
     on_char,
     randomize_timing,
     save_autosave,
+    window_geometry_log_data,
 )
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
@@ -278,18 +279,31 @@ class MainWindow(QMainWindow):
 
     def _restore_window_state(self) -> None:
         if window_state := self.app.__dict__.pop('_autosave_window_state', None):
+            instrument('window restore state loaded', saved=window_state.model_dump())
             self._restored_window_state = window_state
             self._apply_restored_window_state()
 
     def _apply_restored_window_state(self) -> None:
         if window_state := self._restored_window_state:
+            instrument(
+                'window restore geometry before',
+                saved=window_state.model_dump(),
+                **window_geometry_log_data(self),
+            )
             self.setGeometry(
                 window_state.x,
                 window_state.y,
                 window_state.width,
                 window_state.height,
             )
+            instrument(
+                'window restore geometry after set', **window_geometry_log_data(self)
+            )
             self.enforce_minimum_size()
+            instrument(
+                'window restore geometry after enforce',
+                **window_geometry_log_data(self),
+            )
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
