@@ -346,9 +346,25 @@ def _add_model_controls(
         _add_control_grid(parent, data, controls, option_controls, advanced)
 
     for name in children:
+        if name == 'device' and isinstance(getattr(data, name), Device):
+            continue
         child = getattr(data, name)
         assert isinstance(child, BaseModel)
         if not _has_visible_fields(child, advanced):
+            continue
+        device = getattr(data, 'device', None)
+        if name == 'sound' and isinstance(device, Device):
+            child_parent = _add_collapsible_section(
+                parent, _midi_child_title(data, name), child
+            )
+            _add_model_controls(child_parent, child, option_controls, advanced=advanced)
+            _add_model_controls(
+                child_parent,
+                device,
+                option_controls,
+                _midi_child_title(data, 'device'),
+                advanced,
+            )
             continue
         if not _visible_control_names(child, advanced):
             child_parent = (

@@ -745,6 +745,34 @@ def test_control_panel_groups_midi_input_and_output_sections() -> None:
     assert {'In', 'Out'} <= set(names)
 
 
+def test_control_panel_groups_device_inside_sound_section() -> None:
+    from PySide6.QtWidgets import QToolButton, QWidget
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Tuney())
+    top_level = [
+        button.text()
+        for button in panel.findChildren(QToolButton, 'control_section_disclosure')
+        if button.parentWidget() is not None
+        and button.parentWidget().parentWidget() is panel.content.currentWidget()
+    ]
+    sound = next(
+        button
+        for button in panel.findChildren(QToolButton, 'control_section_disclosure')
+        if button.text() == 'Sound'
+    )
+    body = sound.parent().findChild(QWidget, 'control_section_body')
+    assert body is not None
+    nested = [
+        button.text()
+        for button in body.findChildren(QToolButton, 'control_section_disclosure')
+    ]
+
+    assert 'Device' not in top_level
+    assert 'Device' in nested
+
+
 def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
