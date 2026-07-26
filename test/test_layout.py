@@ -1,5 +1,6 @@
 from pytest import MonkeyPatch
 
+import tuney.ui.constants
 import tuney.ui.layout
 import tuney.ui.main_window
 from tuney.ui.control_panel_layout import _FlowLayout
@@ -87,6 +88,40 @@ def test_program_minimum_size_resizes_without_qt_minimum_constraints() -> None:
     tuney.ui.main_window.MainWindow.enforce_minimum_size(window)
 
     assert window.sizes == [(500, 360)]
+
+
+def test_app_palette_uses_tuney_background() -> None:
+    from PySide6.QtGui import QColor, QPalette
+    from PySide6.QtWidgets import QApplication
+
+    if (app := QApplication.instance()) is None:
+        app = QApplication([])
+    assert isinstance(app, QApplication)
+    palette = app.palette()
+    for role in (
+        QPalette.ColorRole.AlternateBase,
+        QPalette.ColorRole.Base,
+        QPalette.ColorRole.Button,
+        QPalette.ColorRole.Window,
+    ):
+        palette.setColor(role, QColor('#000000'))
+    app.setPalette(palette)
+
+    tuney.ui.main_window.set_app_palette(app)
+
+    for role in (
+        QPalette.ColorRole.AlternateBase,
+        QPalette.ColorRole.Base,
+        QPalette.ColorRole.Button,
+        QPalette.ColorRole.Window,
+    ):
+        assert app.palette().color(role).name() == tuney.ui.constants.WINDOW_BACKGROUND
+    for role in (
+        QPalette.ColorRole.ButtonText,
+        QPalette.ColorRole.Text,
+        QPalette.ColorRole.WindowText,
+    ):
+        assert app.palette().color(role).name() == '#000000'
 
 
 def test_program_minimum_size_enforcement_waits_for_mouse_release(

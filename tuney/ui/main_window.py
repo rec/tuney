@@ -14,8 +14,10 @@ from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
+    QColor,
     QFocusEvent,
     QIcon,
+    QPalette,
     QResizeEvent,
 )
 from PySide6.QtWidgets import (
@@ -36,7 +38,7 @@ from ..app.app import (
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
-from . import file_commands, key_events, startup, tuning_files
+from . import constants, file_commands, key_events, startup, tuning_files
 from .error_dialogs import (
     on_report_problem,
     on_show_log,
@@ -109,6 +111,7 @@ class MainWindow(QMainWindow):
             self.qt_app = instance
         self.qt_app.setApplicationName(APP_NAME)
         self.qt_app.setStyle('Fusion')
+        set_app_palette(self.qt_app)
         from .layout import Layout
 
         super().__init__()
@@ -372,6 +375,7 @@ class MainWindow(QMainWindow):
     on_show_log = on_show_log
     on_report_problem = on_report_problem
     show_restore_error = show_restore_error
+
     show_crash_report = show_crash_report
     show_audio_error = show_audio_error
 
@@ -459,3 +463,17 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
+
+
+def set_app_palette(app: QApplication) -> None:
+    palette = app.palette()
+    background = QColor(constants.WINDOW_BACKGROUND)
+    foreground = QColor('black')
+    palette.setColor(QPalette.ColorRole.AlternateBase, background)
+    palette.setColor(QPalette.ColorRole.Base, background)
+    palette.setColor(QPalette.ColorRole.Window, background)
+    palette.setColor(QPalette.ColorRole.Button, background)
+    palette.setColor(QPalette.ColorRole.ButtonText, foreground)
+    palette.setColor(QPalette.ColorRole.Text, foreground)
+    palette.setColor(QPalette.ColorRole.WindowText, foreground)
+    app.setPalette(palette)
