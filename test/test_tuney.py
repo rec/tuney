@@ -71,7 +71,7 @@ from tuney.ui import Action, State, StateChange, error_dialogs, startup
 from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_text
 from tuney.ui.history import History, LoopState, WindowState
 from tuney.ui.key_events import on_key_event
-from tuney.ui.main_window import MainWindow
+from tuney.ui.main_window import MainWindow, visible_restored_window_state
 
 
 @contextmanager
@@ -870,6 +870,22 @@ class _Geometry:
 
     def height(self) -> int:
         return self._height
+
+
+class _Screen:
+    def __init__(self, top: int) -> None:
+        self.top = top
+
+    def availableGeometry(self) -> _Geometry:
+        return _Geometry(x=0, y=self.top, width=1920, height=1080)
+
+
+class _ScreenWindow:
+    def __init__(self, top: int) -> None:
+        self._screen = _Screen(top)
+
+    def screen(self) -> _Screen:
+        return self._screen
 
 
 class _AutosaveWindow:
@@ -1780,6 +1796,22 @@ def test_main_window_restores_autosaved_window_state() -> None:
         x=10, y=20, width=640, height=480
     )
     assert '_autosave_window_state' not in app.__dict__
+
+
+def test_restored_window_state_keeps_menu_reachable() -> None:
+    state = WindowState(x=10, y=-80, width=640, height=480)
+
+    visible = visible_restored_window_state(_ScreenWindow(top=0), state)
+
+    assert visible == WindowState(x=10, y=0, width=640, height=480)
+
+
+def test_restored_window_state_keeps_visible_top_edge() -> None:
+    state = WindowState(x=10, y=25, width=640, height=480)
+
+    visible = visible_restored_window_state(_ScreenWindow(top=0), state)
+
+    assert visible is state
 
 
 def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> None:

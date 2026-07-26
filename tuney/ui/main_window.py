@@ -10,7 +10,7 @@ from queue import Queue
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -288,16 +288,18 @@ class MainWindow(QMainWindow):
 
     def _apply_restored_window_state(self) -> None:
         if window_state := self._restored_window_state:
+            restored_window_state = visible_restored_window_state(self, window_state)
             instrument(
                 'window restore geometry before',
                 saved=window_state.model_dump(),
+                applied=restored_window_state.model_dump(),
                 **window_geometry_log_data(self),
             )
             self.setGeometry(
-                window_state.x,
-                window_state.y,
-                window_state.width,
-                window_state.height,
+                restored_window_state.x,
+                restored_window_state.y,
+                restored_window_state.width,
+                restored_window_state.height,
             )
             instrument(
                 'window restore geometry after set', **window_geometry_log_data(self)
@@ -477,3 +479,29 @@ def set_app_palette(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.Text, foreground)
     palette.setColor(QPalette.ColorRole.WindowText, foreground)
     app.setPalette(palette)
+
+
+def visible_restored_window_state(
+    window: object, window_state: WindowState
+) -> WindowState:
+    screen = None
+    if QApplication.instance() is not None:
+        screen = QApplication.screenAt(QPoint(window_state.x, window_state.y))
+    if screen is None:
+        screen_method = getattr(window, 'screen', None)
+        if callable(screen_method):
+            screen = screen_method()
+    if screen is None and QApplication.instance() is not None:
+        screen = QApplication.primaryScreen()
+    if screen is None:
+        return window_state
+    available = screen.availableGeometry()
+    y = max(window_state.y, available.y())
+    if y == window_state.y:
+        return window_state
+    return WindowState(
+        x=window_state.x,
+        y=y,
+        width=window_state.width,
+        height=window_state.height,
+    )
