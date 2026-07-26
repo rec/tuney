@@ -637,7 +637,10 @@ def test_app_reports_problem() -> None:
             return True
 
     error_dialogs.QDesktopServices = FakeDesktopServices
-    error_dialogs.report_problem_include_log = lambda _: False
+    error_dialogs.report_problem_options = lambda _: error_dialogs.ProblemReportOptions(
+        include_log=False,
+        include_snapshot=False,
+    )
     app = HistoryApp()
 
     MainWindow.on_report_problem(app)

@@ -345,9 +345,15 @@ def test_report_problem_dialog_asks_before_opening_issue(monkeypatch) -> None:
 
     window = object()
 
-    assert error_dialogs.report_problem_include_log(window) is False
+    assert error_dialogs.report_problem_options(window) == (
+        error_dialogs.ProblemReportOptions(
+            include_log=False,
+            include_snapshot=False,
+        )
+    )
     assert ('title', 'Report a problem') in calls
     assert any(i[:2] == ('push', 'Include log?') for i in calls)
+    assert any(i[:2] == ('push', 'Include snapshot?') for i in calls)
     assert ('checked', False) in calls
     assert any(i[:2] == ('label', 'Open an issue on Github?') for i in calls)
     assert any(
@@ -358,6 +364,7 @@ def test_report_problem_dialog_asks_before_opening_issue(monkeypatch) -> None:
         )
         for i in calls
     )
+    assert any(i[:2] == ('label', 'Save a picture of the Tuney window') for i in calls)
     assert any(
         i[:2]
         == ('buttons', ButtonBox.StandardButton.Yes | ButtonBox.StandardButton.Cancel)
@@ -385,6 +392,21 @@ def test_problem_issue_url_includes_log(monkeypatch) -> None:
     assert 'TRACE problem' in body
 
 
+def test_problem_issue_url_includes_snapshot_path(monkeypatch) -> None:
+    with temporary_path() as tmp_path:
+        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
+        log = tmp_path / 'tuney' / 'tuney.txt'
+        snapshot = tmp_path / 'tuney' / 'snapshots' / 'tuney.png'
+        log.parent.mkdir(parents=True)
+        log.write_text('TRACE problem\n')
+
+        url = problem_issue_url(log, snapshot_path=snapshot)
+
+    body = parse_qs(urlparse(url).query)['body'][0]
+    assert '## Snapshot' in body
+    assert f'Saved locally: {snapshot}' in body
+
+
 def test_problem_issue_url_can_omit_log(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
@@ -403,6 +425,34 @@ def test_problem_issue_url_can_omit_log(monkeypatch) -> None:
     assert 'TRACE problem' not in body
     assert f'Log file: {log}' not in body
     assert '## Log' not in body
+
+
+def test_save_problem_snapshot_grabs_tuney_ui(monkeypatch) -> None:
+    saved_paths = []
+
+    class Pixmap:
+        @staticmethod
+        def save(path: str, format_name: str) -> bool:
+            saved_paths.append((Path(path), format_name))
+            return True
+
+    class Ui:
+        @staticmethod
+        def grab() -> Pixmap:
+            return Pixmap()
+
+    class Window:
+        ui = Ui()
+
+    with temporary_path() as tmp_path:
+        monkeypatch.setattr(error_dialogs, 'app_state_dir', lambda: tmp_path / 'tuney')
+
+        path = error_dialogs.save_problem_snapshot(Window())
+
+    assert path.parent == tmp_path / 'tuney' / 'snapshots'
+    assert path.name.startswith('tuney-')
+    assert path.suffix == '.png'
+    assert saved_paths == [(path, 'PNG')]
 
 
 def test_app_user_model_id_is_windows_only(monkeypatch) -> None:

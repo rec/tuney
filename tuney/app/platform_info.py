@@ -330,52 +330,63 @@ def crash_issue_url(path: Path) -> str:
     )
 
 
-def problem_issue_url(path: Path, *, include_log: bool = True) -> str:
+def problem_issue_url(
+    path: Path, *, include_log: bool = True, snapshot_path: Path | None = None
+) -> str:
     if include_log:
-        return log_issue_url(path, 'Tuney problem report', 'Problem report from Tuney.')
-    report = '\n'.join(
-        [
-            '## Error',
-            '',
+        return log_issue_url(
+            path,
+            'Tuney problem report',
             'Problem report from Tuney.',
-            '',
-            '## Environment',
-            '',
-            f'- Platform: {platform.platform()}',
-            f'- Python: {platform.python_version()}',
-            f'- Frozen app: {is_frozen()}',
-        ]
-    )
+            snapshot_path=snapshot_path,
+        )
+    lines = [
+        '## Error',
+        '',
+        'Problem report from Tuney.',
+        '',
+        '## Environment',
+        '',
+        f'- Platform: {platform.platform()}',
+        f'- Python: {platform.python_version()}',
+        f'- Frozen app: {is_frozen()}',
+    ]
+    if snapshot_path is not None:
+        lines.extend(['', '## Snapshot', '', f'Saved locally: {snapshot_path}'])
+    report = '\n'.join(lines)
     return f'{ISSUE_URL}?{urlencode({"title": "Tuney problem report", "body": report})}'
 
 
-def log_issue_url(path: Path, title: str, message: str) -> str:
+def log_issue_url(
+    path: Path, title: str, message: str, *, snapshot_path: Path | None = None
+) -> str:
     try:
         log = path.read_text(errors='replace')
     except OSError as error:
         log = f'Could not read {path}: {error}'
     if not log.strip():
         log = 'No text found in crash report'
-    report = '\n'.join(
-        [
-            '## Error',
-            '',
-            message,
-            '',
-            '## Environment',
-            '',
-            f'- Platform: {platform.platform()}',
-            f'- Python: {platform.python_version()}',
-            f'- Frozen app: {is_frozen()}',
-            f'- Log file: {path}',
-            '',
-            '## Log',
-            '',
-            '```text',
-            log[-MAX_ISSUE_BODY:],
-            '```',
-        ]
-    )
+    lines = [
+        '## Error',
+        '',
+        message,
+        '',
+        '## Environment',
+        '',
+        f'- Platform: {platform.platform()}',
+        f'- Python: {platform.python_version()}',
+        f'- Frozen app: {is_frozen()}',
+        f'- Log file: {path}',
+        '',
+        '## Log',
+        '',
+        '```text',
+        log[-MAX_ISSUE_BODY:],
+        '```',
+    ]
+    if snapshot_path is not None:
+        lines.extend(['', '## Snapshot', '', f'Saved locally: {snapshot_path}'])
+    report = '\n'.join(lines)
     return f'{ISSUE_URL}?{urlencode({"title": title, "body": report})}'
 
 
