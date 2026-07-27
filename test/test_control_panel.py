@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 import tuney.audio.device
 import tuney.midi.midi
+import tuney.midi.port
 import tuney.midi.ports
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -510,7 +511,7 @@ def test_tuning_change_sends_midi_tuning_dump_when_enabled(monkeypatch) -> None:
             messages.append(message)
 
     monkeypatch.setattr(
-        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
     _qt_app()
     app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))

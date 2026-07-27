@@ -17,6 +17,7 @@ import mido
 import pytest
 
 import tuney.app.app
+import tuney.midi.port
 from tuney.app import platform_info as pi
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -1305,7 +1306,7 @@ def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
         {'start': lambda self: None},
     )()
     monkeypatch.setattr(
-        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
     app.start()

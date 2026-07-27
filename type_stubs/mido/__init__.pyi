@@ -39,10 +39,13 @@ class MidiFile:
     ) -> None: ...
     def save(self, filename: str | None = ...) -> None: ...
 
-class InputPort:
+class PortCommon:
     def close(self) -> None: ...
 
-class OutputPort(InputPort):
+class InputPort(PortCommon):
+    pass
+
+class OutputPort(PortCommon):
     def send(self, message: Message) -> None: ...
 
 def open_output(

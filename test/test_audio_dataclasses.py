@@ -7,7 +7,9 @@ import pytest
 
 import tuney.audio.device
 import tuney.midi.midi
+import tuney.midi.port
 import tuney.midi.ports
+import tuney.midi.tuning_dump
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
@@ -271,7 +273,7 @@ def test_midi_output_channel_accepts_omni_and_channel_numbers(
 
 
 @pytest.mark.parametrize(('channel', 'expected'), [(3, 2), ('omni', 0)])
-def test_midi_output_sends_on_mido_channel(
+def test_midi_output_start_sends_program_and_volume_on_mido_channel(
     channel: int | str, expected: int, monkeypatch
 ) -> None:
     messages = []
@@ -281,17 +283,14 @@ def test_midi_output_sends_on_mido_channel(
             messages.append(message)
 
     monkeypatch.setattr(
-        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
-    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40).send_note(
-        60, True
-    )
+    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40).start()
 
     assert [(m.type, m.channel) for m in messages] == [
         ('program_change', expected),
         ('control_change', expected),
-        ('note_on', expected),
     ]
     assert messages[0].program == 40
     assert messages[1].control == 7
@@ -306,18 +305,32 @@ def test_midi_output_skips_program_change_when_program_is_none(monkeypatch) -> N
             messages.append(message)
 
     monkeypatch.setattr(
-        tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
-    tuney.midi.midi.MidiOut(enable=True, program=None).send_note(60, True)
+    tuney.midi.midi.MidiOut(enable=True, program=None).start()
 
-    assert [m.type for m in messages] == ['control_change', 'note_on']
+    assert [m.type for m in messages] == ['control_change']
+
+
+def test_midi_output_sends_note_without_startup_messages(monkeypatch) -> None:
+    messages = []
+
+    class Port:
+        def send(self, message: object) -> None:
+            messages.append(message)
+
+    monkeypatch.setattr(
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
+
+    tuney.midi.midi.MidiOut(enable=True, program=40).send_note(60, True)
+
+    assert [m.type for m in messages] == ['note_on']
 
 
 def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
-    midi = tuney.midi.midi.MidiOut(send_tuning=True)
-
-    message = midi.tuning_dump(Scale(), Tuning())
+    message = tuney.midi.tuning_dump.tuning_dump(Scale(), Tuning())
 
     assert message.type == 'sysex'
     assert message.data[:5] == (0x7E, 0x7F, 0x08, 0x01, 0)
@@ -325,7 +338,9 @@ def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
     assert len(message.data) == 406
     assert message.data[21 : 21 + 6] == (0, 0, 0, 1, 0, 0)
     assert message.data[21 + 69 * 3 : 21 + 70 * 3] == (69, 0, 0)
-    assert message.data[-1] == tuney.midi.midi._tuning_checksum(list(message.data[:-1]))
+    assert message.data[-1] == tuney.midi.tuning_dump._tuning_checksum(
+        list(message.data[:-1])
+    )
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:
@@ -369,7 +384,7 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
         input=tuney.midi.midi.MidiIn(enable=True, name='keyboard')
     )
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_input', open_input)
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_input', open_input)
 
     listener.start()
 
@@ -390,8 +405,10 @@ def test_midi_output_creates_virtual_port_by_default(
         opened.append((port, virtual))
         return Port()
 
-    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', platform)
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+    monkeypatch.setattr(
+        tuney.midi.port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'}
+    )
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
 
     tuney.midi.midi.MidiOut(enable=True).start()
 
@@ -419,8 +436,10 @@ def test_midi_input_creates_virtual_port_by_default(
 
     midi = tuney.midi.midi.Midi(input=tuney.midi.midi.MidiIn(enable=True))
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', platform)
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_input', open_input)
+    monkeypatch.setattr(
+        tuney.midi.port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'}
+    )
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_input', open_input)
 
     listener.start()
 
@@ -440,8 +459,8 @@ def test_midi_output_uses_selected_port_instead_of_virtual_port(
         opened.append((port, virtual))
         return Port()
 
-    monkeypatch.setattr(tuney.midi.midi.sys, 'platform', 'darwin')
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+    monkeypatch.setattr(tuney.midi.port, 'VIRTUAL_ENABLED', True)
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
 
     tuney.midi.midi.MidiOut(enable=True, name='External Synth').start()
 
@@ -455,7 +474,7 @@ def test_midi_output_open_failure_disables_output(
         raise SystemError('MidiOutWinMM::openPort: error creating port')
 
     midi = tuney.midi.midi.MidiOut(enable=True)
-    monkeypatch.setattr(tuney.midi.midi.mido, 'open_output', open_output)
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
 
     midi.start()
     midi.send_tuning_dump(Scale(), Tuning())

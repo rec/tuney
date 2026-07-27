@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import sys
 from collections.abc import Callable
 from functools import cached_property
-from math import floor, log2
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import mido
@@ -11,29 +9,20 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..app.platform_info import report_error
 from ..config.annotations import Beginner, Display, Numeric, Options
-from ..scale.scale import Scale
-from ..scale.tuning import Tuning
 from .general_midi import general_midi_program_options
+from .port import OutputPort
 from .ports import midi_names
+from .tuning_dump import tuning_dump
 
 if TYPE_CHECKING:
+    from ..scale.scale import Scale
+    from ..scale.tuning import Tuning
     from .listener import MidiListener
 
 ZERO_IS_NOTE_OFF = True
 CHANNELS = tuple(str(i + 1) for i in range(16))
 MIDI_CHANNEL_OPTIONS = ['omni', *CHANNELS]
 OMNI = None, '', '0', 0, 'omni'
-MTS_DEVICE_ID_ALL = 0x7F
-MTS_SUB_ID = 0x08
-MTS_BULK_DUMP = 0x01
-MTS_TUNING_PROGRAM = 0
-MTS_TUNING_NAME = 'Tuney'
-MTS_NO_CHANGE = [0x7F, 0x7F, 0x7F]
-MIDI_A4 = 69
-A4_FREQUENCY = 440.0
-SEMITONE_FRACTIONS = 16_384
-VIRTUAL_MIDI_INPUT_NAME = 'Tuney MIDI In'
-VIRTUAL_MIDI_OUTPUT_NAME = 'Tuney MIDI Out'
 
 
 class MidiBase(BaseModel):
@@ -61,7 +50,7 @@ class MidiBase(BaseModel):
                 return int(value)
         raise ValueError('MIDI channel must be omni, 0, or 1-16')
 
-    @property
+    @cached_property
     def mido_channel(self) -> int | None:
         return None if self.channel == 'omni' else self.channel - 1
 
@@ -133,27 +122,25 @@ class MidiOut(MidiBase):
         return value
 
     @cached_property
-    def port(self) -> mido.OutputPort:
-        port = mido.open_output(
-            midi_port_name(self.name, VIRTUAL_MIDI_OUTPUT_NAME),
-            virtual=use_virtual_midi_port(self.name),
-        )
-        if message := self.send_program_change():
-            port.send(message)
-        port.send(self.send_volume_change())
-        return port
+    def port(self) -> mido.OutputPort | None:
+        try:
+            return OutputPort(name=self.name)()
+        except (OSError, RuntimeError, SystemError) as error:
+            self.enable = False
+            report_error(f'Could not open MIDI output: {error}')
 
     def start(self) -> None:
         if self.enable:
-            try:
-                _ = self.port
-            except (OSError, RuntimeError, SystemError) as error:
-                self.enable = False
-                report_error(f'Could not open MIDI output: {error}')
+            self.send_program_change()
+            self.send_volume_change()
 
     def close(self) -> None:
-        if port := self.__dict__.pop('port', None):
-            port.close()
+        if 'port' in self.__dict__ and self.port:
+            try:
+                self.port.close()
+            except Exception as error:
+                report_error(f'Could not open MIDI output: {error}')
+            del self.port
 
     def midi_note(self, note_number: int) -> int:
         return (note_number + self.note_offset) % 128
@@ -161,77 +148,34 @@ class MidiOut(MidiBase):
     def tuney_note(self, note_number: int) -> int:
         return (note_number - self.note_offset) % 128
 
-    def send_program_change(self, time: int = 0) -> mido.Message | None:
-        if self.program is None:
-            return None
-        if self.mido_channel is None:
-            return mido.Message(
-                'program_change',
-                program=self.program,
-                time=time,
-            )
-        return mido.Message(
-            'program_change',
-            channel=self.mido_channel,
-            program=self.program,
-            time=time,
-        )
+    def message(self, message_type: str, time: int = 0, **kwargs) -> mido.Message:
+        if self.mido_channel is not None:
+            kwargs['channel'] = self.mido_channel
+        return mido.Message(message_type, time=time, **kwargs)
 
-    def send_volume_change(self, time: int = 0) -> mido.Message:
-        if self.mido_channel is None:
-            return mido.Message(
-                'control_change',
-                control=7,
-                time=time,
-                value=self.volume,
-            )
-        return mido.Message(
-            'control_change',
-            channel=self.mido_channel,
-            control=7,
-            time=time,
-            value=self.volume,
-        )
+    def send_message(self, message_type: str, time: int = 0, **kwargs) -> None:
+        if self.port:
+            self.port.send(self.message(message_type, time=time, **kwargs))
+
+    def send_program_change(self, time: int = 0) -> None:
+        if self.program is not None:
+            self.send_message('program_change', program=self.program, time=time)
+
+    def send_volume_change(self, time: int = 0) -> None:
+        self.send_message('control_change', control=7, time=time, value=self.volume)
 
     def send_tuning_dump(self, scale: Scale, tuning: Tuning) -> None:
-        if self.enable and self.send_tuning:
-            self.port.send(self.tuning_dump(scale, tuning))
+        if self.enable and self.send_tuning and self.port:
+            self.port.send(tuning_dump(scale, tuning, self.note_offset))
 
-    def tuning_dump(self, scale: Scale, tuning: Tuning) -> mido.Message:
-        name = _ascii_bytes(MTS_TUNING_NAME, 16)
-        frequencies = [
-            b
-            for note in range(128)
-            for b in _frequency_bytes(scale.frequency(tuning, self.tuney_note(note)))
-        ]
-        data = [
-            0x7E,
-            MTS_DEVICE_ID_ALL,
-            MTS_SUB_ID,
-            MTS_BULK_DUMP,
-            MTS_TUNING_PROGRAM,
-            *name,
-            *frequencies,
-        ]
-        data.append(_tuning_checksum(data))
-        return mido.Message('sysex', data=data)
-
-    def send_note(self, note_number: int, is_press: bool) -> None:
-        if self.enable:
-            message_type = 'note_on' if is_press or ZERO_IS_NOTE_OFF else 'note_off'
+    def send_note(
+        self, note_number: int, is_press: bool, use_note_offs: bool = False
+    ) -> None:
+        if self.enable and self.port:
+            t = 'note_on' if is_press or not use_note_offs else 'note_off'
             velocity = max(0, min(127, is_press * self.velocity))
-            if self.mido_channel is None:
-                message = mido.Message(
-                    message_type, note=self.midi_note(note_number), velocity=velocity
-                )
-            else:
-                message = mido.Message(
-                    message_type,
-                    channel=self.mido_channel,
-                    note=self.midi_note(note_number),
-                    velocity=velocity,
-                )
-            self.port.send(message)
+            note = self.midi_note(note_number)
+            self.send_message(t, note=note, velocity=velocity)
 
 
 class Midi(BaseModel):
@@ -245,39 +189,3 @@ class Midi(BaseModel):
         from .listener import MidiListener
 
         return MidiListener(self, callback)
-
-
-def _ascii_bytes(text: str, length: int) -> list[int]:
-    data = [ord(c) if 32 <= ord(c) <= 127 else ord(' ') for c in text[:length]]
-    return data + [ord(' ')] * (length - len(data))
-
-
-def midi_port_name(name: str | None, virtual_name: str) -> str | None:
-    return virtual_name if use_virtual_midi_port(name) else name
-
-
-def use_virtual_midi_port(name: str | None) -> bool:
-    return name is None and (
-        sys.platform == 'darwin' or sys.platform.startswith('linux')
-    )
-
-
-def _frequency_bytes(frequency: float) -> list[int]:
-    if frequency <= 0:
-        return list(MTS_NO_CHANGE)
-    note = MIDI_A4 + 12 * log2(frequency / A4_FREQUENCY)
-    semitone = floor(note)
-    fraction = round((note - semitone) * SEMITONE_FRACTIONS)
-    if fraction == SEMITONE_FRACTIONS:
-        semitone += 1
-        fraction = 0
-    if not 0 <= semitone <= 127:
-        return list(MTS_NO_CHANGE)
-    return [semitone, fraction >> 7, fraction & 0x7F]
-
-
-def _tuning_checksum(data: list[int]) -> int:
-    checksum = 0
-    for b in [data[0], data[1], *data[3:]]:
-        checksum ^= b
-    return checksum

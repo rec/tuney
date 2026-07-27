@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import mido
 
 from ..app.platform_info import report_error
-from .midi import VIRTUAL_MIDI_INPUT_NAME, midi_port_name, use_virtual_midi_port
+from .port import InputPort
 
 if TYPE_CHECKING:
     from .midi import Midi
@@ -21,11 +21,7 @@ class MidiListener:
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
             try:
-                self.port = mido.open_input(
-                    midi_port_name(input.name, VIRTUAL_MIDI_INPUT_NAME),
-                    virtual=use_virtual_midi_port(input.name),
-                    callback=self.on_message,
-                )
+                self.port = InputPort(name=input.name)(callback=self.on_message)
             except (OSError, RuntimeError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
