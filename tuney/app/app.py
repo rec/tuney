@@ -9,7 +9,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import tomlkit
 
@@ -48,6 +48,16 @@ from .text_timing import text_timing_rows
 
 if TYPE_CHECKING:
     from ..ui.main_window import MainWindow
+
+
+class _WindowRect(Protocol):
+    def x(self) -> int: ...
+
+    def y(self) -> int: ...
+
+    def width(self) -> int: ...
+
+    def height(self) -> int: ...
 
 
 class App(Tuney):
@@ -359,41 +369,30 @@ def save_autosave(app: App, path: Path) -> None:
     path.write_text(tomlkit.dumps(data))
 
 
-def window_geometry_log_data(window: object) -> dict[str, object]:
+def window_geometry_log_data(window: MainWindow) -> dict[str, object]:
     return {
         'direct': {
-            'x': _window_method_value(window, 'x'),
-            'y': _window_method_value(window, 'y'),
-            'width': _window_method_value(window, 'width'),
-            'height': _window_method_value(window, 'height'),
+            'x': window.x(),
+            'y': window.y(),
+            'width': window.width(),
+            'height': window.height(),
         },
-        'geometry': _window_rect_value(window, 'geometry'),
-        'frame_geometry': _window_rect_value(window, 'frameGeometry'),
-        'normal_geometry': _window_rect_value(window, 'normalGeometry'),
-        'window_state': _window_method_value(window, 'windowState'),
-        'is_maximized': _window_method_value(window, 'isMaximized'),
-        'is_minimized': _window_method_value(window, 'isMinimized'),
-        'is_full_screen': _window_method_value(window, 'isFullScreen'),
+        'geometry': _window_rect_value(window.geometry()),
+        'frame_geometry': _window_rect_value(window.frameGeometry()),
+        'normal_geometry': _window_rect_value(window.normalGeometry()),
+        'window_state': window.windowState(),
+        'is_maximized': window.isMaximized(),
+        'is_minimized': window.isMinimized(),
+        'is_full_screen': window.isFullScreen(),
     }
 
 
-def _window_method_value(window: object, name: str) -> object:
-    method = getattr(window, name, None)
-    if not callable(method):
-        return None
-    return method()
-
-
-def _window_rect_value(window: object, name: str) -> dict[str, object] | None:
-    method = getattr(window, name, None)
-    if not callable(method):
-        return None
-    rect = method()
+def _window_rect_value(rect: _WindowRect) -> dict[str, int]:
     return {
-        'x': _window_method_value(rect, 'x'),
-        'y': _window_method_value(rect, 'y'),
-        'width': _window_method_value(rect, 'width'),
-        'height': _window_method_value(rect, 'height'),
+        'x': rect.x(),
+        'y': rect.y(),
+        'width': rect.width(),
+        'height': rect.height(),
     }
 
 

@@ -914,6 +914,30 @@ class _AutosaveWindow:
     def geometry() -> _Geometry:
         return _Geometry(x=10, y=20, width=640, height=480)
 
+    @staticmethod
+    def frameGeometry() -> _Geometry:
+        return _Geometry(x=9, y=19, width=642, height=482)
+
+    @staticmethod
+    def normalGeometry() -> _Geometry:
+        return _Geometry(x=11, y=21, width=638, height=478)
+
+    @staticmethod
+    def windowState() -> str:
+        return 'window state'
+
+    @staticmethod
+    def isMaximized() -> bool:
+        return False
+
+    @staticmethod
+    def isMinimized() -> bool:
+        return False
+
+    @staticmethod
+    def isFullScreen() -> bool:
+        return False
+
 
 class _ShortcutWindow:
     _key_chars: dict[int, str] = {}
@@ -1694,12 +1718,12 @@ def test_window_geometry_log_data_records_direct_and_geometry_values() -> None:
     assert window_geometry_log_data(window) == {
         'direct': {'x': 33, 'y': 44, 'width': 660, 'height': 500},
         'geometry': {'x': 10, 'y': 20, 'width': 640, 'height': 480},
-        'frame_geometry': None,
-        'normal_geometry': None,
-        'window_state': None,
-        'is_maximized': None,
-        'is_minimized': None,
-        'is_full_screen': None,
+        'frame_geometry': {'x': 9, 'y': 19, 'width': 642, 'height': 482},
+        'normal_geometry': {'x': 11, 'y': 21, 'width': 638, 'height': 478},
+        'window_state': 'window state',
+        'is_maximized': False,
+        'is_minimized': False,
+        'is_full_screen': False,
     }
 
 
@@ -1777,10 +1801,21 @@ def test_main_window_restores_autosaved_window_state() -> None:
         (),
         {
             'app': app,
-            'geometry': None,
+            'set_geometry': None,
             'enforce_count': 0,
             '_restored_window_state': None,
-            'setGeometry': lambda self, *args: setattr(self, 'geometry', args),
+            'x': lambda self: 0,
+            'y': lambda self: 0,
+            'width': lambda self: 0,
+            'height': lambda self: 0,
+            'geometry': lambda self: _Geometry(x=0, y=0, width=0, height=0),
+            'frameGeometry': lambda self: _Geometry(x=0, y=0, width=0, height=0),
+            'normalGeometry': lambda self: _Geometry(x=0, y=0, width=0, height=0),
+            'windowState': lambda self: 'window state',
+            'isMaximized': lambda self: False,
+            'isMinimized': lambda self: False,
+            'isFullScreen': lambda self: False,
+            'setGeometry': lambda self, *args: setattr(self, 'set_geometry', args),
             'enforce_minimum_size': lambda self: setattr(
                 self, 'enforce_count', self.enforce_count + 1
             ),
@@ -1790,7 +1825,7 @@ def test_main_window_restores_autosaved_window_state() -> None:
 
     MainWindow._restore_window_state(window)
 
-    assert window.geometry == (10, 20, 640, 480)
+    assert window.set_geometry == (10, 20, 640, 480)
     assert window.enforce_count == 1
     assert window._restored_window_state == WindowState(
         x=10, y=20, width=640, height=480

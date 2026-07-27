@@ -1022,6 +1022,30 @@ class HistoryApp:
     def geometry() -> FakeGeometry:
         return FakeGeometry(x=10, y=20, width=640, height=480)
 
+    @staticmethod
+    def frameGeometry() -> FakeGeometry:
+        return FakeGeometry(x=10, y=20, width=640, height=480)
+
+    @staticmethod
+    def normalGeometry() -> FakeGeometry:
+        return FakeGeometry(x=10, y=20, width=640, height=480)
+
+    @staticmethod
+    def windowState() -> str:
+        return 'window state'
+
+    @staticmethod
+    def isMaximized() -> bool:
+        return False
+
+    @staticmethod
+    def isMinimized() -> bool:
+        return False
+
+    @staticmethod
+    def isFullScreen() -> bool:
+        return False
+
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name
     _get_save_file_name = MainWindow._get_save_file_name
