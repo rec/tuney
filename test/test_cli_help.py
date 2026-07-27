@@ -11,6 +11,7 @@ from tuney.time.char_press import CharPress
 LONG_OPTION_RE = re.compile(r'(?<![\w.-])--[a-z0-9][a-z0-9.-]*')
 SHORT_OPTION_RE = re.compile(r'(?<![\w-])-[^-\s]')
 OPTIONS_WITHOUT_SHORT_ALIAS = {
+    '--list-midi',
     '--hover-time',
     '--use-speech',
     '--use-phrase-mode',
@@ -128,6 +129,8 @@ def test_cli_help_uses_unique_names(
 
     assert len(positive_long_options) == len(set(positive_long_options))
     assert '--midi.output.name' in positive_long_options
+    assert '--list-midi' in positive_long_options
+    assert '--no-list-midi' not in help_text
     assert '--midi-output' not in positive_long_options
     assert '--player.period' not in help_text
 
@@ -181,6 +184,24 @@ def _has_option(line: str, options: set[str]) -> bool:
         re.search(rf'(?<![\w-]){re.escape(option)}(?![\w-])', line)
         for option in options
     )
+
+
+def test_cli_list_midi_prints_json(monkeypatch, capsys) -> None:
+    monkeypatch.setattr('sys.argv', ['tuney', '--list-midi'])
+    monkeypatch.setattr(
+        'tuney.app.main.midi_names_json',
+        lambda: '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]',
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code is None
+    assert (
+        capsys.readouterr().out
+        == '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]\n'
+    )
+    assert 'list_midi' not in App.model_fields
 
 
 def test_cli_accepts_public_long_options() -> None:

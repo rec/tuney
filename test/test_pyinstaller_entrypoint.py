@@ -2,8 +2,6 @@ from pathlib import Path
 
 import pytest
 
-import tuney.midi.ports
-from install import pyinstaller_entrypoint
 from install.pyinstaller_entrypoint import app_args, main
 from tuney.app import platform_info as pi
 
@@ -44,25 +42,6 @@ def test_regular_script_preserves_cli_default() -> None:
     assert app_args(['install/pyinstaller_entrypoint.py'], frozen=False) == [
         'install/pyinstaller_entrypoint.py'
     ]
-
-
-def test_list_midi_mode_prints_json(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(
-        'sys.argv',
-        ['Tuney', tuney.midi.ports.LIST_MIDI],
-    )
-    monkeypatch.setattr(
-        pyinstaller_entrypoint,
-        'midi_names_json',
-        lambda: '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]',
-    )
-
-    main()
-
-    assert (
-        capsys.readouterr().out
-        == '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]\n'
-    )
 
 
 def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:

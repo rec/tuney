@@ -10,6 +10,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   -h, --help
         show this help message and exit
+  --list-midi
+        List MIDI input and output ports as JSON. (default: False)
   -m FLOAT, --max-gap FLOAT
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)
   --hover-time FLOAT
