@@ -8,7 +8,7 @@ from functools import cached_property
 from pathlib import Path
 from queue import Queue
 from types import FrameType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..app.app import window_geometry_log_data
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
@@ -89,6 +88,16 @@ MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS = 200
 class _AfterDispatcher(QObject):
     schedule = Signal(str, int, object, tuple)
     cancel = Signal(str)
+
+
+class _WindowRect(Protocol):
+    def x(self) -> int: ...
+
+    def y(self) -> int: ...
+
+    def width(self) -> int: ...
+
+    def height(self) -> int: ...
 
 
 class MainWindow(QMainWindow):
@@ -287,7 +296,7 @@ class MainWindow(QMainWindow):
                 'window restore geometry before',
                 saved=window_state.model_dump(),
                 applied=restored_window_state.model_dump(),
-                **window_geometry_log_data(self),
+                **self.geometry_log_data(),
             )
             self.setGeometry(
                 restored_window_state.x,
@@ -295,14 +304,29 @@ class MainWindow(QMainWindow):
                 restored_window_state.width,
                 restored_window_state.height,
             )
-            instrument(
-                'window restore geometry after set', **window_geometry_log_data(self)
-            )
+            instrument('window restore geometry after set', **self.geometry_log_data())
             self.enforce_minimum_size()
             instrument(
                 'window restore geometry after enforce',
-                **window_geometry_log_data(self),
+                **self.geometry_log_data(),
             )
+
+    def geometry_log_data(self) -> dict[str, object]:
+        return {
+            'direct': {
+                'x': self.x(),
+                'y': self.y(),
+                'width': self.width(),
+                'height': self.height(),
+            },
+            'geometry': _window_rect_value(self.geometry()),
+            'frame_geometry': _window_rect_value(self.frameGeometry()),
+            'normal_geometry': _window_rect_value(self.normalGeometry()),
+            'window_state': self.windowState(),
+            'is_maximized': self.isMaximized(),
+            'is_minimized': self.isMinimized(),
+            'is_full_screen': self.isFullScreen(),
+        }
 
     def destroy(
         self, destroyWindow: bool = True, destroySubWindows: bool = True
@@ -499,3 +523,12 @@ def visible_restored_window_state(
         width=window_state.width,
         height=window_state.height,
     )
+
+
+def _window_rect_value(rect: _WindowRect) -> dict[str, int]:
+    return {
+        'x': rect.x(),
+        'y': rect.y(),
+        'width': rect.width(),
+        'height': rect.height(),
+    }

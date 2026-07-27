@@ -8,7 +8,6 @@ import tomllib
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
 
 import tomlkit
 
@@ -36,19 +35,6 @@ from .platform_info import (
     start_crash_logging,
     trace,
 )
-
-if TYPE_CHECKING:
-    from ..ui.main_window import MainWindow
-
-
-class _WindowRect(Protocol):
-    def x(self) -> int: ...
-
-    def y(self) -> int: ...
-
-    def width(self) -> int: ...
-
-    def height(self) -> int: ...
 
 
 class App(AppMembers):
@@ -252,9 +238,7 @@ class App(AppMembers):
             from ..ui.history import WindowState
 
             geometry = main_window.geometry()
-            instrument(
-                'autosave window geometry', **window_geometry_log_data(main_window)
-            )
+            instrument('autosave window geometry', **main_window.geometry_log_data())
             data['loop'] = main_window.history.loop_state.model_dump()
             data['window'] = WindowState(
                 x=geometry.x(),
@@ -473,33 +457,6 @@ class App(AppMembers):
         if result and suffix:
             result.append(CharPress(time=result[-1].time + suffix))
         return result
-
-
-def window_geometry_log_data(window: MainWindow) -> dict[str, object]:
-    return {
-        'direct': {
-            'x': window.x(),
-            'y': window.y(),
-            'width': window.width(),
-            'height': window.height(),
-        },
-        'geometry': _window_rect_value(window.geometry()),
-        'frame_geometry': _window_rect_value(window.frameGeometry()),
-        'normal_geometry': _window_rect_value(window.normalGeometry()),
-        'window_state': window.windowState(),
-        'is_maximized': window.isMaximized(),
-        'is_minimized': window.isMinimized(),
-        'is_full_screen': window.isFullScreen(),
-    }
-
-
-def _window_rect_value(rect: _WindowRect) -> dict[str, int]:
-    return {
-        'x': rect.x(),
-        'y': rect.y(),
-        'width': rect.width(),
-        'height': rect.height(),
-    }
 
 
 def _read_state_text(text: str) -> dict[str, object]:

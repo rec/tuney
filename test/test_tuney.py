@@ -18,10 +18,7 @@ import pytest
 
 import tuney.app.app
 import tuney.app.platform_info
-from tuney.app.app import (
-    App,
-    window_geometry_log_data,
-)
+from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.app.key_recorder import speech_phrases
 from tuney.app.platform_info import (
@@ -926,6 +923,8 @@ class _AutosaveWindow:
     def isFullScreen() -> bool:
         return False
 
+    geometry_log_data = MainWindow.geometry_log_data
+
 
 class _ShortcutWindow:
     _key_chars: dict[int, str] = {}
@@ -1699,10 +1698,10 @@ def test_autosave_writes_loop_state_and_geometry_window_state(monkeypatch) -> No
     assert data['window'] == {'x': 10, 'y': 20, 'width': 640, 'height': 480}
 
 
-def test_window_geometry_log_data_records_direct_and_geometry_values() -> None:
+def test_main_window_geometry_log_data_records_direct_and_geometry_values() -> None:
     window = _AutosaveWindow(object())
 
-    assert window_geometry_log_data(window) == {
+    assert MainWindow.geometry_log_data(window) == {
         'direct': {'x': 33, 'y': 44, 'width': 660, 'height': 500},
         'geometry': {'x': 10, 'y': 20, 'width': 640, 'height': 480},
         'frame_geometry': {'x': 9, 'y': 19, 'width': 642, 'height': 482},
@@ -1807,6 +1806,7 @@ def test_main_window_restores_autosaved_window_state(monkeypatch) -> None:
             'enforce_minimum_size': lambda self: setattr(
                 self, 'enforce_count', self.enforce_count + 1
             ),
+            'geometry_log_data': MainWindow.geometry_log_data,
             '_apply_restored_window_state': MainWindow._apply_restored_window_state,
         },
     )()

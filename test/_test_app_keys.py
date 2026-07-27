@@ -1045,6 +1045,8 @@ class HistoryApp:
     def isFullScreen() -> bool:
         return False
 
+    geometry_log_data = MainWindow.geometry_log_data
+
     _set_tuning = MainWindow._set_tuning
     _get_open_file_name = MainWindow._get_open_file_name
     _get_save_file_name = MainWindow._get_save_file_name
