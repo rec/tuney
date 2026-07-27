@@ -482,7 +482,7 @@ def set_app_palette(app: QApplication) -> None:
 
 
 def visible_restored_window_state(
-    window: object, window_state: WindowState
+    window: MainWindow, window_state: WindowState
 ) -> WindowState:
     screen = None
     if QApplication.instance() is not None:

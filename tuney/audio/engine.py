@@ -238,7 +238,7 @@ def _sounddevice_defaults(sd: object) -> object:
     return getattr(sd, 'default', None)
 
 
-def _sounddevice_device_info(sd: object, device: object) -> object:
+def _sounddevice_device_info(sd: object, device: int | str | None) -> object:
     if device is None:
         return None
     if not callable(query_devices := getattr(sd, 'query_devices', None)):

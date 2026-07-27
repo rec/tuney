@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Hashable
 from functools import cached_property, wraps
 from typing import Literal, Protocol
 
@@ -30,19 +30,19 @@ class KeyboardListener(Runnable):
         self.callback = callback
         self.modifiers = Modifiers(0)
         self.deduplicate_keys = deduplicate_keys
-        self.held_keys = set()
+        self.held_keys: set[Hashable | None] = set()
 
     @cached_property
     def listener(self) -> PynputListener:
         return _make_listener(self)
 
-    def on_press(self, key: object | None) -> None | Literal[False]:
+    def on_press(self, key: Hashable | None) -> None | Literal[False]:
         return self.is_running and self._on(key, True)
 
-    def on_release(self, key: object | None) -> None | Literal[False]:
+    def on_release(self, key: Hashable | None) -> None | Literal[False]:
         return self.is_running and self._on(key, False)
 
-    def _on(self, key: object, is_press: bool) -> None:
+    def _on(self, key: Hashable | None, is_press: bool) -> None:
         if (key_name := str(getattr(key, 'name', ''))) in IGNORED_KEYS:
             return
         if self.deduplicate_keys:

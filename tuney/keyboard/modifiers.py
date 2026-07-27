@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Hashable
+
 
 class Modifiers(int):
     none = 0
@@ -46,7 +48,7 @@ class Modifiers(int):
     def is_command(self) -> bool:
         return self.has_alt or self.has_cmd or self.has_ctrl
 
-    def apply(self, key: object, is_press: bool) -> Modifiers:
+    def apply(self, key: Hashable | None, is_press: bool) -> Modifiers:
         if mask := getattr(Modifiers, str(getattr(key, 'name', '')), None):
             return Modifiers((self | mask) if is_press else (self & ~mask))
         return self
