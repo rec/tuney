@@ -628,10 +628,12 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
             main_window = FakeWindow()
 
         monkeypatch.setattr(
-            tuney.app.app, 'start_crash_logging', lambda: calls.append('crash logging')
+            tuney.app.app.pi,
+            'start_crash_logging',
+            lambda: calls.append('crash logging'),
         )
         monkeypatch.setattr(
-            tuney.app.app, 'show_already_running', lambda: calls.append('busy')
+            tuney.app.app.pi, 'show_already_running', lambda: calls.append('busy')
         )
 
         App.run(FakeApp())
@@ -675,7 +677,7 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
                 return window
 
         app = FakeApp()
-        monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
+        monkeypatch.setattr(tuney.app.app.pi, 'start_crash_logging', lambda: None)
         app.start = lambda: None
 
         App.run(app)
@@ -717,7 +719,7 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
         monkeypatch.setattr(
             'tuney.app.platform_info._process_is_alive', lambda _: False
         )
-        monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
+        monkeypatch.setattr(tuney.app.app.pi, 'start_crash_logging', lambda: None)
         App.run(FakeApp())
 
         assert calls == ['restore', 'crash', 'mainloop']
