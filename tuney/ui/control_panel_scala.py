@@ -12,6 +12,7 @@ from ..app.platform_info import instrument
 from ..scale.ratios import Ratios
 from ..scale.scala_browser import ScalaTrie, scala_trie
 from ..scale.tuning import Tuning, Type
+from .theme import scala_completion_style, scala_tooltip_style, widget_theme
 
 if TYPE_CHECKING:
     from ..app.app import App
@@ -36,14 +37,7 @@ class ScalaBrowserEdit(QLineEdit):
         self.setReadOnly(True)
         self.tooltip_label = QLabel('', self, Qt.WindowType.ToolTip)
         self.tooltip_label.setObjectName('scala_browser_active_tooltip')
-        self.tooltip_label.setStyleSheet(
-            'QLabel {'
-            'background-color: #ffffdc;'
-            'border: 1px solid #767676;'
-            'color: #000000;'
-            'padding: 2px;'
-            '}'
-        )
+        self.tooltip_label.setStyleSheet(scala_tooltip_style(widget_theme(self)))
         self.tooltip_label.hide()
         self._set_completion_style()
         self._complete()
@@ -167,14 +161,7 @@ class ScalaBrowserEdit(QLineEdit):
         return scala_browser_tooltip(self.trie, self.text())
 
     def _set_completion_style(self, faded: bool = False) -> None:
-        color = 'color: #909090;' if faded else ''
-        self.setStyleSheet(
-            'QLineEdit {'
-            f'{color}'
-            'selection-color: #909090;'
-            'selection-background-color: transparent;'
-            '}'
-        )
+        self.setStyleSheet(scala_completion_style(widget_theme(self), faded))
 
     def _completed(self, ratios: Ratios) -> bool:
         stem = ratios.name.removesuffix('.scl').casefold()

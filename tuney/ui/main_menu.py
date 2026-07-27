@@ -17,6 +17,7 @@ def build_menu(window: MainWindow) -> QMenuBar:
     menu = window.menuBar()
     file_menu = menu.addMenu('File')
     edit_menu = menu.addMenu('Edit')
+    view_menu = menu.addMenu('View')
     help_menu = menu.addMenu('Help')
     _add_action(edit_menu, 'Undo', UNDO_ACCELERATOR, window.history.undo)
     _add_action(edit_menu, 'Redo', REDO_ACCELERATOR, window.history.redo)
@@ -35,15 +36,20 @@ def build_menu(window: MainWindow) -> QMenuBar:
     _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, window.on_clear)
     _add_action(edit_menu, 'Clear Text', CLEAR_TEXT_ACCELERATOR, window.on_clear_text)
     window.show_text_timings_action = _add_action(
-        edit_menu,
+        view_menu,
         'Show Text Timings',
         SHOW_TEXT_TIMINGS_ACCELERATOR,
         window.on_show_text_timings,
     )
     window.show_text_timings_action.setCheckable(True)
     window.show_text_timings_action.setChecked(window.app.show_text_timings)
+    window.dark_mode_action = _add_action(
+        view_menu, 'Dark Mode', DARK_MODE_ACCELERATOR, window.on_dark_mode
+    )
+    window.dark_mode_action.setCheckable(True)
+    window.dark_mode_action.setChecked(window.current_theme.name == 'dark')
     window.advanced_action = _add_action(
-        edit_menu, 'Advanced', ADVANCED_ACCELERATOR, window.on_advanced
+        view_menu, 'Advanced', ADVANCED_ACCELERATOR, window.on_advanced
     )
     window.advanced_action.setCheckable(True)
     window.advanced_action.setChecked(True)
@@ -152,6 +158,7 @@ RANDOMIZE_SETTINGS_ACCELERATOR = 'Ctrl+Alt+R'
 CLEAR_TEXT_ACCELERATOR = 'Ctrl+Alt+B'
 SHOW_TEXT_TIMINGS_ACCELERATOR = 'Ctrl+T'
 ADVANCED_ACCELERATOR = 'Ctrl+Alt+A'
+DARK_MODE_ACCELERATOR = 'Ctrl+Alt+D'
 OPEN_TEXT_FILE_ACCELERATOR = 'Ctrl+O'
 SAVE_PRESET_ACCELERATOR = 'Ctrl+P'
 DELETE_PRESETS_ACCELERATOR = 'Ctrl+Alt+P'

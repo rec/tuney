@@ -36,6 +36,7 @@ from .main_window import MainWindow
 from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
 from .platform import command_key
 from .splitter import SpacedSplitter
+from .theme import replay_style
 from .tooltip import Tooltip
 from .transport import Transport
 
@@ -211,6 +212,7 @@ class Layout(QWidget):
             space_above=10,
             space_below=10,
         )
+        splitter.refresh_theme(self.main_window.current_theme)
         self.root.addWidget(splitter, stretch=1)
         return splitter
 
@@ -262,10 +264,26 @@ class Layout(QWidget):
     def set_replay_state(self, is_replaying: bool) -> None:
         self.replay.setText('Stop' if is_replaying else 'Play')
         self.replay.setStyleSheet(
-            'background: #b0a8b0;' if is_replaying else 'background: #30a870;'
+            replay_style(self.main_window.current_theme, is_replaying)
         )
         if not is_replaying:
             self.stop_loop_clock()
+
+    def refresh_theme(self) -> None:
+        if 'control_panel' in self.__dict__:
+            self.control_panel.refresh_theme()
+        if 'note_buttons' in self.__dict__:
+            for button in self.note_buttons.values():
+                button.refresh_theme()
+        if 'transport' in self.__dict__:
+            self.transport.refresh_theme()
+        if 'replay' in self.__dict__:
+            self.set_replay_state(self.main_window.is_replaying)
+        if 'splitter' in self.__dict__:
+            self.splitter.refresh_theme(self.main_window.current_theme)
+            self.splitter.update()
+            for i in range(self.splitter.count()):
+                self.splitter.handle(i).update()
 
     def start_loop_clock(self) -> None:
         if 'loop_clock' not in self.__dict__:

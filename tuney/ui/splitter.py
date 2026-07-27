@@ -4,6 +4,8 @@ from PySide6.QtCore import QEvent, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QEnterEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import QSplitter, QSplitterHandle, QWidget
 
+from .theme import Theme, widget_theme
+
 
 class SpacedSplitter(QSplitter):
     def __init__(
@@ -25,9 +27,16 @@ class SpacedSplitter(QSplitter):
         self.hover_color = QColor(hover_color)
         self.setChildrenCollapsible(False)
         self.setHandleWidth(handle_size + space_above + space_below)
+        self.refresh_theme()
 
     def createHandle(self) -> QSplitterHandle:
         return _SpacedSplitterHandle(self.orientation(), self)
+
+    def refresh_theme(self, theme: Theme | None = None) -> None:
+        theme = theme or widget_theme(self)
+        self.color = QColor(theme.border)
+        self.hover_color = QColor(theme.disabled_text)
+        self.update()
 
 
 class _SpacedSplitterHandle(QSplitterHandle):

@@ -14,10 +14,8 @@ from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
-    QColor,
     QFocusEvent,
     QIcon,
-    QPalette,
     QResizeEvent,
 )
 from PySide6.QtWidgets import (
@@ -28,10 +26,10 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..app.platform_info import instrument, set_windows_app_user_model_id
+from ..app.platform_info import instrument, report_error, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
-from . import constants, file_commands, key_events, startup, tuning_files
+from . import file_commands, key_events, startup, tuning_files
 from .error_dialogs import (
     on_report_problem,
     on_show_log,
@@ -71,6 +69,7 @@ from .replay_controls import (
     on_transport_state,
     set_is_replaying,
 )
+from .theme import Theme, ThemeName, set_app_theme, theme_for_name
 from .tuning_files import on_export_tuning, on_import_tuning
 
 if TYPE_CHECKING:
@@ -114,7 +113,7 @@ class MainWindow(QMainWindow):
             self.qt_app = instance
         self.qt_app.setApplicationName(APP_NAME)
         self.qt_app.setStyle('Fusion')
-        set_app_palette(self.qt_app)
+        set_app_theme(self.qt_app, theme_for_name(app.global_config.theme))
         from .layout import Layout
 
         super().__init__()
@@ -152,6 +151,7 @@ class MainWindow(QMainWindow):
         self._queue_timer = QTimer(self)
         self._queue_timer.timeout.connect(self._handle_queue)
         self.advanced_action: QAction
+        self.dark_mode_action: QAction
         self.export_tuning_action: QAction
         self.load_autosave_action: QAction
         self.show_text_timings_action: QAction
@@ -358,6 +358,19 @@ class MainWindow(QMainWindow):
         self.app.show_text_timings = checked
         self.update_text_display()
 
+    def on_dark_mode(self, checked: bool) -> None:
+        instrument('ui dark mode', checked=checked)
+        self.app.global_config.theme = ThemeName.dark if checked else ThemeName.light
+        try:
+            self.app.global_config.save()
+        except OSError as error:
+            report_error(
+                f'Could not save global config {self.app.global_config.path}: {error}'
+            )
+        set_app_theme(self.qt_app, self.current_theme)
+        self.ui.refresh_theme()
+        self.sync_config_actions()
+
     def on_text_timing_changed(self, row: int, column: int, text: str) -> None:
         instrument('ui text timing changed', row=row, column=column, text=text)
         try:
@@ -456,11 +469,17 @@ class MainWindow(QMainWindow):
     def menu(self):
         return build_menu(self)
 
+    @property
+    def current_theme(self) -> Theme:
+        return theme_for_name(self.app.global_config.theme)
+
     def sync_config_actions(self) -> None:
         if hasattr(self, 'load_autosave_action'):
             self.load_autosave_action.setChecked(self.app.load_autosave)
         if hasattr(self, 'show_text_timings_action'):
             self.show_text_timings_action.setChecked(self.app.show_text_timings)
+        if hasattr(self, 'dark_mode_action'):
+            self.dark_mode_action.setChecked(self.current_theme.name == ThemeName.dark)
 
     is_replaying = property(is_replaying, set_is_replaying)
     on_replay = on_replay
@@ -483,20 +502,6 @@ class MainWindow(QMainWindow):
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):
             frame.is_press = c.is_press
-
-
-def set_app_palette(app: QApplication) -> None:
-    palette = app.palette()
-    background = QColor(constants.WINDOW_BACKGROUND)
-    foreground = QColor('black')
-    palette.setColor(QPalette.ColorRole.AlternateBase, background)
-    palette.setColor(QPalette.ColorRole.Base, background)
-    palette.setColor(QPalette.ColorRole.Window, background)
-    palette.setColor(QPalette.ColorRole.Button, background)
-    palette.setColor(QPalette.ColorRole.ButtonText, foreground)
-    palette.setColor(QPalette.ColorRole.Text, foreground)
-    palette.setColor(QPalette.ColorRole.WindowText, foreground)
-    app.setPalette(palette)
 
 
 def visible_restored_window_state(

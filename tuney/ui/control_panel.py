@@ -86,6 +86,11 @@ from .control_panel_visibility import (
     _visible_child_names,
     _visible_control_names,
 )
+from .theme import (
+    control_section_style,
+    invalid_scale_widget_style,
+    widget_theme,
+)
 from .tooltip import Tooltip
 
 SPEECH_FIELDS = {
@@ -122,20 +127,6 @@ INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QLineEdit, str] = (
 NUMERIC_LOCALE = QLocale.c()
 SPIN_MINIMUM = -9999
 SPIN_MAXIMUM = 9999
-SECTION_STYLE = """
-QFrame#control_section {
-    background: #f7f7f7;
-    border: 1px solid #c8c8c8;
-    border-radius: 4px;
-}
-QToolButton#control_section_disclosure {
-    border: none;
-    color: #303030;
-    font-weight: 600;
-    padding: 2px;
-    text-align: left;
-}
-"""
 
 
 class _OptionControl:
@@ -228,6 +219,17 @@ class ControlPanel(QScrollArea):
         self.content.setCurrentWidget(self.pages[advanced])
         self._rewrap_to_viewport()
         self.restore_scroll()
+
+    def refresh_theme(self) -> None:
+        theme = widget_theme(self)
+        for section in self.findChildren(QFrame, 'control_section'):
+            section.setStyleSheet(control_section_style(theme))
+        for widget in tuple(INVALID_SCALE_WIDGET_TEXT_COLORS):
+            widget.setStyleSheet(invalid_scale_widget_style(theme))
+        for browser in self.findChildren(QLineEdit, 'scala_browser'):
+            set_completion_style = getattr(browser, '_set_completion_style', None)
+            if callable(set_completion_style):
+                set_completion_style('QLineEdit {color:' in browser.styleSheet())
 
     def save_state(self) -> None:
         app = self.app
@@ -435,7 +437,7 @@ def _section(parent: QWidget) -> QFrame:
     section = QFrame(parent)
     section.setObjectName('control_section')
     section.setFrameShape(QFrame.Shape.StyledPanel)
-    section.setStyleSheet(SECTION_STYLE)
+    section.setStyleSheet(control_section_style(widget_theme(parent)))
     return section
 
 
@@ -1270,7 +1272,7 @@ def _scale_has_note_buttons(scale: Scale) -> bool:
 
 def _set_invalid_scale_widget(widget: QLineEdit, text_color: str) -> None:
     INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(widget, text_color)
-    widget.setStyleSheet('color: red;')
+    widget.setStyleSheet(invalid_scale_widget_style(widget_theme(widget)))
 
 
 def _clear_invalid_scale_widgets() -> None:

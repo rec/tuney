@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QGridLayout, QPushButton, QSizePolicy
 
 from ..time.char_press import CharPress
 from . import constants
+from .theme import note_button_style, widget_theme
 from .tooltip import Tooltip
 
 FONT_FAMILY = 'Arial'
@@ -16,10 +17,6 @@ MIN_BUTTON_HEIGHT = 30
 MAX_FONT_SIZE = 23
 MIN_FONT_SIZE = 4
 TEXT_PADDING = 4
-PRESSED_STYLE = (
-    'background: lightgreen; color: black; border-radius: 8px; padding: 0px;'
-)
-RELEASED_STYLE = 'background: #e5e5e5; color: black; border-radius: 8px; padding: 0px;'
 
 
 class NoteButton(QPushButton):
@@ -68,7 +65,10 @@ class NoteButton(QPushButton):
     @is_press.setter
     def is_press(self, is_press: bool) -> None:
         self._is_press = is_press
-        self.setStyleSheet(PRESSED_STYLE if is_press else RELEASED_STYLE)
+        self.refresh_theme()
+
+    def refresh_theme(self) -> None:
+        self.setStyleSheet(note_button_style(widget_theme(self), self.is_press))
 
     def toggle(self) -> None:
         self.is_press = not self.is_press

@@ -37,6 +37,7 @@ from tuney.ui.file_commands import CHAR_PRESSES_MIME, on_copy_text, on_paste_tex
 from tuney.ui.history import History, LoopState, WindowState
 from tuney.ui.key_events import on_key_event
 from tuney.ui.main_window import MainWindow, visible_restored_window_state
+from tuney.ui.theme import ThemeName
 
 
 @contextmanager
@@ -1450,6 +1451,16 @@ def test_global_config_persists_control_panel_state() -> None:
         saved = GlobalConfig.read(path)
         assert saved.control_panel_sections == {'Tuney.sound': False}
         assert saved.control_panel_scroll == 120
+
+
+def test_global_config_persists_theme() -> None:
+    with temporary_path() as tmp_path:
+        path = tmp_path / 'global.toml'
+        config = GlobalConfig(file=path, theme=ThemeName.dark)
+
+        config.save()
+
+        assert GlobalConfig.read(path).theme == ThemeName.dark
 
 
 def test_global_config_clamps_saved_buffer_size() -> None:

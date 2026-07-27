@@ -7,6 +7,7 @@ from pathlib import Path
 import tomlkit
 from pydantic import BaseModel, Field, field_validator
 
+from ..ui.theme import ThemeName
 from .platform_info import app_config_dir, report_error
 
 GLOBAL_CONFIG_FILE = 'global.toml'
@@ -20,6 +21,7 @@ class GlobalConfig(BaseModel):
     control_panel_sections: dict[str, bool] = Field(default_factory=dict)
     control_panel_scroll: int = 0
     buffer_size: int = BUFFER_SIZE_MIN
+    theme: ThemeName = ThemeName.light
     file: Path | None = Field(default=None, exclude=True)
 
     @cached_property
@@ -53,6 +55,7 @@ class GlobalConfig(BaseModel):
                     'control_panel_sections': self.control_panel_sections,
                     'control_panel_scroll': self.control_panel_scroll,
                     'buffer_size': self.buffer_size,
+                    'theme': self.theme.value,
                 }
             )
         )

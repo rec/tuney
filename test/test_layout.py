@@ -1,10 +1,18 @@
 from pytest import MonkeyPatch
 
-import tuney.ui.constants
 import tuney.ui.layout
+import tuney.ui.main_menu
 import tuney.ui.main_window
+from tuney.app.global_config import GlobalConfig
 from tuney.ui.control_panel_layout import _FlowLayout
 from tuney.ui.layout import Layout
+from tuney.ui.theme import (
+    DARK_THEME,
+    LIGHT_THEME,
+    ThemeName,
+    set_app_theme,
+    theme_for_name,
+)
 
 
 def test_normal_play_cursor_shows_at_text_end() -> None:
@@ -110,7 +118,13 @@ def test_program_minimum_size_resizes_without_qt_minimum_constraints() -> None:
     assert window.sizes == [(500, 360)]
 
 
-def test_app_palette_uses_tuney_background() -> None:
+def test_theme_lookup_returns_light_and_dark_palettes() -> None:
+    assert theme_for_name(ThemeName.light) is LIGHT_THEME
+    assert theme_for_name('dark') is DARK_THEME
+    assert theme_for_name('unknown') is LIGHT_THEME
+
+
+def test_app_theme_sets_palette_roles() -> None:
     from PySide6.QtGui import QColor, QPalette
     from PySide6.QtWidgets import QApplication
 
@@ -127,7 +141,7 @@ def test_app_palette_uses_tuney_background() -> None:
         palette.setColor(role, QColor('#000000'))
     app.setPalette(palette)
 
-    tuney.ui.main_window.set_app_palette(app)
+    set_app_theme(app, DARK_THEME)
 
     for role in (
         QPalette.ColorRole.AlternateBase,
@@ -135,13 +149,47 @@ def test_app_palette_uses_tuney_background() -> None:
         QPalette.ColorRole.Button,
         QPalette.ColorRole.Window,
     ):
-        assert app.palette().color(role).name() == tuney.ui.constants.WINDOW_BACKGROUND
+        assert app.palette().color(role).name() in {
+            DARK_THEME.alternate_base,
+            DARK_THEME.base,
+            DARK_THEME.button,
+            DARK_THEME.window,
+        }
     for role in (
         QPalette.ColorRole.ButtonText,
         QPalette.ColorRole.Text,
         QPalette.ColorRole.WindowText,
     ):
-        assert app.palette().color(role).name() == '#000000'
+        assert app.palette().color(role).name() == DARK_THEME.text
+
+
+def test_dark_mode_menu_action_reflects_global_config_theme() -> None:
+    from PySide6.QtWidgets import QApplication
+
+    if QApplication.instance() is None:
+        QApplication([])
+    window = _FakeMenuWindow(ThemeName.dark)
+
+    tuney.ui.main_menu.build_menu(window)
+
+    assert window.dark_mode_action.isChecked()
+
+
+def test_dark_mode_toggle_saves_theme_and_refreshes_widgets(tmp_path) -> None:
+    from PySide6.QtGui import QPalette
+    from PySide6.QtWidgets import QApplication
+
+    if (qt_app := QApplication.instance()) is None:
+        qt_app = QApplication([])
+    assert isinstance(qt_app, QApplication)
+    config = GlobalConfig(file=tmp_path / 'global.toml')
+    window = _FakeThemeWindow(config, qt_app)
+
+    tuney.ui.main_window.MainWindow.on_dark_mode(window, True)
+
+    assert GlobalConfig.read(config.path).theme == ThemeName.dark
+    assert window.refresh_count == 1
+    assert qt_app.palette().color(QPalette.ColorRole.Window).name() == DARK_THEME.window
 
 
 def test_program_minimum_size_enforcement_waits_for_mouse_release(
@@ -379,6 +427,10 @@ class _FakeMainWindow:
         self.enforce_minimum_size_count = 0
         self.history = _FakeHistory()
 
+    @property
+    def current_theme(self):
+        return LIGHT_THEME
+
     def on_transport_state(self, *_: object) -> bool:
         return True
 
@@ -461,6 +513,77 @@ class _FakeReleasedApplication:
     @staticmethod
     def mouseButtons() -> tuney.ui.main_window.Qt.MouseButton:
         return tuney.ui.main_window.Qt.MouseButton.NoButton
+
+
+class _FakeMenuHistory:
+    def undo(self) -> None:
+        pass
+
+    def redo(self) -> None:
+        pass
+
+
+class _FakeMenuApp:
+    def __init__(self, theme: ThemeName) -> None:
+        self.global_config = GlobalConfig(theme=theme)
+        self.show_text_timings = False
+        self.load_autosave = True
+
+    def randomize_settings(self) -> None:
+        pass
+
+
+class _FakeMenuWindow:
+    def __init__(self, theme: ThemeName) -> None:
+        from PySide6.QtWidgets import QMainWindow
+
+        self._window = QMainWindow()
+        self.app = _FakeMenuApp(theme)
+        self.history = _FakeMenuHistory()
+
+    def menuBar(self):
+        return self._window.menuBar()
+
+    def _update_export_tuning_action(self) -> None:
+        pass
+
+    @property
+    def current_theme(self):
+        return theme_for_name(self.app.global_config.theme)
+
+    def __getattr__(self, name: str):
+        if name.startswith('on_'):
+            return lambda *_: None
+        raise AttributeError(name)
+
+
+class _FakeThemeUi:
+    def __init__(self, window: object) -> None:
+        self.window = window
+
+    def refresh_theme(self) -> None:
+        self.window.refresh_count += 1
+
+
+class _FakeThemeApp:
+    def __init__(self, config: GlobalConfig) -> None:
+        self.global_config = config
+
+
+class _FakeThemeWindow:
+    def __init__(self, config: GlobalConfig, qt_app: object) -> None:
+        self.app = _FakeThemeApp(config)
+        self.qt_app = qt_app
+        self.ui = _FakeThemeUi(self)
+        self.refresh_count = 0
+        self.sync_count = 0
+
+    @property
+    def current_theme(self):
+        return theme_for_name(self.app.global_config.theme)
+
+    def sync_config_actions(self) -> None:
+        self.sync_count += 1
 
 
 class _FakeSplitter:

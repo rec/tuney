@@ -5,6 +5,8 @@ from collections.abc import Callable
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
 from PySide6.QtWidgets import QLabel, QWidget
 
+from .theme import tooltip_style, widget_theme
+
 
 class Tooltip(QObject):
     def __init__(
@@ -40,10 +42,7 @@ class Tooltip(QObject):
     def _show(self) -> None:
         self.window = QLabel(self.text, self.widget, Qt.WindowType.ToolTip)
         self.window.setWordWrap(True)
-        self.window.setStyleSheet(
-            'background: #ffffe0; color: black; border: 1px solid black;'
-            ' padding: 4px 6px;'
-        )
+        self.window.setStyleSheet(tooltip_style(widget_theme(self.widget)))
         self.window.setMaximumWidth(320)
         point = self.widget.mapToGlobal(QPoint(0, self.widget.height() + 4))
         self.window.move(point)

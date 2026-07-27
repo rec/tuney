@@ -336,6 +336,7 @@ def test_application_uses_cross_platform_style() -> None:
                 }
         edit_actions = menu_actions['Edit']
         file_actions = menu_actions['File']
+        view_actions = menu_actions['View']
         help_actions = menu_actions['Help']
         version_label = f'Tuney {version("tuney")}'
 
@@ -355,6 +356,7 @@ def test_application_uses_cross_platform_style() -> None:
             'Clear': 'Ctrl+B',
             'Clear Text': 'Ctrl+Alt+B',
             'Show Text Timings': 'Ctrl+T',
+            'Dark Mode': 'Ctrl+Alt+D',
             'Advanced': 'Ctrl+Alt+A',
             'Open Text File': 'Ctrl+O',
             'Save preset...': 'Ctrl+P',
@@ -379,8 +381,9 @@ def test_application_uses_cross_platform_style() -> None:
         assert 'Delete presets...' in file_actions
         assert 'Load autosave on start' in file_actions
         assert 'Swap with autosave' in file_actions
-        assert 'Advanced' in edit_actions
-        assert 'Show Text Timings' in edit_actions
+        assert 'Advanced' in view_actions
+        assert 'Dark Mode' in view_actions
+        assert 'Show Text Timings' in view_actions
         assert 'Randomize Settings' in edit_actions
         assert version_label in help_actions
         assert 'Clear' in edit_actions
@@ -989,6 +992,7 @@ class HistoryApp:
         self.ui = FakeLayout()
         self.history = History(self)
         self.load_autosave_action = FakeAction()
+        self.dark_mode_action = FakeAction()
         self.show_text_timings_action = FakeAction()
 
     def update_text_display(self) -> None:
@@ -1000,6 +1004,7 @@ class HistoryApp:
     def sync_config_actions(self) -> None:
         self.load_autosave_action.setChecked(self.app.load_autosave)
         self.show_text_timings_action.setChecked(self.app.show_text_timings)
+        self.dark_mode_action.setChecked(False)
 
     @staticmethod
     def x() -> int:

@@ -7,15 +7,12 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
 from . import Action, State, StateChange
+from .theme import transport_hover_style, widget_theme
 from .tooltip import Tooltip
 
 IMAGE_SIZE = 22
 BUTTON_SIZE = 32
 FLASH_INTERVAL_MS = 1000
-RED = '#d02020'
-GREY = '#a0a0a0'
-BLACK = '#101010'
-HOVER_STYLE = 'QPushButton:hover { background: #d8d8d8; }'
 TOOLTIPS = {
     'record': 'Record',
     'stop': 'Stop',
@@ -38,14 +35,7 @@ class Transport(QWidget):
         self._flash_on = False
         self._flash_timer = QTimer(self)
         self._flash_timer.timeout.connect(self._flash_record)
-        self.record_icon = _circle(RED)
-        self.disabled_stop_icon = _square(GREY)
-        self.stop_icon = _square(BLACK)
-        self.pause_icon = _pause(RED)
-        self.save_icon = _save(BLACK)
-        self.disabled_save_icon = _save(GREY)
-        self.clear_icon = _cross(BLACK)
-        self.disabled_clear_icon = _cross(GREY)
+        self._build_icons()
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -57,7 +47,24 @@ class Transport(QWidget):
         for button in [self.record, self.stop, self.save, self.clear]:
             layout.addWidget(button)
         self._add_tooltips()
+        self.refresh_theme()
+
+    def refresh_theme(self) -> None:
+        self._build_icons()
+        for button in [self.record, self.stop, self.save, self.clear]:
+            button.setStyleSheet(transport_hover_style(widget_theme(self)))
         self._configure_buttons()
+
+    def _build_icons(self) -> None:
+        theme = widget_theme(self)
+        self.record_icon = _circle(theme.transport_record_icon)
+        self.disabled_stop_icon = _square(theme.transport_disabled_icon)
+        self.stop_icon = _square(theme.transport_icon)
+        self.pause_icon = _pause(theme.transport_record_icon)
+        self.save_icon = _save(theme.transport_icon)
+        self.disabled_save_icon = _save(theme.transport_disabled_icon)
+        self.clear_icon = _cross(theme.transport_icon)
+        self.disabled_clear_icon = _cross(theme.transport_disabled_icon)
 
     @property
     def state(self) -> State:
@@ -130,7 +137,7 @@ def _button(icon: QIcon, callback: Callable[[], None]) -> QPushButton:
     button.setIcon(icon)
     button.setIconSize(QSize(IMAGE_SIZE, IMAGE_SIZE))
     button.setFixedSize(BUTTON_SIZE, BUTTON_SIZE)
-    button.setStyleSheet(HOVER_STYLE)
+    button.setStyleSheet(transport_hover_style(widget_theme(button)))
     button.clicked.connect(callback)
     return button
 
