@@ -1,3 +1,4 @@
+import json
 import subprocess
 from collections.abc import Callable
 
@@ -18,8 +19,7 @@ from tuney.ui.layout import Layout
 
 @pytest.fixture(autouse=True)
 def clear_midi_name_caches() -> None:
-    tuney.midi.ports.input_names.cache_clear()
-    tuney.midi.ports.output_names.cache_clear()
+    tuney.midi.ports.midi_names.cache_clear()
 
 
 def test_sample_data_reports_channels_and_cuts_from_center():
@@ -96,10 +96,10 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         'query_devices',
         lambda: devices[-1],
     )
-    midi_outputs = [['first output']]
+    midi_ports = [[['first input'], ['first output']]]
 
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
-        return completed_process(f'{midi_outputs[-1]!r}'.replace("'", '"'))
+        return completed_process(f'{midi_ports[-1]!r}'.replace("'", '"'))
 
     monkeypatch.setattr(
         tuney.midi.ports.subprocess,
@@ -113,7 +113,7 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
 
         def refresh(self) -> None:
             self.names = (
-                tuney.audio.device.device_names() + tuney.midi.ports.output_names()
+                tuney.audio.device.device_names() + tuney.midi.ports.midi_names()[1]
             )
 
     option = OptionControl()
@@ -123,125 +123,96 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         {'control_panel': type('Panel', (), {'option_controls': [option]})()},
     )()
     assert tuney.audio.device.device_names() == ['first']
-    assert tuney.midi.ports.output_names() == ['first output']
+    assert tuney.midi.ports.midi_names() == [['first input'], ['first output']]
     devices.append([{'name': 'second', 'max_output_channels': 2}])
-    midi_outputs.append(['second output'])
+    midi_ports.append([['second input'], ['second output']])
 
     Layout.refresh_devices(layout)
 
     assert option.names == ['second', 'second output']
 
 
-def test_midi_output_names_uses_subprocess(monkeypatch):
+def test_midi_names_uses_subprocess(monkeypatch):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
-        return completed_process('["synth", "keyboard"]')
+        return completed_process('[["keyboard", "controller"], ["synth"]]')
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.output_names() == ['synth', 'keyboard']
+    assert tuney.midi.ports.midi_names() == [['keyboard', 'controller'], ['synth']]
 
 
-def test_midi_input_names_uses_subprocess(monkeypatch):
-    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
-        return completed_process('["keyboard", "controller"]')
-
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
-
-    assert tuney.midi.ports.input_names() == ['keyboard', 'controller']
-
-
-def test_midi_output_names_uses_internal_subprocess_when_frozen(monkeypatch):
+def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
     calls: list[list[str]] = []
 
     def run(args: list[str], **__: object) -> subprocess.CompletedProcess[str]:
         calls.append(args)
-        return completed_process('["synth"]', args=args)
+        return completed_process('[["keyboard"], ["synth"]]', args=args)
 
     monkeypatch.setattr(tuney.midi.ports.sys, 'frozen', True, raising=False)
     monkeypatch.setattr(tuney.midi.ports.sys, 'executable', 'Tuney')
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.output_names() == ['synth']
-    assert calls == [['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_OUTPUTS]]
+    assert tuney.midi.ports.midi_names() == [['keyboard'], ['synth']]
+    assert calls == [['Tuney', tuney.midi.ports.LIST_MIDI]]
 
 
-def test_midi_input_names_uses_internal_subprocess_when_frozen(monkeypatch):
-    calls: list[list[str]] = []
-
-    def run(args: list[str], **__: object) -> subprocess.CompletedProcess[str]:
-        calls.append(args)
-        return completed_process('["keyboard"]', args=args)
-
-    monkeypatch.setattr(tuney.midi.ports.sys, 'frozen', True, raising=False)
-    monkeypatch.setattr(tuney.midi.ports.sys, 'executable', 'Tuney')
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
-
-    assert tuney.midi.ports.input_names() == ['keyboard']
-    assert calls == [['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_INPUTS]]
-
-
-def test_midi_output_names_handles_frozen_probe_failure(monkeypatch, capsys):
+def test_midi_names_json_handles_output_probe_failure(monkeypatch, capsys):
     def get_output_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
+    monkeypatch.setattr(tuney.midi.ports.mido, 'get_input_names', lambda: ['keyboard'])
     monkeypatch.setattr(tuney.midi.ports.mido, 'get_output_names', get_output_names)
 
-    assert tuney.midi.ports.output_names_json() == '[]'
+    assert tuney.midi.ports.midi_names_json() == json.dumps(
+        [['keyboard'], []], indent=2
+    )
     assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
 
 
-def test_midi_input_names_handles_frozen_probe_failure(monkeypatch, capsys):
+def test_midi_names_json_handles_input_probe_failure(monkeypatch, capsys):
     def get_input_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
     monkeypatch.setattr(tuney.midi.ports.mido, 'get_input_names', get_input_names)
+    monkeypatch.setattr(tuney.midi.ports.mido, 'get_output_names', lambda: ['synth'])
 
-    assert tuney.midi.ports.input_names_json() == '[]'
+    assert tuney.midi.ports.midi_names_json() == json.dumps([[], ['synth']], indent=2)
     assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
 
 
-def test_midi_output_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_on_probe_failure(monkeypatch, capsys):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.output_names() == []
-    assert 'Could not list MIDI outputs:' in capsys.readouterr().err
+    assert tuney.midi.ports.midi_names() == [[], []]
+    assert 'Could not list MIDI ports:' in capsys.readouterr().err
 
 
-def test_midi_input_names_returns_empty_list_on_probe_failure(monkeypatch, capsys):
-    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
-        raise subprocess.CalledProcessError(1, [])
-
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
-
-    assert tuney.midi.ports.input_names() == []
-    assert 'Could not list MIDI inputs:' in capsys.readouterr().err
-
-
-def test_midi_output_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_for_bad_output(monkeypatch, capsys):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.output_names() == []
+    assert tuney.midi.ports.midi_names() == [[], []]
     assert (
-        'Could not list MIDI outputs: expected list, got dict'
+        'Could not list MIDI ports: expected two lists, got dict'
         in capsys.readouterr().err
     )
 
 
-def test_midi_input_names_returns_empty_list_for_bad_output(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_for_wrong_list_shape(monkeypatch, capsys):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
-        return completed_process('{}')
+        return completed_process('["keyboard"]')
 
     monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.input_names() == []
+    assert tuney.midi.ports.midi_names() == [[], []]
     assert (
-        'Could not list MIDI inputs: expected list, got dict' in capsys.readouterr().err
+        'Could not list MIDI ports: expected two lists, got list'
+        in capsys.readouterr().err
     )
 
 

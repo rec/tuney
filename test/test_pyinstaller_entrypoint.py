@@ -46,32 +46,23 @@ def test_regular_script_preserves_cli_default() -> None:
     ]
 
 
-def test_internal_midi_output_mode_prints_json(monkeypatch, capsys) -> None:
+def test_list_midi_mode_prints_json(monkeypatch, capsys) -> None:
     monkeypatch.setattr(
         'sys.argv',
-        ['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_OUTPUTS],
+        ['Tuney', tuney.midi.ports.LIST_MIDI],
     )
     monkeypatch.setattr(
-        pyinstaller_entrypoint, 'output_names_json', lambda: '["synth"]'
+        pyinstaller_entrypoint,
+        'midi_names_json',
+        lambda: '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]',
     )
 
     main()
 
-    assert capsys.readouterr().out == '["synth"]\n'
-
-
-def test_internal_midi_input_mode_prints_json(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(
-        'sys.argv',
-        ['Tuney', tuney.midi.ports.INTERNAL_LIST_MIDI_INPUTS],
+    assert (
+        capsys.readouterr().out
+        == '[\n  [\n    "keyboard"\n  ],\n  [\n    "synth"\n  ]\n]\n'
     )
-    monkeypatch.setattr(
-        pyinstaller_entrypoint, 'input_names_json', lambda: '["keyboard"]'
-    )
-
-    main()
-
-    assert capsys.readouterr().out == '["keyboard"]\n'
 
 
 def test_release_builds_bundle_dynamic_runtime_dependencies() -> None:

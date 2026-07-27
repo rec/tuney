@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 
 from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
-from ..midi.ports import input_names, output_names
+from ..midi.ports import midi_names
 from . import constants, control_panel
 from .control_panel import ControlPanel
 from .control_panel_layout import _FlowLayout
@@ -239,8 +239,7 @@ class Layout(QWidget):
     def refresh_devices(self) -> None:
         instrument('layout refresh devices')
         device_names.cache_clear()
-        input_names.cache_clear()
-        output_names.cache_clear()
+        midi_names.cache_clear()
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 

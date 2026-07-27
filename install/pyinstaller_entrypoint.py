@@ -11,10 +11,8 @@ if not getattr(sys, 'frozen', False) and str(SOURCE_ROOT) not in sys.path:
 
 from tuney.app import platform_info as pi  # noqa: E402
 from tuney.midi.ports import (  # noqa: E402
-    INTERNAL_LIST_MIDI_INPUTS,
-    INTERNAL_LIST_MIDI_OUTPUTS,
-    input_names_json,
-    output_names_json,
+    LIST_MIDI,
+    midi_names_json,
 )
 
 
@@ -29,11 +27,8 @@ def main() -> None:
     if frozen:
         pi.start_crash_logging(show_frozen_errors=True)
     try:
-        if sys.argv[1:] == [INTERNAL_LIST_MIDI_INPUTS]:
-            print(input_names_json())
-            return
-        if sys.argv[1:] == [INTERNAL_LIST_MIDI_OUTPUTS]:
-            print(output_names_json())
+        if sys.argv[1:] == [LIST_MIDI]:
+            print(midi_names_json())
             return
         sys.argv = app_args(sys.argv, frozen=frozen)
         tuney.__main__.main()

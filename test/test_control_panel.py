@@ -38,13 +38,12 @@ from tuney.ui import (
 
 @pytest.fixture(autouse=True)
 def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
-    tuney.midi.ports.input_names.cache_clear()
-    tuney.midi.ports.output_names.cache_clear()
+    tuney.midi.ports.midi_names.cache_clear()
     tuney.audio.device.device_names.cache_clear()
     monkeypatch.setattr(
         tuney.midi.ports.subprocess,
         'run',
-        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[]', ''),
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[[], []]', ''),
     )
     monkeypatch.setattr(tuney.audio.device.sounddevice, 'query_devices', lambda: [])
 
@@ -1061,8 +1060,8 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
 @pytest.mark.parametrize(
     'cls, stdout, expected',
     [
-        (MidiIn, '["keyboard"]', ['keyboard']),
-        (MidiOut, '["synth"]', ['synth']),
+        (MidiIn, '[["keyboard"], ["synth"]]', ['keyboard']),
+        (MidiOut, '[["keyboard"], ["synth"]]', ['synth']),
     ],
 )
 def test_midi_port_name_uses_port_menu(
@@ -1073,8 +1072,7 @@ def test_midi_port_name_uses_port_menu(
 ) -> None:
     from PySide6.QtWidgets import QComboBox, QWidget
 
-    tuney.midi.ports.input_names.cache_clear()
-    tuney.midi.ports.output_names.cache_clear()
+    tuney.midi.ports.midi_names.cache_clear()
     monkeypatch.setattr(
         tuney.midi.ports.subprocess,
         'run',

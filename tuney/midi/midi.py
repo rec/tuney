@@ -14,7 +14,7 @@ from ..config.annotations import Beginner, Display, Numeric, Options
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .general_midi import general_midi_program_options
-from .ports import input_names, output_names
+from .ports import midi_names
 
 if TYPE_CHECKING:
     from .listener import MidiListener
@@ -71,7 +71,7 @@ class MidiIn(MidiBase):
     name: Annotated[
         str | None,
         Beginner,
-        Options(options=input_names, column=1, row=0, width=12),
+        Options(options=lambda: midi_names()[0], column=1, row=0, width=12),
     ] = None
 
     def accepts(self, message: mido.Message) -> bool:
@@ -86,7 +86,7 @@ class MidiOut(MidiBase):
     name: Annotated[
         str | None,
         Beginner,
-        Options(options=output_names, column=1, row=0, width=12),
+        Options(options=lambda: midi_names()[1], column=1, row=0, width=12),
     ] = None
 
     # MIDI output channel, or omni to use the default channel
