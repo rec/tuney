@@ -6,12 +6,9 @@ import pytest
 
 import tuney.presets
 import tuney.time.sequencer
+from tuney.app import platform_info as pi
 from tuney.app.app import App
 from tuney.app.main import main
-from tuney.app.platform_info import (
-    crash_marker_path,
-    instance_lock_path,
-)
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.time.char_press import CharPress
@@ -135,6 +132,6 @@ def mock_live_audio(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def assert_persistent_roots_are_empty(roots: list[Path]) -> None:
-    assert not crash_marker_path().exists()
-    assert not instance_lock_path().exists()
+    assert not pi.crash_marker_path().exists()
+    assert not pi.instance_lock_path().exists()
     assert [p for r in roots if r.exists() for p in r.rglob('*') if p.is_file()] == []

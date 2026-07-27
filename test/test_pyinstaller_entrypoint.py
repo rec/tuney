@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-import tuney.app.platform_info
 import tuney.midi.ports
 from install import pyinstaller_entrypoint
 from install.pyinstaller_entrypoint import app_args, main
+from tuney.app import platform_info as pi
 
 PYINSTALLER_COMMON_DEPENDENCY_FLAGS = [
     'uv run --with pyinstaller --with pillow pyinstaller',
@@ -139,12 +139,10 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr('install.pyinstaller_entrypoint.app_args', fail)
     monkeypatch.setattr(
-        'install.pyinstaller_entrypoint.start_crash_logging',
+        'install.pyinstaller_entrypoint.pi.start_crash_logging',
         lambda show_frozen_errors=False: crash_logging.append(show_frozen_errors),
     )
-    monkeypatch.setattr(
-        tuney.app.platform_info, 'show_frozen_exception', show_frozen_exception
-    )
+    monkeypatch.setattr(pi, 'show_frozen_exception', show_frozen_exception)
 
     with pytest.raises(SystemExit) as error:
         main()

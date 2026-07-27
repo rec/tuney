@@ -9,10 +9,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if not getattr(sys, 'frozen', False) and str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from tuney.app.platform_info import (  # noqa: E402
-    handle_frozen_exception,
-    start_crash_logging,
-)
+from tuney.app import platform_info as pi  # noqa: E402
 from tuney.midi.ports import (  # noqa: E402
     INTERNAL_LIST_MIDI_INPUTS,
     INTERNAL_LIST_MIDI_OUTPUTS,
@@ -30,7 +27,7 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 def main() -> None:
     frozen = bool(getattr(sys, 'frozen', False))
     if frozen:
-        start_crash_logging(show_frozen_errors=True)
+        pi.start_crash_logging(show_frozen_errors=True)
     try:
         if sys.argv[1:] == [INTERNAL_LIST_MIDI_INPUTS]:
             print(input_names_json())
@@ -43,7 +40,7 @@ def main() -> None:
     except Exception as error:
         if not frozen:
             raise
-        handle_frozen_exception(error)
+        pi.handle_frozen_exception(error)
 
 
 if __name__ == '__main__':

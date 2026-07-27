@@ -17,29 +17,10 @@ import mido
 import pytest
 
 import tuney.app.app
-import tuney.app.platform_info
+from tuney.app import platform_info as pi
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.app.key_recorder import speech_phrases
-from tuney.app.platform_info import (
-    APP_USER_MODEL_ID,
-    ISSUE_URL,
-    acquire_single_instance,
-    crash_issue_url,
-    crash_marker_path,
-    error_issue_url,
-    exit_with_message,
-    instance_lock_path,
-    instrument,
-    mark_session_clean_exit,
-    mark_session_started,
-    problem_issue_url,
-    release_single_instance,
-    report_error,
-    set_windows_app_user_model_id,
-    start_crash_logging,
-    trace,
-)
 from tuney.app.runnable import start_thread
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
@@ -67,18 +48,18 @@ def temporary_path() -> Iterator[Path]:
 def temporary_crash_logging_state(monkeypatch) -> Iterator[None]:
     old_excepthook = sys.excepthook
     old_threading_excepthook = threading.excepthook
-    old_crash_log_file = tuney.app.platform_info._crash_log_file
-    monkeypatch.setattr(tuney.app.platform_info, '_crash_logging_started', False)
-    monkeypatch.setattr(tuney.app.platform_info, '_crash_log_file', None)
+    old_crash_log_file = pi._crash_log_file
+    monkeypatch.setattr(pi, '_crash_logging_started', False)
+    monkeypatch.setattr(pi, '_crash_log_file', None)
     try:
         yield
     finally:
         sys.excepthook = old_excepthook
         threading.excepthook = old_threading_excepthook
-        if crash_log_file := tuney.app.platform_info._crash_log_file:
+        if crash_log_file := pi._crash_log_file:
             crash_log_file.close()
-        tuney.app.platform_info._crash_log_file = old_crash_log_file
-        tuney.app.platform_info._crash_logging_started = False
+        pi._crash_log_file = old_crash_log_file
+        pi._crash_logging_started = False
 
 
 def on_transport_state(
@@ -124,12 +105,12 @@ def test_error_issue_url_includes_traceback() -> None:
     try:
         raise RuntimeError('broken saved state')
     except RuntimeError as error:
-        url = error_issue_url(error, path)
+        url = pi.error_issue_url(error, path)
 
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
 
-    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == pi.ISSUE_URL
     assert query['title'] == ['RuntimeError: broken saved state']
     body = query['body'][0]
     assert 'RuntimeError: broken saved state' in body
@@ -144,11 +125,11 @@ def test_crash_issue_url_includes_log(monkeypatch) -> None:
         log.parent.mkdir(parents=True)
         log.write_text('TRACE one\nTRACE two\n')
 
-        url = crash_issue_url(log)
+        url = pi.crash_issue_url(log)
 
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
-    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == pi.ISSUE_URL
     assert query['title'] == ['Tuney crashed']
     body = query['body'][0]
     assert 'Tuney appears to have crashed during the previous run.' in body
@@ -162,7 +143,7 @@ def test_crash_issue_url_describes_empty_log(monkeypatch) -> None:
         log.parent.mkdir(parents=True)
         log.write_text('\n')
 
-        url = crash_issue_url(log)
+        url = pi.crash_issue_url(log)
 
     body = parse_qs(urlparse(url).query)['body'][0]
     assert 'No text found in crash report' in body
@@ -364,11 +345,11 @@ def test_problem_issue_url_includes_log(monkeypatch) -> None:
         log.parent.mkdir(parents=True)
         log.write_text('TRACE problem\n')
 
-        url = problem_issue_url(log)
+        url = pi.problem_issue_url(log)
 
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
-    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == pi.ISSUE_URL
     assert query['title'] == ['Tuney problem report']
     body = query['body'][0]
     assert 'Problem report from Tuney.' in body
@@ -383,7 +364,7 @@ def test_problem_issue_url_includes_snapshot_path(monkeypatch) -> None:
         log.parent.mkdir(parents=True)
         log.write_text('TRACE problem\n')
 
-        url = problem_issue_url(log, snapshot_path=snapshot)
+        url = pi.problem_issue_url(log, snapshot_path=snapshot)
 
     body = parse_qs(urlparse(url).query)['body'][0]
     assert '## Snapshot' in body
@@ -397,11 +378,11 @@ def test_problem_issue_url_can_omit_log(monkeypatch) -> None:
         log.parent.mkdir(parents=True)
         log.write_text('TRACE problem\n')
 
-        url = problem_issue_url(log, include_log=False)
+        url = pi.problem_issue_url(log, include_log=False)
 
     parsed = urlparse(url)
     query = parse_qs(parsed.query)
-    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == ISSUE_URL
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == pi.ISSUE_URL
     assert query['title'] == ['Tuney problem report']
     body = query['body'][0]
     assert 'Problem report from Tuney.' in body
@@ -450,12 +431,10 @@ def test_app_user_model_id_is_windows_only(monkeypatch) -> None:
     class Windll:
         shell32 = Shell32()
 
-    monkeypatch.setattr('tuney.app.platform_info.sys.platform', 'darwin')
-    monkeypatch.setattr(
-        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
-    )
+    monkeypatch.setattr(pi.sys, 'platform', 'darwin')
+    monkeypatch.setattr(pi.ctypes, 'windll', Windll(), raising=False)
 
-    set_windows_app_user_model_id()
+    pi.set_windows_app_user_model_id()
 
     assert calls == []
 
@@ -472,14 +451,12 @@ def test_app_user_model_id_is_set_on_windows(monkeypatch) -> None:
     class Windll:
         shell32 = Shell32()
 
-    monkeypatch.setattr('tuney.app.platform_info.sys.platform', 'win32')
-    monkeypatch.setattr(
-        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
-    )
+    monkeypatch.setattr(pi.sys, 'platform', 'win32')
+    monkeypatch.setattr(pi.ctypes, 'windll', Windll(), raising=False)
 
-    set_windows_app_user_model_id()
+    pi.set_windows_app_user_model_id()
 
-    assert calls == [APP_USER_MODEL_ID]
+    assert calls == [pi.APP_USER_MODEL_ID]
 
 
 def test_windows_process_check_uses_untruncated_handle(monkeypatch) -> None:
@@ -506,11 +483,9 @@ def test_windows_process_check_uses_untruncated_handle(monkeypatch) -> None:
     class Windll:
         kernel32 = Kernel32()
 
-    monkeypatch.setattr(
-        'tuney.app.platform_info.ctypes.windll', Windll(), raising=False
-    )
+    monkeypatch.setattr(pi.ctypes, 'windll', Windll(), raising=False)
 
-    assert tuney.app.platform_info._windows_process_is_alive(1234)
+    assert pi._windows_process_is_alive(1234)
     assert calls == [
         ('open', 0x1000, False, 1234),
         ('exit', handle),
@@ -558,59 +533,55 @@ def test_crash_marker_tracks_unclean_shutdown(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        assert not mark_session_started()
-        assert not mark_session_started()
-        crash_marker_path().write_text('123456')
-        monkeypatch.setattr(
-            'tuney.app.platform_info._process_is_alive', lambda _: False
-        )
-        assert mark_session_started()
-        mark_session_clean_exit()
-        assert not mark_session_started()
+        assert not pi.mark_session_started()
+        assert not pi.mark_session_started()
+        pi.crash_marker_path().write_text('123456')
+        monkeypatch.setattr(pi, '_process_is_alive', lambda _: False)
+        assert pi.mark_session_started()
+        pi.mark_session_clean_exit()
+        assert not pi.mark_session_started()
 
 
 def test_crash_marker_clean_exit_only_removes_current_process(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        crash_marker_path().parent.mkdir(parents=True)
-        crash_marker_path().write_text('123456')
+        pi.crash_marker_path().parent.mkdir(parents=True)
+        pi.crash_marker_path().write_text('123456')
 
-        mark_session_clean_exit()
+        pi.mark_session_clean_exit()
 
-        assert crash_marker_path().exists()
+        assert pi.crash_marker_path().exists()
 
 
 def test_single_instance_lock_blocks_second_instance(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        instance_lock_path().parent.mkdir(parents=True)
-        instance_lock_path().write_text(str(os.getpid()))
+        pi.instance_lock_path().parent.mkdir(parents=True)
+        pi.instance_lock_path().write_text(str(os.getpid()))
 
-        assert not acquire_single_instance()
-        instance_lock_path().unlink()
-        assert acquire_single_instance()
-        release_single_instance()
+        assert not pi.acquire_single_instance()
+        pi.instance_lock_path().unlink()
+        assert pi.acquire_single_instance()
+        pi.release_single_instance()
 
 
 def test_single_instance_lock_replaces_stale_lock(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        instance_lock_path().parent.mkdir(parents=True)
-        instance_lock_path().write_text('123456')
-        monkeypatch.setattr(
-            'tuney.app.platform_info._process_is_alive', lambda _: False
-        )
+        pi.instance_lock_path().parent.mkdir(parents=True)
+        pi.instance_lock_path().write_text('123456')
+        monkeypatch.setattr(pi, '_process_is_alive', lambda _: False)
 
-        assert acquire_single_instance()
-        release_single_instance()
+        assert pi.acquire_single_instance()
+        pi.release_single_instance()
 
 
 def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         calls: list[str] = []
-        instance_lock_path().parent.mkdir(parents=True)
-        instance_lock_path().write_text(str(os.getpid()))
+        pi.instance_lock_path().parent.mkdir(parents=True)
+        pi.instance_lock_path().write_text(str(os.getpid()))
 
         class Autosave:
             @staticmethod
@@ -689,8 +660,8 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
 def test_run_reports_previous_gui_crash(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        crash_marker_path().parent.mkdir(parents=True)
-        crash_marker_path().write_text('123456')
+        pi.crash_marker_path().parent.mkdir(parents=True)
+        pi.crash_marker_path().write_text('123456')
         calls: list[str] = []
 
         class Autosave:
@@ -716,14 +687,12 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
             def start() -> None:
                 pass
 
-        monkeypatch.setattr(
-            'tuney.app.platform_info._process_is_alive', lambda _: False
-        )
+        monkeypatch.setattr(pi, '_process_is_alive', lambda _: False)
         monkeypatch.setattr(tuney.app.app.pi, 'start_crash_logging', lambda: None)
         App.run(FakeApp())
 
         assert calls == ['restore', 'crash', 'mainloop']
-        assert not crash_marker_path().exists()
+        assert not pi.crash_marker_path().exists()
 
 
 class FakeApp:
@@ -1504,7 +1473,7 @@ def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
         monkeypatch.setattr(sys, 'frozen', True, raising=False)
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        report_error('problem')
+        pi.report_error('problem')
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'problem' in log.read_text()
@@ -1515,7 +1484,7 @@ def test_instrument_appends_to_app_state_log(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         monkeypatch.setenv('TUNEY_TRACE', '1')
 
-        instrument('clicked button', button='Play')
+        pi.instrument('clicked button', button='Play')
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert "TRACE clicked button: button='Play'" in log.read_text()
@@ -1526,7 +1495,7 @@ def test_trace_requires_trace_environment(monkeypatch) -> None:
         monkeypatch.setattr(sys, 'frozen', True, raising=False)
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
-        trace('note event', note=12)
+        pi.trace('note event', note=12)
 
         assert not (tmp_path / 'tuney' / 'tuney.txt').exists()
 
@@ -1536,7 +1505,7 @@ def test_trace_appends_to_app_state_log(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         monkeypatch.setenv('TUNEY_TRACE', '1')
 
-        trace('note event', note=12)
+        pi.trace('note event', note=12)
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'TRACE note event: note=12' in log.read_text()
@@ -1550,15 +1519,13 @@ def test_start_crash_logging_enables_faulthandler_and_hooks(monkeypatch) -> None
         def enable(file: TextIO, all_threads: bool) -> None:
             calls.append((file.name, all_threads))
 
-        monkeypatch.setattr(tuney.app.platform_info.faulthandler, 'enable', enable)
+        monkeypatch.setattr(pi.faulthandler, 'enable', enable)
 
-        start_crash_logging()
+        pi.start_crash_logging()
 
         assert calls == [(str(tmp_path / 'tuney' / 'tuney.txt'), True)]
-        assert sys.excepthook is tuney.app.platform_info.logging_excepthook
-        assert (
-            threading.excepthook is tuney.app.platform_info.logging_threading_excepthook
-        )
+        assert sys.excepthook is pi.logging_excepthook
+        assert threading.excepthook is pi.logging_threading_excepthook
         assert (
             'Python crash logging started'
             in (tmp_path / 'tuney' / 'tuney.txt').read_text()
@@ -1570,16 +1537,14 @@ def test_logging_excepthook_appends_to_log(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         calls: list[tuple[type[BaseException], BaseException]] = []
         monkeypatch.setattr(
-            tuney.app.platform_info,
+            pi,
             '_original_excepthook',
             lambda cls, error, traceback: calls.append((cls, error)),
         )
         try:
             raise RuntimeError('main thread failed')
         except RuntimeError as error:
-            tuney.app.platform_info.logging_excepthook(
-                RuntimeError, error, error.__traceback__
-            )
+            pi.logging_excepthook(RuntimeError, error, error.__traceback__)
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'RuntimeError: main thread failed' in log.read_text()
@@ -1592,7 +1557,7 @@ def test_logging_threading_excepthook_appends_to_log(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         calls = []
         monkeypatch.setattr(
-            tuney.app.platform_info,
+            pi,
             '_original_threading_excepthook',
             lambda args: calls.append(args),
         )
@@ -1602,7 +1567,7 @@ def test_logging_threading_excepthook_appends_to_log(monkeypatch) -> None:
             args = threading.ExceptHookArgs(
                 (RuntimeError, error, error.__traceback__, None)
             )
-            tuney.app.platform_info.logging_threading_excepthook(args)
+            pi.logging_threading_excepthook(args)
 
         log = tmp_path / 'tuney' / 'tuney.txt'
         assert 'RuntimeError: worker failed' in log.read_text()
@@ -1615,7 +1580,7 @@ def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
 
         with pytest.raises(SystemExit) as error:
-            exit_with_message('fatal')
+            pi.exit_with_message('fatal')
 
         assert error.value.code == 1
         log = tmp_path / 'tuney' / 'tuney.txt'
