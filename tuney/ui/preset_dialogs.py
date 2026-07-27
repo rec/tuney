@@ -21,16 +21,32 @@ def preset_name(parent: QWidget) -> str | None:
     return name if accepted and name else None
 
 
-def selected_preset_names(parent: QWidget) -> list[str]:
+def test_sheet_preset_names(parent: QWidget) -> list[str]:
+    return selected_preset_names(
+        parent,
+        title='Save test sheet',
+        prompt='Select presets to render:',
+        empty_title='Save test sheet',
+        empty_text='There are no user presets.',
+    )
+
+
+def selected_preset_names(
+    parent: QWidget,
+    title: str = 'Delete presets',
+    prompt: str = 'Select presets to delete:',
+    empty_title: str = 'Delete presets',
+    empty_text: str = 'There are no user presets.',
+) -> list[str]:
     names = user_preset_names()
     if not names:
-        QMessageBox.information(parent, 'Delete presets', 'There are no user presets.')
+        QMessageBox.information(parent, empty_title, empty_text)
         return []
 
     dialog = QDialog(parent)
-    dialog.setWindowTitle('Delete presets')
+    dialog.setWindowTitle(title)
     layout = QVBoxLayout(dialog)
-    layout.addWidget(QLabel('Select presets to delete:', dialog))
+    layout.addWidget(QLabel(prompt, dialog))
 
     presets = QListWidget(dialog)
     presets.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)

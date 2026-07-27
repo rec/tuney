@@ -10,9 +10,15 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
 from ..app.platform_info import instrument
+from ..audio.test_sheet import render_test_sheet
 from ..presets import delete_presets, read_file, write_preset
-from .main_menu import OPEN_TEXT_FILE_COMMAND, SAVE_AS_AUDIO_COMMAND, SAVE_COMMAND
-from .preset_dialogs import preset_name, selected_preset_names
+from .main_menu import (
+    OPEN_TEXT_FILE_COMMAND,
+    SAVE_AS_AUDIO_COMMAND,
+    SAVE_COMMAND,
+    SAVE_TEST_SHEET_COMMAND,
+)
+from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -74,6 +80,27 @@ def on_save_as_audio(main_window: MainWindow, *_: object) -> None:
                 )
             except (OSError, RuntimeError, ValueError) as error:
                 QMessageBox.critical(main_window, SAVE_AS_AUDIO_COMMAND, str(error))
+    finally:
+        main_window._is_saving = False
+        main_window._has_focus = False
+
+
+def on_save_test_sheet(main_window: MainWindow, *_: object) -> None:
+    instrument('ui save test sheet')
+    if not (presets := test_sheet_preset_names(main_window)):
+        return
+    main_window._is_saving = True
+    try:
+        result = main_window._get_save_file_name(
+            SAVE_TEST_SHEET_COMMAND,
+            SAVE_TEST_SHEET_COMMAND,
+            'WAV (*.wav);;All files (*)',
+        )
+        if filename := result[0]:
+            try:
+                render_test_sheet(Path(filename), main_window.app, presets)
+            except (OSError, RuntimeError, ValueError) as error:
+                QMessageBox.critical(main_window, SAVE_TEST_SHEET_COMMAND, str(error))
     finally:
         main_window._is_saving = False
         main_window._has_focus = False

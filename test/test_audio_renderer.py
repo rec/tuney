@@ -12,6 +12,9 @@ import soundfile
 from sounddevice import CallbackAbort, PortAudioError
 
 import tuney.audio.device
+import tuney.audio.test_sheet
+import tuney.presets
+from tuney.app.app import App
 from tuney.audio import speech
 from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
@@ -25,6 +28,7 @@ from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
 from tuney.audio.voice import Voice, VoiceState
 from tuney.scale.scale import Scale
+from tuney.time.char_press import CharPress
 
 SAMPLE_RATE = 48_000
 SAMPLE_COUNT = SAMPLE_RATE
@@ -172,6 +176,55 @@ def test_engine_master_gain_accepts_integer_output_buffer() -> None:
     engine.callback(out, len(out), 0.0, None)
 
     assert out.dtype == np.int16
+
+
+def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', tmp_path)
+    (tmp_path / 'first.toml').write_text('max_gap = 1.0\n')
+    (tmp_path / 'second.toml').write_text('max_gap = 2.0\n')
+    speech_data = np.ones((SAMPLE_RATE // 2, 1), dtype=np.float32)
+
+    def render_speech(_: SpeechRequest) -> SpeechPlayback:
+        return SpeechPlayback(data=speech_data, level=0.5)
+
+    monkeypatch.setattr(tuney.audio.test_sheet, 'render_speech', render_speech)
+    path = tmp_path / 'test-sheet.wav'
+
+    tuney.audio.test_sheet.render_test_sheet(path, App(text=[]), ['first', 'second'])
+
+    data, sample_rate = soundfile.read(path, always_2d=True)
+    assert sample_rate == SAMPLE_RATE
+    assert len(data) == SAMPLE_RATE * 9
+    np.testing.assert_allclose(data[:SAMPLE_RATE], 0)
+    np.testing.assert_allclose(
+        data[SAMPLE_RATE : SAMPLE_RATE + SAMPLE_RATE // 2], 0.5, atol=1e-4
+    )
+    np.testing.assert_allclose(
+        data[SAMPLE_RATE + SAMPLE_RATE // 2 : SAMPLE_RATE * 4], 0
+    )
+
+
+def test_test_sheet_preserves_live_app_state(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', tmp_path)
+    (tmp_path / 'changed.toml').write_text('max_gap = 1.0\n')
+    monkeypatch.setattr(tuney.audio.test_sheet, 'render_speech', lambda _: None)
+    app = App(
+        text=[
+            CharPress('a', time=0),
+            CharPress('a', False, time=10),
+        ],
+        max_gap=3.0,
+        preset='original',
+    )
+    char_presses = list(app.char_presses)
+
+    tuney.audio.test_sheet.render_test_sheet(
+        tmp_path / 'test-sheet.wav', app, ['changed']
+    )
+
+    assert app.preset == 'original'
+    assert app.max_gap == 3.0
+    assert app.char_presses == char_presses
 
 
 def test_synchronized_oscillators_use_mixer_frame_count() -> None:

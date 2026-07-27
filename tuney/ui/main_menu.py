@@ -91,6 +91,12 @@ def build_menu(window: MainWindow) -> QMenuBar:
     )
     _add_action(
         file_menu,
+        SAVE_TEST_SHEET_COMMAND,
+        SAVE_TEST_SHEET_ACCELERATOR,
+        window.on_save_test_sheet,
+    )
+    _add_action(
+        file_menu,
         'Open enclosing folder for config file',
         OPEN_CONFIG_FOLDER_ACCELERATOR,
         window.on_open_config_folder,
@@ -151,6 +157,7 @@ CLEAR_ACCELERATOR = 'Ctrl+B'
 REFRESH_DEVICES_ACCELERATOR = 'Ctrl+D'
 SAVE_ACCELERATOR = 'Ctrl+S'
 SAVE_AS_AUDIO_ACCELERATOR = 'Ctrl+Alt+E'
+SAVE_TEST_SHEET_ACCELERATOR = 'Ctrl+Alt+Shift+E'
 UNDO_ACCELERATOR = 'Ctrl+Z'
 REDO_ACCELERATOR = 'Ctrl+Y'
 RANDOMIZE_TIMING_ACCELERATOR = 'Ctrl+R'
@@ -176,6 +183,7 @@ HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 OPEN_TEXT_FILE_COMMAND = 'Open Text File'
 SAVE_COMMAND = 'Save'
 SAVE_AS_AUDIO_COMMAND = 'Save as Audio...'
+SAVE_TEST_SHEET_COMMAND = 'Save Test Sheet...'
 IMPORT_TUNING_COMMAND = 'Import tuning...'
 EXPORT_TUNING_COMMAND = 'Export tuning...'
 SAVE_AUDIO_COMMAND = 'Save audio'

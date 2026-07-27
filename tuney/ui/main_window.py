@@ -49,6 +49,7 @@ from .file_commands import (
     on_save,
     on_save_as_audio,
     on_save_preset,
+    on_save_test_sheet,
     on_swap_with_autosave,
     on_trash_config_file,
 )
@@ -384,6 +385,7 @@ class MainWindow(QMainWindow):
     on_save = on_save
     on_save_as_audio = on_save_as_audio
     on_save_preset = on_save_preset
+    on_save_test_sheet = on_save_test_sheet
     on_delete_presets = on_delete_presets
 
     on_import_tuning = on_import_tuning

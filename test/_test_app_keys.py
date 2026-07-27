@@ -365,6 +365,7 @@ def test_application_uses_cross_platform_style() -> None:
             'Export tuning...': 'Ctrl+E',
             'Save': 'Ctrl+S',
             'Save as Audio...': 'Ctrl+Alt+E',
+            'Save Test Sheet...': 'Ctrl+Alt+Shift+E',
             'Open enclosing folder for config file': 'Ctrl+Alt+O',
             'Put Config file in Trash': 'Ctrl+Alt+Del',
             'Copy from state': 'Ctrl+Alt+C',
@@ -378,6 +379,7 @@ def test_application_uses_cross_platform_style() -> None:
         assert action_shortcuts == expected_shortcuts, action_shortcuts
         assert 'Save preset...' in file_actions
         assert 'Save as Audio...' in file_actions
+        assert 'Save Test Sheet...' in file_actions
         assert 'Delete presets...' in file_actions
         assert 'Load autosave on start' in file_actions
         assert 'Swap with autosave' in file_actions
@@ -797,6 +799,58 @@ def test_app_saves_audio_from_current_text() -> None:
         (4800, False),
     ]
     assert callable(comment)
+
+
+def test_app_saves_test_sheet_from_current_text() -> None:
+    app = HistoryApp()
+    rendered = []
+    old_preset_names = file_commands.test_sheet_preset_names
+    old_render_test_sheet = file_commands.render_test_sheet
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            app.app.__dict__['global_config'] = GlobalConfig(
+                file=Path(tmp) / 'global.toml'
+            )
+            path = Path(tmp) / 'test-sheet.wav'
+
+            class FakeSaveDialog:
+                @staticmethod
+                def getSaveFileName(*_: object) -> tuple[str, str]:
+                    return str(path), ''
+
+            def render_test_sheet(output, app, presets):
+                rendered.append((output, app, presets))
+
+            file_dialogs.QFileDialog = FakeSaveDialog
+            file_commands.test_sheet_preset_names = lambda _: ['first', 'second']
+            file_commands.render_test_sheet = render_test_sheet
+
+            MainWindow.on_save_test_sheet(app)
+    finally:
+        file_commands.test_sheet_preset_names = old_preset_names
+        file_commands.render_test_sheet = old_render_test_sheet
+
+    output, rendered_app, presets = rendered[0]
+    assert output == path
+    assert rendered_app is app.app
+    assert presets == ['first', 'second']
+
+
+def test_app_cancels_test_sheet_without_preset_selection() -> None:
+    app = HistoryApp()
+    calls = []
+    old_preset_names = file_commands.test_sheet_preset_names
+    old_render_test_sheet = file_commands.render_test_sheet
+    try:
+        file_commands.test_sheet_preset_names = lambda _: []
+        file_commands.render_test_sheet = lambda *args: calls.append(args)
+
+        MainWindow.on_save_test_sheet(app)
+    finally:
+        file_commands.test_sheet_preset_names = old_preset_names
+        file_commands.render_test_sheet = old_render_test_sheet
+
+    assert calls == []
 
 
 def test_app_saves_and_deletes_presets() -> None:
