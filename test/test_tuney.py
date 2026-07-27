@@ -2351,7 +2351,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
 def test_midi_output_mutes_audio_by_default(monkeypatch) -> None:
     events: list[tuple[int, bool]] = []
     monkeypatch.setattr(
-        MidiOut, '__call__', lambda _, note, is_press: events.append((note, is_press))
+        MidiOut, 'send_note', lambda _, note, is_press: events.append((note, is_press))
     )
     monkeypatch.setattr(
         Player, 'on_note', lambda *_: pytest.fail('audio should be muted')
@@ -2379,7 +2379,7 @@ def test_midi_output_can_leave_audio_enabled(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         MidiOut,
-        '__call__',
+        'send_note',
         lambda _, note, is_press: midi_events.append((note, is_press)),
     )
     app = App(

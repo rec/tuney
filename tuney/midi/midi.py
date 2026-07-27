@@ -213,7 +213,7 @@ class MidiOut(MidiBase):
         data.append(_tuning_checksum(data))
         return mido.Message('sysex', data=data)
 
-    def __call__(self, note_number: int, is_press: bool) -> None:
+    def send_note(self, note_number: int, is_press: bool) -> None:
         if self.enable:
             message_type = 'note_on' if is_press or ZERO_IS_NOTE_OFF else 'note_off'
             velocity = max(0, min(127, is_press * self.velocity))

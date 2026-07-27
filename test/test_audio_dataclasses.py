@@ -313,7 +313,9 @@ def test_midi_output_sends_on_mido_channel(
         tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
-    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40)(60, True)
+    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40).send_note(
+        60, True
+    )
 
     assert [(m.type, m.channel) for m in messages] == [
         ('program_change', expected),
@@ -336,7 +338,7 @@ def test_midi_output_skips_program_change_when_program_is_none(monkeypatch) -> N
         tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
-    tuney.midi.midi.MidiOut(enable=True, program=None)(60, True)
+    tuney.midi.midi.MidiOut(enable=True, program=None).send_note(60, True)
 
     assert [m.type for m in messages] == ['control_change', 'note_on']
 
@@ -486,7 +488,7 @@ def test_midi_output_open_failure_disables_output(
 
     midi.start()
     midi.send_tuning_dump(Scale(), Tuning())
-    midi(60, True)
+    midi.send_note(60, True)
 
     assert not midi.enable
     assert (

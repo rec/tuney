@@ -448,7 +448,7 @@ def play_char(app: App, c: CharPress) -> None:
             app.midi.output.enable and app.midi.output.mute_audio_when_midi_enabled
         ):
             play_note(app, note, c.is_press)
-        app.midi.output(note, c.is_press)
+        app.midi.output.send_note(note, c.is_press)
     if app.gui:
         app.main_window.on_char(c)
 
