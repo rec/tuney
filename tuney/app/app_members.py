@@ -7,7 +7,7 @@ from ..audio.player import Player
 from ..config.text_file import read_text_file
 from ..config.tuney import Tuney
 from ..keyboard.listener import KeyboardListener
-from ..midi.midi import MidiListener
+from ..midi.listener import MidiListener
 from ..presets.autosave import Autosave
 from ..time.char_press import CharPress
 from ..ui import startup

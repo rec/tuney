@@ -4,7 +4,7 @@ import sys
 from collections.abc import Callable
 from functools import cached_property
 from math import floor, log2
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import mido
 from pydantic import BaseModel, Field, field_validator
@@ -15,6 +15,9 @@ from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .general_midi import general_midi_program_options
 from .ports import input_names, output_names
+
+if TYPE_CHECKING:
+    from .listener import MidiListener
 
 ZERO_IS_NOTE_OFF = True
 CHANNELS = tuple(str(i + 1) for i in range(16))
@@ -239,35 +242,9 @@ class Midi(BaseModel):
     output: MidiOut = Field(default_factory=MidiOut)
 
     def listener(self, callback: Callable[[int, bool], None]) -> MidiListener:
+        from .listener import MidiListener
+
         return MidiListener(self, callback)
-
-
-class MidiListener:
-    def __init__(self, midi: Midi, callback: Callable[[int, bool], None]) -> None:
-        self.midi = midi
-        self.callback = callback
-        self.port: mido.InputPort | None = None
-
-    def start(self) -> None:
-        if (input := self.midi.input).enable and self.port is None:
-            try:
-                self.port = mido.open_input(
-                    midi_port_name(input.name, VIRTUAL_MIDI_INPUT_NAME),
-                    virtual=use_virtual_midi_port(input.name),
-                    callback=self.on_message,
-                )
-            except (OSError, RuntimeError) as error:
-                report_error(f'Could not open MIDI input: {error}')
-
-    def close(self) -> None:
-        if self.port is not None:
-            self.port.close()
-            self.port = None
-
-    def on_message(self, m: mido.Message) -> None:
-        if self.midi.input.accepts(m) and m.type.startswith('note_'):
-            is_on = m.type == 'note_on' and m.velocity > 0
-            self.callback(self.midi.output.tuney_note(m.note), is_on)
 
 
 def _ascii_bytes(text: str, length: int) -> list[int]:
