@@ -1,6 +1,6 @@
 import pytest
 
-from tuney.app.app import App, apply_preset
+from tuney.app.app import App
 from tuney.presets import (
     delete_presets,
     preset_names,
@@ -75,7 +75,7 @@ def test_tuney_applies_preset_without_clearing_recorded_text() -> None:
     app = App()
     app.char_presses.append(CharPress('a', time=0))
 
-    apply_preset(app, 'white-notes')
+    app.apply_preset('white-notes')
 
     assert app.preset == 'white-notes'
     assert app.scale.notes == 'ABCDEFG'
@@ -89,7 +89,7 @@ def test_tuney_applies_preset_without_recreating_runtime_objects() -> None:
     app.__dict__['main_window'] = main_window
     app.__dict__['keyboard_listener'] = listener
 
-    apply_preset(app, 'white-notes')
+    app.apply_preset('white-notes')
 
     assert app.main_window is main_window
     assert app.keyboard_listener is listener

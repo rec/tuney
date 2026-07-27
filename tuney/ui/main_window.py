@@ -28,13 +28,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-from ..app.app import (
-    clear,
-    on_char,
-    randomize_timing,
-    save_autosave,
-    window_geometry_log_data,
-)
+from ..app.app import window_geometry_log_data
 from ..app.platform_info import instrument, set_windows_app_user_model_id
 from ..app.text_timing import edit_text_timing
 from ..time.char_press import CharPress
@@ -271,7 +265,7 @@ class MainWindow(QMainWindow):
     def _close_app(self) -> None:
         try:
             self.ui.control_panel.save_state()
-            self.app._autosave.save(lambda path: save_autosave(self.app, path))
+            self.app._autosave.save(self.app.save_autosave)
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.midi_listener.close()
@@ -329,7 +323,7 @@ class MainWindow(QMainWindow):
 
     def on_clear_text(self, *_: object) -> None:
         instrument('ui clear text')
-        clear(self.app)
+        self.app.clear()
 
     def on_advanced(self, checked: bool) -> None:
         instrument('ui advanced', checked=checked)
@@ -368,7 +362,7 @@ class MainWindow(QMainWindow):
 
     def on_randomize_timing(self, *_: object) -> None:
         instrument('ui randomize timing')
-        randomize_timing(self.app)
+        self.app.randomize_timing()
 
     def on_help(self, *_: object) -> None:
         instrument('ui help')
@@ -455,7 +449,7 @@ class MainWindow(QMainWindow):
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():
-            on_char(self.app, self.key_queue.get())
+            self.app.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
         if engine := self.app.player.__dict__.get('engine'):

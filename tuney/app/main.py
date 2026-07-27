@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from ..presets import merged_data, read_file, read_preset
 from ..ui import startup
-from .app import App, run
+from .app import App
 from .platform_info import exit_with_message
 
 
@@ -28,7 +28,7 @@ def main() -> None:
                 assert isinstance(app.config_file, Path)
                 data = merged_data(data, read_file(app.config_file))
             app = tyro.cli(App, prog='tuney', default=App(**data))
-        result = run(app)
+        result = app.run()
     except (ValidationError, FileExistsError) as e:
         result = e
     if result is None:

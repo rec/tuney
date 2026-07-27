@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMenu, QMenuBar
 
-from ..app.app import randomize_settings
 from ..app.platform_info import instrument
 
 if TYPE_CHECKING:
@@ -31,7 +30,7 @@ def build_menu(window: MainWindow) -> QMenuBar:
         edit_menu,
         'Randomize Settings',
         RANDOMIZE_SETTINGS_ACCELERATOR,
-        lambda *_: randomize_settings(window.app),
+        lambda *_: window.app.randomize_settings(),
     )
     _add_action(edit_menu, 'Clear', CLEAR_ACCELERATOR, window.on_clear)
     _add_action(edit_menu, 'Clear Text', CLEAR_TEXT_ACCELERATOR, window.on_clear_text)

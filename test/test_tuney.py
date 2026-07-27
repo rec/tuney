@@ -20,20 +20,6 @@ import tuney.app.app
 import tuney.app.platform_info
 from tuney.app.app import (
     App,
-    append_char_press,
-    clear,
-    load_text_file,
-    on_char,
-    output_comment,
-    play_cli,
-    randomize_settings,
-    randomize_timing,
-    replay_char_presses,
-    restore_data,
-    run,
-    save,
-    save_autosave,
-    start,
     window_geometry_log_data,
 )
 from tuney.app.global_config import GlobalConfig
@@ -108,7 +94,7 @@ def on_transport_state(
     return app.audio_recorder.on_transport_state(
         StateChange(old_state=old_state, state=state, action=action),
         app.player,
-        lambda: output_comment(app),
+        lambda: app.output_comment(),
         path,
     )
 
@@ -651,7 +637,7 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
             tuney.app.app, 'show_already_running', lambda: calls.append('busy')
         )
 
-        run(FakeApp())
+        App.run(FakeApp())
 
         assert calls == ['crash logging', 'busy']
 
@@ -693,9 +679,9 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
 
         app = FakeApp()
         monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
-        monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
+        app.start = lambda: None
 
-        run(app)
+        App.run(app)
 
         assert isinstance(window.error, RuntimeError)
         assert calls == ['restore', 'window', 'error', 'mainloop']
@@ -727,13 +713,15 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
             _autosave = Autosave()
             main_window = FakeWindow()
 
+            @staticmethod
+            def start() -> None:
+                pass
+
         monkeypatch.setattr(
             'tuney.app.platform_info._process_is_alive', lambda _: False
         )
         monkeypatch.setattr(tuney.app.app, 'start_crash_logging', lambda: None)
-        monkeypatch.setattr(tuney.app.app, 'start', lambda _: None)
-
-        run(FakeApp())
+        App.run(FakeApp())
 
         assert calls == ['restore', 'crash', 'mainloop']
         assert not crash_marker_path().exists()
@@ -1017,7 +1005,7 @@ def test_recorded_char_press_caps_silent_gap():
         CharPress('a', time=100.0),
         CharPress('a', False, 100.25),
     ]:
-        append_char_press(app, recorded_char_press(app, c))
+        app.append_char_press(recorded_char_press(app, c))
 
     actual = [
         recorded_char_press(app, CharPress('b', time=110.0)),
@@ -1051,7 +1039,7 @@ def test_recorded_char_press_appends_to_restored_recording() -> None:
 
 def test_recorded_char_press_does_not_cap_time_while_note_is_held():
     app = App(max_gap=0.5)
-    append_char_press(app, recorded_char_press(app, CharPress('a', time=100.0)))
+    app.append_char_press(recorded_char_press(app, CharPress('a', time=100.0)))
 
     actual = recorded_char_press(app, CharPress('b', time=110.0))
 
@@ -1068,8 +1056,8 @@ def test_append_char_press_sorts_late_char_press(
 ) -> None:
     app = App()
 
-    append_char_press(app, CharPress('b', time=1000))
-    append_char_press(app, CharPress('a', time=0))
+    app.append_char_press(CharPress('b', time=1000))
+    app.append_char_press(CharPress('a', time=0))
 
     assert app.char_presses == [
         CharPress('a', time=0),
@@ -1140,7 +1128,7 @@ def test_clear_resets_recording_state():
     app.key_recorder.insert_time = 10.0
     app.key_recorder.replay_text = 'a'
 
-    clear(app)
+    app.clear()
 
     assert app.char_presses == []
     assert app.max_gap == App().max_gap
@@ -1169,7 +1157,7 @@ def test_randomize_timing_replaces_timing_and_keeps_display_text() -> None:
     app.key_recorder.insert_time = 10.0
     app.key_recorder.replay_text = 'a'
 
-    randomize_timing(app)
+    app.randomize_timing()
 
     assert app.display_text == 'ab'
     assert app.char_presses != original_char_presses
@@ -1194,7 +1182,7 @@ def test_randomize_settings_changes_valid_scale_and_tuning_only() -> None:
     text_timings = app.text_timings.model_copy(deep=True)
     char_presses = list(app.char_presses)
 
-    randomize_settings(app, random.Random(1))
+    app.randomize_settings(random.Random(1))
 
     assert type(app).model_validate(app.model_dump())
     assert app.text_timings == text_timings
@@ -1246,7 +1234,7 @@ def test_load_text_file_replaces_char_presses(tmp_path) -> None:
     app.__dict__['main_window'] = main_window
     app.key_recorder.start_time = 100.0
 
-    load_text_file(app, path)
+    app.load_text_file(path)
 
     assert app.display_text == 'ab'
     assert [c.char for c in app.char_presses if c.is_press] == ['a', 'b']
@@ -1259,7 +1247,7 @@ def test_on_char_records_undo_for_added_char_press() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('a', time=100.0))
+    app.on_char(CharPress('a', time=100.0))
 
     assert main_window.undo_count == 1
 
@@ -1314,7 +1302,7 @@ def test_gui_start_uses_qt_keys_without_background_listener(monkeypatch) -> None
     app.__dict__['main_window'] = main_window
     monkeypatch.setattr(app.keyboard_listener, 'start', lambda: started.append(True))
 
-    start(app)
+    app.start()
 
     assert started == []
 
@@ -1326,7 +1314,7 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     app.__dict__['main_window'] = main_window
     monkeypatch.setattr(app.keyboard_listener, 'start', lambda: started.append(True))
 
-    start(app)
+    app.start()
 
     assert started == [True]
 
@@ -1350,7 +1338,7 @@ def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
         tuney.midi.midi.mido, 'open_output', lambda *_args, **_kwargs: Port()
     )
 
-    start(app)
+    app.start()
 
     assert [m.type for m in messages] == [
         'program_change',
@@ -1372,7 +1360,7 @@ def test_backspace_autorepeat_starts_after_configured_delay() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('\b', time=200.0))
+    app.on_char(CharPress('\b', time=200.0))
 
     assert app.display_text == 'a'
     assert main_window.after_calls[0][1] == 1500
@@ -1392,7 +1380,7 @@ def test_backspace_autorepeat_repeats_at_configured_rate() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('\b', time=300.0))
+    app.on_char(CharPress('\b', time=300.0))
     first_callback = main_window.after_calls[0][2]
     assert callable(first_callback)
     first_callback()
@@ -1406,8 +1394,8 @@ def test_backspace_release_cancels_autorepeat() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('\b', time=100.0))
-    on_char(app, CharPress('\b', False, time=200.0))
+    app.on_char(CharPress('\b', time=100.0))
+    app.on_char(CharPress('\b', False, time=200.0))
 
     assert main_window.cancelled_after_ids == ['after-0']
     assert app.key_recorder.backspace_repeat_after_id is None
@@ -1422,7 +1410,7 @@ def test_backspace_autorepeat_can_be_disabled() -> None:
     main_window = FakeApp()
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('\b', time=100.0))
+    app.on_char(CharPress('\b', time=100.0))
 
     assert main_window.after_calls == []
 
@@ -1430,8 +1418,7 @@ def test_backspace_autorepeat_can_be_disabled() -> None:
 def test_restore_data_restores_char_presses_and_model_values() -> None:
     app = App(max_gap=1.0, text=[CharPress('a', time=0)])
 
-    restore_data(
-        app,
+    app.restore_data(
         {'max_gap': 2.0, 'text': [CharPress('b', time=0).model_dump()]},
     )
 
@@ -1445,7 +1432,7 @@ def test_restore_data_closes_cached_player(monkeypatch) -> None:
     closed: list[Player] = []
     monkeypatch.setattr(Player, 'close', lambda self: closed.append(self))
 
-    restore_data(app, {'max_gap': 2.0})
+    app.restore_data({'max_gap': 2.0})
 
     assert closed == [player]
     assert 'player' not in app.__dict__
@@ -1661,7 +1648,7 @@ def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
             ],
         )
 
-        app._autosave.save(lambda path: save(app, path))
+        app._autosave.save(lambda path: app.save(path))
 
         data = tomllib.loads(path.read_text())
     assert data['gui']
@@ -1696,7 +1683,7 @@ def test_autosave_writes_loop_state_and_geometry_window_state(monkeypatch) -> No
         window = _AutosaveWindow(history)
         app.__dict__['main_window'] = window
 
-        app._autosave.save(lambda path: save_autosave(app, path))
+        app._autosave.save(app.save_autosave)
 
         data = tomllib.loads(path.read_text())
 
@@ -1741,7 +1728,7 @@ def test_restore_autosave_restores_gui_state_without_explicit_startup_data(
                 CharPress('a', False, 100),
             ],
         )
-        saved._autosave.save(lambda path: save(saved, path))
+        saved._autosave.save(saved.save)
         app = App(gui=True)
 
         app._autosave.restore(app)
@@ -1791,7 +1778,8 @@ def test_restore_autosave_restores_loop_state(monkeypatch) -> None:
     )
 
 
-def test_main_window_restores_autosaved_window_state() -> None:
+def test_main_window_restores_autosaved_window_state(monkeypatch) -> None:
+    monkeypatch.setattr('tuney.ui.main_window.QApplication.instance', lambda: None)
     app = App(gui=True)
     app.__dict__['_autosave_window_state'] = WindowState(
         x=10, y=20, width=640, height=480
@@ -1854,7 +1842,7 @@ def test_restore_autosave_skips_when_startup_modifier_is_held(monkeypatch) -> No
         path = tmp_path / 'state.toml'
         set_autosave_file(monkeypatch, path)
         saved = App(gui=True, max_gap=2.0)
-        saved._autosave.save(lambda path: save(saved, path))
+        saved._autosave.save(saved.save)
         app = App(gui=True)
         monkeypatch.setattr(
             'tuney.presets.autosave.startup_modifier_held', lambda: True
@@ -1872,7 +1860,7 @@ def test_restore_autosave_skips_when_saved_state_disables_autosave(
         path = tmp_path / 'state.toml'
         set_autosave_file(monkeypatch, path)
         saved = App(gui=True, max_gap=2.0, load_autosave=False)
-        saved._autosave.save(lambda path: save(saved, path))
+        saved._autosave.save(saved.save)
         app = App(gui=True, max_gap=3.0)
 
         app._autosave.restore(app)
@@ -1968,7 +1956,7 @@ def test_restore_autosave_does_not_override_explicit_text(monkeypatch) -> None:
         path = tmp_path / 'state.toml'
         set_autosave_file(monkeypatch, path)
         saved = App(gui=True, text=[CharPress('a', time=0)])
-        saved._autosave.save(lambda path: save(saved, path))
+        saved._autosave.save(saved.save)
         app = App(gui=True, text='b')
 
         app._autosave.restore(app)
@@ -1983,7 +1971,7 @@ def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
     main_window.is_replaying = True
     main_window.loop_replay = True
     app.__dict__['main_window'] = main_window
-    monkeypatch.setattr('tuney.app.app.on_replay', lambda _: calls.append('replay'))
+    monkeypatch.setattr(App, 'on_replay', lambda _: calls.append('replay'))
 
     app.key_recorder.finish_replay(app)
 
@@ -1998,7 +1986,7 @@ def test_stale_finished_replay_does_not_restart_when_stopped(monkeypatch) -> Non
     main_window.is_replaying = False
     main_window.loop_replay = True
     app.__dict__['main_window'] = main_window
-    monkeypatch.setattr('tuney.app.app.on_replay', lambda _: calls.append('replay'))
+    monkeypatch.setattr(App, 'on_replay', lambda _: calls.append('replay'))
 
     app.key_recorder.finish_replay(app)
 
@@ -2077,7 +2065,7 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
     app.__dict__['main_window'] = main_window
     app.__dict__['player'] = FakePlayer()
     monkeypatch.setattr('tuney.app.key_recorder.Sequencer', FakeSequencer)
-    monkeypatch.setattr('tuney.app.app.play_char', lambda *_: None)
+    monkeypatch.setattr(App, 'play_char', lambda *_: None)
 
     app.key_recorder.on_replay(app)
 
@@ -2182,7 +2170,7 @@ def test_replay_char_presses_use_loop_tempo() -> None:
     main_window.loop_tempo = 2.0
     app.__dict__['main_window'] = main_window
 
-    assert replay_char_presses(app) == [
+    assert app.replay_char_presses() == [
         CharPress('a', time=0),
         CharPress('a', False, 500),
     ]
@@ -2203,7 +2191,7 @@ def test_replay_char_presses_cut_loop_start_and_end() -> None:
     main_window.loop_after = 0.25
     app.__dict__['main_window'] = main_window
 
-    assert replay_char_presses(app) == [
+    assert app.replay_char_presses() == [
         CharPress('a', False, 0),
         CharPress('b', time=500),
     ]
@@ -2270,7 +2258,7 @@ def test_replay_char_presses_add_loop_start_and_end_space() -> None:
     main_window.loop_after = -0.75
     app.__dict__['main_window'] = main_window
 
-    assert replay_char_presses(app) == [
+    assert app.replay_char_presses() == [
         CharPress('a', time=250),
         CharPress('a', False, 750),
         CharPress(time=1500),
@@ -2298,8 +2286,8 @@ def test_loop_randomize_replaces_playback_timing_without_changing_recording() ->
     app.__dict__['main_window'] = main_window
     recorded_char_presses = list(app.char_presses)
 
-    first_loop = replay_char_presses(app)
-    second_loop = replay_char_presses(app)
+    first_loop = app.replay_char_presses()
+    second_loop = app.replay_char_presses()
 
     assert app.char_presses == recorded_char_presses
     assert first_loop != recorded_char_presses
@@ -2321,7 +2309,7 @@ def test_randomize_on_each_loop_only_affects_loop_replay() -> None:
     main_window.randomize_on_each_loop = True
     app.__dict__['main_window'] = main_window
 
-    assert replay_char_presses(app) == app.char_presses
+    assert app.replay_char_presses() == app.char_presses
 
 
 def test_on_char_ignores_input_while_saving():
@@ -2330,7 +2318,7 @@ def test_on_char_ignores_input_while_saving():
     main_window.is_saving = True
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('a', time=100.0))
+    app.on_char(CharPress('a', time=100.0))
 
     assert app.char_presses == []
 
@@ -2341,7 +2329,7 @@ def test_on_char_ignores_input_without_app_focus():
     main_window.has_focus = False
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('a', time=100.0))
+    app.on_char(CharPress('a', time=100.0))
 
     assert app.char_presses == []
 
@@ -2352,7 +2340,7 @@ def test_on_char_ignores_input_with_control_panel_focus():
     main_window.focus_in_control_panel = True
     app.__dict__['main_window'] = main_window
 
-    on_char(app, CharPress('a', time=100.0))
+    app.on_char(CharPress('a', time=100.0))
 
     assert app.char_presses == []
 
@@ -2375,7 +2363,7 @@ def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
         ],
     )
 
-    run(app)
+    app.run()
 
     assert events == [(20, True), (20, False)]
     assert lifecycle == ['stop_all', 'wait', 'close']
@@ -2399,7 +2387,7 @@ def test_midi_output_mutes_audio_by_default(monkeypatch) -> None:
         ],
     )
 
-    play_cli(app)
+    app.play_cli()
 
     assert events == [(20, True), (20, False)]
 
@@ -2425,7 +2413,7 @@ def test_midi_output_can_leave_audio_enabled(monkeypatch) -> None:
         ],
     )
 
-    play_cli(app)
+    app.play_cli()
 
     assert audio_events == [(20, True), (20, False)]
     assert midi_events == [(20, True), (20, False)]
@@ -2441,8 +2429,8 @@ def test_on_char_does_not_release_unplayed_opposite_case_midi_note(monkeypatch) 
     app = App(gui=True, silent=True, midi=Midi(output=MidiOut(enable=True)))
     app.__dict__['main_window'] = FakeApp()
 
-    on_char(app, CharPress('a', time=100.0))
-    on_char(app, CharPress('a', False, time=100.25))
+    app.on_char(CharPress('a', time=100.0))
+    app.on_char(CharPress('a', False, time=100.25))
 
     assert midi_events == [(20, True), (20, False)]
 
@@ -2457,8 +2445,8 @@ def test_on_char_releases_pressed_case_when_shift_released_first(monkeypatch) ->
     app = App(gui=True, silent=True, midi=Midi(output=MidiOut(enable=True)))
     app.__dict__['main_window'] = FakeApp()
 
-    on_char(app, CharPress('A', time=100.0))
-    on_char(app, CharPress('a', False, time=100.25).with_pressed_char('A'))
+    app.on_char(CharPress('A', time=100.0))
+    app.on_char(CharPress('a', False, time=100.25).with_pressed_char('A'))
 
     assert [(c.char, c.is_press) for c in app.char_presses] == [
         ('A', True),
@@ -2485,7 +2473,7 @@ def test_cli_mode_prints_characters_as_they_play(
         ],
     )
 
-    play_cli(app)
+    app.play_cli()
 
     assert printed == [
         (('a',), {'end': '', 'flush': True}),
@@ -2509,7 +2497,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
     monkeypatch.setattr(Player, 'on_note', interrupt)
     app = App(text=[CharPress('a', time=0)])
     try:
-        play_cli(app)
+        app.play_cli()
     except KeyboardInterrupt:
         interrupted = True
 
@@ -2522,7 +2510,7 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
 
 def test_cli_mode_requires_text(capsys) -> None:
     with pytest.raises(SystemExit) as exc_info:
-        run(App())
+        App().run()
 
     error = capsys.readouterr().err
     assert exc_info.value.code == 2
@@ -2532,7 +2520,7 @@ def test_cli_mode_requires_text(capsys) -> None:
 
 def test_cli_mode_requires_sound() -> None:
     with pytest.raises(SystemExit, match='CLI mode requires sound'):
-        run(App(silent=True, text='a'))
+        App(silent=True, text='a').run()
 
 
 def test_output_forces_cli_mode() -> None:
@@ -2565,7 +2553,7 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch) -> None:
         ],
     )
 
-    run(app)
+    app.run()
     output, events, comment = rendered[0]
 
     assert output == path
@@ -2592,7 +2580,7 @@ def test_text_file_output_writes_midi_file_without_audio(monkeypatch, tmp_path) 
         text_timings=TextTimings(seed=1, overlap=0, timings=[100]),
     )
 
-    run(app)
+    app.run()
 
     file = mido.MidiFile(path)
     messages = [
@@ -2632,10 +2620,7 @@ def test_live_cli_output_records_during_playback(monkeypatch) -> None:
         lambda self: lifecycle.append('stop_recording'),
     )
     monkeypatch.setattr(Player, 'close', lambda self: lifecycle.append('close'))
-    monkeypatch.setattr(
-        'tuney.app.app.play_cli',
-        lambda _: lifecycle.append('play_cli'),
-    )
+    monkeypatch.setattr(App, 'play_cli', lambda self: lifecycle.append('play_cli'))
     app = App(
         output=path,
         text=[
@@ -2643,7 +2628,7 @@ def test_live_cli_output_records_during_playback(monkeypatch) -> None:
             CharPress('a', False, 0),
         ],
     )
-    run(app)
+    app.run()
 
     start_recording, play_cli, stop_all, wait, stop_recording, close = lifecycle
     assert start_recording[0] == 'start_recording'
@@ -2681,7 +2666,7 @@ def test_interrupted_output_removes_partial_file(monkeypatch) -> None:
         app = App(output=path, silent=True, text='a')
 
         with pytest.raises(KeyboardInterrupt):
-            run(app)
+            app.run()
 
         assert not path.exists()
 

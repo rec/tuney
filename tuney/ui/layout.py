@@ -26,7 +26,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..app.app import on_char
 from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
 from ..midi.ports import input_names, output_names
@@ -547,7 +546,7 @@ class Layout(QWidget):
                 text,
                 _note_tooltip_text(self.main_window.app, char, text),
                 lambda: self.main_window.app.hover_time,
-                lambda c: on_char(self.main_window.app, c),
+                self.main_window.app.on_char,
             )
         button = self.note_button_cache[char]
         button.set_note(text)

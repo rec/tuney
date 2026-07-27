@@ -71,7 +71,6 @@ class KeyRecorder(BaseModel):
             self.insert_time = deleted_time
 
     def on_replay(self, state: App) -> None:
-        from .app import play_char, replay_char_presses
         from .text_timing import text_timing_active_indexes
 
         instrument(
@@ -87,7 +86,7 @@ class KeyRecorder(BaseModel):
 
         self.replay_text = ''
         if state.main_window.is_replaying:
-            char_presses = replay_char_presses(state)
+            char_presses = state.replay_char_presses()
             instrument('key recorder replay events', count=len(char_presses))
             state.main_window.ui.start_loop_clock()
             if state.use_speech and char_presses:
@@ -124,7 +123,7 @@ class KeyRecorder(BaseModel):
                                 state.main_window.ui.set_play_cursor,
                                 len(self.replay_text),
                             )
-                    play_char(state, char_press)
+                    state.play_char(char_press)
                 elif state.main_window.is_replaying and self.sequencer is not None:
                     state.main_window.after(0, self.finish_replay, state)
 
@@ -141,16 +140,14 @@ class KeyRecorder(BaseModel):
         instrument('key recorder replay end')
 
     def finish_replay(self, state: App) -> None:
-        from .app import on_replay, replay_char_presses, stop_replaying
-
         instrument('key recorder finish replay')
         if not state.main_window.is_replaying:
             return
-        if state.main_window.history.loop_replay and replay_char_presses(state):
-            on_replay(state)
+        if state.main_window.history.loop_replay and state.replay_char_presses():
+            state.on_replay()
             return
         state.player.stop_all()
-        stop_replaying(state)
+        state.stop_replaying()
 
     def clear(self) -> None:
         instrument('key recorder clear')

@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
 )
 from tyro._fields import field_list_from_type_or_callable
 
-from ..app.app import apply_preset, replay_char_presses
 from ..app.key_recorder import speech_phrases
 from ..app.platform_info import instrument
 from ..audio.device import Device
@@ -749,7 +748,7 @@ def _add_option_control(
             _checkpoint_undo(parent)
             state = _control_panel(parent).app
             assert state is not None
-            apply_preset(state, raw)
+            state.apply_preset(raw)
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
         else:
@@ -1216,7 +1215,7 @@ def _prepare_speech_if_changed(parent: QWidget, data: BaseModel, name: str) -> N
         and app.main_window.history.loop_replay
     ):
         app.player.prepare_speech(
-            speech_phrases(replay_char_presses(app), app.use_phrase_mode),
+            speech_phrases(app.replay_char_presses(), app.use_phrase_mode),
             app.speech_level,
             app.speech_speed,
             app.speech_voice,

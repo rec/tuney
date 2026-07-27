@@ -51,9 +51,7 @@ class Autosave(BaseModel, frozen=True):
         loop_state, loop_error = _loop_state(data.pop('loop', None))
         window_state, window_error = _window_state(data.pop('window', None))
         if data.get('load_autosave') is False:
-            from ..app.app import restore_data
-
-            restore_data(state, {'gui': state.gui, 'load_autosave': False})
+            state.restore_data({'gui': state.gui, 'load_autosave': False})
             if loop_state is not None:
                 state.__dict__['_autosave_loop_state'] = loop_state
             if window_state is not None:
@@ -62,9 +60,7 @@ class Autosave(BaseModel, frozen=True):
         restore_error: ValidationError | None = None
         while True:
             try:
-                from ..app.app import restore_data
-
-                restore_data(state, data)
+                state.restore_data(data)
                 if loop_state is not None:
                     state.__dict__['_autosave_loop_state'] = loop_state
                 if window_state is not None:

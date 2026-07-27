@@ -359,6 +359,10 @@ class _FakeApp:
         self.hover_time = 1.0
         self.tuning = object()
 
+    @staticmethod
+    def on_char(_: object) -> None:
+        pass
+
     @property
     def note_labels(self) -> dict[str, str]:
         return self.labels

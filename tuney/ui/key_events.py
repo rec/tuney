@@ -8,7 +8,6 @@ from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QMainWindow
 
-from ..app.app import on_char
 from ..time.char_press import CharPress
 
 if TYPE_CHECKING:
@@ -71,7 +70,7 @@ def on_key_event(main_window: MainWindow, event: QKeyEvent, is_press: bool) -> b
     else:
         c = main_window._key_chars.pop(key, '')
     if c:
-        on_char(main_window.app, CharPress(c, is_press, time=time.time()))
+        main_window.app.on_char(CharPress(c, is_press, time=time.time()))
         event.accept()
         return True
     event.ignore()

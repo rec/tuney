@@ -9,17 +9,6 @@ from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
-from ..app.app import (
-    dump_data,
-    dump_toml,
-    load_text_file,
-    note_events,
-    output_comment,
-    restore_data,
-    restore_text,
-    save,
-    save_autosave,
-)
 from ..app.platform_info import instrument
 from ..presets import delete_presets, read_file, write_preset
 from .main_menu import OPEN_TEXT_FILE_COMMAND, SAVE_AS_AUDIO_COMMAND, SAVE_COMMAND
@@ -42,7 +31,7 @@ def on_open_text_file(main_window: MainWindow, *_: object) -> None:
         )
         if filename := result[0]:
             try:
-                load_text_file(main_window.app, Path(filename))
+                main_window.app.load_text_file(Path(filename))
             except (OSError, ValueError) as error:
                 QMessageBox.critical(main_window, 'Open Text File', str(error))
     finally:
@@ -59,7 +48,7 @@ def on_save(main_window: MainWindow, *_: object) -> None:
         )
         if filename := result[0]:
             try:
-                save(main_window.app, Path(filename))
+                main_window.app.save(Path(filename))
             except (OSError, ValueError) as error:
                 QMessageBox.critical(main_window, 'Save', str(error))
     finally:
@@ -80,8 +69,8 @@ def on_save_as_audio(main_window: MainWindow, *_: object) -> None:
             try:
                 main_window.app.player.render_file(
                     Path(filename),
-                    note_events(main_window.app, main_window.app.player.sample_rate),
-                    output_comment(main_window.app),
+                    main_window.app.note_events(main_window.app.player.sample_rate),
+                    main_window.app.output_comment(),
                 )
             except (OSError, RuntimeError, ValueError) as error:
                 QMessageBox.critical(main_window, SAVE_AS_AUDIO_COMMAND, str(error))
@@ -95,7 +84,7 @@ def on_save_preset(main_window: MainWindow, *_: object) -> None:
     if (name := preset_name(main_window)) is None:
         return
     try:
-        write_preset(name, dump_data(main_window.app))
+        write_preset(name, main_window.app.dump_data())
     except (OSError, ValueError) as error:
         QMessageBox.critical(main_window, 'Save preset', str(error))
         return
@@ -160,14 +149,14 @@ def config_path(main_window: MainWindow) -> Path:
 
 def on_copy_from_state(main_window: MainWindow, *_: object) -> None:
     instrument('ui copy from state')
-    main_window.qt_app.clipboard().setText(dump_toml(main_window.app))
+    main_window.qt_app.clipboard().setText(main_window.app.dump_toml())
 
 
 def on_paste_into_state(main_window: MainWindow, *_: object) -> None:
     instrument('ui paste into state')
     try:
         main_window.history.checkpoint_undo()
-        restore_text(main_window.app, main_window.qt_app.clipboard().text())
+        main_window.app.restore_text(main_window.qt_app.clipboard().text())
     except (ValueError, ValidationError) as error:
         QMessageBox.critical(main_window, 'Paste into state', str(error))
         return
@@ -220,10 +209,8 @@ def on_swap_with_autosave(main_window: MainWindow, *_: object) -> None:
         return
     try:
         main_window.history.checkpoint_undo()
-        main_window.app._autosave.save(
-            lambda path: save_autosave(main_window.app, path)
-        )
-        restore_data(main_window.app, data)
+        main_window.app._autosave.save(main_window.app.save_autosave)
+        main_window.app.restore_data(data)
     except (OSError, ValueError, ValidationError) as error:
         QMessageBox.critical(main_window, 'Swap with autosave', str(error))
         return

@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
 
 import tuney.presets
-from tuney.app.app import App, save
+from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
 from tuney.scale.ratios import Ratios
@@ -51,8 +51,7 @@ def test_qt_key_events() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.app = object()
-    key_events.on_char = lambda _, c: chars.append(c)
+    app.app = type('FakeApp', (), {'on_char': lambda self, c: chars.append(c)})()
     key_events.time.time = iter([100.0, 100.25, 100.5, 100.75]).__next__
 
     assert not MainWindow._on_key_event(app, key_event(Qt.Key.Key_CapsLock), True)
@@ -79,8 +78,7 @@ def test_macos_option_composed_characters() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.app = object()
-    key_events.on_char = lambda _, c: chars.append(c)
+    app.app = type('FakeApp', (), {'on_char': lambda self, c: chars.append(c)})()
     key_events.time.time = iter([100.0, 100.25]).__next__
     platform = key_events.sys.platform
     key_events.sys.platform = 'darwin'
@@ -118,8 +116,7 @@ def test_macos_option_special_keys_remain_ignored() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.app = object()
-    key_events.on_char = lambda _, c: chars.append(c)
+    app.app = type('FakeApp', (), {'on_char': lambda self, c: chars.append(c)})()
     platform = key_events.sys.platform
     key_events.sys.platform = 'darwin'
 
@@ -144,8 +141,7 @@ def test_non_macos_alt_characters_remain_ignored() -> None:
     chars = []
     app = type('KeyApp', (), {})()
     app._key_chars = {}
-    app.app = object()
-    key_events.on_char = lambda _, c: chars.append(c)
+    app.app = type('FakeApp', (), {'on_char': lambda self, c: chars.append(c)})()
     platform = key_events.sys.platform
     key_events.sys.platform = 'linux'
 
@@ -179,8 +175,7 @@ def test_app_event_filter() -> None:
     app = type('KeyApp', (), {})()
     app._key_chars = {}
     app.focus_in_control_panel = False
-    app.app = object()
-    key_events.on_char = lambda _, c: chars.append(c)
+    app.app = type('FakeApp', (), {'on_char': lambda self, c: chars.append(c)})()
     app._on_key_event = lambda event, is_press: MainWindow._on_key_event(
         app, event, is_press
     )
@@ -497,7 +492,7 @@ def test_app_activate_and_history() -> None:
     app.app.text = [CharPress('a', time=0.0)]
     app.app.__dict__.pop('char_presses', None)
 
-    MainWindow.on_clear(app)
+    app.app.clear()
 
     data = App().model_dump()
     data['gui'] = True
@@ -533,7 +528,7 @@ def test_app_activate_and_history() -> None:
         startup.autosave_file = path
         app.app.__dict__.pop('_autosave', None)
         autosaved = App(gui=False, max_gap=2.0, load_autosave=False)
-        autosaved._autosave.save(lambda path: save(autosaved, path))
+        autosaved._autosave.save(autosaved.save)
         app.app.max_gap = 3.0
         app.app.load_autosave = True
 
@@ -890,6 +885,10 @@ def test_close_releases_audio_before_closing_player() -> None:
         midi = Midi()
         midi_listener = MidiListener()
         player = Player()
+
+        @staticmethod
+        def save_autosave(_: object) -> None:
+            pass
 
     window = type('Window', (), {'ui': UI(), 'app': App()})()
 

@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..app import app
-from ..app.app import output_comment
 from ..app.platform_info import instrument
 from . import Action, StateChange
 from .main_menu import SAVE_AUDIO_COMMAND
@@ -37,7 +35,7 @@ def on_transport_state(main_window: MainWindow, change: StateChange) -> bool:
     return main_window.app.audio_recorder.on_transport_state(
         change,
         main_window.app.player,
-        lambda: output_comment(main_window.app),
+        main_window.app.output_comment,
         path,
     )
 
@@ -51,7 +49,7 @@ def set_is_replaying(main_window: MainWindow, is_replaying: bool) -> None:
         instrument('ui replay state', is_replaying=is_replaying)
         main_window._is_replaying = is_replaying
         main_window.ui.set_replay_state(is_replaying)
-        app.on_replay(main_window.app)
+        main_window.app.on_replay()
 
 
 def on_replay(main_window: MainWindow, *_: object) -> None:

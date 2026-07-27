@@ -384,7 +384,7 @@ def test_cli_loads_preset_defaults(monkeypatch) -> None:
     def call(app: App) -> None:
         captured.append(app)
 
-    monkeypatch.setattr('tuney.app.main.run', call)
+    monkeypatch.setattr(App, 'run', call)
     monkeypatch.setattr('sys.argv', ['tuney', '--preset=white-notes', 'abc'])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -404,7 +404,7 @@ def test_cli_skips_startup_files_when_gui_starts_with_modifier(
     def call(app: App) -> None:
         captured.append(app)
 
-    monkeypatch.setattr('tuney.app.main.run', call)
+    monkeypatch.setattr(App, 'run', call)
     monkeypatch.setattr('tuney.ui.startup.set_gui', lambda _: None)
     monkeypatch.setattr('tuney.ui.startup.startup_modifier_held', lambda: True)
     monkeypatch.setattr(

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from ..app.app import dump_data, restore_data
 from ..app.key_recorder import KeyRecorder
 from ..presets import restore_user_preset_snapshot, user_preset_snapshot
 
@@ -115,7 +114,7 @@ class History:
 
     def state(self) -> HistoryState:
         return HistoryState(
-            tuney=deepcopy(dump_data(self.main_window.app)),
+            tuney=deepcopy(self.main_window.app.dump_data()),
             key_recorder=KeyRecorder(
                 start_time=self.main_window.app.key_recorder.start_time,
                 time_offset=self.main_window.app.key_recorder.time_offset,
@@ -129,7 +128,7 @@ class History:
     def restore(self, state: HistoryState) -> None:
         window = self.main_window
         restore_user_preset_snapshot(state.user_presets)
-        restore_data(window.app, state.tuney)
+        window.app.restore_data(state.tuney)
         window.app.key_recorder.start_time = state.key_recorder.start_time
         window.app.key_recorder.time_offset = state.key_recorder.time_offset
         window.app.key_recorder.insert_time = state.key_recorder.insert_time

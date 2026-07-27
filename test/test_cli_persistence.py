@@ -6,7 +6,7 @@ import pytest
 
 import tuney.presets
 import tuney.time.sequencer
-from tuney.app.app import App, run
+from tuney.app.app import App
 from tuney.app.main import main
 from tuney.app.platform_info import (
     crash_marker_path,
@@ -24,7 +24,7 @@ def test_cli_playback_does_not_write_persistent_state(
     roots = isolate_persistent_roots(monkeypatch, tmp_path)
     mock_live_audio(monkeypatch)
 
-    run(App(text=[CharPress('a', time=0), CharPress('a', False, 0)]))
+    App(text=[CharPress('a', time=0), CharPress('a', False, 0)]).run()
 
     assert_persistent_roots_are_empty(roots)
 
@@ -75,7 +75,7 @@ def test_cli_output_only_writes_explicit_output(
 
     monkeypatch.setattr(Player, 'render_file', render_file)
 
-    run(App(output=output, silent=True, text='a'))
+    App(output=output, silent=True, text='a').run()
 
     assert output.read_bytes() == b'wav'
     assert_persistent_roots_are_empty(roots)
@@ -99,7 +99,7 @@ def test_interrupted_cli_output_removes_partial_file_without_persistence(
     monkeypatch.setattr(Player, 'render_file', render_file)
 
     with pytest.raises(KeyboardInterrupt):
-        run(App(output=output, silent=True, text='a'))
+        App(output=output, silent=True, text='a').run()
 
     assert not output.exists()
     assert_persistent_roots_are_empty(roots)
