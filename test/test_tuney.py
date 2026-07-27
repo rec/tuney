@@ -2431,6 +2431,42 @@ def test_midi_output_can_leave_audio_enabled(monkeypatch) -> None:
     assert midi_events == [(20, True), (20, False)]
 
 
+def test_on_char_does_not_release_unplayed_opposite_case_midi_note(monkeypatch) -> None:
+    midi_events: list[tuple[int, bool]] = []
+    monkeypatch.setattr(
+        MidiOut,
+        'send_note',
+        lambda _, note, is_press: midi_events.append((note, is_press)),
+    )
+    app = App(gui=True, silent=True, midi=Midi(output=MidiOut(enable=True)))
+    app.__dict__['main_window'] = FakeApp()
+
+    on_char(app, CharPress('a', time=100.0))
+    on_char(app, CharPress('a', False, time=100.25))
+
+    assert midi_events == [(20, True), (20, False)]
+
+
+def test_on_char_releases_pressed_case_when_shift_released_first(monkeypatch) -> None:
+    midi_events: list[tuple[int, bool]] = []
+    monkeypatch.setattr(
+        MidiOut,
+        'send_note',
+        lambda _, note, is_press: midi_events.append((note, is_press)),
+    )
+    app = App(gui=True, silent=True, midi=Midi(output=MidiOut(enable=True)))
+    app.__dict__['main_window'] = FakeApp()
+
+    on_char(app, CharPress('A', time=100.0))
+    on_char(app, CharPress('a', False, time=100.25).with_pressed_char('A'))
+
+    assert [(c.char, c.is_press) for c in app.char_presses] == [
+        ('A', True),
+        ('A', False),
+    ]
+    assert midi_events == [(-6, True), (-6, False)]
+
+
 def test_cli_mode_prints_characters_as_they_play(
     monkeypatch,
 ) -> None:

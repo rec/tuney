@@ -199,6 +199,8 @@ def start(app: App) -> None:
 
 
 def on_char(app: App, c: CharPress) -> None:
+    if not c.is_press and c.pressed_char and c.pressed_char == c.char.swapcase():
+        c = CharPress(c.pressed_char, False, c.time)
     trace('char event', char=c.char, is_press=c.is_press)
     if c.char == '\b' and not c.is_press:
         stop_backspace_repeat(app)
@@ -218,7 +220,6 @@ def on_char(app: App, c: CharPress) -> None:
         else:
             if c.char != '\b':
                 append_char_press(app, recorded)
-            play_char(app, CharPress(c.char.swapcase(), False))
         play_char(app, c)
 
 

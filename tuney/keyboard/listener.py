@@ -31,6 +31,7 @@ class KeyboardListener(Runnable):
         self.modifiers = Modifiers(0)
         self.deduplicate_keys = deduplicate_keys
         self.held_keys: set[Hashable | None] = set()
+        self.held_key_chars: dict[Hashable | None, str] = {}
 
     @cached_property
     def listener(self) -> PynputListener:
@@ -55,10 +56,22 @@ class KeyboardListener(Runnable):
         if key_name:
             self.modifiers = self.modifiers.apply(key, is_press)
 
-        if (c := WHITESPACE.get(key_name, getattr(key, 'char', ''))) and (
-            not is_press or not self.modifiers.is_command
-        ):
-            self.callback(CharPress(c, is_press, time=time.time()))
+        c = WHITESPACE.get(key_name, getattr(key, 'char', ''))
+        if not c:
+            return
+        if is_press:
+            if self.modifiers.is_command:
+                return
+            self.held_key_chars[key] = c
+            self.callback(CharPress(c, is_press, time=time.time()).with_pressed_char(c))
+            return
+        if not (pressed_char := self.held_key_chars.pop(key, '')):
+            return
+        self.callback(
+            CharPress(pressed_char, False, time=time.time()).with_pressed_char(
+                pressed_char
+            )
+        )
 
     def _run(self) -> None:
         self.listener.__enter__()
