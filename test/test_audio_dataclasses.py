@@ -143,6 +143,16 @@ def test_midi_names_uses_subprocess(monkeypatch):
     assert tuney.midi.ports.midi_names() == [['keyboard', 'controller'], ['synth']]
 
 
+def test_midi_names_cache_can_be_replaced_without_subprocess(monkeypatch) -> None:
+    def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
+        raise AssertionError('subprocess should not run')
+
+    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    tuney.midi.ports.midi_names.replace([['keyboard'], ['synth']])
+
+    assert tuney.midi.ports.midi_names() == [['keyboard'], ['synth']]
+
+
 def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
     calls: list[list[str]] = []
 

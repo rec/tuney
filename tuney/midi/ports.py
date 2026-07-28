@@ -4,7 +4,6 @@ import json
 import subprocess
 import sys
 from collections.abc import Callable
-from functools import cache
 
 import mido
 
@@ -17,8 +16,30 @@ MIDO_NAMES_SCRIPT = (
 )
 
 
-@cache
-def midi_names() -> list[list[str]]:
+class MidiNames:
+    def __init__(self) -> None:
+        self.names: list[list[str]] | None = None
+
+    def __call__(self) -> list[list[str]]:
+        if self.names is None:
+            self.names = _subprocess_midi_names()
+        return _copy_names(self.names)
+
+    def cache_clear(self) -> None:
+        self.names = None
+
+    def replace(self, names: list[list[str]]) -> None:
+        self.names = _copy_names(names)
+
+
+midi_names = MidiNames()
+
+
+def direct_midi_names() -> list[list[str]]:
+    return _direct_midi_names()
+
+
+def _subprocess_midi_names() -> list[list[str]]:
     args = (
         [sys.executable, LIST_MIDI]
         if getattr(sys, 'frozen', False)
@@ -69,3 +90,7 @@ def _direct_port_names(names: Callable[[], list[str]], kind: str) -> list[str]:
         report_error(f'Could not list MIDI {kind}: {error}')
         result = []
     return [name for name in result if isinstance(name, str)]
+
+
+def _copy_names(names: list[list[str]]) -> list[list[str]]:
+    return [list(i) for i in names]

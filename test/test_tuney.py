@@ -27,7 +27,7 @@ from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.audio.speech import SpeechPhrase
-from tuney.midi.midi import Midi, MidiOut
+from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
@@ -712,6 +712,7 @@ class FakeApp:
         self.after_calls: list[tuple[str, int, object, tuple[object, ...]]] = []
         self.cancelled_after_ids: list[str] = []
         self.undo_count = 0
+        self.midi_device_monitor_start_count = 0
         self.history = self
 
     class layout:
@@ -760,6 +761,14 @@ class FakeApp:
     @staticmethod
     def start() -> None:
         pass
+
+    def start_midi_device_monitor(self) -> None:
+        self.midi_device_monitor_start_count += 1
+
+    def sync_midi_device_monitor(self) -> None:
+        app = self.__dict__.get('app')
+        if app is None or app.midi.input.enable or app.midi.output.enable:
+            self.start_midi_device_monitor()
 
     def after(self, delay: int, callback: object, *args: object) -> str:
         after_id = f'after-{len(self.after_calls)}'
@@ -1294,6 +1303,24 @@ def test_gui_start_uses_background_listener_when_enabled(monkeypatch) -> None:
     assert started == [True]
 
 
+def test_gui_start_leaves_midi_device_monitor_stopped_when_midi_is_disabled() -> None:
+    app = App(
+        gui=True, midi=Midi(input=MidiIn(enable=False), output=MidiOut(enable=False))
+    )
+    main_window = FakeApp()
+    main_window.app = app
+    app.__dict__['main_window'] = main_window
+    app.__dict__['midi_listener'] = type(
+        'FakeMidiListener',
+        (),
+        {'start': lambda self: None},
+    )()
+
+    app.start()
+
+    assert main_window.midi_device_monitor_start_count == 0
+
+
 def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
     messages = []
 
@@ -1320,6 +1347,29 @@ def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
         'control_change',
         'sysex',
     ]
+    assert main_window.midi_device_monitor_start_count == 1
+
+
+def test_midi_device_monitor_sync_follows_midi_enable_state() -> None:
+    calls = []
+    app = App(midi=Midi(input=MidiIn(enable=False), output=MidiOut(enable=False)))
+    window = type(
+        'Window',
+        (),
+        {
+            'app': app,
+            'start_midi_device_monitor': lambda self: calls.append('start'),
+            '_stop_midi_device_monitor': lambda self: calls.append('stop'),
+        },
+    )()
+
+    MainWindow.sync_midi_device_monitor(window)
+    app.midi.output.enable = True
+    MainWindow.sync_midi_device_monitor(window)
+    app.midi.output.enable = False
+    MainWindow.sync_midi_device_monitor(window)
+
+    assert calls == ['stop', 'start', 'stop']
 
 
 def test_gui_start_reports_midi_output_open_failure(monkeypatch) -> None:
@@ -1342,6 +1392,54 @@ def test_gui_start_reports_midi_output_open_failure(monkeypatch) -> None:
     assert main_window.__dict__['midi_output_errors'] == [
         'MidiOutWinMM::openPort: error creating port'
     ]
+    assert main_window.midi_device_monitor_start_count == 1
+
+
+def test_midi_device_change_clears_missing_selected_output(monkeypatch) -> None:
+    messages = []
+
+    class MessageBox:
+        @staticmethod
+        def information(_parent: object, _title: str, text: str) -> None:
+            messages.append(text)
+
+    class Ui:
+        def __init__(self) -> None:
+            self.refresh_count = 0
+
+        def refresh_midi_devices(self) -> None:
+            self.refresh_count += 1
+
+    class Autosave:
+        def __init__(self) -> None:
+            self.save_count = 0
+
+        def save(self, _callback: object) -> None:
+            self.save_count += 1
+
+    class Port:
+        def __init__(self) -> None:
+            self.close_count = 0
+
+        def close(self) -> None:
+            self.close_count += 1
+
+    app = App(midi=Midi(output=MidiOut(name='Old Synth')))
+    app.__dict__['_autosave'] = Autosave()
+    app.__dict__['save_autosave'] = object()
+    ui = Ui()
+    window = type('Window', (), {'app': app, 'ui': ui})()
+    port = Port()
+    app.midi.output.__dict__['port'] = port
+    monkeypatch.setattr('tuney.ui.main_window.QMessageBox', MessageBox)
+
+    MainWindow._on_midi_devices_changed(window, [['keyboard'], ['New Synth']])
+
+    assert app.midi.output.name is None
+    assert port.close_count == 1
+    assert ui.refresh_count == 2
+    assert messages == ['Output device Old Synth no longer exists']
+    assert app._autosave.save_count == 1
 
 
 def test_backspace_autorepeat_starts_after_configured_delay() -> None:

@@ -245,6 +245,11 @@ class Layout(QWidget):
         for option_control in self.control_panel.option_controls:
             option_control.refresh()
 
+    def refresh_midi_devices(self) -> None:
+        instrument('layout refresh midi devices')
+        for option_control in self.control_panel.option_controls:
+            option_control.refresh()
+
     def rebuild_control_panel(self) -> None:
         instrument('layout rebuild control panel start')
         self.control_panel.rebuild()

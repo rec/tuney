@@ -57,5 +57,6 @@ class App(AppPlayback):
         self.midi.output.send_tuning_dump(self.scale, self.tuning)
         if error := self.midi.output.pop_open_error():
             self.main_window.on_midi_output_failed(error)
+        self.main_window.sync_midi_device_monitor()
         if self.run_in_background:
             self.keyboard_listener.start()

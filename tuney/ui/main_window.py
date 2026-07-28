@@ -7,6 +7,7 @@ from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
 from queue import Queue
+from threading import Event, Thread
 from types import FrameType
 from typing import TYPE_CHECKING, Protocol
 
@@ -27,7 +28,9 @@ from PySide6.QtWidgets import (
 )
 
 from ..app.platform_info import instrument, report_error, set_windows_app_user_model_id
+from ..app.runnable import start_thread
 from ..app.text_timing import edit_text_timing
+from ..midi.ports import direct_midi_names, midi_names
 from ..time.char_press import CharPress
 from . import file_commands, key_events, startup, tuning_files
 from .error_dialogs import (
@@ -78,6 +81,7 @@ if TYPE_CHECKING:
 
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
+MIDI_DEVICE_POLL_IN_SECONDS = 2
 SHUTDOWN_AUDIO_WAIT_SECONDS = 2.0
 ICON_PATH = Path(__file__).resolve().parents[2] / 'icon.png'
 APP_NAME = 'Tuney'
@@ -127,6 +131,9 @@ class MainWindow(QMainWindow):
         app.__dict__['main_window'] = self
         self.queue = Queue[CharPress]()
         self.key_queue = Queue[CharPress]()
+        self.midi_device_queue = Queue[list[list[str]]]()
+        self._midi_device_stop = Event()
+        self._midi_device_thread: Thread | None = None
         self._key_chars: dict[int, str] = {}
         self._after_timers: dict[str, QTimer] = {}
         self._after_count = 0
@@ -208,6 +215,28 @@ class MainWindow(QMainWindow):
         instrument('main window start')
         self._queue_timer.start(QUEUE_POLL_IN_MS)
 
+    def start_midi_device_monitor(self) -> None:
+        if self._midi_device_thread is not None:
+            return
+        self._midi_device_stop.clear()
+        self._midi_device_thread = start_thread(self._watch_midi_devices)
+
+    def sync_midi_device_monitor(self) -> None:
+        if self.app.midi.input.enable or self.app.midi.output.enable:
+            self.start_midi_device_monitor()
+        else:
+            self._stop_midi_device_monitor()
+
+    def _watch_midi_devices(self) -> None:
+        names = direct_midi_names()
+        midi_names.replace(names)
+        while not self._midi_device_stop.wait(MIDI_DEVICE_POLL_IN_SECONDS):
+            updated = direct_midi_names()
+            if updated != names:
+                names = updated
+                midi_names.replace(updated)
+                self.midi_device_queue.put(updated)
+
     def mainloop(self) -> None:
         instrument('qt exec enter')
         old_handler = signal.getsignal(signal.SIGINT)
@@ -279,10 +308,18 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, 'Could not save state', str(error))
         self.app.midi_listener.close()
+        if hasattr(self, '_stop_midi_device_monitor'):
+            self._stop_midi_device_monitor()
         self.app.midi.output.close()
         self.app.player.stop_all()
         self.app.player.wait(SHUTDOWN_AUDIO_WAIT_SECONDS)
         self.app.player.close()
+
+    def _stop_midi_device_monitor(self) -> None:
+        self._midi_device_stop.set()
+        if self._midi_device_thread is not None:
+            self._midi_device_thread.join(timeout=1)
+            self._midi_device_thread = None
 
     def _restore_window_state(self) -> None:
         if window_state := self.app.__dict__.pop('_autosave_window_state', None):
@@ -511,9 +548,31 @@ class MainWindow(QMainWindow):
             self.app.on_char(self.key_queue.get())
         while not self.queue.empty():
             self._on_char(self.queue.get())
+        if midi_device_queue := getattr(self, 'midi_device_queue', None):
+            while not midi_device_queue.empty():
+                self._on_midi_devices_changed(midi_device_queue.get())
         if engine := self.app.player.__dict__.get('engine'):
             for error in engine.diagnostics.take_errors():
                 self.show_audio_error(error)
+
+    def _on_midi_devices_changed(self, names: list[list[str]]) -> None:
+        output_name = self.app.midi.output.name
+        self.ui.refresh_midi_devices()
+        if output_name and output_name not in names[1]:
+            self.app.midi.output.close()
+            self.app.midi.output.name = None
+            self.ui.refresh_midi_devices()
+            QMessageBox.information(
+                self,
+                'MIDI output device missing',
+                f'Output device {output_name} no longer exists',
+            )
+            try:
+                self.app._autosave.save(self.app.save_autosave)
+            except (OSError, ValueError) as error:
+                report_error(
+                    f'Could not save autosave after MIDI output disappeared: {error}'
+                )
 
     def _on_char(self, c: CharPress) -> None:
         if frame := self.ui.note_buttons.get(c.char):

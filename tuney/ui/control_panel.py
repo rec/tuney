@@ -902,6 +902,8 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
                     state.midi_listener.start()
                 else:
                     state.midi_listener.close()
+            if state := _control_panel(parent).app:
+                state.main_window.sync_midi_device_monitor()
 
     check.toggled.connect(command)
     _parent_layout(parent).addWidget(check)

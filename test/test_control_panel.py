@@ -1099,6 +1099,46 @@ def test_midi_output_open_failure_unchecks_and_disables_controls(
     assert main_window.errors == ['MidiOutWinMM::openPort: error creating port']
 
 
+def test_midi_output_enable_control_syncs_device_monitor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from PySide6.QtWidgets import QCheckBox, QWidget
+
+    class Port:
+        def send(self, _message: object) -> None:
+            pass
+
+    class MainWindow:
+        def __init__(self) -> None:
+            self.sync_count = 0
+
+        def sync_midi_device_monitor(self) -> None:
+            self.sync_count += 1
+
+    _qt_app()
+    midi = MidiOut(enable=False)
+    app = App(gui=True, midi=Midi(output=midi))
+    main_window = MainWindow()
+    app.__dict__['main_window'] = main_window
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, midi, app=app)
+    monkeypatch.setattr(
+        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
+    )
+    enable = next(
+        widget
+        for widget in panel.findChildren(QCheckBox)
+        if (binding := control_panel.CONTROL_BINDINGS.get(widget)) is not None
+        and binding[0] is midi
+        and binding[1] == 'enable'
+    )
+
+    enable.setChecked(True)
+    enable.setChecked(False)
+
+    assert main_window.sync_count == 2
+
+
 @pytest.mark.parametrize(
     'cls, stdout, expected',
     [
