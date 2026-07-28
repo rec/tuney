@@ -481,6 +481,7 @@ def test_midi_output_open_failure_disables_output(
     midi.send_note(60, True)
 
     assert not midi.enable
+    assert midi.pop_open_error() == 'MidiOutWinMM::openPort: error creating port'
     assert (
         'Could not open MIDI output: MidiOutWinMM::openPort' in capsys.readouterr().err
     )

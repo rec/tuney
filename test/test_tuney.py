@@ -751,6 +751,9 @@ class FakeApp:
     def sync_config_actions(self) -> None:
         pass
 
+    def on_midi_output_failed(self, error: str) -> None:
+        self.__dict__.setdefault('midi_output_errors', []).append(error)
+
     def checkpoint_undo(self) -> None:
         self.undo_count += 1
 
@@ -1316,6 +1319,28 @@ def test_gui_start_sends_midi_tuning_when_enabled(monkeypatch) -> None:
         'program_change',
         'control_change',
         'sysex',
+    ]
+
+
+def test_gui_start_reports_midi_output_open_failure(monkeypatch) -> None:
+    def open_output(*_: object, **__: object) -> object:
+        raise SystemError('MidiOutWinMM::openPort: error creating port')
+
+    app = App(gui=True, midi=Midi(output=MidiOut(enable=True)))
+    main_window = FakeApp()
+    app.__dict__['main_window'] = main_window
+    app.__dict__['midi_listener'] = type(
+        'FakeMidiListener',
+        (),
+        {'start': lambda self: None},
+    )()
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+
+    app.start()
+
+    assert not app.midi.output.enable
+    assert main_window.__dict__['midi_output_errors'] == [
+        'MidiOutWinMM::openPort: error creating port'
     ]
 
 

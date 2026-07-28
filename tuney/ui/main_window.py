@@ -372,6 +372,20 @@ class MainWindow(QMainWindow):
         self.ui.refresh_theme()
         self.sync_config_actions()
 
+    def on_midi_output_failed(self, error: str) -> None:
+        QMessageBox.warning(
+            self,
+            'MIDI output failed',
+            f'MIDI output failed: error {error}',
+        )
+        self.ui.rebuild_control_panel()
+        try:
+            self.app._autosave.save(self.app.save_autosave)
+        except (OSError, ValueError) as save_error:
+            report_error(
+                f'Could not save autosave after MIDI output failure: {save_error}'
+            )
+
     def on_text_timing_changed(self, row: int, column: int, text: str) -> None:
         instrument('ui text timing changed', row=row, column=column, text=text)
         try:

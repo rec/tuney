@@ -1058,6 +1058,47 @@ def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     assert not cells['channel'].isEnabled()
 
 
+def test_midi_output_open_failure_unchecks_and_disables_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from PySide6.QtWidgets import QCheckBox, QWidget
+
+    def open_output(*_: object, **__: object) -> object:
+        raise SystemError('MidiOutWinMM::openPort: error creating port')
+
+    class MainWindow:
+        def __init__(self) -> None:
+            self.errors: list[str] = []
+
+        def on_midi_output_failed(self, error: str) -> None:
+            self.errors.append(error)
+
+    _qt_app()
+    midi = MidiOut(enable=False)
+    app = App(gui=True, midi=Midi(output=midi))
+    main_window = MainWindow()
+    app.__dict__['main_window'] = main_window
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, midi, app=app)
+    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+    cells = {
+        name: widget
+        for widget in panel.findChildren(QWidget)
+        if (binding := control_panel.CONTROL_BINDINGS.get(widget)) is not None
+        for data, name, _ in [binding]
+        if data is midi
+    }
+    enable = cells['enable']
+    assert isinstance(enable, QCheckBox)
+
+    enable.setChecked(True)
+
+    assert not midi.enable
+    assert not enable.isChecked()
+    assert not cells['name'].isEnabled()
+    assert main_window.errors == ['MidiOutWinMM::openPort: error creating port']
+
+
 @pytest.mark.parametrize(
     'cls, stdout, expected',
     [

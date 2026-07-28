@@ -893,7 +893,10 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
         if isinstance(data, MidiIn | MidiOut) and name == 'enable':
             _set_midi_controls_state(parent, checked)
             if isinstance(data, MidiOut):
+                if checked:
+                    data.start()
                 _send_tuning(parent)
+                _handle_midi_output_failure(parent, data)
             if isinstance(data, MidiIn) and (state := _control_panel(parent).app):
                 if checked:
                     state.midi_listener.start()
@@ -911,6 +914,20 @@ def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
         binding = CONTROL_BINDINGS.get(cell)
         if binding and binding[0] is data and field and field != 'enable':
             _set_widget_state(cell, enabled)
+
+
+def _handle_midi_output_failure(parent: QWidget, midi_output: MidiOut) -> None:
+    if not (error := midi_output.pop_open_error()):
+        return
+    _set_midi_controls_state(parent, False)
+    for cell in _control_panel(parent).findChildren(QCheckBox):
+        binding = CONTROL_BINDINGS.get(cell)
+        if binding and binding[0] is midi_output and binding[1] == 'enable':
+            was_blocked = cell.blockSignals(True)
+            cell.setChecked(False)
+            cell.blockSignals(was_blocked)
+    if app := _control_panel(parent).app:
+        app.main_window.on_midi_output_failed(error)
 
 
 def _set_widget_state(widget: QWidget, enabled: bool) -> None:
