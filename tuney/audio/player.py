@@ -7,7 +7,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from ..app.platform_info import instrument, trace
-from ..scale import NoteNumber
+from ..scale.number import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .device import Device

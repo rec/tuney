@@ -7,12 +7,9 @@ import pytest
 import tomlkit
 from pydantic import BaseModel
 
-import tuney.audio.device
-import tuney.midi.midi
-import tuney.midi.port
-import tuney.midi.ports
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
+from tuney.audio import device
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
@@ -20,6 +17,7 @@ from tuney.audio.sound import Sound
 from tuney.config.annotations import Numeric, Options
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
+from tuney.midi import port, ports
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
@@ -28,26 +26,24 @@ from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui import (
-    control_panel,
-    control_panel_metadata,
-    control_panel_scala,
-    control_panel_sizing,
-    control_panel_spin,
-    control_panel_visibility,
-)
+from tuney.ui import control_panel
+from tuney.ui import control_panel_metadata
+from tuney.ui import control_panel_scala
+from tuney.ui import control_panel_sizing
+from tuney.ui import control_panel_spin
+from tuney.ui import control_panel_visibility
 
 
 @pytest.fixture(autouse=True)
 def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
-    tuney.midi.ports.midi_names.cache_clear()
-    tuney.audio.device.device_names.cache_clear()
+    ports.midi_names.cache_clear()
+    device.device_names.cache_clear()
     monkeypatch.setattr(
-        tuney.midi.ports.subprocess,
+        ports.subprocess,
         'run',
         lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[[], []]', ''),
     )
-    monkeypatch.setattr(tuney.audio.device.sounddevice, 'query_devices', lambda: [])
+    monkeypatch.setattr(device.sounddevice, 'query_devices', lambda: [])
 
 
 def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
@@ -519,9 +515,7 @@ def test_tuning_change_sends_midi_tuning_dump_when_enabled(monkeypatch) -> None:
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(
-        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
-    )
+    monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
     _qt_app()
     app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))
     app.__dict__['global_config'] = GlobalConfig()
@@ -589,19 +583,19 @@ def test_tuning_stack_sizes_to_current_form() -> None:
 def test_beginner_mode_filters_advanced_controls(
     file_regression,
 ) -> None:
-    tuney = Tuney()
+    app = Tuney()
 
     _check_regression(
         file_regression,
         {
             'mapper_controls': control_panel_visibility._visible_control_names(
-                tuney.mapper, advanced=False
+                app.mapper, advanced=False
             ),
             'tuney_children': control_panel_visibility._visible_child_names(
-                tuney, advanced=False
+                app, advanced=False
             ),
             'tuney_controls': control_panel_visibility._visible_control_names(
-                tuney, advanced=False
+                app, advanced=False
             ),
         },
     )
@@ -887,7 +881,7 @@ def test_dials_are_limited_to_explicit_analog_controls(
         file_regression,
         {
             'sound_gain': control_panel_metadata._numeric_metadata(Sound, 'gain').dial,
-            'sound_minimum_note_time': control_panel_metadata._numeric_metadata(
+            ('sound_minimum_note_time'): control_panel_metadata._numeric_metadata(
                 Sound, 'minimum_note_time'
             ).dial,
             'sound_note_offset': control_panel_metadata._numeric_metadata(
@@ -950,18 +944,18 @@ def test_numeric_increment_is_absolute_or_percentage() -> None:
 
 
 def test_visible_field_names(file_regression) -> None:
-    tuney = Tuney()
+    app = Tuney()
 
     _check_regression(
         file_regression,
         {
             name: list(control_panel_visibility._visible_field_names(data))
             for name, data in [
-                ('tuney', tuney),
-                ('mapper', tuney.mapper),
-                ('sound', tuney.sound),
-                ('polyphony', tuney.sound.polyphony),
-                ('device', tuney.device),
+                ('tuney', app),
+                ('mapper', app.mapper),
+                ('sound', app.sound),
+                ('polyphony', app.sound.polyphony),
+                ('device', app.device),
             ]
         },
     )
@@ -994,9 +988,9 @@ def test_numeric_spinbox_uses_numeric_range() -> None:
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget
 
     _qt_app()
-    tuney = Tuney()
+    app = Tuney()
     parent = QWidget()
-    panel = control_panel.ControlPanel(parent, tuney)
+    panel = control_panel.ControlPanel(parent, app)
     editors = [
         widget
         for widget in panel.findChildren(QDoubleSpinBox)
@@ -1012,9 +1006,9 @@ def test_note_number_spinboxes_use_musical_ranges() -> None:
     from PySide6.QtWidgets import QSpinBox, QWidget
 
     _qt_app()
-    tuney = Tuney()
+    app = Tuney()
     parent = QWidget()
-    panel = control_panel.ControlPanel(parent, tuney)
+    panel = control_panel.ControlPanel(parent, app)
 
     ranges = {
         f'{type(data).__name__}.{name}': (w.minimum(), w.maximum())
@@ -1091,7 +1085,7 @@ def test_midi_output_open_failure_unchecks_and_disables_controls(
     app.__dict__['main_window'] = main_window
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi, app=app)
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+    monkeypatch.setattr(port.mido, 'open_output', open_output)
     cells = {
         name: widget
         for widget in panel.findChildren(QWidget)
@@ -1133,9 +1127,7 @@ def test_midi_output_enable_control_syncs_device_monitor(
     app.__dict__['main_window'] = main_window
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi, app=app)
-    monkeypatch.setattr(
-        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
-    )
+    monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
     enable = next(
         widget
         for widget in panel.findChildren(QCheckBox)
@@ -1165,9 +1157,9 @@ def test_midi_port_name_uses_port_menu(
 ) -> None:
     from PySide6.QtWidgets import QComboBox, QWidget
 
-    tuney.midi.ports.midi_names.cache_clear()
+    ports.midi_names.cache_clear()
     monkeypatch.setattr(
-        tuney.midi.ports.subprocess,
+        ports.subprocess,
         'run',
         lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, stdout, ''),
     )
@@ -1350,9 +1342,9 @@ def test_ratio_fractions_are_serialized_for_text_entry() -> None:
     from PySide6.QtWidgets import QLineEdit, QWidget
 
     _qt_app()
-    tuney = Tuney(tuning=Tuning(type=Type.ratios, ratios=Ratios(text='3/2')))
+    app = Tuney(tuning=Tuning(type=Type.ratios, ratios=Ratios(text='3/2')))
     parent = QWidget()
-    panel = control_panel.ControlPanel(parent, tuney)
+    panel = control_panel.ControlPanel(parent, app)
 
     assert any(
         entry.text() == '3/2'

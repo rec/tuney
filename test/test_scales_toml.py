@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import importlib.util
 import tomllib
+from importlib import util
 from pathlib import Path
 from types import ModuleType
 from zipfile import ZipFile
@@ -41,9 +41,9 @@ def test_scales_toml_script_reads_scala_zip(tmp_path, monkeypatch) -> None:
 
 def _build_scales_toml_module() -> ModuleType:
     path = Path(__file__).resolve().parents[1] / 'scala' / 'build_scales_toml.py'
-    spec = importlib.util.spec_from_file_location('build_scales_toml', path)
+    spec = util.spec_from_file_location('build_scales_toml', path)
     assert spec is not None
     assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
+    module = util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

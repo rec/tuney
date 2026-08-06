@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase
-from ..time import Milliseconds, Seconds, to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
+from ..time.units import Milliseconds, Seconds, to_ms
 from .platform_info import instrument
 
 if TYPE_CHECKING:

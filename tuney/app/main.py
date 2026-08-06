@@ -6,7 +6,7 @@ import tyro
 from pydantic import ValidationError
 
 from ..midi.ports import midi_names_json
-from ..presets import merged_data, read_file, read_preset
+from ..presets.preset import merged_data, read_file, read_preset
 from ..ui import startup
 from .app import App
 from .platform_info import exit_with_message

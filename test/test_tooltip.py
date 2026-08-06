@@ -7,12 +7,11 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from pydantic import BaseModel
 
-import tuney.ui.control_panel
-import tuney.ui.control_panel_visibility
 from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
+from tuney.ui import control_panel, control_panel_visibility
 from tuney.ui.layout import REPLAY_TOOLTIPS
 from tuney.ui.tooltip import Tooltip
 from tuney.ui.transport import TOOLTIPS
@@ -34,23 +33,21 @@ class _Widget:
 
 
 def test_field_help_uses_tyro_help_text() -> None:
-    assert tuney.ui.control_panel._field_help(Tuney, 'max_gap') == (
+    assert control_panel._field_help(Tuney, 'max_gap') == (
         'Maximum silent gap to keep in recordings, in seconds'
     )
-    assert (
-        tuney.ui.control_panel._field_help(Scale, 'note_names') == 'The base note names'
-    )
+    assert control_panel._field_help(Scale, 'note_names') == 'The base note names'
 
 
 def test_field_name_is_used_when_help_is_missing() -> None:
-    assert tuney.ui.control_panel._field_hover_text(Mapper, 'map') == 'map'
+    assert control_panel._field_hover_text(Mapper, 'map') == 'map'
 
 
 def test_enum_hover_text_uses_member_comment_or_name() -> None:
-    assert tuney.ui.control_panel._enum_hover_text(TooltipEnum.alpha) == (
+    assert control_panel._enum_hover_text(TooltipEnum.alpha) == (
         'Alpha tooltip text\nwith preserved line break'
     )
-    assert tuney.ui.control_panel._enum_hover_text(TooltipEnum.beta) == 'beta'
+    assert control_panel._enum_hover_text(TooltipEnum.beta) == 'beta'
 
 
 def test_enum_radio_buttons_have_member_tooltips() -> None:
@@ -58,7 +55,7 @@ def test_enum_radio_buttons_have_member_tooltips() -> None:
 
     _ = QApplication.instance() or QApplication([])
     parent = QWidget()
-    panel = tuney.ui.control_panel.ControlPanel(parent, Tuning())
+    panel = control_panel.ControlPanel(parent, Tuning())
     radios = panel.findChildren(QRadioButton)
 
     assert {
@@ -75,17 +72,17 @@ def test_enum_radio_buttons_have_member_tooltips() -> None:
 
 
 def test_hover_text_rewraps_lines_and_preserves_paragraphs() -> None:
-    assert tuney.ui.control_panel._rewrap_hover_text(
+    assert control_panel._rewrap_hover_text(
         'first line\nsecond line\n\nnext paragraph'
     ) == ('first line second line\n\nnext paragraph')
-    assert tuney.ui.control_panel._field_hover_text(Scale, 'notes').count('\n') == 2
+    assert control_panel._field_hover_text(Scale, 'notes').count('\n') == 2
 
 
 def test_tooltips_bind_only_to_leaf_widgets() -> None:
     first, second = _Widget(), _Widget()
     root = _Widget(_Widget(first), second)
 
-    assert tuney.ui.control_panel._field_widgets(root) == [first, second]
+    assert control_panel._field_widgets(root) == [first, second]
 
 
 def test_field_widgets_walks_qt_leaf_widgets() -> None:
@@ -101,19 +98,19 @@ def test_field_widgets_walks_qt_leaf_widgets() -> None:
     layout.addWidget(middle)
     layout.addWidget(second)
 
-    assert tuney.ui.control_panel._field_widgets(root) == [first, second]
+    assert control_panel._field_widgets(root) == [first, second]
 
 
 def test_all_visible_fields_have_hover_text() -> None:
     root = Tuney()
-    controls = list(tuney.ui.control_panel._general_controls(root))
+    controls = list(control_panel._general_controls(root))
 
     def walk(data: BaseModel) -> None:
         controls.extend(
             (data, name)
-            for name in tuney.ui.control_panel_visibility._visible_control_names(data)
+            for name in control_panel_visibility._visible_control_names(data)
         )
-        for name in tuney.ui.control_panel_visibility._visible_child_names(data):
+        for name in control_panel_visibility._visible_child_names(data):
             walk(getattr(data, name))
 
     walk(root)
@@ -121,7 +118,7 @@ def test_all_visible_fields_have_hover_text() -> None:
     assert [
         f'{type(data).__name__}.{name}'
         for data, name in controls
-        if tuney.ui.control_panel._field_help(type(data), name) is None
+        if control_panel._field_help(type(data), name) is None
     ] == []
 
 

@@ -19,24 +19,24 @@ from ..app.runnable import start_thread
 from ..app.text_timing import edit_text_timing
 from ..midi.ports import direct_midi_names, midi_names
 from ..time.char_press import CharPress
-from . import (
-    error_dialogs,
-    file_commands,
-    key_events,
-    replay_controls,
-    startup,
-    tuning_files,
-)
+from . import error_dialogs
+from . import file_commands
+from . import key_events
+from . import replay_controls
+from . import startup
+from . import tuning_files
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History, WindowState
-from .key_events import eventFilter, keyPressEvent, keyReleaseEvent
 from .main_menu import build_menu
 from .theme import Theme, ThemeName, set_app_theme, theme_for_name
-from .tuning_files import on_export_tuning, on_import_tuning
 
 if TYPE_CHECKING:
     from ..app.app import App
+    from ..scale.ratios import Ratios
+    from ..scale.table import Table
+    from ..scale.tuning import Computed
+    from .state import StateChange
 
 QUEUE_POLL_IN_MS = 25
 SIGNAL_POLL_IN_MS = 100
@@ -133,8 +133,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.qt_app.installEventFilter(self)
         instrument('main window init end')
 
-    _get_open_file_name = get_open_file_name
-    _get_save_file_name = get_save_file_name
+    def _get_open_file_name(
+        self,
+        caption: str,
+        dialog_key: str,
+        filter_: str,
+    ) -> tuple[str, str]:
+        return get_open_file_name(self, caption, dialog_key, filter_)
+
+    def _get_save_file_name(
+        self,
+        caption: str,
+        dialog_key: str,
+        filter_: str,
+    ) -> tuple[str, str]:
+        return get_save_file_name(self, caption, dialog_key, filter_)
 
     def after(self, delay: int, callback: Callable[..., object], *args: object) -> str:
         after_id = f'after-{self._after_count}'
@@ -391,19 +404,38 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(self, 'Show Text Timings', str(error))
         self.update_text_display()
 
-    on_open_text_file = file_commands.on_open_text_file
-    on_save = file_commands.on_save
-    on_save_as_audio = file_commands.on_save_as_audio
-    on_save_preset = file_commands.on_save_preset
-    on_save_test_sheet = file_commands.on_save_test_sheet
-    on_delete_presets = file_commands.on_delete_presets
+    def on_open_text_file(self, *_: object) -> None:
+        file_commands.on_open_text_file(self, *_)
 
-    on_import_tuning = on_import_tuning
-    on_export_tuning = on_export_tuning
-    _set_tuning = tuning_files.set_tuning
-    _update_export_tuning_action = tuning_files.update_export_tuning_action
+    def on_save(self, *_: object) -> None:
+        file_commands.on_save(self, *_)
 
-    on_transport_state = replay_controls.on_transport_state
+    def on_save_as_audio(self, *_: object) -> None:
+        file_commands.on_save_as_audio(self, *_)
+
+    def on_save_preset(self, *_: object) -> None:
+        file_commands.on_save_preset(self, *_)
+
+    def on_save_test_sheet(self, *_: object) -> None:
+        file_commands.on_save_test_sheet(self, *_)
+
+    def on_delete_presets(self, *_: object) -> None:
+        file_commands.on_delete_presets(self, *_)
+
+    def on_import_tuning(self, *_: object) -> None:
+        tuning_files.on_import_tuning(self, *_)
+
+    def on_export_tuning(self, *_: object) -> None:
+        tuning_files.on_export_tuning(self, *_)
+
+    def _set_tuning(self, tuning: Computed | Ratios | Table) -> None:
+        tuning_files.set_tuning(self, tuning)
+
+    def _update_export_tuning_action(self) -> None:
+        tuning_files.update_export_tuning_action(self)
+
+    def on_transport_state(self, change: StateChange) -> bool:
+        return replay_controls.on_transport_state(self, change)
 
     def on_refresh_devices(self, *_: object) -> None:
         instrument('ui refresh devices')
@@ -417,22 +449,47 @@ class MainWindow(QtWidgets.QMainWindow):
         instrument('ui help')
         show_help(self)
 
-    on_show_log = error_dialogs.on_show_log
-    on_report_problem = error_dialogs.on_report_problem
-    show_restore_error = error_dialogs.show_restore_error
+    def on_show_log(self, *_: object) -> None:
+        error_dialogs.on_show_log(self, *_)
 
-    show_crash_report = error_dialogs.show_crash_report
-    show_audio_error = error_dialogs.show_audio_error
+    def on_report_problem(self, *_: object) -> None:
+        error_dialogs.on_report_problem(self, *_)
 
-    on_open_config_folder = file_commands.on_open_config_folder
-    on_trash_config_file = file_commands.on_trash_config_file
-    _config_path = file_commands.config_path
-    on_copy_from_state = file_commands.on_copy_from_state
-    on_paste_into_state = file_commands.on_paste_into_state
-    on_copy_text = file_commands.on_copy_text
-    on_paste_text = file_commands.on_paste_text
-    on_load_autosave = file_commands.on_load_autosave
-    on_swap_with_autosave = file_commands.on_swap_with_autosave
+    def show_restore_error(self, error: BaseException) -> None:
+        error_dialogs.show_restore_error(self, error)
+
+    def show_crash_report(self) -> None:
+        error_dialogs.show_crash_report(self)
+
+    def show_audio_error(self, error: str) -> None:
+        error_dialogs.show_audio_error(self, error)
+
+    def on_open_config_folder(self, *_: object) -> None:
+        file_commands.on_open_config_folder(self, *_)
+
+    def on_trash_config_file(self, *_: object) -> None:
+        file_commands.on_trash_config_file(self, *_)
+
+    def _config_path(self) -> Path:
+        return file_commands.config_path(self)
+
+    def on_copy_from_state(self, *_: object) -> None:
+        file_commands.on_copy_from_state(self, *_)
+
+    def on_paste_into_state(self, *_: object) -> None:
+        file_commands.on_paste_into_state(self, *_)
+
+    def on_copy_text(self, *_: object) -> None:
+        file_commands.on_copy_text(self, *_)
+
+    def on_paste_text(self, *_: object) -> None:
+        file_commands.on_paste_text(self, *_)
+
+    def on_load_autosave(self, checked: bool) -> None:
+        file_commands.on_load_autosave(self, checked)
+
+    def on_swap_with_autosave(self, *_: object) -> None:
+        file_commands.on_swap_with_autosave(self, *_)
 
     def update_text_display(self) -> None:
         instrument('ui update text display', timings=self.app.show_text_timings)
@@ -472,10 +529,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self._has_focus = self.isActiveWindow()
         super().focusOutEvent(event)
 
-    keyPressEvent = keyPressEvent
-    keyReleaseEvent = keyReleaseEvent
-    eventFilter = eventFilter
-    _on_key_event = key_events.on_key_event
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        key_events.keyPressEvent(self, event)
+
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent) -> None:
+        key_events.keyReleaseEvent(self, event)
+
+    def eventFilter(self, source: QObject, event: QEvent) -> bool:
+        return key_events.eventFilter(self, source, event)
+
+    def _on_key_event(self, event: QtGui.QKeyEvent, is_press: bool) -> bool:
+        return key_events.on_key_event(self, event, is_press)
 
     @cached_property
     def menu(self):
@@ -493,16 +557,34 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(self, 'dark_mode_action'):
             self.dark_mode_action.setChecked(self.current_theme.name == ThemeName.dark)
 
-    is_replaying = property(
-        replay_controls.is_replaying, replay_controls.set_is_replaying
-    )
-    on_replay = replay_controls.on_replay
-    on_loop_replay = replay_controls.on_loop_replay
-    on_master_gain = replay_controls.on_master_gain
-    on_loop_tempo = replay_controls.on_loop_tempo
-    on_loop_before = replay_controls.on_loop_before
-    on_loop_after = replay_controls.on_loop_after
-    on_randomize_on_each_loop = replay_controls.on_randomize_on_each_loop
+    @property
+    def is_replaying(self) -> bool:
+        return replay_controls.is_replaying(self)
+
+    @is_replaying.setter
+    def is_replaying(self, value: bool) -> None:
+        replay_controls.set_is_replaying(self, value)
+
+    def on_replay(self, *_: object) -> None:
+        replay_controls.on_replay(self, *_)
+
+    def on_loop_replay(self, checked: bool) -> None:
+        replay_controls.on_loop_replay(self, checked)
+
+    def on_master_gain(self, master_gain: float) -> None:
+        replay_controls.on_master_gain(self, master_gain)
+
+    def on_loop_tempo(self, tempo: float | str) -> None:
+        replay_controls.on_loop_tempo(self, tempo)
+
+    def on_loop_before(self, before: str) -> None:
+        replay_controls.on_loop_before(self, before)
+
+    def on_loop_after(self, after: str) -> None:
+        replay_controls.on_loop_after(self, after)
+
+    def on_randomize_on_each_loop(self, checked: bool) -> None:
+        replay_controls.on_randomize_on_each_loop(self, checked)
 
     def _handle_queue(self) -> None:
         while not self.key_queue.empty():

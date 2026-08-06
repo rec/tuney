@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from ..app.key_recorder import KeyRecorder
-from ..presets import restore_user_preset_snapshot, user_preset_snapshot
+from ..presets.preset import restore_user_preset_snapshot, user_preset_snapshot
 
 if TYPE_CHECKING:
     from .main_window import MainWindow

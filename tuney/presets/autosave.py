@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..app.platform_info import app_state_dir
 from ..ui.startup import startup_modifier_held
-from . import read_file
+from .preset import read_file
 
 if TYPE_CHECKING:
     from ..app.app import App

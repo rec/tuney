@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import DTypeLike
 from pydantic import BaseModel, Field
 
-from ..scale import NoteNumber
+from ..scale.number import NoteNumber
 from .polyphony import Polyphony
 from .voice import Voice, VoiceState
 

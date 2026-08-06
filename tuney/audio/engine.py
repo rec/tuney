@@ -10,7 +10,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..app.platform_info import instrument, trace
-from ..scale import NoteNumber
+from ..scale.number import NoteNumber
 from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress

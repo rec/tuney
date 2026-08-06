@@ -1,44 +1,42 @@
 import pytest
 
-import tuney.presets
 from tuney.app.app import App
+from tuney.presets import preset
 from tuney.time.char_press import CharPress
 
 
 def test_bundled_presets_are_listed() -> None:
     assert {'ambient-text', 'midi-controller', 'white-notes'} <= set(
-        tuney.presets.preset_names()
+        preset.preset_names()
     )
-    assert 'white-notes.scale' not in tuney.presets.preset_names()
-    assert 'just-14.tuning' not in tuney.presets.preset_names()
+    assert 'white-notes.scale' not in preset.preset_names()
+    assert 'just-14.tuning' not in preset.preset_names()
 
 
 def test_bundled_preset_loads_partial_config() -> None:
-    assert tuney.presets.read_preset('white-notes') == {'scale': {'notes': 'ABCDEFG'}}
+    assert preset.read_preset('white-notes') == {'scale': {'notes': 'ABCDEFG'}}
 
 
 def test_bundled_section_presets_are_listed_and_loaded() -> None:
-    assert 'white-notes' in tuney.presets.section_preset_names('scale')
-    assert tuney.presets.read_section_preset('scale', 'white-notes') == {
-        'notes': 'ABCDEFG'
-    }
-    assert 'just-14' in tuney.presets.section_preset_names('tuning')
-    assert tuney.presets.read_section_preset('tuning', 'just-14') == {
+    assert 'white-notes' in preset.section_preset_names('scale')
+    assert preset.read_section_preset('scale', 'white-notes') == {'notes': 'ABCDEFG'}
+    assert 'just-14' in preset.section_preset_names('tuning')
+    assert preset.read_section_preset('tuning', 'just-14') == {
         'type': 'computed',
         'computed': {'limit': 14},
     }
     with pytest.raises(ValueError, match='Unknown preset white-notes.scale'):
-        tuney.presets.read_preset('white-notes.scale')
+        preset.read_preset('white-notes.scale')
 
 
 def test_section_presets_use_double_suffix(monkeypatch, tmp_path) -> None:
     (tmp_path / 'mine.scale.toml').write_text('[scale]\nroot = "D"\n')
     (tmp_path / 'mine.toml').write_text('max_gap = 2.0\n')
-    monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
 
-    assert tuney.presets.section_preset_names('scale') == ['mine', 'white-notes']
-    assert tuney.presets.read_section_preset('scale', 'mine') == {'root': 'D'}
-    assert tuney.presets.preset_names() == [
+    assert preset.section_preset_names('scale') == ['mine', 'white-notes']
+    assert preset.read_section_preset('scale', 'mine') == {'root': 'D'}
+    assert preset.preset_names() == [
         'mine',
         'ambient-text',
         'midi-controller',
@@ -49,26 +47,26 @@ def test_section_presets_use_double_suffix(monkeypatch, tmp_path) -> None:
 def test_preset_rejects_text_data(monkeypatch, tmp_path) -> None:
     path = tmp_path / 'bad.toml'
     path.write_text('text = "not a preset"\n')
-    monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
 
     with pytest.raises(ValueError, match='must not contain text'):
-        tuney.presets.read_preset('bad')
+        preset.read_preset('bad')
 
 
 def test_user_presets_can_be_written_deleted_and_restored(
     monkeypatch, tmp_path
 ) -> None:
-    monkeypatch.setattr('tuney.presets.USER_PRESETS', tmp_path)
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
 
-    tuney.presets.write_preset('mine', {'max_gap': 2.0, 'text': 'not a preset'})
-    snapshot = tuney.presets.user_preset_snapshot()
-    tuney.presets.delete_presets(['mine'])
+    preset.write_preset('mine', {'max_gap': 2.0, 'text': 'not a preset'})
+    snapshot = preset.user_preset_snapshot()
+    preset.delete_presets(['mine'])
 
     assert not (tmp_path / 'mine.toml').exists()
 
-    tuney.presets.restore_user_preset_snapshot(snapshot)
+    preset.restore_user_preset_snapshot(snapshot)
 
-    assert tuney.presets.read_preset('mine') == {'max_gap': 2.0}
+    assert preset.read_preset('mine') == {'max_gap': 2.0}
 
 
 def test_tuney_applies_preset_without_clearing_recorded_text() -> None:

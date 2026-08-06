@@ -10,7 +10,8 @@ from pydantic import BaseModel, model_validator
 from ..app.platform_info import report_error
 from ..config.annotations import Display
 from ..config.text_file import read_text_file
-from . import Number, evaluate, uncents
+from . import evaluate
+from .number import Number, uncents
 
 
 class Ratios(BaseModel):

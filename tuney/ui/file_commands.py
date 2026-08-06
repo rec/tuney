@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QMessageBox
 
 from ..app.platform_info import instrument
 from ..audio.test_sheet import render_test_sheet
-from ..presets import delete_presets, read_file, write_preset
+from ..presets.preset import delete_presets, read_file, write_preset
 from . import main_menu
 from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
 

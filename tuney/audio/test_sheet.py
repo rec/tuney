@@ -10,7 +10,7 @@ import numpy as np
 import tomlkit
 
 from ..config.serialize import serialize
-from ..presets import merged_data, read_preset
+from ..presets.preset import merged_data, read_preset
 from .mixer import Mixer, NotePress
 from .speech import SpeechPhrase, SpeechRequest, render_speech
 

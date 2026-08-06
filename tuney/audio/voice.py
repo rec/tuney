@@ -5,7 +5,7 @@ from functools import cached_property
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..time import Seconds
+from ..time.units import Seconds
 from .oscillator import Oscillator
 from .sound import Binaural
 

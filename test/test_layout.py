@@ -1,21 +1,17 @@
 from pytest import MonkeyPatch
 
-import tuney.ui.layout
-import tuney.ui.main_menu
-import tuney.ui.main_window
-import tuney.ui.theme
 from tuney.app.global_config import GlobalConfig
+from tuney.ui import layout, main_menu, main_window, theme
 from tuney.ui.control_panel_layout import _FlowLayout
-from tuney.ui.layout import Layout
 
 
 def test_normal_play_cursor_shows_at_text_end() -> None:
-    layout = Layout.__new__(Layout)
+    ui_layout = layout.Layout.__new__(layout.Layout)
     textbox = _FakeTextBox('abc')
-    layout.textbox = textbox
-    layout.text_stack = _FakeTextStack(textbox)
+    ui_layout.textbox = textbox
+    ui_layout.text_stack = _FakeTextStack(textbox)
 
-    layout.set_play_cursor(None)
+    ui_layout.set_play_cursor(None)
 
     assert textbox.clear_focus_count == 0
     assert textbox.cursor.position == 3
@@ -23,12 +19,12 @@ def test_normal_play_cursor_shows_at_text_end() -> None:
 
 
 def test_normal_play_cursor_ignores_hidden_textbox() -> None:
-    layout = Layout.__new__(Layout)
+    ui_layout = layout.Layout.__new__(layout.Layout)
     textbox = _FakeTextBox('abc')
-    layout.textbox = textbox
-    layout.text_stack = _FakeTextStack(object())
+    ui_layout.textbox = textbox
+    ui_layout.text_stack = _FakeTextStack(object())
 
-    layout.set_play_cursor(None)
+    ui_layout.set_play_cursor(None)
 
     assert textbox.cursor.position is None
     assert textbox.focus_count == 0
@@ -40,25 +36,25 @@ def test_note_grid_reuses_buttons() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.note_grid_widget = QWidget()
-    layout.note_grid = QGridLayout(layout.note_grid_widget)
-    layout.splitter = _FakeSplitter()
-    layout.__dict__['note_button_cache'] = {}
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.note_grid_widget = QWidget()
+    ui_layout.note_grid = QGridLayout(ui_layout.note_grid_widget)
+    ui_layout.splitter = _FakeSplitter()
+    ui_layout.__dict__['note_button_cache'] = {}
 
-    layout.rebuild_note_grid()
-    first_a = layout.note_buttons['a']
-    first_b = layout.note_buttons['b']
+    ui_layout.rebuild_note_grid()
+    first_a = ui_layout.note_buttons['a']
+    first_b = ui_layout.note_buttons['b']
 
-    layout.main_window.app.labels = {'a': 'A2'}
-    layout.rebuild_note_grid()
+    ui_layout.main_window.app.labels = {'a': 'A2'}
+    ui_layout.rebuild_note_grid()
 
-    assert layout.note_buttons == {'a': first_a}
-    assert layout.note_buttons['a'].note_name == 'A2'
-    assert layout.note_buttons['a'].tooltip.text == 'A2\n440 Hz'
+    assert ui_layout.note_buttons == {'a': first_a}
+    assert ui_layout.note_buttons['a'].note_name == 'A2'
+    assert ui_layout.note_buttons['a'].tooltip.text == 'A2\n440 Hz'
     assert first_b.isHidden()
-    assert first_b.parent() is layout.note_grid_widget
+    assert first_b.parent() is ui_layout.note_grid_widget
 
 
 def test_note_grid_tooltips_include_note_frequency() -> None:
@@ -67,17 +63,17 @@ def test_note_grid_tooltips_include_note_frequency() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.note_grid_widget = QWidget()
-    layout.note_grid = QGridLayout(layout.note_grid_widget)
-    layout.splitter = _FakeSplitter()
-    layout.__dict__['note_button_cache'] = {}
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.note_grid_widget = QWidget()
+    ui_layout.note_grid = QGridLayout(ui_layout.note_grid_widget)
+    ui_layout.splitter = _FakeSplitter()
+    ui_layout.__dict__['note_button_cache'] = {}
 
-    layout.rebuild_note_grid()
+    ui_layout.rebuild_note_grid()
 
-    assert layout.note_buttons['a'].tooltip.text == 'A\n440 Hz'
-    assert layout.note_buttons['b'].tooltip.text == 'B\n466.164 Hz'
+    assert ui_layout.note_buttons['a'].tooltip.text == 'A\n440 Hz'
+    assert ui_layout.note_buttons['b'].tooltip.text == 'B\n466.164 Hz'
 
 
 def test_note_grid_updates_program_minimum_height() -> None:
@@ -86,39 +82,36 @@ def test_note_grid_updates_program_minimum_height() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.note_grid_widget = QWidget()
-    layout.note_grid = QGridLayout(layout.note_grid_widget)
-    layout.splitter = _FakeSplitter()
-    layout.__dict__['note_button_cache'] = {}
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.note_grid_widget = QWidget()
+    ui_layout.note_grid = QGridLayout(ui_layout.note_grid_widget)
+    ui_layout.splitter = _FakeSplitter()
+    ui_layout.__dict__['note_button_cache'] = {}
 
-    layout.rebuild_note_grid()
+    ui_layout.rebuild_note_grid()
 
-    assert layout.note_grid_widget.minimumHeight() == tuney.ui.layout.MIN_BUTTON_HEIGHT
-    assert layout.main_window.minimum_content_height == (
-        tuney.ui.layout._minimum_program_height(1, _FakeSplitter.handle_width)
+    assert ui_layout.note_grid_widget.minimumHeight() == layout.MIN_BUTTON_HEIGHT
+    assert ui_layout.main_window.minimum_content_height == (
+        layout._minimum_program_height(1, _FakeSplitter.handle_width)
     )
-    assert layout.main_window.enforce_minimum_size_count == 1
+    assert ui_layout.main_window.enforce_minimum_size_count == 1
 
 
 def test_program_minimum_size_resizes_without_qt_minimum_constraints() -> None:
-    assert tuney.ui.main_window.MIN_PROGRAM_WIDTH == 500
+    assert main_window.MIN_PROGRAM_WIDTH == 500
 
     window = _FakeResizeWindow(width=320, height=120, minimum_content_height=360)
 
-    tuney.ui.main_window.MainWindow.enforce_minimum_size(window)
+    main_window.MainWindow.enforce_minimum_size(window)
 
     assert window.sizes == [(500, 360)]
 
 
 def test_theme_lookup_returns_light_and_dark_palettes() -> None:
-    assert (
-        tuney.ui.theme.theme_for_name(tuney.ui.theme.ThemeName.light)
-        is tuney.ui.theme.LIGHT_THEME
-    )
-    assert tuney.ui.theme.theme_for_name('dark') is tuney.ui.theme.DARK_THEME
-    assert tuney.ui.theme.theme_for_name('unknown') is tuney.ui.theme.LIGHT_THEME
+    assert theme.theme_for_name(theme.ThemeName.light) is theme.LIGHT_THEME
+    assert theme.theme_for_name('dark') is theme.DARK_THEME
+    assert theme.theme_for_name('unknown') is theme.LIGHT_THEME
 
 
 def test_app_theme_sets_palette_roles() -> None:
@@ -138,7 +131,7 @@ def test_app_theme_sets_palette_roles() -> None:
         palette.setColor(role, QColor('#000000'))
     app.setPalette(palette)
 
-    tuney.ui.theme.set_app_theme(app, tuney.ui.theme.DARK_THEME)
+    theme.set_app_theme(app, theme.DARK_THEME)
 
     for role in (
         QPalette.ColorRole.AlternateBase,
@@ -147,17 +140,17 @@ def test_app_theme_sets_palette_roles() -> None:
         QPalette.ColorRole.Window,
     ):
         assert app.palette().color(role).name() in {
-            tuney.ui.theme.DARK_THEME.alternate_base,
-            tuney.ui.theme.DARK_THEME.base,
-            tuney.ui.theme.DARK_THEME.button,
-            tuney.ui.theme.DARK_THEME.window,
+            theme.DARK_THEME.alternate_base,
+            theme.DARK_THEME.base,
+            theme.DARK_THEME.button,
+            theme.DARK_THEME.window,
         }
     for role in (
         QPalette.ColorRole.ButtonText,
         QPalette.ColorRole.Text,
         QPalette.ColorRole.WindowText,
     ):
-        assert app.palette().color(role).name() == tuney.ui.theme.DARK_THEME.text
+        assert app.palette().color(role).name() == theme.DARK_THEME.text
 
 
 def test_dark_mode_menu_action_reflects_global_config_theme() -> None:
@@ -165,9 +158,9 @@ def test_dark_mode_menu_action_reflects_global_config_theme() -> None:
 
     if QApplication.instance() is None:
         QApplication([])
-    window = _FakeMenuWindow(tuney.ui.theme.ThemeName.dark)
+    window = _FakeMenuWindow(theme.ThemeName.dark)
 
-    tuney.ui.main_menu.build_menu(window)
+    main_menu.build_menu(window)
 
     assert window.dark_mode_action.isChecked()
 
@@ -182,13 +175,13 @@ def test_dark_mode_toggle_saves_theme_and_refreshes_widgets(tmp_path) -> None:
     config = GlobalConfig(file=tmp_path / 'global.toml')
     window = _FakeThemeWindow(config, qt_app)
 
-    tuney.ui.main_window.MainWindow.on_dark_mode(window, True)
+    main_window.MainWindow.on_dark_mode(window, True)
 
-    assert GlobalConfig.read(config.path).theme == tuney.ui.theme.ThemeName.dark
+    assert GlobalConfig.read(config.path).theme == theme.ThemeName.dark
     assert window.refresh_count == 1
     assert (
         qt_app.palette().color(QPalette.ColorRole.Window).name()
-        == tuney.ui.theme.DARK_THEME.window
+        == theme.DARK_THEME.window
     )
 
 
@@ -198,22 +191,18 @@ def test_program_minimum_size_enforcement_waits_for_mouse_release(
     window = _FakeResizeWindow(width=320, height=120, minimum_content_height=360)
     timer = _FakeMinimumSizeTimer()
     window._minimum_size_timer = timer
-    monkeypatch.setattr(
-        tuney.ui.main_window.QtWidgets, 'QApplication', _FakePressedApplication
-    )
+    monkeypatch.setattr(main_window.QtWidgets, 'QApplication', _FakePressedApplication)
 
-    tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
+    main_window.MainWindow._enforce_minimum_size_after_resize(window)
 
-    assert timer.delays == [tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
+    assert timer.delays == [main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
     assert window.sizes == []
 
-    monkeypatch.setattr(
-        tuney.ui.main_window.QtWidgets, 'QApplication', _FakeReleasedApplication
-    )
+    monkeypatch.setattr(main_window.QtWidgets, 'QApplication', _FakeReleasedApplication)
 
-    tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
+    main_window.MainWindow._enforce_minimum_size_after_resize(window)
 
-    assert timer.delays == [tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
+    assert timer.delays == [main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
     assert window.sizes == [(500, 360)]
 
 
@@ -229,12 +218,12 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.text_area = QWidget()
-    layout.text_area_layout = QVBoxLayout(layout.text_area)
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.text_area = QWidget()
+    ui_layout.text_area_layout = QVBoxLayout(ui_layout.text_area)
 
-    frame = Layout.replay_frame.func(layout)
+    frame = layout.Layout.replay_frame.func(ui_layout)
     spin = frame.findChild(QDoubleSpinBox, 'master_gain')
     dial = frame.findChild(QDial, 'master_gain_dial')
 
@@ -248,12 +237,12 @@ def test_master_gain_has_numeric_box_synced_with_dial() -> None:
     spin.setValue(0.5)
 
     assert dial.value() == 50
-    assert layout.main_window.master_gains[-1] == 0.5
+    assert ui_layout.main_window.master_gains[-1] == 0.5
 
     dial.setValue(75)
 
     assert spin.value() == 0.75
-    assert layout.main_window.master_gains[-1] == 0.75
+    assert ui_layout.main_window.master_gains[-1] == 0.75
 
 
 def test_replay_frame_uses_dynamic_flow_layout() -> None:
@@ -262,15 +251,15 @@ def test_replay_frame_uses_dynamic_flow_layout() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.text_area = QWidget()
-    layout.text_area_layout = QVBoxLayout(layout.text_area)
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.text_area = QWidget()
+    ui_layout.text_area_layout = QVBoxLayout(ui_layout.text_area)
 
-    frame = Layout.replay_frame.func(layout)
+    frame = layout.Layout.replay_frame.func(ui_layout)
 
     assert isinstance(frame.layout(), _FlowLayout)
-    assert frame.minimumHeight() == tuney.ui.layout.REPLAY_FRAME_HEIGHT
+    assert frame.minimumHeight() == layout.REPLAY_FRAME_HEIGHT
     assert frame.minimumHeight() != frame.maximumHeight()
 
 
@@ -286,12 +275,12 @@ def test_loop_tempo_accepts_values_below_one() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.text_area = QWidget()
-    layout.text_area_layout = QVBoxLayout(layout.text_area)
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.text_area = QWidget()
+    ui_layout.text_area_layout = QVBoxLayout(ui_layout.text_area)
 
-    frame = Layout.loop_controls.func(layout)
+    frame = layout.Layout.loop_controls.func(ui_layout)
     spin = frame.findChild(QDoubleSpinBox)
 
     assert spin is not None
@@ -302,14 +291,14 @@ def test_loop_tempo_accepts_values_below_one() -> None:
     assert clock is not None
     assert clock.text() == '0:00.0'
 
-    layout.set_loop_clock(65_432)
+    ui_layout.set_loop_clock(65_432)
 
     assert clock.text() == '1:05.4'
 
     spin.setValue(0.5)
     spin.editingFinished.emit()
 
-    assert layout.main_window.loop_tempos == [0.5]
+    assert ui_layout.main_window.loop_tempos == [0.5]
 
 
 def test_loop_controls_use_dynamic_flow_layout() -> None:
@@ -318,15 +307,15 @@ def test_loop_controls_use_dynamic_flow_layout() -> None:
     if QApplication.instance() is None:
         QApplication([])
 
-    layout = Layout.__new__(Layout)
-    layout.main_window = _FakeMainWindow()
-    layout.text_area = QWidget()
-    layout.text_area_layout = QVBoxLayout(layout.text_area)
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout.main_window = _FakeMainWindow()
+    ui_layout.text_area = QWidget()
+    ui_layout.text_area_layout = QVBoxLayout(ui_layout.text_area)
 
-    frame = Layout.loop_controls.func(layout)
+    frame = layout.Layout.loop_controls.func(ui_layout)
 
     assert isinstance(frame.layout(), _FlowLayout)
-    assert frame.minimumHeight() == tuney.ui.layout.LOOP_CONTROLS_HEIGHT
+    assert frame.minimumHeight() == layout.LOOP_CONTROLS_HEIGHT
     assert frame.minimumHeight() != frame.maximumHeight()
 
 
@@ -338,19 +327,19 @@ def test_finish_startup_layout_reveals_after_deferred_build() -> None:
         QApplication([])
 
     calls: list[str] = []
-    layout = Layout.__new__(Layout)
-    QWidget.__init__(layout)
-    layout.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
-    layout.hide()
-    layout.setEnabled(False)
-    layout.control_panel = _FakeStartupControlPanel(calls)
-    layout.root = _FakeStartupRoot(calls)
-    layout.splitter = _FakeStartupSplitter(calls)
-    layout.main_window = _FakeStartupMainWindow(calls)
-    layout.rebuild_note_grid = lambda: calls.append('grid')
-    layout.refresh_note_button_fonts = lambda: calls.append('fonts')
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    QWidget.__init__(ui_layout)
+    ui_layout.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    ui_layout.hide()
+    ui_layout.setEnabled(False)
+    ui_layout.control_panel = _FakeStartupControlPanel(calls)
+    ui_layout.root = _FakeStartupRoot(calls)
+    ui_layout.splitter = _FakeStartupSplitter(calls)
+    ui_layout.main_window = _FakeStartupMainWindow(calls)
+    ui_layout.rebuild_note_grid = lambda: calls.append('grid')
+    ui_layout.refresh_note_button_fonts = lambda: calls.append('fonts')
 
-    Layout.finish_startup_layout(layout)
+    layout.Layout.finish_startup_layout(ui_layout)
 
     assert calls == [
         'control_panel',
@@ -361,33 +350,33 @@ def test_finish_startup_layout_reveals_after_deferred_build() -> None:
         'fonts',
         'focus',
     ]
-    assert layout.isEnabled()
-    assert not layout.isHidden()
+    assert ui_layout.isEnabled()
+    assert not ui_layout.isHidden()
 
 
 def test_note_font_refresh_is_debounced_during_resize(monkeypatch) -> None:
     callbacks = []
     calls = []
-    layout = Layout.__new__(Layout)
-    layout._note_font_refresh_pending = False
-    layout.refresh_note_button_fonts = lambda: calls.append('fonts')
+    ui_layout = layout.Layout.__new__(layout.Layout)
+    ui_layout._note_font_refresh_pending = False
+    ui_layout.refresh_note_button_fonts = lambda: calls.append('fonts')
     monkeypatch.setattr(
-        tuney.ui.layout.QTimer,
+        layout.QTimer,
         'singleShot',
         lambda delay, callback: callbacks.append((delay, callback)),
     )
 
-    layout.schedule_note_button_font_refresh()
-    layout.schedule_note_button_font_refresh()
+    ui_layout.schedule_note_button_font_refresh()
+    ui_layout.schedule_note_button_font_refresh()
 
     assert len(callbacks) == 1
-    assert callbacks[0][0] == tuney.ui.layout.NOTE_FONT_REFRESH_DELAY_MS
+    assert callbacks[0][0] == layout.NOTE_FONT_REFRESH_DELAY_MS
     assert calls == []
 
     callbacks[0][1]()
 
     assert calls == ['fonts']
-    assert not layout._note_font_refresh_pending
+    assert not ui_layout._note_font_refresh_pending
 
 
 class _FakeScale:
@@ -433,7 +422,7 @@ class _FakeMainWindow:
 
     @property
     def current_theme(self):
-        return tuney.ui.theme.LIGHT_THEME
+        return theme.LIGHT_THEME
 
     def on_transport_state(self, *_: object) -> bool:
         return True
@@ -488,12 +477,10 @@ class _FakeResizeWindow:
         self._height = height
 
     def schedule_minimum_size_enforcement(self) -> None:
-        self._minimum_size_timer.start(
-            tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS
-        )
+        self._minimum_size_timer.start(main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS)
 
     def enforce_minimum_size(self) -> None:
-        width = max(self.width(), tuney.ui.main_window.MIN_PROGRAM_WIDTH)
+        width = max(self.width(), main_window.MIN_PROGRAM_WIDTH)
         height = max(self.height(), self.minimum_content_height)
         if width != self.width() or height != self.height():
             self.resize(width, height)
@@ -509,14 +496,14 @@ class _FakeMinimumSizeTimer:
 
 class _FakePressedApplication:
     @staticmethod
-    def mouseButtons() -> tuney.ui.main_window.Qt.MouseButton:
-        return tuney.ui.main_window.Qt.MouseButton.LeftButton
+    def mouseButtons() -> main_window.Qt.MouseButton:
+        return main_window.Qt.MouseButton.LeftButton
 
 
 class _FakeReleasedApplication:
     @staticmethod
-    def mouseButtons() -> tuney.ui.main_window.Qt.MouseButton:
-        return tuney.ui.main_window.Qt.MouseButton.NoButton
+    def mouseButtons() -> main_window.Qt.MouseButton:
+        return main_window.Qt.MouseButton.NoButton
 
 
 class _FakeMenuHistory:
@@ -528,7 +515,7 @@ class _FakeMenuHistory:
 
 
 class _FakeMenuApp:
-    def __init__(self, theme: tuney.ui.theme.ThemeName) -> None:
+    def __init__(self, theme: theme.ThemeName) -> None:
         self.global_config = GlobalConfig(theme=theme)
         self.show_text_timings = False
         self.load_autosave = True
@@ -538,7 +525,7 @@ class _FakeMenuApp:
 
 
 class _FakeMenuWindow:
-    def __init__(self, theme: tuney.ui.theme.ThemeName) -> None:
+    def __init__(self, theme: theme.ThemeName) -> None:
         from PySide6.QtWidgets import QMainWindow
 
         self._window = QMainWindow()
@@ -553,7 +540,7 @@ class _FakeMenuWindow:
 
     @property
     def current_theme(self):
-        return tuney.ui.theme.theme_for_name(self.app.global_config.theme)
+        return theme.theme_for_name(self.app.global_config.theme)
 
     def __getattr__(self, name: str):
         if name.startswith('on_'):
@@ -584,7 +571,7 @@ class _FakeThemeWindow:
 
     @property
     def current_theme(self):
-        return tuney.ui.theme.theme_for_name(self.app.global_config.theme)
+        return theme.theme_for_name(self.app.global_config.theme)
 
     def sync_config_actions(self) -> None:
         self.sync_count += 1

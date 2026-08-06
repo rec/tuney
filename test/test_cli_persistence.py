@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
-import tuney.presets
-import tuney.time.sequencer
-from tuney.app import platform_info as pi
+from tuney.app import platform_info
 from tuney.app.app import App
 from tuney.app.main import main
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.presets import preset
+from tuney.time import sequencer
 from tuney.time.char_press import CharPress
 from tuney.ui import startup
 
@@ -111,7 +111,7 @@ def isolate_persistent_roots(
     monkeypatch.setenv('XDG_STATE_HOME', str(state_home))
     monkeypatch.setenv('XDG_CONFIG_HOME', str(config_home))
     monkeypatch.setattr(startup, 'autosave_file', state_home / 'tuney' / 'state.toml')
-    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', user_presets)
+    monkeypatch.setattr(preset, 'USER_PRESETS', user_presets)
     return [state_home, config_home, user_presets]
 
 
@@ -123,8 +123,8 @@ def mock_live_audio(monkeypatch: pytest.MonkeyPatch) -> None:
             clock[0] += timeout
         return False
 
-    monkeypatch.setattr(tuney.time.sequencer.time, 'time', lambda: clock[0])
-    monkeypatch.setattr(tuney.time.sequencer.Event, 'wait', wait)
+    monkeypatch.setattr(sequencer.time, 'time', lambda: clock[0])
+    monkeypatch.setattr(sequencer.Event, 'wait', wait)
     monkeypatch.setattr(Player, 'on_note', lambda self, note, is_press: True)
     monkeypatch.setattr(Player, 'stop_all', lambda self: None)
     monkeypatch.setattr(Player, 'wait', lambda self: None)
@@ -132,6 +132,6 @@ def mock_live_audio(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def assert_persistent_roots_are_empty(roots: list[Path]) -> None:
-    assert not pi.crash_marker_path().exists()
-    assert not pi.instance_lock_path().exists()
+    assert not platform_info.crash_marker_path().exists()
+    assert not platform_info.instance_lock_path().exists()
     assert [p for r in roots if r.exists() for p in r.rglob('*') if p.is_file()] == []

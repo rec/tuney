@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, PrivateAttr, field_validator
 
-from . import Seconds
+from .units import Seconds
 
 
 class CharPress(BaseModel):

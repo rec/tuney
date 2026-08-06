@@ -11,7 +11,7 @@ from ..audio.sound import Sound
 from ..audio.speech import voice_names
 from ..mapper.mapper import Mapper
 from ..midi.midi import Midi
-from ..presets import preset_names
+from ..presets.preset import preset_names
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from ..time.char_press import CharPress

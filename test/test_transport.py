@@ -1,6 +1,6 @@
 import pytest
 
-from tuney.ui import Action, State
+from tuney.ui.state import Action, State
 from tuney.ui.transport import Transport, _ready_state, _record_state
 
 

@@ -1,12 +1,12 @@
 import ast
 import math
-import operator as op
+import operator
 import random
 from collections.abc import Callable, Iterable
 from fractions import Fraction
 from functools import cached_property, singledispatchmethod
 
-from . import Number, cents
+from .number import Number, cents
 
 MODULES = {'math': math, 'random': random}
 FUNCTIONS = {'cents': cents}
@@ -123,10 +123,10 @@ class _Evaluate:
 
 
 BINARY_OPERATORS: dict[type[ast.operator], Callable[[Number, Number], Number]] = {
-    ast.Add: op.add,
-    ast.Sub: op.sub,
-    ast.Mult: op.mul,
-    ast.Div: op.truediv,
-    ast.Mod: op.mod,
-    ast.Pow: op.pow,
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
 }

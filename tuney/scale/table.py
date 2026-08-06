@@ -6,7 +6,8 @@ from typing import Annotated
 from pydantic import BaseModel
 
 from ..config.annotations import Display
-from . import Number, evaluate
+from . import evaluate
+from .number import Number
 
 type Frequency = float  # Must be non-negative
 

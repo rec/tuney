@@ -7,23 +7,22 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
 
-import tuney.presets
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
+from tuney.presets import preset
 from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
-from tuney.ui import (
-    error_dialogs,
-    file_commands,
-    file_dialogs,
-    key_events,
-    main_window,
-    preset_dialogs,
-    startup,
-)
+from tuney.ui import error_dialogs
+from tuney.ui import file_commands
+from tuney.ui import file_dialogs
+from tuney.ui import key_events
+from tuney.ui import layout
+from tuney.ui import main_window
+from tuney.ui import preset_dialogs
+from tuney.ui import startup
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
@@ -271,8 +270,6 @@ def test_app_mainloop_exits_on_sigint() -> None:
 def test_application_uses_cross_platform_style() -> None:
     from PySide6.QtWidgets import QWidget
 
-    import tuney.ui.layout
-
     class FakeControlPanel:
         show_advanced = True
 
@@ -315,12 +312,12 @@ def test_application_uses_cross_platform_style() -> None:
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'state.toml'
         startup.autosave_file = path
-        old_layout = tuney.ui.layout.Layout
+        old_layout = layout.Layout
         try:
-            tuney.ui.layout.Layout = FakeWindowLayout
+            layout.Layout = FakeWindowLayout
             window = MainWindow(App(gui=True, silent=True))
         finally:
-            tuney.ui.layout.Layout = old_layout
+            layout.Layout = old_layout
         app = window.qt_app
 
         assert window.app.main_window is window
@@ -541,7 +538,7 @@ def test_app_activate_and_history() -> None:
 
         assert app.app.max_gap == 2.0
         assert not app.app.load_autosave
-        assert App.model_validate(tuney.presets.read_file(path)).max_gap == 3.0
+        assert App.model_validate(preset.read_file(path)).max_gap == 3.0
         app.history.undo()
 
         assert app.app.max_gap == 3.0
@@ -862,12 +859,12 @@ def test_app_cancels_test_sheet_without_preset_selection() -> None:
 
 def test_app_saves_and_deletes_presets() -> None:
     app = HistoryApp()
-    old_user_presets = tuney.presets.USER_PRESETS
+    old_user_presets = preset.USER_PRESETS
     old_input_dialog = preset_dialogs.QtWidgets.QInputDialog
     old_selected_preset_names = file_commands.selected_preset_names
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            tuney.presets.USER_PRESETS = Path(tmp)
+            preset.USER_PRESETS = Path(tmp)
 
             class FakeInputDialog:
                 @staticmethod
@@ -881,7 +878,7 @@ def test_app_saves_and_deletes_presets() -> None:
 
             path = Path(tmp) / 'mine.toml'
             assert path.exists()
-            assert tuney.presets.read_preset('mine')['max_gap'] == 2.0
+            assert preset.read_preset('mine')['max_gap'] == 2.0
 
             file_commands.selected_preset_names = lambda _: ['mine']
 
@@ -897,7 +894,7 @@ def test_app_saves_and_deletes_presets() -> None:
 
             assert not path.exists()
     finally:
-        tuney.presets.USER_PRESETS = old_user_presets
+        preset.USER_PRESETS = old_user_presets
         preset_dialogs.QtWidgets.QInputDialog = old_input_dialog
         file_commands.selected_preset_names = old_selected_preset_names
 
@@ -1111,9 +1108,21 @@ class HistoryApp:
     def isFullScreen() -> bool:
         return False
 
-    geometry_log_data = MainWindow.geometry_log_data
+    def geometry_log_data(self) -> dict[str, object]:
+        return MainWindow.geometry_log_data(self)
 
-    _set_tuning = MainWindow._set_tuning
-    _get_open_file_name = MainWindow._get_open_file_name
-    _get_save_file_name = MainWindow._get_save_file_name
-    _config_path = MainWindow._config_path
+    def _set_tuning(self, tuning: object) -> None:
+        MainWindow._set_tuning(self, tuning)
+
+    def _get_open_file_name(
+        self, caption: str, dialog_key: str, filter_: str
+    ) -> tuple[str, str]:
+        return MainWindow._get_open_file_name(self, caption, dialog_key, filter_)
+
+    def _get_save_file_name(
+        self, caption: str, dialog_key: str, filter_: str
+    ) -> tuple[str, str]:
+        return MainWindow._get_save_file_name(self, caption, dialog_key, filter_)
+
+    def _config_path(self) -> Path:
+        return MainWindow._config_path(self)

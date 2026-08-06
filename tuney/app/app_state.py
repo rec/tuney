@@ -11,7 +11,7 @@ import tomlkit
 from ..audio.player import Player
 from ..config.serialize import serialize
 from ..config.text_file import read_text_file
-from ..presets import is_str_dict, merged_data, read_preset
+from ..presets.preset import is_str_dict, merged_data, read_preset
 from ..scale.accidentals import Accidentals
 from ..scale.tuning import Computed, Type
 from .app_members import AppMembers

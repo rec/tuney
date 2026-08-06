@@ -6,7 +6,7 @@ from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QPushButton, QWidget
 
-from . import Action, State, StateChange
+from .state import Action, State, StateChange
 from .theme import transport_hover_style, widget_theme
 from .tooltip import Tooltip
 

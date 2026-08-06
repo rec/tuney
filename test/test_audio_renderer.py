@@ -11,11 +11,8 @@ import sounddevice
 import soundfile
 from sounddevice import CallbackAbort, PortAudioError
 
-import tuney.audio.device
-import tuney.audio.test_sheet
-import tuney.presets
 from tuney.app.app import App
-from tuney.audio import speech
+from tuney.audio import device, speech, test_sheet
 from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
@@ -27,6 +24,7 @@ from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
 from tuney.audio.voice import Voice, VoiceState
+from tuney.presets import preset
 from tuney.scale.scale import Scale
 from tuney.time.char_press import CharPress
 
@@ -179,7 +177,7 @@ def test_engine_master_gain_accepts_integer_output_buffer() -> None:
 
 
 def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', tmp_path)
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
     (tmp_path / 'first.toml').write_text('max_gap = 1.0\n')
     (tmp_path / 'second.toml').write_text('max_gap = 2.0\n')
     speech_data = np.ones((SAMPLE_RATE // 2, 1), dtype=np.float32)
@@ -187,10 +185,10 @@ def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
     def render_speech(_: SpeechRequest) -> SpeechPlayback:
         return SpeechPlayback(data=speech_data, level=0.5)
 
-    monkeypatch.setattr(tuney.audio.test_sheet, 'render_speech', render_speech)
+    monkeypatch.setattr(test_sheet, 'render_speech', render_speech)
     path = tmp_path / 'test-sheet.wav'
 
-    tuney.audio.test_sheet.render_test_sheet(path, App(text=[]), ['first', 'second'])
+    test_sheet.render_test_sheet(path, App(text=[]), ['first', 'second'])
 
     data, sample_rate = soundfile.read(path, always_2d=True)
     assert sample_rate == SAMPLE_RATE
@@ -205,9 +203,9 @@ def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
 
 
 def test_test_sheet_preserves_live_app_state(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(tuney.presets, 'USER_PRESETS', tmp_path)
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
     (tmp_path / 'changed.toml').write_text('max_gap = 1.0\n')
-    monkeypatch.setattr(tuney.audio.test_sheet, 'render_speech', lambda _: None)
+    monkeypatch.setattr(test_sheet, 'render_speech', lambda _: None)
     app = App(
         text=[
             CharPress('a', time=0),
@@ -218,9 +216,7 @@ def test_test_sheet_preserves_live_app_state(monkeypatch, tmp_path) -> None:
     )
     char_presses = list(app.char_presses)
 
-    tuney.audio.test_sheet.render_test_sheet(
-        tmp_path / 'test-sheet.wav', app, ['changed']
-    )
+    test_sheet.render_test_sheet(tmp_path / 'test-sheet.wav', app, ['changed'])
 
     assert app.preset == 'original'
     assert app.max_gap == 3.0
@@ -596,7 +592,7 @@ def test_duplicate_output_device_name_uses_device_index(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     monkeypatch.setattr(
-        tuney.audio.device.sounddevice,
+        device.sounddevice,
         'query_devices',
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},
@@ -861,20 +857,22 @@ def test_engine_applies_stop_all_on_next_block() -> None:
 
 def test_engine_mixes_speech_playback() -> None:
     engine = AudioEngine(mixer=_renderer().mixer)
-    speech = SpeechPlayback(data=np.ones((8, 1), dtype=np.float32) * 0.25, level=2.0)
-    engine.submit(PlaySpeech(speech=speech))
+    speech_playback = SpeechPlayback(
+        data=np.ones((8, 1), dtype=np.float32) * 0.25, level=2.0
+    )
+    engine.submit(PlaySpeech(speech=speech_playback))
     out = np.zeros((4, 1), dtype=np.float32)
 
     engine.callback(out, len(out), None, None)
 
     np.testing.assert_allclose(out, 0.5)
-    assert engine.speech is speech
+    assert engine.speech is speech_playback
 
 
 def test_engine_clears_speech_playback_when_complete() -> None:
     engine = AudioEngine(mixer=_renderer().mixer)
-    speech = SpeechPlayback(data=np.ones((4, 1), dtype=np.float32), level=1.0)
-    engine.submit(PlaySpeech(speech=speech))
+    speech_playback = SpeechPlayback(data=np.ones((4, 1), dtype=np.float32), level=1.0)
+    engine.submit(PlaySpeech(speech=speech_playback))
 
     engine.callback(np.zeros((8, 1), dtype=np.float32), 8, None, None)
 

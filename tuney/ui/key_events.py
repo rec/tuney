@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 COMMAND_MODIFIERS = (
     Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier
 )
-OPTION_MODIFIER = Qt.KeyboardModifier.AltModifier
 KEY_TEXT = {
     Qt.Key.Key_Backspace: '\b',
     Qt.Key.Key_Enter: '\n',
@@ -58,10 +57,13 @@ def on_key_event(main_window: MainWindow, event: QKeyEvent, is_press: bool) -> b
     if is_press:
         modifiers = event.modifiers()
         if modifiers & COMMAND_MODIFIERS or (
-            modifiers & OPTION_MODIFIER and sys.platform != 'darwin'
+            modifiers & Qt.KeyboardModifier.AltModifier and sys.platform != 'darwin'
         ):
             c = ''
-        elif not modifiers & OPTION_MODIFIER and (key_value := Qt.Key(key)) in KEY_TEXT:
+        elif (
+            not modifiers & Qt.KeyboardModifier.AltModifier
+            and (key_value := Qt.Key(key)) in KEY_TEXT
+        ):
             c = KEY_TEXT[key_value]
         else:
             c = text if len(text := event.text()) == 1 else ''
@@ -83,7 +85,7 @@ def _handle_text_shortcut(
     modifiers = event.modifiers()
     if (
         modifiers & COMMAND_MODIFIERS
-        and not modifiers & OPTION_MODIFIER
+        and not modifiers & Qt.KeyboardModifier.AltModifier
         and (action := TEXT_SHORTCUTS.get(Qt.Key(event.key()))) is not None
     ):
         if is_press:

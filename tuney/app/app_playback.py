@@ -9,9 +9,9 @@ import tomlkit
 from ..audio.mixer import NotePress
 from ..config.serialize import serialize
 from ..midi.file import MIDI_FILE_TICKS_PER_BEAT, is_midi_file, write_midi_file
-from ..time import to_ms
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
+from ..time.units import to_ms
 from .app_state import AppState
 from .platform_info import exit_with_message, report_error, trace
 

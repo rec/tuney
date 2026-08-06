@@ -99,12 +99,16 @@ def _make_listener(kl: KeyboardListener) -> PynputListener:
         'This process is not trusted! Input event monitoring will not be possible'
         ' until it is added to accessibility clients.'
     )
-    warning = log.warning
 
-    @wraps(warning)
-    def warning_(a: str, *args: object, **kwargs: object) -> None:
+    @wraps(log.warning)
+    def warning_(
+        a: str,
+        *args: object,
+        original_warning: Callable[..., object] = log.warning,
+        **kwargs: object,
+    ) -> None:
         if not a.strip() or a.replace(BOGUS_WARNING, '').strip() or args or kwargs:
-            warning(a, *args, **kwargs)
+            original_warning(a, *args, **kwargs)
 
     log.warning = warning_
     return listener

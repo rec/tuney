@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..app.platform_info import instrument
-from . import Action, StateChange
 from .main_menu import SAVE_AUDIO_COMMAND
+from .state import Action, StateChange
 
 if TYPE_CHECKING:
     from .main_window import MainWindow

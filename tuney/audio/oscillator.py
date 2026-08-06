@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from ..config.annotations import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
 from ..config.tyro_option import tyro_option
-from ..scale import NoteNumber
+from ..scale.number import NoteNumber
 from . import scipy
 from .scipy import sawtooth
 

@@ -9,9 +9,9 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from ..config.annotations import Display, Numeric
-from . import Milliseconds
 from .char_press import CharPress
 from .sequencer import Sequencer
+from .units import Milliseconds
 
 MAX_GENERATED_SEED = 9999
 

@@ -2,18 +2,17 @@ import json
 import subprocess
 from collections.abc import Callable
 
+import mido
 import numpy as np
 import pytest
 
-import tuney.audio.device
-import tuney.midi.midi
-import tuney.midi.port
-import tuney.midi.ports
-import tuney.midi.tuning_dump
+from tuney.audio import device
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator, Waveform
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Binaural, Sound
+from tuney.midi import port, ports, tuning_dump
+from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
 from tuney.ui.layout import Layout
@@ -21,7 +20,7 @@ from tuney.ui.layout import Layout
 
 @pytest.fixture(autouse=True)
 def clear_midi_name_caches() -> None:
-    tuney.midi.ports.midi_names.cache_clear()
+    ports.midi_names.cache_clear()
 
 
 def test_sample_data_reports_channels_and_cuts_from_center():
@@ -40,7 +39,7 @@ def test_sample_data_reports_channels_and_cuts_from_center():
 
 def test_output_device_names_lists_unique_output_devices(monkeypatch):
     monkeypatch.setattr(
-        tuney.audio.device.sounddevice,
+        device.sounddevice,
         'query_devices',
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},
@@ -48,14 +47,14 @@ def test_output_device_names_lists_unique_output_devices(monkeypatch):
             {'name': 'headphones', 'max_output_channels': 2},
         ],
     )
-    tuney.audio.device.device_names.cache_clear()
+    device.device_names.cache_clear()
 
-    assert tuney.audio.device.device_names() == ['speaker', 'headphones']
+    assert device.device_names() == ['speaker', 'headphones']
 
 
 def test_output_device_names_include_index_when_names_are_duplicated(monkeypatch):
     monkeypatch.setattr(
-        tuney.audio.device.sounddevice,
+        device.sounddevice,
         'query_devices',
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},
@@ -64,9 +63,9 @@ def test_output_device_names_include_index_when_names_are_duplicated(monkeypatch
             {'name': 'headphones', 'max_output_channels': 2},
         ],
     )
-    tuney.audio.device.device_names.cache_clear()
+    device.device_names.cache_clear()
 
-    assert tuney.audio.device.device_names() == [
+    assert device.device_names() == [
         '[0] speaker',
         '[2] speaker',
         'headphones',
@@ -79,7 +78,7 @@ def test_output_device_label_with_index_is_stored_as_index() -> None:
 
 def test_output_device_resolves_duplicate_name_to_index(monkeypatch) -> None:
     monkeypatch.setattr(
-        tuney.audio.device.sounddevice,
+        device.sounddevice,
         'query_devices',
         lambda: [
             {'name': 'speaker', 'max_output_channels': 2},
@@ -88,13 +87,13 @@ def test_output_device_resolves_duplicate_name_to_index(monkeypatch) -> None:
         ],
     )
 
-    assert tuney.audio.device.output_device('speaker') == 0
+    assert device.output_device('speaker') == 0
 
 
 def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
     devices = [[{'name': 'first', 'max_output_channels': 2}]]
     monkeypatch.setattr(
-        tuney.audio.device.sounddevice,
+        device.sounddevice,
         'query_devices',
         lambda: devices[-1],
     )
@@ -104,19 +103,17 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         return completed_process(f'{midi_ports[-1]!r}'.replace("'", '"'))
 
     monkeypatch.setattr(
-        tuney.midi.ports.subprocess,
+        ports.subprocess,
         'run',
         run,
     )
-    tuney.audio.device.device_names.cache_clear()
+    device.device_names.cache_clear()
 
     class OptionControl:
         names: list[str] = []
 
         def refresh(self) -> None:
-            self.names = (
-                tuney.audio.device.device_names() + tuney.midi.ports.midi_names()[1]
-            )
+            self.names = device.device_names() + ports.midi_names()[1]
 
     option = OptionControl()
     layout = type(
@@ -124,8 +121,8 @@ def test_refresh_devices_clears_cached_device_names(monkeypatch) -> None:
         (),
         {'control_panel': type('Panel', (), {'option_controls': [option]})()},
     )()
-    assert tuney.audio.device.device_names() == ['first']
-    assert tuney.midi.ports.midi_names() == [['first input'], ['first output']]
+    assert device.device_names() == ['first']
+    assert ports.midi_names() == [['first input'], ['first output']]
     devices.append([{'name': 'second', 'max_output_channels': 2}])
     midi_ports.append([['second input'], ['second output']])
 
@@ -138,19 +135,19 @@ def test_midi_names_uses_subprocess(monkeypatch):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('[["keyboard", "controller"], ["synth"]]')
 
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    monkeypatch.setattr(ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.midi_names() == [['keyboard', 'controller'], ['synth']]
+    assert ports.midi_names() == [['keyboard', 'controller'], ['synth']]
 
 
 def test_midi_names_cache_can_be_replaced_without_subprocess(monkeypatch) -> None:
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise AssertionError('subprocess should not run')
 
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
-    tuney.midi.ports.midi_names.replace([['keyboard'], ['synth']])
+    monkeypatch.setattr(ports.subprocess, 'run', run)
+    ports.midi_names.replace([['keyboard'], ['synth']])
 
-    assert tuney.midi.ports.midi_names() == [['keyboard'], ['synth']]
+    assert ports.midi_names() == [['keyboard'], ['synth']]
 
 
 def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
@@ -160,24 +157,22 @@ def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
         calls.append(args)
         return completed_process('[["keyboard"], ["synth"]]', args=args)
 
-    monkeypatch.setattr(tuney.midi.ports.sys, 'frozen', True, raising=False)
-    monkeypatch.setattr(tuney.midi.ports.sys, 'executable', 'Tuney')
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    monkeypatch.setattr(ports.sys, 'frozen', True, raising=False)
+    monkeypatch.setattr(ports.sys, 'executable', 'Tuney')
+    monkeypatch.setattr(ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.midi_names() == [['keyboard'], ['synth']]
-    assert calls == [['Tuney', tuney.midi.ports.LIST_MIDI]]
+    assert ports.midi_names() == [['keyboard'], ['synth']]
+    assert calls == [['Tuney', ports.LIST_MIDI]]
 
 
 def test_midi_names_json_handles_output_probe_failure(monkeypatch, capsys):
     def get_output_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
-    monkeypatch.setattr(tuney.midi.ports.mido, 'get_input_names', lambda: ['keyboard'])
-    monkeypatch.setattr(tuney.midi.ports.mido, 'get_output_names', get_output_names)
+    monkeypatch.setattr(ports.mido, 'get_input_names', lambda: ['keyboard'])
+    monkeypatch.setattr(ports.mido, 'get_output_names', get_output_names)
 
-    assert tuney.midi.ports.midi_names_json() == json.dumps(
-        [['keyboard'], []], indent=2
-    )
+    assert ports.midi_names_json() == json.dumps([['keyboard'], []], indent=2)
     assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
 
 
@@ -185,10 +180,10 @@ def test_midi_names_json_handles_input_probe_failure(monkeypatch, capsys):
     def get_input_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
-    monkeypatch.setattr(tuney.midi.ports.mido, 'get_input_names', get_input_names)
-    monkeypatch.setattr(tuney.midi.ports.mido, 'get_output_names', lambda: ['synth'])
+    monkeypatch.setattr(ports.mido, 'get_input_names', get_input_names)
+    monkeypatch.setattr(ports.mido, 'get_output_names', lambda: ['synth'])
 
-    assert tuney.midi.ports.midi_names_json() == json.dumps([[], ['synth']], indent=2)
+    assert ports.midi_names_json() == json.dumps([[], ['synth']], indent=2)
     assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
 
 
@@ -196,9 +191,9 @@ def test_midi_names_returns_empty_lists_on_probe_failure(monkeypatch, capsys):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    monkeypatch.setattr(ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.midi_names() == [[], []]
+    assert ports.midi_names() == [[], []]
     assert 'Could not list MIDI ports:' in capsys.readouterr().err
 
 
@@ -206,9 +201,9 @@ def test_midi_names_returns_empty_lists_for_bad_output(monkeypatch, capsys):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    monkeypatch.setattr(ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.midi_names() == [[], []]
+    assert ports.midi_names() == [[], []]
     assert (
         'Could not list MIDI ports: expected two lists, got dict'
         in capsys.readouterr().err
@@ -219,9 +214,9 @@ def test_midi_names_returns_empty_lists_for_wrong_list_shape(monkeypatch, capsys
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["keyboard"]')
 
-    monkeypatch.setattr(tuney.midi.ports.subprocess, 'run', run)
+    monkeypatch.setattr(ports.subprocess, 'run', run)
 
-    assert tuney.midi.ports.midi_names() == [[], []]
+    assert ports.midi_names() == [[], []]
     assert (
         'Could not list MIDI ports: expected two lists, got list'
         in capsys.readouterr().err
@@ -244,7 +239,7 @@ def test_midi_names_returns_empty_lists_for_wrong_list_shape(monkeypatch, capsys
 def test_midi_input_channel_accepts_omni_and_channel_numbers(
     raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    midi = tuney.midi.midi.MidiIn(channel=raw)
+    midi = MidiIn(channel=raw)
 
     assert midi.channel == channel
     assert midi.mido_channel == mido_channel
@@ -255,9 +250,9 @@ def test_midi_input_channel_accepts_omni_and_channel_numbers(
 )
 def test_midi_channel_rejects_invalid_values(raw: object) -> None:
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
-        tuney.midi.midi.MidiIn(channel=raw)
+        MidiIn(channel=raw)
     with pytest.raises(ValueError, match='MIDI channel must be omni'):
-        tuney.midi.midi.MidiOut(channel=raw)
+        MidiOut(channel=raw)
 
 
 @pytest.mark.parametrize(
@@ -276,7 +271,7 @@ def test_midi_channel_rejects_invalid_values(raw: object) -> None:
 def test_midi_output_channel_accepts_omni_and_channel_numbers(
     raw: object, channel: object, mido_channel: int | None
 ) -> None:
-    midi = tuney.midi.midi.MidiOut(channel=raw)
+    midi = MidiOut(channel=raw)
 
     assert midi.channel == channel
     assert midi.mido_channel == mido_channel
@@ -292,11 +287,9 @@ def test_midi_output_start_sends_program_and_volume_on_mido_channel(
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(
-        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
-    )
+    monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
 
-    tuney.midi.midi.MidiOut(enable=True, channel=channel, program=40).start()
+    MidiOut(enable=True, channel=channel, program=40).start()
 
     assert [(m.type, m.channel) for m in messages] == [
         ('program_change', expected),
@@ -314,11 +307,9 @@ def test_midi_output_skips_program_change_when_program_is_none(monkeypatch) -> N
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(
-        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
-    )
+    monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
 
-    tuney.midi.midi.MidiOut(enable=True, program=None).start()
+    MidiOut(enable=True, program=None).start()
 
     assert [m.type for m in messages] == ['control_change']
 
@@ -330,17 +321,15 @@ def test_midi_output_sends_note_without_startup_messages(monkeypatch) -> None:
         def send(self, message: object) -> None:
             messages.append(message)
 
-    monkeypatch.setattr(
-        tuney.midi.port.mido, 'open_output', lambda *_args, **_kwargs: Port()
-    )
+    monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
 
-    tuney.midi.midi.MidiOut(enable=True, program=40).send_note(60, True)
+    MidiOut(enable=True, program=40).send_note(60, True)
 
     assert [m.type for m in messages] == ['note_on']
 
 
 def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
-    message = tuney.midi.tuning_dump.tuning_dump(Scale(), Tuning())
+    message = tuning_dump.tuning_dump(Scale(), Tuning())
 
     assert message.type == 'sysex'
     assert message.data[:5] == (0x7E, 0x7F, 0x08, 0x01, 0)
@@ -348,28 +337,20 @@ def test_midi_output_tuning_dump_uses_midi_tuning_standard() -> None:
     assert len(message.data) == 406
     assert message.data[21 : 21 + 6] == (0, 0, 0, 1, 0, 0)
     assert message.data[21 + 69 * 3 : 21 + 70 * 3] == (69, 0, 0)
-    assert message.data[-1] == tuney.midi.tuning_dump._tuning_checksum(
-        list(message.data[:-1])
-    )
+    assert message.data[-1] == tuning_dump._tuning_checksum(list(message.data[:-1]))
 
 
 def test_midi_input_listener_converts_note_without_sending_output() -> None:
     events = []
-    midi = tuney.midi.midi.Midi(
-        input=tuney.midi.midi.MidiIn(enable=True, channel=3),
-        output=tuney.midi.midi.MidiOut(note_offset=12),
+    midi = Midi(
+        input=MidiIn(enable=True, channel=3),
+        output=MidiOut(note_offset=12),
     )
     listener = midi.listener(lambda note, is_press: events.append((note, is_press)))
 
-    listener.on_message(
-        tuney.midi.midi.mido.Message('note_on', channel=2, note=72, velocity=64)
-    )
-    listener.on_message(
-        tuney.midi.midi.mido.Message('note_on', channel=3, note=72, velocity=64)
-    )
-    listener.on_message(
-        tuney.midi.midi.mido.Message('note_off', channel=2, note=72, velocity=0)
-    )
+    listener.on_message(mido.Message('note_on', channel=2, note=72, velocity=64))
+    listener.on_message(mido.Message('note_on', channel=3, note=72, velocity=64))
+    listener.on_message(mido.Message('note_off', channel=2, note=72, velocity=0))
 
     assert events == [(60, True), (60, False)]
 
@@ -384,17 +365,15 @@ def test_midi_input_listener_opens_selected_input(monkeypatch) -> None:
     def open_input(
         port: str | None,
         *,
-        callback: Callable[[tuney.midi.midi.mido.Message], None],
+        callback: Callable[[mido.Message], None],
         virtual: bool,
     ) -> Port:
         opened.append((port, virtual, callback))
         return Port()
 
-    midi = tuney.midi.midi.Midi(
-        input=tuney.midi.midi.MidiIn(enable=True, name='keyboard')
-    )
+    midi = Midi(input=MidiIn(enable=True, name='keyboard'))
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_input', open_input)
+    monkeypatch.setattr(port.mido, 'open_input', open_input)
 
     listener.start()
 
@@ -415,12 +394,10 @@ def test_midi_output_creates_virtual_port_by_default(
         opened.append((port, virtual))
         return Port()
 
-    monkeypatch.setattr(
-        tuney.midi.port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'}
-    )
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+    monkeypatch.setattr(port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'})
+    monkeypatch.setattr(port.mido, 'open_output', open_output)
 
-    tuney.midi.midi.MidiOut(enable=True).start()
+    MidiOut(enable=True).start()
 
     assert opened == [('Tuney MIDI Out', True)]
 
@@ -438,18 +415,16 @@ def test_midi_input_creates_virtual_port_by_default(
     def open_input(
         port: str | None,
         *,
-        callback: Callable[[tuney.midi.midi.mido.Message], None],
+        callback: Callable[[mido.Message], None],
         virtual: bool,
     ) -> Port:
         opened.append((port, virtual, callback))
         return Port()
 
-    midi = tuney.midi.midi.Midi(input=tuney.midi.midi.MidiIn(enable=True))
+    midi = Midi(input=MidiIn(enable=True))
     listener = midi.listener(lambda note, is_press: None)
-    monkeypatch.setattr(
-        tuney.midi.port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'}
-    )
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_input', open_input)
+    monkeypatch.setattr(port, 'VIRTUAL_ENABLED', platform in {'darwin', 'linux'})
+    monkeypatch.setattr(port.mido, 'open_input', open_input)
 
     listener.start()
 
@@ -469,10 +444,10 @@ def test_midi_output_uses_selected_port_instead_of_virtual_port(
         opened.append((port, virtual))
         return Port()
 
-    monkeypatch.setattr(tuney.midi.port, 'VIRTUAL_ENABLED', True)
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+    monkeypatch.setattr(port, 'VIRTUAL_ENABLED', True)
+    monkeypatch.setattr(port.mido, 'open_output', open_output)
 
-    tuney.midi.midi.MidiOut(enable=True, name='External Synth').start()
+    MidiOut(enable=True, name='External Synth').start()
 
     assert opened == [('External Synth', False)]
 
@@ -483,8 +458,8 @@ def test_midi_output_open_failure_disables_output(
     def open_output(*_: object, **__: object) -> object:
         raise SystemError('MidiOutWinMM::openPort: error creating port')
 
-    midi = tuney.midi.midi.MidiOut(enable=True)
-    monkeypatch.setattr(tuney.midi.port.mido, 'open_output', open_output)
+    midi = MidiOut(enable=True)
+    monkeypatch.setattr(port.mido, 'open_output', open_output)
 
     midi.start()
     midi.send_tuning_dump(Scale(), Tuning())

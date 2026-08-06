@@ -23,18 +23,16 @@ from ..config.annotations import General
 from ..mapper import language
 from ..mapper.mapper import Mapper
 from ..midi.midi import Midi, MidiIn, MidiOut
-from ..presets import merged_data, read_section_preset, section_preset_names
+from ..presets.preset import merged_data, read_section_preset, section_preset_names
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
-from . import (
-    control_panel_metadata,
-    control_panel_scala,
-    control_panel_sizing,
-    control_panel_visibility,
-    theme,
-)
+from . import control_panel_metadata
+from . import control_panel_scala
+from . import control_panel_sizing
+from . import control_panel_visibility
+from . import theme
 from .control_panel_layout import _CurrentPageStackedWidget, _FlowLayout
 from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
 from .tooltip import Tooltip

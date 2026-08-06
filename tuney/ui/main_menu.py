@@ -139,7 +139,12 @@ def build_menu(window: MainWindow) -> QMenuBar:
         REFRESH_DEVICES_ACCELERATOR,
         window.on_refresh_devices,
     )
-    _add_action(help_menu, 'Tuney Help', HELP_ACCELERATOR, window.on_help)
+    _add_action(
+        help_menu,
+        'Tuney Help',
+        QKeySequence.StandardKey.HelpContents,
+        window.on_help,
+    )
     _add_action(
         help_menu, 'Show Log Location', SHOW_LOG_ACCELERATOR, window.on_show_log
     )
@@ -179,7 +184,6 @@ LOAD_AUTOSAVE_ACCELERATOR = 'Ctrl+L'
 SWAP_AUTOSAVE_ACCELERATOR = 'Ctrl+Alt+S'
 SHOW_LOG_ACCELERATOR = 'Ctrl+Alt+L'
 REPORT_PROBLEM_ACCELERATOR = 'Ctrl+Alt+I'
-HELP_ACCELERATOR = QKeySequence.StandardKey.HelpContents
 OPEN_TEXT_FILE_COMMAND = 'Open Text File'
 SAVE_COMMAND = 'Save'
 SAVE_AS_AUDIO_COMMAND = 'Save as Audio...'

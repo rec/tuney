@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets
 
-from ..presets import user_preset_names
+from ..presets.preset import user_preset_names
 
 
 def preset_name(parent: QtWidgets.QWidget) -> str | None:

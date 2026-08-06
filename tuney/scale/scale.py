@@ -12,8 +12,8 @@ from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
 from ..config.annotations import Beginner, Display, Numeric
 from ..config.tyro_option import tyro_option
-from . import NoteNumber
 from .accidentals import AccidentalNames, Accidentals
+from .number import NoteNumber
 from .tuning import Tuning
 
 INTERVALS = [int(i) for i in '2212221']

@@ -342,7 +342,7 @@ title = "Duty Cycle"
 type = "number"
 
 ["$defs".Oscillator.properties.key_scale_note]
-"$ref" = "#/$defs/tuney__scale__NoteNumber__1"
+"$ref" = "#/$defs/tuney__scale__number__NoteNumber__1"
 default = 64
 
 ["$defs".Oscillator.properties.key_scale]
@@ -467,7 +467,7 @@ title = "Gain"
 type = "number"
 
 ["$defs".Sound.properties.note_offset]
-"$ref" = "#/$defs/tuney__scale__NoteNumber__2"
+"$ref" = "#/$defs/tuney__scale__number__NoteNumber__2"
 default = 44
 
 ["$defs".Sound.properties.polyphony]
@@ -610,7 +610,7 @@ title = "Root Frequency"
 type = "number"
 
 ["$defs".Tuning.properties.root_note]
-"$ref" = "#/$defs/tuney__scale__NoteNumber__1"
+"$ref" = "#/$defs/tuney__scale__number__NoteNumber__1"
 default = 69
 
 ["$defs".Type]
@@ -623,12 +623,12 @@ enum = ["sine", "square", "triangle"]
 title = "Waveform"
 type = "string"
 
-["$defs".tuney__scale__NoteNumber__1]
+["$defs".tuney__scale__number__NoteNumber__1]
 maximum = 127
 minimum = 0
 type = "integer"
 
-["$defs".tuney__scale__NoteNumber__2]
+["$defs".tuney__scale__number__NoteNumber__2]
 maximum = 99
 minimum = -99
 type = "integer"
