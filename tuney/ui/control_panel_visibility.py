@@ -8,13 +8,7 @@ from pydantic import BaseModel
 from ..config.annotations import Beginner, Display, General, Hidden
 from ..midi.midi import Midi
 from ..scale.tuning import Tuning, Type
-from .control_panel_metadata import (
-    _annotation_types,
-    _control_metadata,
-    _has_metadata,
-    _numeric_metadata,
-    _options_metadata,
-)
+from . import control_panel_metadata
 
 
 def _midi_child_title(data: BaseModel, name: str) -> str:
@@ -29,8 +23,8 @@ def _visible_field_names(data: BaseModel) -> tuple[str, ...]:
         name
         for name in cls.model_fields
         if _is_visible_field(cls, name)
-        and not _has_metadata(cls, name, Hidden)
-        and not _has_metadata(cls, name, General)
+        and not control_panel_metadata._has_metadata(cls, name, Hidden)
+        and not control_panel_metadata._has_metadata(cls, name, General)
     )
 
 
@@ -97,7 +91,7 @@ def _active_tuning_type(data: Tuning) -> Type:
 
 
 def _is_beginner_field(data: BaseModel, name: str) -> bool:
-    return _has_metadata(type(data), name, Beginner)
+    return control_panel_metadata._has_metadata(type(data), name, Beginner)
 
 
 def _model_tree(data: BaseModel) -> list[BaseModel]:
@@ -105,7 +99,7 @@ def _model_tree(data: BaseModel) -> list[BaseModel]:
     for name in type(data).model_fields:
         if _is_suppressed_field(type(data), name):
             continue
-        if _has_metadata(type(data), name, Hidden):
+        if control_panel_metadata._has_metadata(type(data), name, Hidden):
             continue
         child = getattr(data, name)
         if isinstance(child, BaseModel):
@@ -117,15 +111,18 @@ def _is_wide_field(data: BaseModel, name: str) -> bool:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
     return not (
-        _control_metadata(type(data), name).width
-        or _numeric_metadata(type(data), name).width
+        control_panel_metadata._control_metadata(type(data), name).width
+        or control_panel_metadata._numeric_metadata(type(data), name).width
         or isinstance(value, bool | int | float | enum.Enum)
-        or _options_metadata(type(data), name)
-    ) and (str in _annotation_types(annotation) or isinstance(value, list | dict))
+        or control_panel_metadata._options_metadata(type(data), name)
+    ) and (
+        str in control_panel_metadata._annotation_types(annotation)
+        or isinstance(value, list | dict)
+    )
 
 
 def _is_suppressed_field(cls: type[BaseModel], name: str) -> bool:
-    if _has_metadata(cls, name, Display):
+    if control_panel_metadata._has_metadata(cls, name, Display):
         return False
     annotation = cls.__annotations__.get(name, '')
     return str(annotation).startswith('tyro.conf.Suppress') or 'Suppress' in {

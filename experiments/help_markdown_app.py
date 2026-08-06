@@ -5,32 +5,25 @@ import re
 from functools import partial
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QPushButton,
-    QTextBrowser,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6 import QtWidgets
 
 README = Path(__file__).resolve().parents[1] / 'README.md'
-help_dialog: QDialog | None = None
+help_dialog: QtWidgets.QDialog | None = None
 LINK_RE = re.compile(r'\[([^]]+)]\(([^)]+)\)')
 
 
 def main() -> None:
-    app = QApplication([])
-    window = QWidget()
+    app = QtWidgets.QApplication([])
+    window = QtWidgets.QWidget()
     window.setWindowTitle('Help rendering test')
 
-    readme_button = QPushButton('Show README.md without emoji', window)
+    readme_button = QtWidgets.QPushButton('Show README.md without emoji', window)
     readme_button.clicked.connect(partial(show_readme, window))
 
-    emoji_button = QPushButton('Show emoji test', window)
+    emoji_button = QtWidgets.QPushButton('Show emoji test', window)
     emoji_button.clicked.connect(partial(show_emoji_test, window))
 
-    layout = QVBoxLayout(window)
+    layout = QtWidgets.QVBoxLayout(window)
     layout.addWidget(readme_button)
     layout.addWidget(emoji_button)
 
@@ -39,20 +32,20 @@ def main() -> None:
     app.exec()
 
 
-def show_readme(parent: QWidget) -> None:
+def show_readme(parent: QtWidgets.QWidget) -> None:
     global help_dialog
 
-    dialog = QDialog(parent)
+    dialog = QtWidgets.QDialog(parent)
     dialog.setWindowTitle('README.md')
 
-    text = QTextBrowser(dialog)
+    text = QtWidgets.QTextBrowser(dialog)
     text.setHtml(markdown_to_html(README.read_text()))
     text.setOpenExternalLinks(True)
 
-    close = QPushButton('Close', dialog)
+    close = QtWidgets.QPushButton('Close', dialog)
     close.clicked.connect(dialog.close)
 
-    layout = QVBoxLayout(dialog)
+    layout = QtWidgets.QVBoxLayout(dialog)
     layout.addWidget(text)
     layout.addWidget(close)
 
@@ -61,13 +54,13 @@ def show_readme(parent: QWidget) -> None:
     dialog.show()
 
 
-def show_emoji_test(parent: QWidget) -> None:
+def show_emoji_test(parent: QtWidgets.QWidget) -> None:
     global help_dialog
 
-    dialog = QDialog(parent)
+    dialog = QtWidgets.QDialog(parent)
     dialog.setWindowTitle('Emoji rendering test')
 
-    text = QTextBrowser(dialog)
+    text = QtWidgets.QTextBrowser(dialog)
     text.setHtml(
         '<h1>Emoji rendering test</h1>'
         '<p>If this window stays open, QTextBrowser can render these emoji:</p>'
@@ -79,10 +72,10 @@ def show_emoji_test(parent: QWidget) -> None:
         '</p>'
     )
 
-    close = QPushButton('Close', dialog)
+    close = QtWidgets.QPushButton('Close', dialog)
     close.clicked.connect(dialog.close)
 
-    layout = QVBoxLayout(dialog)
+    layout = QtWidgets.QVBoxLayout(dialog)
     layout.addWidget(text)
     layout.addWidget(close)
 

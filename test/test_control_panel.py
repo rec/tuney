@@ -30,6 +30,7 @@ from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.ui import (
     control_panel,
+    control_panel_metadata,
     control_panel_scala,
     control_panel_sizing,
     control_panel_spin,
@@ -72,11 +73,11 @@ def _regression_value(value: object) -> object:
 
 
 def _entry_width(cls: type[BaseModel], name: str) -> int | None:
-    return control_panel._entry_width(
+    return control_panel_sizing._entry_width(
         name,
         cls.model_fields[name].annotation,
-        control_panel._control_metadata(cls, name),
-        control_panel._numeric_metadata(cls, name),
+        control_panel_metadata._control_metadata(cls, name),
+        control_panel_metadata._numeric_metadata(cls, name),
     )
 
 
@@ -86,7 +87,7 @@ def _is_scalar_numeric_field(cls: type[BaseModel], name: str) -> bool:
         return False
     if get_origin(annotation) in {list, dict}:
         return False
-    types = set(control_panel._annotation_types(annotation))
+    types = set(control_panel_metadata._annotation_types(annotation))
     if list in types or dict in types or bool in types:
         return False
     return bool(types & {int, float})
@@ -395,20 +396,28 @@ def test_numeric_width_sets_actual_editor_width() -> None:
 
 
 def test_numeric_metadata_configures_steps_and_decimals() -> None:
-    assert control_panel._numeric_metadata(Tuning, 'detune').decimals == 0
-    assert control_panel._numeric_metadata(Tuning, 'detune').inc == 1
-    assert control_panel._numeric_metadata(Computed, 'octave_ratio').inc == 0.001
-    assert control_panel._numeric_metadata(Polyphony, 'headroom').decimals == 0
-    assert control_panel._numeric_metadata(Polyphony, 'headroom').inc == 1
-    assert control_panel._numeric_metadata(Oscillator, 'duty_cycle').inc == 0.01
-    assert control_panel._numeric_metadata(TextTimings, 'overlap').decimals == 0
-    assert control_panel._numeric_metadata(TextTimings, 'overlap').inc == 1
-    assert control_panel._numeric_metadata(TextTimings, 'scale').decimals is None
+    assert control_panel_metadata._numeric_metadata(Tuning, 'detune').decimals == 0
+    assert control_panel_metadata._numeric_metadata(Tuning, 'detune').inc == 1
+    assert (
+        control_panel_metadata._numeric_metadata(Computed, 'octave_ratio').inc == 0.001
+    )
+    assert control_panel_metadata._numeric_metadata(Polyphony, 'headroom').decimals == 0
+    assert control_panel_metadata._numeric_metadata(Polyphony, 'headroom').inc == 1
+    assert (
+        control_panel_metadata._numeric_metadata(Oscillator, 'duty_cycle').inc == 0.01
+    )
+    assert (
+        control_panel_metadata._numeric_metadata(TextTimings, 'overlap').decimals == 0
+    )
+    assert control_panel_metadata._numeric_metadata(TextTimings, 'overlap').inc == 1
+    assert (
+        control_panel_metadata._numeric_metadata(TextTimings, 'scale').decimals is None
+    )
 
 
 def test_display_labels_use_sentence_case() -> None:
-    assert control_panel._display_label('text_timings') == 'Text timings'
-    assert control_panel._display_label('sample_rate') == 'Sample rate'
+    assert control_panel_sizing._display_label('text_timings') == 'Text timings'
+    assert control_panel_sizing._display_label('sample_rate') == 'Sample rate'
 
 
 def test_indexed_output_device_option_displays_choice_text() -> None:
@@ -585,11 +594,13 @@ def test_beginner_mode_filters_advanced_controls(
     _check_regression(
         file_regression,
         {
-            'mapper_controls': control_panel._visible_control_names(
+            'mapper_controls': control_panel_visibility._visible_control_names(
                 tuney.mapper, advanced=False
             ),
-            'tuney_children': control_panel._visible_child_names(tuney, advanced=False),
-            'tuney_controls': control_panel._visible_control_names(
+            'tuney_children': control_panel_visibility._visible_child_names(
+                tuney, advanced=False
+            ),
+            'tuney_controls': control_panel_visibility._visible_control_names(
                 tuney, advanced=False
             ),
         },
@@ -875,11 +886,11 @@ def test_dials_are_limited_to_explicit_analog_controls(
     _check_regression(
         file_regression,
         {
-            'sound_gain': control_panel._numeric_metadata(Sound, 'gain').dial,
-            'sound_minimum_note_time': control_panel._numeric_metadata(
+            'sound_gain': control_panel_metadata._numeric_metadata(Sound, 'gain').dial,
+            'sound_minimum_note_time': control_panel_metadata._numeric_metadata(
                 Sound, 'minimum_note_time'
             ).dial,
-            'sound_note_offset': control_panel._numeric_metadata(
+            'sound_note_offset': control_panel_metadata._numeric_metadata(
                 Sound, 'note_offset'
             ).dial,
         },
@@ -1205,10 +1216,10 @@ def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
 
     _qt_app()
     parent = QWidget()
-    float_spin = control_panel._NumericDoubleSpinBox(parent, Numeric(inc=0.5))
+    float_spin = control_panel_spin._NumericDoubleSpinBox(parent, Numeric(inc=0.5))
     float_spin.setRange(-100, 100)
     float_spin.setValue(10)
-    int_spin = control_panel._NumericSpinBox(parent)
+    int_spin = control_panel_spin._NumericSpinBox(parent)
     int_spin.setRange(-200, 200)
     int_spin.setSingleStep(10)
     int_spin.setValue(10)
@@ -1360,8 +1371,10 @@ def test_tuning_expression_fields_use_semicolon_separated_expressions() -> None:
 
 
 def test_tuning_type_selects_visible_control_form() -> None:
-    assert control_panel._visible_child_names(Tuning(), advanced=True) == ['computed']
-    assert control_panel._visible_control_names(
+    assert control_panel_visibility._visible_child_names(Tuning(), advanced=True) == [
+        'computed'
+    ]
+    assert control_panel_visibility._visible_control_names(
         Tuning(type=Type.table, table=Table(text='440')), advanced=True
     ) == [
         'type',
@@ -1370,7 +1383,7 @@ def test_tuning_type_selects_visible_control_form() -> None:
         'root_note',
         'table',
     ]
-    assert control_panel._visible_control_names(
+    assert control_panel_visibility._visible_control_names(
         Tuning(type=Type.ratios, ratios=Ratios(text='2')), advanced=True
     ) == [
         'type',
@@ -1390,7 +1403,9 @@ def test_tuning_type_switches_stacked_form_without_rebuild(
         raise AssertionError('tuning type changed by rebuilding the control panel')
 
     monkeypatch.setattr(
-        control_panel, '_rebuild_parent_control_panel', rebuild_parent_control_panel
+        control_panel,
+        '_rebuild_parent_control_panel',
+        rebuild_parent_control_panel,
     )
 
     _qt_app()
@@ -1557,7 +1572,7 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
         control_panel_scala, 'scala_trie', lambda: build_trie({'abc': ratios})
     )
     monkeypatch.setattr(
-        control_panel.QMessageBox,
+        control_panel.QtWidgets.QMessageBox,
         'question',
         lambda *_: QMessageBox.StandardButton.Yes,
     )

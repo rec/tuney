@@ -556,8 +556,12 @@ def test_app_activate_and_history() -> None:
             def information(parent: object, title: str, text: str) -> None:
                 messages.append((parent, title, text))
 
-        error_dialogs.QMessageBox = FakeMessageBox
-        MainWindow.on_show_log(app)
+        old_message_box = error_dialogs.QtWidgets.QMessageBox
+        try:
+            error_dialogs.QtWidgets.QMessageBox = FakeMessageBox
+            MainWindow.on_show_log(app)
+        finally:
+            error_dialogs.QtWidgets.QMessageBox = old_message_box
 
         assert messages == [
             (
@@ -822,7 +826,10 @@ def test_app_saves_test_sheet_from_current_text() -> None:
                 rendered.append((output, app, presets))
 
             file_dialogs.QFileDialog = FakeSaveDialog
-            file_commands.test_sheet_preset_names = lambda _: ['first', 'second']
+            file_commands.test_sheet_preset_names = lambda _: [
+                'first',
+                'second',
+            ]
             file_commands.render_test_sheet = render_test_sheet
 
             MainWindow.on_save_test_sheet(app)
@@ -856,7 +863,7 @@ def test_app_cancels_test_sheet_without_preset_selection() -> None:
 def test_app_saves_and_deletes_presets() -> None:
     app = HistoryApp()
     old_user_presets = tuney.presets.USER_PRESETS
-    old_input_dialog = preset_dialogs.QInputDialog
+    old_input_dialog = preset_dialogs.QtWidgets.QInputDialog
     old_selected_preset_names = file_commands.selected_preset_names
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -867,7 +874,7 @@ def test_app_saves_and_deletes_presets() -> None:
                 def getText(*_: object) -> tuple[str, bool]:
                     return 'mine', True
 
-            preset_dialogs.QInputDialog = FakeInputDialog
+            preset_dialogs.QtWidgets.QInputDialog = FakeInputDialog
             app.app.max_gap = 2.0
 
             MainWindow.on_save_preset(app)
@@ -891,7 +898,7 @@ def test_app_saves_and_deletes_presets() -> None:
             assert not path.exists()
     finally:
         tuney.presets.USER_PRESETS = old_user_presets
-        preset_dialogs.QInputDialog = old_input_dialog
+        preset_dialogs.QtWidgets.QInputDialog = old_input_dialog
         file_commands.selected_preset_names = old_selected_preset_names
 
 

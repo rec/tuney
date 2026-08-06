@@ -2,11 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from tuney.audio.sound import Sound
-from tuney.mapper.language import (
-    alphabet_for_language_name,
-    language_menu_names,
-    language_name_from_menu_name,
-)
+from tuney.mapper import language
 from tuney.mapper.mapper import Mapper
 
 
@@ -43,7 +39,7 @@ def test_mapper_length_rejects_negative_values() -> None:
 
 
 def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:
-    mapper = Mapper(alphabet=alphabet_for_language_name('French', True))
+    mapper = Mapper(alphabet=language.alphabet_for_language_name('French', True))
 
     assert mapper.alphabet is not None
     assert mapper.alphabet.startswith('ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂ')
@@ -52,11 +48,11 @@ def test_language_alphabet_can_be_used_as_mapper_alphabet() -> None:
 
 
 def test_language_menu_names_include_flags() -> None:
-    names = language_menu_names()
+    names = language.language_menu_names()
 
     assert '🇫🇷 French' in names
-    assert language_name_from_menu_name('🇫🇷 French') == 'French'
-    assert language_name_from_menu_name('French') == 'French'
+    assert language.language_name_from_menu_name('🇫🇷 French') == 'French'
+    assert language.language_name_from_menu_name('French') == 'French'
 
 
 def test_mapper_uses_default_alphabet() -> None:
@@ -66,7 +62,7 @@ def test_mapper_uses_default_alphabet() -> None:
 
 def test_language_alphabet_respects_case_sensitive() -> None:
     mapper = Mapper(
-        alphabet=alphabet_for_language_name('Turkish', False),
+        alphabet=language.alphabet_for_language_name('Turkish', False),
         case_sensitive=False,
     )
 

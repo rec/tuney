@@ -206,7 +206,7 @@ def test_crash_report_brings_window_forward(monkeypatch) -> None:
             calls.append('exec')
             return MessageBox.StandardButton.No
 
-    monkeypatch.setattr(error_dialogs, 'QMessageBox', MessageBox)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QMessageBox', MessageBox)
 
     window = Window()
 
@@ -302,12 +302,12 @@ def test_report_problem_dialog_asks_before_opening_issue(monkeypatch) -> None:
             self.rejected = Signal('rejected')
             calls.append(('buttons', buttons, parent))
 
-    monkeypatch.setattr(error_dialogs, 'QDialog', Dialog)
-    monkeypatch.setattr(error_dialogs, 'QPushButton', PushButton)
-    monkeypatch.setattr(error_dialogs, 'QLabel', Label)
-    monkeypatch.setattr(error_dialogs, 'QHBoxLayout', BoxLayout)
-    monkeypatch.setattr(error_dialogs, 'QVBoxLayout', BoxLayout)
-    monkeypatch.setattr(error_dialogs, 'QDialogButtonBox', ButtonBox)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QDialog', Dialog)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QPushButton', PushButton)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QLabel', Label)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QHBoxLayout', BoxLayout)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QVBoxLayout', BoxLayout)
+    monkeypatch.setattr(error_dialogs.QtWidgets, 'QDialogButtonBox', ButtonBox)
 
     window = object()
 
@@ -411,7 +411,9 @@ def test_save_problem_snapshot_grabs_tuney_ui(monkeypatch) -> None:
         ui = Ui()
 
     with temporary_path() as tmp_path:
-        monkeypatch.setattr(error_dialogs, 'app_state_dir', lambda: tmp_path / 'tuney')
+        monkeypatch.setattr(
+            error_dialogs.platform_info, 'app_state_dir', lambda: tmp_path / 'tuney'
+        )
 
         path = error_dialogs.save_problem_snapshot(Window())
 
@@ -1431,7 +1433,7 @@ def test_midi_device_change_clears_missing_selected_output(monkeypatch) -> None:
     window = type('Window', (), {'app': app, 'ui': ui})()
     port = Port()
     app.midi.output.__dict__['port'] = port
-    monkeypatch.setattr('tuney.ui.main_window.QMessageBox', MessageBox)
+    monkeypatch.setattr('tuney.ui.main_window.QtWidgets.QMessageBox', MessageBox)
 
     MainWindow._on_midi_devices_changed(window, [['keyboard'], ['New Synth']])
 
@@ -1880,7 +1882,9 @@ def test_restore_autosave_restores_loop_state(monkeypatch) -> None:
 
 
 def test_main_window_restores_autosaved_window_state(monkeypatch) -> None:
-    monkeypatch.setattr('tuney.ui.main_window.QApplication.instance', lambda: None)
+    monkeypatch.setattr(
+        'tuney.ui.main_window.QtWidgets.QApplication.instance', lambda: None
+    )
     app = App(gui=True)
     app.__dict__['_autosave_window_state'] = WindowState(
         x=10, y=20, width=640, height=480

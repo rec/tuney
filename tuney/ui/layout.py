@@ -4,27 +4,9 @@ import sys
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+from PySide6 import QtWidgets
 from PySide6.QtCore import QElapsedTimer, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QFont, QResizeEvent
-from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QCheckBox,
-    QDial,
-    QDoubleSpinBox,
-    QGridLayout,
-    QHBoxLayout,
-    QLabel,
-    QLayout,
-    QLineEdit,
-    QPushButton,
-    QSizePolicy,
-    QStackedWidget,
-    QTableWidget,
-    QTableWidgetItem,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
 
 from ..app.platform_info import instrument, trace
 from ..audio.device import device_names
@@ -71,7 +53,7 @@ if TYPE_CHECKING:
     from ..app.app import App
 
 
-class Layout(QWidget):
+class Layout(QtWidgets.QWidget):
     def __init__(self, main_window: MainWindow) -> None:
         instrument('layout init start')
         super().__init__(main_window)
@@ -88,9 +70,11 @@ class Layout(QWidget):
 
         self.main_window = main_window
         self._note_font_refresh_pending = False
-        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        self.root = QVBoxLayout(self)
-        self.root.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Ignored
+        )
+        self.root = QtWidgets.QVBoxLayout(self)
+        self.root.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetNoConstraint)
         self.root.setContentsMargins(
             constants.PAD, constants.PAD, constants.PAD, constants.PAD
         )
@@ -142,7 +126,9 @@ class Layout(QWidget):
         self.text_timings.setRowCount(len(rows))
         for row, values in enumerate(rows):
             for column, value in enumerate(values):
-                self.text_timings.setItem(row, column, QTableWidgetItem(value))
+                self.text_timings.setItem(
+                    row, column, QtWidgets.QTableWidgetItem(value)
+                )
         self.text_timings.blockSignals(False)
         self.count_label.setText(f'Notes: {len(rows)}')
 
@@ -153,10 +139,10 @@ class Layout(QWidget):
         self.text_timings.selectRow(index)
         if item := self.text_timings.item(index, 0):
             self.text_timings.scrollToItem(
-                item, QAbstractItemView.ScrollHint.PositionAtCenter
+                item, QtWidgets.QAbstractItemView.ScrollHint.PositionAtCenter
             )
 
-    def on_text_timing_changed(self, item: QTableWidgetItem) -> None:
+    def on_text_timing_changed(self, item: QtWidgets.QTableWidgetItem) -> None:
         self.main_window.on_text_timing_changed(item.row(), item.column(), item.text())
 
     def set_play_cursor(self, index: int | None) -> None:
@@ -230,9 +216,9 @@ class Layout(QWidget):
         return panel
 
     @cached_property
-    def text_area(self) -> QWidget:
-        frame = QWidget(self)
-        self.text_area_layout = QVBoxLayout(frame)
+    def text_area(self) -> QtWidgets.QWidget:
+        frame = QtWidgets.QWidget(self)
+        self.text_area_layout = QtWidgets.QVBoxLayout(frame)
         self.text_area_layout.setContentsMargins(0, 0, 0, 0)
         self.text_area_layout.setSpacing(constants.QUARTER)
         self.splitter.addWidget(frame)
@@ -323,25 +309,25 @@ class Layout(QWidget):
         return timer
 
     @cached_property
-    def stats_frame(self) -> QWidget:
-        frame = QWidget(self.text_area)
-        layout = QHBoxLayout(frame)
+    def stats_frame(self) -> QtWidgets.QWidget:
+        frame = QtWidgets.QWidget(self.text_area)
+        layout = QtWidgets.QHBoxLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
-        label = QLabel('Text:', frame)
+        label = QtWidgets.QLabel('Text:', frame)
         font = QFont(FONT_FAMILY, FONT_SIZE)
         font.setBold(True)
         label.setFont(font)
         layout.addWidget(label)
         layout.addStretch()
-        self.count_label = QLabel('Chars: 0', frame)
+        self.count_label = QtWidgets.QLabel('Chars: 0', frame)
         self.count_label.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         layout.addWidget(self.count_label)
         self.text_area_layout.addWidget(frame)
         return frame
 
     @cached_property
-    def textbox(self) -> QTextEdit:
-        textbox = QTextEdit(self.text_area)
+    def textbox(self) -> QtWidgets.QTextEdit:
+        textbox = QtWidgets.QTextEdit(self.text_area)
         textbox.setMinimumHeight(40)
         textbox.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         textbox.setCursorWidth(2)
@@ -349,27 +335,31 @@ class Layout(QWidget):
         return textbox
 
     @cached_property
-    def text_timings(self) -> QTableWidget:
-        text_timings = QTableWidget(0, 3, self.text_area)
+    def text_timings(self) -> QtWidgets.QTableWidget:
+        text_timings = QtWidgets.QTableWidget(0, 3, self.text_area)
         text_timings.setMinimumHeight(40)
         text_timings.setFont(QFont(FONT_FAMILY, FONT_SIZE))
-        text_timings.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        text_timings.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        text_timings.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection
+        )
+        text_timings.setSelectionBehavior(
+            QtWidgets.QTableWidget.SelectionBehavior.SelectRows
+        )
         text_timings.setHorizontalHeaderLabels(['Character', 'Delay', 'Hold'])
         text_timings.itemChanged.connect(self.on_text_timing_changed)
         return text_timings
 
     @cached_property
-    def text_stack(self) -> QStackedWidget:
-        stack = QStackedWidget(self.text_area)
+    def text_stack(self) -> QtWidgets.QStackedWidget:
+        stack = QtWidgets.QStackedWidget(self.text_area)
         stack.addWidget(self.textbox)
         stack.addWidget(self.text_timings)
         self.text_area_layout.addWidget(stack, stretch=1)
         return stack
 
     @cached_property
-    def replay_frame(self) -> QWidget:
-        frame = QWidget(self.text_area)
+    def replay_frame(self) -> QtWidgets.QWidget:
+        frame = QtWidgets.QWidget(self.text_area)
         frame.setMinimumHeight(REPLAY_FRAME_HEIGHT)
         layout = _FlowLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -383,26 +373,26 @@ class Layout(QWidget):
         def hover_time() -> float:
             return self.main_window.app.hover_time
 
-        self.replay = QPushButton('Play', frame)
+        self.replay = QtWidgets.QPushButton('Play', frame)
         self.replay.setFixedSize(90, 32)
         self.replay.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         self.replay.clicked.connect(self.main_window.on_replay)
         Tooltip(self.replay, REPLAY_TOOLTIPS['replay'], hover_time)
         layout.addWidget(self.replay)
-        self.randomize = QPushButton('Randomize time', frame)
+        self.randomize = QtWidgets.QPushButton('Randomize time', frame)
         self.randomize.setFixedWidth(116)
         self.randomize.clicked.connect(self.main_window.on_randomize_timing)
         Tooltip(self.randomize, REPLAY_TOOLTIPS['randomize'], hover_time)
         layout.addWidget(self.randomize)
-        self.loop = QCheckBox('Loop', frame)
+        self.loop = QtWidgets.QCheckBox('Loop', frame)
         self.loop.toggled.connect(self.main_window.on_loop_replay)
         Tooltip(self.loop, REPLAY_TOOLTIPS['loop'], hover_time)
         layout.addWidget(self.loop)
-        gain = QWidget(frame)
-        gain_layout = QHBoxLayout(gain)
+        gain = QtWidgets.QWidget(frame)
+        gain_layout = QtWidgets.QHBoxLayout(gain)
         gain_layout.setContentsMargins(0, 0, 0, 0)
         gain_layout.setSpacing(6)
-        self.master_gain = QDial(gain)
+        self.master_gain = QtWidgets.QDial(gain)
         self.master_gain.setFixedSize(34, 34)
         self.master_gain.setRange(0, 200)
         self.master_gain.setValue(
@@ -412,7 +402,7 @@ class Layout(QWidget):
         self.master_gain.setObjectName('master_gain_dial')
         Tooltip(self.master_gain, REPLAY_TOOLTIPS['master_gain'], hover_time)
         gain_layout.addWidget(self.master_gain)
-        self.master_gain_value = QDoubleSpinBox(gain)
+        self.master_gain_value = QtWidgets.QDoubleSpinBox(gain)
         self.master_gain_value.setObjectName('master_gain')
         self.master_gain_value.setDecimals(MASTER_GAIN_DECIMALS)
         self.master_gain_value.setSingleStep(MASTER_GAIN_INCREMENT)
@@ -424,7 +414,7 @@ class Layout(QWidget):
         self.master_gain.valueChanged.connect(self._on_master_gain_dial)
         self.master_gain_value.valueChanged.connect(self._on_master_gain_value)
         layout.addWidget(gain)
-        self.help = QPushButton('?', frame)
+        self.help = QtWidgets.QPushButton('?', frame)
         self.help.setFixedSize(32, 32)
         self.help.setFont(QFont(FONT_FAMILY, 18))
         Tooltip(self.help, REPLAY_TOOLTIPS['help'], hover_time)
@@ -446,20 +436,20 @@ class Layout(QWidget):
         self.main_window.on_master_gain(gain)
 
     @cached_property
-    def loop_controls(self) -> QWidget:
-        frame = QWidget(self.text_area)
+    def loop_controls(self) -> QtWidgets.QWidget:
+        frame = QtWidgets.QWidget(self.text_area)
         frame.setMinimumHeight(LOOP_CONTROLS_HEIGHT)
         layout = _FlowLayout(frame)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        def labeled_entry(label: str, value: float) -> QLineEdit:
-            group = QWidget(frame)
-            group_layout = QHBoxLayout(group)
+        def labeled_entry(label: str, value: float) -> QtWidgets.QLineEdit:
+            group = QtWidgets.QWidget(frame)
+            group_layout = QtWidgets.QHBoxLayout(group)
             group_layout.setContentsMargins(0, 0, 0, 0)
             group_layout.setSpacing(4)
-            group_layout.addWidget(QLabel(label, group))
-            entry = QLineEdit(str(value), group)
+            group_layout.addWidget(QtWidgets.QLabel(label, group))
+            entry = QtWidgets.QLineEdit(str(value), group)
             entry.setFixedWidth(48)
             group_layout.addWidget(entry)
             layout.addWidget(group)
@@ -473,12 +463,12 @@ class Layout(QWidget):
         self.loop_after.editingFinished.connect(
             lambda: self.main_window.on_loop_after(self.loop_after.text())
         )
-        tempo = QWidget(frame)
-        tempo_layout = QHBoxLayout(tempo)
+        tempo = QtWidgets.QWidget(frame)
+        tempo_layout = QtWidgets.QHBoxLayout(tempo)
         tempo_layout.setContentsMargins(0, 0, 0, 0)
         tempo_layout.setSpacing(4)
-        tempo_layout.addWidget(QLabel('Tempo', tempo))
-        self.loop_tempo = QDoubleSpinBox(tempo)
+        tempo_layout.addWidget(QtWidgets.QLabel('Tempo', tempo))
+        self.loop_tempo = QtWidgets.QDoubleSpinBox(tempo)
         self.loop_tempo.setLocale(control_panel.NUMERIC_LOCALE)
         self.loop_tempo.setRange(LOOP_TEMPO_MINIMUM, LOOP_TEMPO_MAXIMUM)
         self.loop_tempo.setSingleStep(LOOP_TEMPO_INCREMENT)
@@ -490,12 +480,12 @@ class Layout(QWidget):
         self.loop_tempo.editingFinished.connect(
             lambda: self.main_window.on_loop_tempo(self.loop_tempo.value())
         )
-        self.randomize_on_each_loop = QCheckBox('Randomize each loop', frame)
+        self.randomize_on_each_loop = QtWidgets.QCheckBox('Randomize each loop', frame)
         self.randomize_on_each_loop.toggled.connect(
             self.main_window.on_randomize_on_each_loop
         )
         layout.addWidget(self.randomize_on_each_loop)
-        self.loop_clock = QLabel('0:00.0', frame)
+        self.loop_clock = QtWidgets.QLabel('0:00.0', frame)
         self.loop_clock.setObjectName('loop_clock')
         self.loop_clock.setFont(QFont(FONT_FAMILY, FONT_SIZE))
         self.loop_clock.setFixedWidth(56)
@@ -509,10 +499,10 @@ class Layout(QWidget):
         return frame
 
     @cached_property
-    def note_grid_widget(self) -> QWidget:
-        widget = QWidget(self)
+    def note_grid_widget(self) -> QtWidgets.QWidget:
+        widget = QtWidgets.QWidget(self)
         widget.setMinimumHeight(_note_grid_minimum_height(self.main_window.rows))
-        self.note_grid = QGridLayout(widget)
+        self.note_grid = QtWidgets.QGridLayout(widget)
         self.note_grid.setContentsMargins(0, 0, 0, 0)
         self.note_grid.setSpacing(constants.QUARTER)
         self.splitter.addWidget(widget)
@@ -578,16 +568,16 @@ class Layout(QWidget):
         return button
 
 
-def _set_entry_text(entry: QLineEdit, text: str) -> None:
+def _set_entry_text(entry: QtWidgets.QLineEdit, text: str) -> None:
     entry.setText(text)
 
 
-def _set_spin_value(spin: QDoubleSpinBox, value: float) -> None:
+def _set_spin_value(spin: QtWidgets.QDoubleSpinBox, value: float) -> None:
     with QSignalBlocker(spin):
         spin.setValue(value)
 
 
-def _clear_grid(layout: QGridLayout) -> None:
+def _clear_grid(layout: QtWidgets.QGridLayout) -> None:
     while layout.count():
         layout.takeAt(0)
 

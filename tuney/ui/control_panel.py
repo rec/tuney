@@ -10,28 +10,9 @@ from typing import TYPE_CHECKING, TypeAlias
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
+from PySide6 import QtWidgets
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QResizeEvent
-from PySide6.QtWidgets import (
-    QBoxLayout,
-    QCheckBox,
-    QComboBox,
-    QDial,
-    QDoubleSpinBox,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMessageBox,
-    QRadioButton,
-    QScrollArea,
-    QSizePolicy,
-    QSpinBox,
-    QStackedWidget,
-    QToolButton,
-    QVBoxLayout,
-    QWidget,
-)
 from tyro._fields import field_list_from_type_or_callable
 
 from ..app.key_recorder import speech_phrases
@@ -39,11 +20,7 @@ from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.polyphony import Polyphony
 from ..config.annotations import General
-from ..mapper.language import (
-    alphabet_for_language_name,
-    language_menu_names,
-    language_name_from_menu_name,
-)
+from ..mapper import language
 from ..mapper.mapper import Mapper
 from ..midi.midi import Midi, MidiIn, MidiOut
 from ..presets import merged_data, read_section_preset, section_preset_names
@@ -51,46 +28,15 @@ from ..scale.ratios import Ratios
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
+from . import (
+    control_panel_metadata,
+    control_panel_scala,
+    control_panel_sizing,
+    control_panel_visibility,
+    theme,
+)
 from .control_panel_layout import _CurrentPageStackedWidget, _FlowLayout
-from .control_panel_metadata import (
-    _annotation_types,
-    _control_metadata,
-    _enum_class,
-    _expects_json,
-    _has_metadata,
-    _numeric_metadata,
-    _options_metadata,
-)
-from .control_panel_scala import (
-    ScalaBrowserEdit,
-    loaded_scala_description,
-    loaded_scala_name,
-)
-from .control_panel_sizing import (
-    ENTRY_CHAR_WIDTH,
-    SPIN_BUTTON_WIDTH,
-    _configure_editor,
-    _configure_flexible_editor,
-    _configure_label,
-    _display_label,
-    _entry_width,
-)
 from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
-from .control_panel_visibility import (
-    _active_tuning_type,
-    _has_visible_fields,
-    _is_beginner_field,
-    _is_wide_field,
-    _midi_child_title,
-    _model_tree,
-    _visible_child_names,
-    _visible_control_names,
-)
-from .theme import (
-    control_section_style,
-    invalid_scale_widget_style,
-    widget_theme,
-)
 from .tooltip import Tooltip
 
 SPEECH_FIELDS = {
@@ -118,10 +64,10 @@ Scalar: TypeAlias = bool | float | int | str | None
 INLINE_CHILDREN = (Polyphony,)
 SECTION_PRESET_PLACEHOLDER = 'Preset...'
 
-CONTROL_BINDINGS: WeakKeyDictionary[QWidget, tuple[BaseModel, str, object | None]] = (
-    WeakKeyDictionary()
-)
-INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QLineEdit, str] = (
+CONTROL_BINDINGS: WeakKeyDictionary[
+    QtWidgets.QWidget, tuple[BaseModel, str, object | None]
+] = WeakKeyDictionary()
+INVALID_SCALE_WIDGET_TEXT_COLORS: WeakKeyDictionary[QtWidgets.QLineEdit, str] = (
     WeakKeyDictionary()
 )
 NUMERIC_LOCALE = QLocale.c()
@@ -132,7 +78,7 @@ SPIN_MAXIMUM = 9999
 class _OptionControl:
     def __init__(
         self,
-        menu: QComboBox,
+        menu: QtWidgets.QComboBox,
         data: BaseModel,
         name: str,
         values: Callable[[], list[str]],
@@ -150,10 +96,10 @@ class _OptionControl:
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
 
 
-class ControlPanel(QScrollArea):
+class ControlPanel(QtWidgets.QScrollArea):
     def __init__(
         self,
-        parent: QWidget,
+        parent: QtWidgets.QWidget,
         data: BaseModel,
         height: int = 200,
         app: App | None = None,
@@ -167,14 +113,17 @@ class ControlPanel(QScrollArea):
         self.option_controls: list[_OptionControl] = []
         self.show_advanced = True
         self.eager_modes = eager_modes
-        self.pages: dict[bool, QWidget] = {}
-        self.section_path: dict[QWidget, str] = {}
+        self.pages: dict[bool, QtWidgets.QWidget] = {}
+        self.section_path: dict[QtWidgets.QWidget, str] = {}
         self.pending_scroll: int | None = None
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setMinimumHeight(min(height, 80))
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.content: QStackedWidget = QStackedWidget()
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.content: QtWidgets.QStackedWidget = QtWidgets.QStackedWidget()
         self.content.setObjectName('control_panel_content')
         self.setWidget(self.content)
         self.verticalScrollBar().valueChanged.connect(self._remember_scroll)
@@ -221,12 +170,12 @@ class ControlPanel(QScrollArea):
         self.restore_scroll()
 
     def refresh_theme(self) -> None:
-        theme = widget_theme(self)
-        for section in self.findChildren(QFrame, 'control_section'):
-            section.setStyleSheet(control_section_style(theme))
+        current_theme = theme.widget_theme(self)
+        for section in self.findChildren(QtWidgets.QFrame, 'control_section'):
+            section.setStyleSheet(theme.control_section_style(current_theme))
         for widget in tuple(INVALID_SCALE_WIDGET_TEXT_COLORS):
-            widget.setStyleSheet(invalid_scale_widget_style(theme))
-        for browser in self.findChildren(QLineEdit, 'scala_browser'):
+            widget.setStyleSheet(theme.invalid_scale_widget_style(current_theme))
+        for browser in self.findChildren(QtWidgets.QLineEdit, 'scala_browser'):
             set_completion_style = getattr(browser, '_set_completion_style', None)
             if callable(set_completion_style):
                 set_completion_style('QLineEdit {color:' in browser.styleSheet())
@@ -240,7 +189,9 @@ class ControlPanel(QScrollArea):
         page = self.content.currentWidget()
         if page is None:
             return
-        for button in page.findChildren(QToolButton, 'control_section_disclosure'):
+        for button in page.findChildren(
+            QtWidgets.QToolButton, 'control_section_disclosure'
+        ):
             if key := self.section_path.get(button):
                 config.control_panel_sections[key] = button.isChecked()
         try:
@@ -269,10 +220,10 @@ class ControlPanel(QScrollArea):
         if self.verticalScrollBar().value() == self.pending_scroll:
             self.pending_scroll = None
 
-    def _build_page(self, advanced: bool) -> QWidget:
+    def _build_page(self, advanced: bool) -> QtWidgets.QWidget:
         instrument('control panel build page start', advanced=advanced)
-        page = QWidget(self.content)
-        layout = QVBoxLayout(page)
+        page = QtWidgets.QWidget(self.content)
+        layout = QtWidgets.QVBoxLayout(page)
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(8)
         self.content.addWidget(page)
@@ -287,10 +238,10 @@ class ControlPanel(QScrollArea):
         return page
 
     def _add_placeholder(self) -> None:
-        page = QWidget(self.content)
-        layout = QVBoxLayout(page)
+        page = QtWidgets.QWidget(self.content)
+        layout = QtWidgets.QVBoxLayout(page)
         layout.setContentsMargins(6, 6, 6, 6)
-        layout.addWidget(QLabel('Loading controls...', page))
+        layout.addWidget(QtWidgets.QLabel('Loading controls...', page))
         self.content.addWidget(page)
         self._rewrap_to_viewport()
 
@@ -323,7 +274,7 @@ def _set_control_panel_mode(control_panel: ControlPanel, advanced: bool) -> None
 
 
 def _add_model_controls(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     option_controls: list[_OptionControl],
     title: str | None = None,
@@ -336,10 +287,10 @@ def _add_model_controls(
         _add_tuning_controls(parent, data, option_controls, advanced)
         return
 
-    controls = _visible_control_names(data, advanced)
+    controls = control_panel_visibility._visible_control_names(data, advanced)
     children = [
         name
-        for name in _visible_child_names(data, advanced)
+        for name in control_panel_visibility._visible_child_names(data, advanced)
         if not isinstance(getattr(data, name), INLINE_CHILDREN)
     ]
 
@@ -351,23 +302,23 @@ def _add_model_controls(
             continue
         child = getattr(data, name)
         assert isinstance(child, BaseModel)
-        if not _has_visible_fields(child, advanced):
+        if not control_panel_visibility._has_visible_fields(child, advanced):
             continue
         device = getattr(data, 'device', None)
         if name == 'sound' and isinstance(device, Device):
             child_parent = _add_collapsible_section(
-                parent, _midi_child_title(data, name), child
+                parent, control_panel_visibility._midi_child_title(data, name), child
             )
             _add_model_controls(child_parent, child, option_controls, advanced=advanced)
             _add_model_controls(
                 child_parent,
                 device,
                 option_controls,
-                _midi_child_title(data, 'device'),
+                control_panel_visibility._midi_child_title(data, 'device'),
                 advanced,
             )
             continue
-        if not _visible_control_names(child, advanced):
+        if not control_panel_visibility._visible_control_names(child, advanced):
             child_parent = (
                 _add_collapsible_section(parent, 'MIDI', child)
                 if isinstance(child, Midi)
@@ -379,13 +330,13 @@ def _add_model_controls(
             parent,
             child,
             option_controls,
-            _midi_child_title(data, name),
+            control_panel_visibility._midi_child_title(data, name),
             advanced,
         )
 
 
 def _add_tuning_controls(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: Tuning,
     option_controls: list[_OptionControl],
     advanced: bool,
@@ -393,7 +344,7 @@ def _add_tuning_controls(
     controls = [
         name
         for name in ['type', 'detune', 'root_frequency', 'root_note']
-        if advanced or _is_beginner_field(data, name)
+        if advanced or control_panel_visibility._is_beginner_field(data, name)
     ]
     _add_control_grid(parent, data, controls, option_controls, advanced)
     _add_scala_browser_control(parent)
@@ -401,9 +352,9 @@ def _add_tuning_controls(
     stack = _CurrentPageStackedWidget(parent)
     stack.setObjectName('tuning_form_stack')
     for tuning_type in Type:
-        page = QWidget(stack)
+        page = QtWidgets.QWidget(stack)
         page.setObjectName(f'tuning_form_{tuning_type.value}')
-        layout = QVBoxLayout(page)
+        layout = QtWidgets.QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
         match tuning_type:
@@ -422,7 +373,7 @@ def _add_tuning_controls(
 
 
 def _add_general_controls(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     option_controls: list[_OptionControl],
     advanced: bool = True,
@@ -433,32 +384,32 @@ def _add_general_controls(
     _add_control_group_grid(body, controls, option_controls)
 
 
-def _section(parent: QWidget) -> QFrame:
-    section = QFrame(parent)
+def _section(parent: QtWidgets.QWidget) -> QtWidgets.QFrame:
+    section = QtWidgets.QFrame(parent)
     section.setObjectName('control_section')
-    section.setFrameShape(QFrame.Shape.StyledPanel)
-    section.setStyleSheet(control_section_style(widget_theme(parent)))
+    section.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+    section.setStyleSheet(theme.control_section_style(theme.widget_theme(parent)))
     return section
 
 
 def _add_collapsible_section(
-    parent: QWidget, title: str, data: BaseModel | None = None
-) -> QWidget:
+    parent: QtWidgets.QWidget, title: str, data: BaseModel | None = None
+) -> QtWidgets.QWidget:
     section = _section(parent)
     _parent_layout(parent).addWidget(section)
-    layout = QVBoxLayout(section)
+    layout = QtWidgets.QVBoxLayout(section)
     layout.setContentsMargins(6, 4, 6, 6)
     layout.setSpacing(3)
 
-    body = QWidget(section)
+    body = QtWidgets.QWidget(section)
     body.setObjectName('control_section_body')
-    body_layout = QVBoxLayout(body)
+    body_layout = QtWidgets.QVBoxLayout(body)
     body_layout.setContentsMargins(0, 0, 0, 0)
     body_layout.setSpacing(3)
 
-    button = QToolButton(section)
+    button = QtWidgets.QToolButton(section)
     button.setObjectName('control_section_disclosure')
-    button.setText(_display_label(title))
+    button.setText(control_panel_sizing._display_label(title))
     button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
     button.setArrowType(Qt.ArrowType.DownArrow)
     button.setCheckable(True)
@@ -470,11 +421,13 @@ def _add_collapsible_section(
         assert control_panel.app is not None
         expanded = control_panel.app.global_config.control_panel_sections.get(key, True)
     button.setChecked(expanded)
-    button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    button.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed
+    )
     _set_section_expanded(button, body, button.isChecked())
     button.toggled.connect(lambda checked: _set_section_expanded(button, body, checked))
 
-    header = QHBoxLayout()
+    header = QtWidgets.QHBoxLayout()
     header.setContentsMargins(0, 0, 0, 0)
     header.setSpacing(6)
     header.addWidget(button)
@@ -489,7 +442,9 @@ def _section_key(title: str, data: BaseModel | None) -> str:
     return f'{type(data).__name__ if data is not None else "ControlPanel"}.{title}'
 
 
-def _set_section_expanded(button: QToolButton, body: QWidget, expanded: bool) -> None:
+def _set_section_expanded(
+    button: QtWidgets.QToolButton, body: QtWidgets.QWidget, expanded: bool
+) -> None:
     body.setVisible(expanded)
     button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
     control_panel = _control_panel(button)
@@ -501,8 +456,8 @@ def _set_section_expanded(button: QToolButton, body: QWidget, expanded: bool) ->
 
 
 def _add_section_preset_control(
-    parent: QWidget,
-    layout: QBoxLayout,
+    parent: QtWidgets.QWidget,
+    layout: QtWidgets.QBoxLayout,
     data: BaseModel | None,
 ) -> None:
     section = _section_preset_section(data)
@@ -510,11 +465,13 @@ def _add_section_preset_control(
         return
     assert data is not None
 
-    menu = QComboBox(parent)
+    menu = QtWidgets.QComboBox(parent)
     menu.setObjectName('section_preset')
     menu.addItems([SECTION_PRESET_PLACEHOLDER, *names])
     menu.setCurrentIndex(0)
-    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    menu.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+    )
     layout.addWidget(menu)
 
     def command(name: str) -> None:
@@ -537,7 +494,7 @@ def _section_preset_section(data: BaseModel | None) -> str | None:
 
 
 def _apply_section_preset(
-    parent: QWidget, data: BaseModel, section: str, name: str
+    parent: QtWidgets.QWidget, data: BaseModel, section: str, name: str
 ) -> None:
     values = merged_data(data.model_dump(), read_section_preset(section, name))
     validated = type(data).model_validate(values)
@@ -556,15 +513,15 @@ def _general_controls(
 ) -> list[tuple[BaseModel, str]]:
     return [
         (model, name)
-        for model in _model_tree(data)
+        for model in control_panel_visibility._model_tree(data)
         for name in type(model).model_fields
-        if _has_metadata(type(model), name, General)
-        and (advanced or _is_beginner_field(model, name))
+        if control_panel_metadata._has_metadata(type(model), name, General)
+        and (advanced or control_panel_visibility._is_beginner_field(model, name))
     ]
 
 
 def _add_control_group_grid(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     controls: list[tuple[BaseModel, str]],
     option_controls: list[_OptionControl],
 ) -> None:
@@ -572,7 +529,7 @@ def _add_control_group_grid(
 
 
 def _add_control_grid(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     fields: list[str],
     option_controls: list[_OptionControl],
@@ -582,11 +539,11 @@ def _add_control_grid(
 
 
 def _add_control_flow(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     controls: list[tuple[BaseModel, str]],
     option_controls: list[_OptionControl],
 ) -> None:
-    frame = QWidget(parent)
+    frame = QtWidgets.QWidget(parent)
     layout = _FlowLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     for control_data, name in controls:
@@ -598,30 +555,36 @@ def _control_refs(
     data: BaseModel, fields: list[str], advanced: bool
 ) -> list[tuple[BaseModel, str]]:
     controls = [(data, name) for name in fields]
-    for name in _visible_child_names(data, advanced):
+    for name in control_panel_visibility._visible_child_names(data, advanced):
         child = getattr(data, name)
         if isinstance(child, INLINE_CHILDREN):
             controls.extend(
                 (child, child_name)
-                for child_name in _visible_control_names(child, advanced)
+                for child_name in control_panel_visibility._visible_control_names(
+                    child, advanced
+                )
             )
     return controls
 
 
 def _add_control_cell(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
 ) -> None:
-    cell = QWidget(parent)
-    layout = QVBoxLayout(cell)
+    cell = QtWidgets.QWidget(parent)
+    layout = QtWidgets.QVBoxLayout(cell)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(0)
-    if _is_wide_field(data, name):
-        cell.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    if control_panel_visibility._is_wide_field(data, name):
+        cell.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed
+        )
     else:
-        cell.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        cell.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed
+        )
     parent_layout = parent.layout()
     assert parent_layout is not None
     parent_layout.addWidget(cell)
@@ -634,10 +597,14 @@ def _add_control_cell(
         _set_widget_state(cell, False)
 
 
-def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> None:
+def _add_field_tooltips(
+    parent: QtWidgets.QWidget, model: type[BaseModel], name: str
+) -> None:
     control_panel = _control_panel(parent)
     for widget in _field_widgets(parent):
-        if isinstance(widget, QWidget) and not widget.property('skip_field_tooltip'):
+        if isinstance(widget, QtWidgets.QWidget) and not widget.property(
+            'skip_field_tooltip'
+        ):
             Tooltip(
                 widget,
                 _field_hover_text(model, name),
@@ -648,11 +615,11 @@ def _add_field_tooltips(parent: QWidget, model: type[BaseModel], name: str) -> N
 def _field_widgets(parent: object) -> list[object]:
     if callable(winfo_children := getattr(parent, 'winfo_children', None)):
         children = winfo_children()
-    elif isinstance(parent, QWidget):
+    elif isinstance(parent, QtWidgets.QWidget):
         children = [
             child
             for child in parent.findChildren(
-                QWidget,
+                QtWidgets.QWidget,
                 options=Qt.FindChildOption.FindDirectChildrenOnly,
             )
             if child.parent() is parent
@@ -690,31 +657,31 @@ def _field_help(model: type[BaseModel], name: str) -> str | None:
 
 
 def _add_labeled_control_frame(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     name: str,
     spacing: int = 4,
-) -> tuple[QWidget, QHBoxLayout, QLabel]:
-    frame = QWidget(parent)
-    layout = QHBoxLayout(frame)
+) -> tuple[QtWidgets.QWidget, QtWidgets.QHBoxLayout, QtWidgets.QLabel]:
+    frame = QtWidgets.QWidget(parent)
+    layout = QtWidgets.QHBoxLayout(frame)
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(spacing)
-    label = QLabel(_display_label(name), frame)
-    _configure_label(label)
+    label = QtWidgets.QLabel(control_panel_sizing._display_label(name), frame)
+    control_panel_sizing._configure_label(label)
     layout.addWidget(label)
     return frame, layout, label
 
 
 def _add_control(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
     option_controls: list[_OptionControl],
 ) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    enum_cls = _enum_class(annotation, value)
+    enum_cls = control_panel_metadata._enum_class(annotation, value)
 
-    if options := _options_metadata(type(data), name):
+    if options := control_panel_metadata._options_metadata(type(data), name):
         _add_option_control(parent, data, name, value, options.options, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
@@ -725,7 +692,7 @@ def _add_control(
 
 
 def _add_option_control(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
     value: Scalar,
@@ -733,13 +700,13 @@ def _add_option_control(
     option_controls: list[_OptionControl],
 ) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, name)
-    menu = QComboBox(frame)
-    width = _entry_width(
+    menu = QtWidgets.QComboBox(frame)
+    width = control_panel_sizing._entry_width(
         name,
         type(data).model_fields[name].annotation,
-        _control_metadata(type(data), name),
+        control_panel_metadata._control_metadata(type(data), name),
     )
-    _configure_editor(menu, width)
+    control_panel_sizing._configure_editor(menu, width)
     choices = values()
     menu.addItems(_option_choices(data, name, choices))
     menu.setCurrentText(_option_text(data, name, value, choices))
@@ -763,15 +730,19 @@ def _add_option_control(
     option_controls.append(_OptionControl(menu, data, name, values))
 
 
-def _add_scala_browser_control(parent: QWidget) -> None:
+def _add_scala_browser_control(parent: QtWidgets.QWidget) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
     app = _control_panel(parent).app
-    entry = ScalaBrowserEdit(frame, app, _load_scala_browser_tuning, _set_app_tuning)
-    _configure_editor(entry, 12 * ENTRY_CHAR_WIDTH)
+    entry = control_panel_scala.ScalaBrowserEdit(
+        frame, app, _load_scala_browser_tuning, _set_app_tuning
+    )
+    control_panel_sizing._configure_editor(
+        entry, 12 * control_panel_sizing.ENTRY_CHAR_WIDTH
+    )
     entry.setObjectName('scala_browser')
     layout.addWidget(entry)
     if app is not None:
-        checkbox = QCheckBox('audition', frame)
+        checkbox = QtWidgets.QCheckBox('audition', frame)
         checkbox.setChecked(app.audition_scala)
 
         def update(checked: bool) -> None:
@@ -780,31 +751,37 @@ def _add_scala_browser_control(parent: QWidget) -> None:
 
         checkbox.toggled.connect(update)
         layout.addWidget(checkbox)
-    name = QLineEdit(loaded_scala_name(app), frame)
+    name = QtWidgets.QLineEdit(control_panel_scala.loaded_scala_name(app), frame)
     name.setReadOnly(True)
-    _configure_editor(name, 7 * ENTRY_CHAR_WIDTH)
+    control_panel_sizing._configure_editor(
+        name, 7 * control_panel_sizing.ENTRY_CHAR_WIDTH
+    )
     name.setObjectName('tuning_name')
     layout.addWidget(name)
-    description = QLineEdit(loaded_scala_description(app), frame)
+    description = QtWidgets.QLineEdit(
+        control_panel_scala.loaded_scala_description(app), frame
+    )
     description.setReadOnly(True)
-    _configure_flexible_editor(description, 120 * ENTRY_CHAR_WIDTH)
+    control_panel_sizing._configure_flexible_editor(
+        description, 120 * control_panel_sizing.ENTRY_CHAR_WIDTH
+    )
     description.setObjectName('tuning_description')
     layout.addWidget(description)
     _parent_layout(parent).addWidget(frame)
 
 
-def _load_scala_browser_tuning(entry: ScalaBrowserEdit) -> None:
+def _load_scala_browser_tuning(entry: control_panel_scala.ScalaBrowserEdit) -> None:
     if (ratios := entry.selected_ratios()) is None:
         return
     parent = entry.parentWidget()
     assert parent is not None
     if (
-        QMessageBox.question(
+        QtWidgets.QMessageBox.question(
             parent,
             'Load Scala tuning',
             f'Load {ratios.name}?',
         )
-        != QMessageBox.StandardButton.Yes
+        != QtWidgets.QMessageBox.StandardButton.Yes
     ):
         return
     control_panel = _control_panel(parent)
@@ -818,9 +795,11 @@ def _load_scala_browser_tuning(entry: ScalaBrowserEdit) -> None:
 
 
 def _set_loaded_scala_fields(control_panel: ControlPanel, ratios: Ratios) -> None:
-    if name := control_panel.findChild(QLineEdit, 'tuning_name'):
+    if name := control_panel.findChild(QtWidgets.QLineEdit, 'tuning_name'):
         name.setText(ratios.name)
-    if description := control_panel.findChild(QLineEdit, 'tuning_description'):
+    if description := control_panel.findChild(
+        QtWidgets.QLineEdit, 'tuning_description'
+    ):
         description.setText(ratios.desc)
 
 
@@ -855,7 +834,7 @@ def rebuild_control_panel(control_panel: ControlPanel) -> None:
     control_panel.rebuild()
 
 
-def _rebuild_parent_control_panel(parent: QWidget) -> None:
+def _rebuild_parent_control_panel(parent: QtWidgets.QWidget) -> None:
     rebuild_control_panel(_control_panel(parent))
 
 
@@ -870,20 +849,24 @@ def _send_tuning_if_tuning_changed(parent: object, data: BaseModel) -> None:
 
 
 def _send_tuning(parent: object) -> None:
-    if isinstance(parent, QWidget) and (app := _control_panel(parent).app):
+    if isinstance(parent, QtWidgets.QWidget) and (app := _control_panel(parent).app):
         app.midi.output.send_tuning_dump(app.scale, app.tuning)
 
 
-def _rebuild_note_grid(parent: QWidget) -> None:
+def _rebuild_note_grid(parent: QtWidgets.QWidget) -> None:
     state = _control_panel(parent).app
     assert state is not None
     state.main_window.ui.rebuild_note_grid()
 
 
-def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) -> None:
-    check = QCheckBox(_display_label(name), parent)
+def _add_bool_control(
+    parent: QtWidgets.QWidget, data: BaseModel, name: str, value: bool
+) -> None:
+    check = QtWidgets.QCheckBox(control_panel_sizing._display_label(name), parent)
     check.setMinimumWidth(check.sizeHint().width())
-    check.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    check.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+    )
     check.setChecked(value)
     _bind_control(check, data, name)
 
@@ -909,20 +892,22 @@ def _add_bool_control(parent: QWidget, data: BaseModel, name: str, value: bool) 
     _parent_layout(parent).addWidget(check)
 
 
-def _set_midi_controls_state(parent: QWidget, enabled: bool) -> None:
+def _set_midi_controls_state(parent: QtWidgets.QWidget, enabled: bool) -> None:
     data = CONTROL_BINDINGS[parent][0]
-    for cell in _control_panel(parent).findChildren(QWidget):
+    for cell in _control_panel(parent).findChildren(QtWidgets.QWidget):
         field = cell.property('control_field_name')
         binding = CONTROL_BINDINGS.get(cell)
         if binding and binding[0] is data and field and field != 'enable':
             _set_widget_state(cell, enabled)
 
 
-def _handle_midi_output_failure(parent: QWidget, midi_output: MidiOut) -> None:
+def _handle_midi_output_failure(
+    parent: QtWidgets.QWidget, midi_output: MidiOut
+) -> None:
     if not (error := midi_output.pop_open_error()):
         return
     _set_midi_controls_state(parent, False)
-    for cell in _control_panel(parent).findChildren(QCheckBox):
+    for cell in _control_panel(parent).findChildren(QtWidgets.QCheckBox):
         binding = CONTROL_BINDINGS.get(cell)
         if binding and binding[0] is midi_output and binding[1] == 'enable':
             was_blocked = cell.blockSignals(True)
@@ -932,14 +917,14 @@ def _handle_midi_output_failure(parent: QWidget, midi_output: MidiOut) -> None:
         app.main_window.on_midi_output_failed(error)
 
 
-def _set_widget_state(widget: QWidget, enabled: bool) -> None:
+def _set_widget_state(widget: QtWidgets.QWidget, enabled: bool) -> None:
     widget.setEnabled(enabled)
-    for child in widget.findChildren(QWidget):
+    for child in widget.findChildren(QtWidgets.QWidget):
         child.setEnabled(enabled)
 
 
 def _add_entry_control(
-    parent: QWidget, data: BaseModel, name: str, value: object
+    parent: QtWidgets.QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
     if _can_use_spin_control(annotation, value):
@@ -950,15 +935,15 @@ def _add_entry_control(
     text = _entry_text(data, name, value, annotation)
 
     frame, layout, _ = _add_labeled_control_frame(parent, name)
-    entry = QLineEdit(text, frame)
+    entry = QtWidgets.QLineEdit(text, frame)
     _bind_control(entry, data, name)
-    width = _entry_width(
+    width = control_panel_sizing._entry_width(
         name,
         annotation,
-        _control_metadata(type(data), name),
-        _numeric_metadata(type(data), name),
+        control_panel_metadata._control_metadata(type(data), name),
+        control_panel_metadata._numeric_metadata(type(data), name),
     )
-    _configure_editor(entry, width)
+    control_panel_sizing._configure_editor(entry, width)
     text_color = entry.palette().text().color().name()
 
     def update() -> None:
@@ -986,16 +971,18 @@ def _add_entry_control(
 
 
 def _add_alphabet_language_menu(
-    frame: QWidget,
-    layout: QBoxLayout,
+    frame: QtWidgets.QWidget,
+    layout: QtWidgets.QBoxLayout,
     data: Mapper,
-    entry: QLineEdit,
+    entry: QtWidgets.QLineEdit,
     update: Callable[[], None],
 ) -> None:
-    menu = QComboBox(frame)
+    menu = QtWidgets.QComboBox(frame)
     menu.setObjectName('alphabet_language')
-    menu.addItems(['Language...', '(clear)', *language_menu_names()])
-    menu.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+    menu.addItems(['Language...', '(clear)', *language.language_menu_names()])
+    menu.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+    )
 
     def command(name: str) -> None:
         if name == 'Language...':
@@ -1003,8 +990,8 @@ def _add_alphabet_language_menu(
         entry.setText(
             ''
             if name == '(clear)'
-            else alphabet_for_language_name(
-                language_name_from_menu_name(name), data.case_sensitive
+            else language.alphabet_for_language_name(
+                language.language_name_from_menu_name(name), data.case_sensitive
             )
         )
         update()
@@ -1015,10 +1002,10 @@ def _add_alphabet_language_menu(
 
 
 def _add_spin_control(
-    parent: QWidget, data: BaseModel, name: str, value: object
+    parent: QtWidgets.QWidget, data: BaseModel, name: str, value: object
 ) -> None:
     annotation = type(data).model_fields[name].annotation
-    numeric = _numeric_metadata(type(data), name)
+    numeric = control_panel_metadata._numeric_metadata(type(data), name)
     frame, layout, _ = _add_labeled_control_frame(parent, name)
 
     if _is_int_annotation(annotation):
@@ -1060,7 +1047,7 @@ def _add_spin_control(
         layout.addWidget(spin)
 
         if numeric.dial:
-            dial = QDial(frame)
+            dial = QtWidgets.QDial(frame)
             dial.setFixedSize(30, 30)
             dial.setWrapping(False)
             dial.setRange(0, 100)
@@ -1072,8 +1059,15 @@ def _add_spin_control(
             dial.sliderReleased.connect(update)
             layout.addWidget(dial)
 
-    width = _entry_width(name, annotation, _control_metadata(type(data), name), numeric)
-    _configure_editor(spin, width + SPIN_BUTTON_WIDTH if width else None)
+    width = control_panel_sizing._entry_width(
+        name,
+        annotation,
+        control_panel_metadata._control_metadata(type(data), name),
+        numeric,
+    )
+    control_panel_sizing._configure_editor(
+        spin, width + control_panel_sizing.SPIN_BUTTON_WIDTH if width else None
+    )
     _parent_layout(parent).addWidget(frame)
 
 
@@ -1083,17 +1077,20 @@ def _can_use_spin_control(annotation: object, value: object) -> bool:
     return (
         isinstance(value, int | float)
         and SPIN_MINIMUM <= value <= SPIN_MAXIMUM
-        and (_is_int_annotation(annotation) or float in _annotation_types(annotation))
+        and (
+            _is_int_annotation(annotation)
+            or float in control_panel_metadata._annotation_types(annotation)
+        )
     )
 
 
 def _is_int_annotation(annotation: object) -> bool:
-    types = _annotation_types(annotation)
+    types = control_panel_metadata._annotation_types(annotation)
     return int in types and float not in types and bool not in types
 
 
 def _add_enum_control(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
     value: enum.Enum,
@@ -1112,9 +1109,11 @@ def _add_enum_control(
         _rebuild_note_grid_if_mapping_changed(parent, data)
 
     for i, member in enumerate(members):
-        radio = QRadioButton(member.name, frame)
+        radio = QtWidgets.QRadioButton(member.name, frame)
         radio.setMinimumWidth(radio.sizeHint().width())
-        radio.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        radio.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+        )
         radio.setChecked(i == index)
         radio.setProperty('skip_field_tooltip', True)
         Tooltip(
@@ -1166,20 +1165,22 @@ def _enum_member_name(enum_cls: type[enum.Enum], line: str) -> str | None:
     return None
 
 
-def _set_tuning_type_form(parent: QWidget, data: Tuning) -> None:
+def _set_tuning_type_form(parent: QtWidgets.QWidget, data: Tuning) -> None:
     for stack in _control_panel(parent).findChildren(
-        QStackedWidget, 'tuning_form_stack'
+        QtWidgets.QStackedWidget, 'tuning_form_stack'
     ):
         _set_tuning_form(stack, data)
 
 
-def _set_tuning_form(stack: QStackedWidget, data: Tuning) -> None:
-    stack.setCurrentIndex(list(Type).index(_active_tuning_type(data)))
+def _set_tuning_form(stack: QtWidgets.QStackedWidget, data: Tuning) -> None:
+    stack.setCurrentIndex(
+        list(Type).index(control_panel_visibility._active_tuning_type(data))
+    )
     stack.updateGeometry()
 
 
 def _set_model_value(
-    data: BaseModel, name: str, value: object, parent: QWidget | None = None
+    data: BaseModel, name: str, value: object, parent: QtWidgets.QWidget | None = None
 ) -> None:
     instrument('control value set start', model=type(data).__name__, field=name)
     old_value = getattr(data, name)
@@ -1217,14 +1218,16 @@ def _set_model_value(
     instrument('control value set end', model=type(data).__name__, field=name)
 
 
-def _checkpoint_undo(parent: QWidget) -> None:
+def _checkpoint_undo(parent: QtWidgets.QWidget) -> None:
     control_panel = _control_panel(parent)
     if type(control_panel.data).__name__ == 'Tuney':
         assert control_panel.app is not None
         control_panel.app.main_window.history.checkpoint_undo()
 
 
-def _prepare_speech_if_changed(parent: QWidget, data: BaseModel, name: str) -> None:
+def _prepare_speech_if_changed(
+    parent: QtWidgets.QWidget, data: BaseModel, name: str
+) -> None:
     if type(data).__name__ != 'App' or name not in SPEECH_FIELDS:
         return
     control_panel = _control_panel(parent)
@@ -1253,7 +1256,11 @@ def _clear_cached_values(data: BaseModel) -> None:
 
 
 def _set_mapping_entry_state(
-    parent: QWidget, data: BaseModel, name: str, entry: QLineEdit, text_color: str
+    parent: QtWidgets.QWidget,
+    data: BaseModel,
+    name: str,
+    entry: QtWidgets.QLineEdit,
+    text_color: str,
 ) -> bool:
     if isinstance(data, Mapper):
         _rebuild_note_grid_if_mapping_changed(parent, data)
@@ -1289,9 +1296,9 @@ def _scale_has_note_buttons(scale: Scale) -> bool:
         return False
 
 
-def _set_invalid_scale_widget(widget: QLineEdit, text_color: str) -> None:
+def _set_invalid_scale_widget(widget: QtWidgets.QLineEdit, text_color: str) -> None:
     INVALID_SCALE_WIDGET_TEXT_COLORS.setdefault(widget, text_color)
-    widget.setStyleSheet(invalid_scale_widget_style(widget_theme(widget)))
+    widget.setStyleSheet(theme.invalid_scale_widget_style(theme.widget_theme(widget)))
 
 
 def _clear_invalid_scale_widgets() -> None:
@@ -1313,7 +1320,9 @@ def _parse_entry_value(
         return Ratios(text=raw) if name == 'ratios' else Table(text=raw)
     if name == 'intervals' and isinstance(old_value, list):
         return raw
-    if isinstance(old_value, list | dict) or _expects_json(annotation):
+    if isinstance(old_value, list | dict) or control_panel_metadata._expects_json(
+        annotation
+    ):
         return json.loads(raw)
     return raw
 
@@ -1340,7 +1349,7 @@ def _entry_text(data: BaseModel, name: str, value: object, annotation: object) -
 
 
 def _bind_control(
-    widget: QWidget,
+    widget: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
     choice: object | None = None,
@@ -1348,29 +1357,31 @@ def _bind_control(
     CONTROL_BINDINGS[widget] = data, name, choice
 
 
-def _sync_model_controls(parent: QWidget, data: BaseModel, name: str) -> None:
+def _sync_model_controls(parent: QtWidgets.QWidget, data: BaseModel, name: str) -> None:
     value = getattr(data, name)
     annotation = type(data).model_fields[name].annotation
-    numeric = _numeric_metadata(type(data), name)
-    for widget in _control_panel(parent).findChildren(QWidget):
+    numeric = control_panel_metadata._numeric_metadata(type(data), name)
+    for widget in _control_panel(parent).findChildren(QtWidgets.QWidget):
         binding = CONTROL_BINDINGS.get(widget)
         if not binding or binding[0] is not data or binding[1] != name:
             continue
         blocker = QSignalBlocker(widget)
-        if isinstance(widget, QRadioButton):
+        if isinstance(widget, QtWidgets.QRadioButton):
             widget.setChecked(value == binding[2])
-        elif isinstance(widget, QComboBox):
+        elif isinstance(widget, QtWidgets.QComboBox):
             choices = [widget.itemText(i) for i in range(widget.count())]
             widget.setCurrentText(_option_text(data, name, value, choices))
-        elif isinstance(widget, QCheckBox):
+        elif isinstance(widget, QtWidgets.QCheckBox):
             widget.setChecked(bool(value))
-        elif isinstance(widget, QDial) and isinstance(value, int | float):
+        elif isinstance(widget, QtWidgets.QDial) and isinstance(value, int | float):
             widget.setValue(numeric.spin_to_dial(float(value)))
-        elif isinstance(widget, QSpinBox) and isinstance(value, int):
+        elif isinstance(widget, QtWidgets.QSpinBox) and isinstance(value, int):
             widget.setValue(value)
-        elif isinstance(widget, QDoubleSpinBox) and isinstance(value, int | float):
+        elif isinstance(widget, QtWidgets.QDoubleSpinBox) and isinstance(
+            value, int | float
+        ):
             widget.setValue(float(value))
-        elif isinstance(widget, QLineEdit):
+        elif isinstance(widget, QtWidgets.QLineEdit):
             widget.setText(_entry_text(data, name, value, annotation))
         del blocker
 
@@ -1397,12 +1408,12 @@ def _option_choices(data: BaseModel, name: str, choices: list[str]) -> list[str]
     return ['', *choices]
 
 
-def _parent_layout(parent: QWidget) -> QBoxLayout:
+def _parent_layout(parent: QtWidgets.QWidget) -> QtWidgets.QBoxLayout:
     if (layout := parent.layout()) is None:
-        layout = QVBoxLayout(parent)
+        layout = QtWidgets.QVBoxLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-    assert isinstance(layout, QBoxLayout)
+    assert isinstance(layout, QtWidgets.QBoxLayout)
     return layout
 
 

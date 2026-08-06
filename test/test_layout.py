@@ -3,16 +3,10 @@ from pytest import MonkeyPatch
 import tuney.ui.layout
 import tuney.ui.main_menu
 import tuney.ui.main_window
+import tuney.ui.theme
 from tuney.app.global_config import GlobalConfig
 from tuney.ui.control_panel_layout import _FlowLayout
 from tuney.ui.layout import Layout
-from tuney.ui.theme import (
-    DARK_THEME,
-    LIGHT_THEME,
-    ThemeName,
-    set_app_theme,
-    theme_for_name,
-)
 
 
 def test_normal_play_cursor_shows_at_text_end() -> None:
@@ -119,9 +113,12 @@ def test_program_minimum_size_resizes_without_qt_minimum_constraints() -> None:
 
 
 def test_theme_lookup_returns_light_and_dark_palettes() -> None:
-    assert theme_for_name(ThemeName.light) is LIGHT_THEME
-    assert theme_for_name('dark') is DARK_THEME
-    assert theme_for_name('unknown') is LIGHT_THEME
+    assert (
+        tuney.ui.theme.theme_for_name(tuney.ui.theme.ThemeName.light)
+        is tuney.ui.theme.LIGHT_THEME
+    )
+    assert tuney.ui.theme.theme_for_name('dark') is tuney.ui.theme.DARK_THEME
+    assert tuney.ui.theme.theme_for_name('unknown') is tuney.ui.theme.LIGHT_THEME
 
 
 def test_app_theme_sets_palette_roles() -> None:
@@ -141,7 +138,7 @@ def test_app_theme_sets_palette_roles() -> None:
         palette.setColor(role, QColor('#000000'))
     app.setPalette(palette)
 
-    set_app_theme(app, DARK_THEME)
+    tuney.ui.theme.set_app_theme(app, tuney.ui.theme.DARK_THEME)
 
     for role in (
         QPalette.ColorRole.AlternateBase,
@@ -150,17 +147,17 @@ def test_app_theme_sets_palette_roles() -> None:
         QPalette.ColorRole.Window,
     ):
         assert app.palette().color(role).name() in {
-            DARK_THEME.alternate_base,
-            DARK_THEME.base,
-            DARK_THEME.button,
-            DARK_THEME.window,
+            tuney.ui.theme.DARK_THEME.alternate_base,
+            tuney.ui.theme.DARK_THEME.base,
+            tuney.ui.theme.DARK_THEME.button,
+            tuney.ui.theme.DARK_THEME.window,
         }
     for role in (
         QPalette.ColorRole.ButtonText,
         QPalette.ColorRole.Text,
         QPalette.ColorRole.WindowText,
     ):
-        assert app.palette().color(role).name() == DARK_THEME.text
+        assert app.palette().color(role).name() == tuney.ui.theme.DARK_THEME.text
 
 
 def test_dark_mode_menu_action_reflects_global_config_theme() -> None:
@@ -168,7 +165,7 @@ def test_dark_mode_menu_action_reflects_global_config_theme() -> None:
 
     if QApplication.instance() is None:
         QApplication([])
-    window = _FakeMenuWindow(ThemeName.dark)
+    window = _FakeMenuWindow(tuney.ui.theme.ThemeName.dark)
 
     tuney.ui.main_menu.build_menu(window)
 
@@ -187,9 +184,12 @@ def test_dark_mode_toggle_saves_theme_and_refreshes_widgets(tmp_path) -> None:
 
     tuney.ui.main_window.MainWindow.on_dark_mode(window, True)
 
-    assert GlobalConfig.read(config.path).theme == ThemeName.dark
+    assert GlobalConfig.read(config.path).theme == tuney.ui.theme.ThemeName.dark
     assert window.refresh_count == 1
-    assert qt_app.palette().color(QPalette.ColorRole.Window).name() == DARK_THEME.window
+    assert (
+        qt_app.palette().color(QPalette.ColorRole.Window).name()
+        == tuney.ui.theme.DARK_THEME.window
+    )
 
 
 def test_program_minimum_size_enforcement_waits_for_mouse_release(
@@ -198,14 +198,18 @@ def test_program_minimum_size_enforcement_waits_for_mouse_release(
     window = _FakeResizeWindow(width=320, height=120, minimum_content_height=360)
     timer = _FakeMinimumSizeTimer()
     window._minimum_size_timer = timer
-    monkeypatch.setattr(tuney.ui.main_window, 'QApplication', _FakePressedApplication)
+    monkeypatch.setattr(
+        tuney.ui.main_window.QtWidgets, 'QApplication', _FakePressedApplication
+    )
 
     tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
 
     assert timer.delays == [tuney.ui.main_window.MINIMUM_SIZE_ENFORCEMENT_DELAY_IN_MS]
     assert window.sizes == []
 
-    monkeypatch.setattr(tuney.ui.main_window, 'QApplication', _FakeReleasedApplication)
+    monkeypatch.setattr(
+        tuney.ui.main_window.QtWidgets, 'QApplication', _FakeReleasedApplication
+    )
 
     tuney.ui.main_window.MainWindow._enforce_minimum_size_after_resize(window)
 
@@ -429,7 +433,7 @@ class _FakeMainWindow:
 
     @property
     def current_theme(self):
-        return LIGHT_THEME
+        return tuney.ui.theme.LIGHT_THEME
 
     def on_transport_state(self, *_: object) -> bool:
         return True
@@ -524,7 +528,7 @@ class _FakeMenuHistory:
 
 
 class _FakeMenuApp:
-    def __init__(self, theme: ThemeName) -> None:
+    def __init__(self, theme: tuney.ui.theme.ThemeName) -> None:
         self.global_config = GlobalConfig(theme=theme)
         self.show_text_timings = False
         self.load_autosave = True
@@ -534,7 +538,7 @@ class _FakeMenuApp:
 
 
 class _FakeMenuWindow:
-    def __init__(self, theme: ThemeName) -> None:
+    def __init__(self, theme: tuney.ui.theme.ThemeName) -> None:
         from PySide6.QtWidgets import QMainWindow
 
         self._window = QMainWindow()
@@ -549,7 +553,7 @@ class _FakeMenuWindow:
 
     @property
     def current_theme(self):
-        return theme_for_name(self.app.global_config.theme)
+        return tuney.ui.theme.theme_for_name(self.app.global_config.theme)
 
     def __getattr__(self, name: str):
         if name.startswith('on_'):
@@ -580,7 +584,7 @@ class _FakeThemeWindow:
 
     @property
     def current_theme(self):
-        return theme_for_name(self.app.global_config.theme)
+        return tuney.ui.theme.theme_for_name(self.app.global_config.theme)
 
     def sync_config_actions(self) -> None:
         self.sync_count += 1

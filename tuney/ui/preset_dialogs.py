@@ -1,27 +1,19 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QDialog,
-    QDialogButtonBox,
-    QInputDialog,
-    QLabel,
-    QListWidget,
-    QMessageBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6 import QtWidgets
 
 from ..presets import user_preset_names
 
 
-def preset_name(parent: QWidget) -> str | None:
-    name, accepted = QInputDialog.getText(parent, 'Save preset', 'Preset name:')
+def preset_name(parent: QtWidgets.QWidget) -> str | None:
+    name, accepted = QtWidgets.QInputDialog.getText(
+        parent, 'Save preset', 'Preset name:'
+    )
     name = name.strip()
     return name if accepted and name else None
 
 
-def test_sheet_preset_names(parent: QWidget) -> list[str]:
+def test_sheet_preset_names(parent: QtWidgets.QWidget) -> list[str]:
     return selected_preset_names(
         parent,
         title='Save test sheet',
@@ -32,7 +24,7 @@ def test_sheet_preset_names(parent: QWidget) -> list[str]:
 
 
 def selected_preset_names(
-    parent: QWidget,
+    parent: QtWidgets.QWidget,
     title: str = 'Delete presets',
     prompt: str = 'Select presets to delete:',
     empty_title: str = 'Delete presets',
@@ -40,27 +32,30 @@ def selected_preset_names(
 ) -> list[str]:
     names = user_preset_names()
     if not names:
-        QMessageBox.information(parent, empty_title, empty_text)
+        QtWidgets.QMessageBox.information(parent, empty_title, empty_text)
         return []
 
-    dialog = QDialog(parent)
+    dialog = QtWidgets.QDialog(parent)
     dialog.setWindowTitle(title)
-    layout = QVBoxLayout(dialog)
-    layout.addWidget(QLabel(prompt, dialog))
+    layout = QtWidgets.QVBoxLayout(dialog)
+    layout.addWidget(QtWidgets.QLabel(prompt, dialog))
 
-    presets = QListWidget(dialog)
-    presets.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+    presets = QtWidgets.QListWidget(dialog)
+    presets.setSelectionMode(
+        QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection
+    )
     presets.addItems(names)
     layout.addWidget(presets)
 
-    buttons = QDialogButtonBox(
-        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+    buttons = QtWidgets.QDialogButtonBox(
+        QtWidgets.QDialogButtonBox.StandardButton.Ok
+        | QtWidgets.QDialogButtonBox.StandardButton.Cancel,
         dialog,
     )
     buttons.accepted.connect(dialog.accept)
     buttons.rejected.connect(dialog.reject)
     layout.addWidget(buttons)
 
-    if dialog.exec() != QDialog.DialogCode.Accepted:
+    if dialog.exec() != QtWidgets.QDialog.DialogCode.Accepted:
         return []
     return [i.text() for i in presets.selectedItems()]
