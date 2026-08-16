@@ -28,11 +28,13 @@ from ..scale.ratios import Ratios
 from ..scale.scale import Scale
 from ..scale.table import Table
 from ..scale.tuning import Tuning, Type
-from . import control_panel_metadata
-from . import control_panel_scala
-from . import control_panel_sizing
-from . import control_panel_visibility
-from . import theme
+from . import (
+    control_panel_metadata,
+    control_panel_scala,
+    control_panel_sizing,
+    control_panel_visibility,
+    theme,
+)
 from .control_panel_layout import _CurrentPageStackedWidget, _FlowLayout
 from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
 from .tooltip import Tooltip
@@ -79,7 +81,7 @@ class _OptionControl:
         menu: QtWidgets.QComboBox,
         data: BaseModel,
         name: str,
-        values: Callable[[], list[str]],
+        values: Callable[[], list[str]] | list[str],
     ) -> None:
         self.menu = menu
         self.data = data
@@ -88,7 +90,7 @@ class _OptionControl:
 
     def refresh(self) -> None:
         value = getattr(self.data, self.name)
-        choices = self.values()
+        choices = self.values() if callable(self.values) else self.values
         self.menu.clear()
         self.menu.addItems(_option_choices(self.data, self.name, choices))
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
@@ -694,7 +696,7 @@ def _add_option_control(
     data: BaseModel,
     name: str,
     value: Scalar,
-    values: Callable[[], list[str]],
+    values: Callable[[], list[str]] | list[str],
     option_controls: list[_OptionControl],
 ) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, name)
@@ -705,7 +707,7 @@ def _add_option_control(
         control_panel_metadata._control_metadata(type(data), name),
     )
     control_panel_sizing._configure_editor(menu, width)
-    choices = values()
+    choices = values() if callable(values) else values
     menu.addItems(_option_choices(data, name, choices))
     menu.setCurrentText(_option_text(data, name, value, choices))
     _bind_control(menu, data, name)

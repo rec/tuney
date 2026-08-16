@@ -19,12 +19,14 @@ from ..app.runnable import start_thread
 from ..app.text_timing import edit_text_timing
 from ..midi.ports import direct_midi_names, midi_names
 from ..time.char_press import CharPress
-from . import error_dialogs
-from . import file_commands
-from . import key_events
-from . import replay_controls
-from . import startup
-from . import tuning_files
+from . import (
+    error_dialogs,
+    file_commands,
+    key_events,
+    replay_controls,
+    startup,
+    tuning_files,
+)
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History, WindowState

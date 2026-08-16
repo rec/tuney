@@ -1,7 +1,7 @@
 import subprocess
 from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import get_origin
+from typing import Annotated, get_origin
 
 import pytest
 import tomlkit
@@ -26,12 +26,14 @@ from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui import control_panel
-from tuney.ui import control_panel_metadata
-from tuney.ui import control_panel_scala
-from tuney.ui import control_panel_sizing
-from tuney.ui import control_panel_spin
-from tuney.ui import control_panel_visibility
+from tuney.ui import (
+    control_panel,
+    control_panel_metadata,
+    control_panel_scala,
+    control_panel_sizing,
+    control_panel_spin,
+    control_panel_visibility,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -122,6 +124,22 @@ def test_set_model_value_validates_and_clears_cached_values(
             'after': mapper.char_to_number['b'],
         },
     )
+
+
+def test_options_accept_fixed_list() -> None:
+    from PySide6.QtWidgets import QComboBox, QWidget
+
+    class Model(BaseModel):
+        choice: Annotated[str, Options(options=['First', 'Second'])] = 'First'
+
+    _qt_app()
+    parent = QWidget()
+    panel = control_panel.ControlPanel(parent, Model())
+
+    menu = panel.findChild(QComboBox)
+
+    assert menu is not None
+    assert [menu.itemText(i) for i in range(menu.count())] == ['', 'First', 'Second']
 
 
 def test_set_app_value_preserves_runtime_objects() -> None:

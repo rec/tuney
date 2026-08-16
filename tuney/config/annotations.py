@@ -20,7 +20,7 @@ class Display(BaseModel, frozen=True):
 
 
 class Options(Display, frozen=True):
-    options: Callable[[], list[str]]
+    options: Callable[[], list[str]] | list[str]
 
 
 class Numeric(Display, frozen=True):

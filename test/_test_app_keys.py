@@ -15,14 +15,16 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
-from tuney.ui import error_dialogs
-from tuney.ui import file_commands
-from tuney.ui import file_dialogs
-from tuney.ui import key_events
-from tuney.ui import layout
-from tuney.ui import main_window
-from tuney.ui import preset_dialogs
-from tuney.ui import startup
+from tuney.ui import (
+    error_dialogs,
+    file_commands,
+    file_dialogs,
+    key_events,
+    layout,
+    main_window,
+    preset_dialogs,
+    startup,
+)
 from tuney.ui.history import History
 from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
