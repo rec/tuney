@@ -19,7 +19,7 @@ from ..app.key_recorder import speech_phrases
 from ..app.platform_info import instrument
 from ..audio.device import Device
 from ..audio.polyphony import Polyphony
-from ..config.annotations import General
+from ..config.annotations import General, Options
 from ..mapper import language
 from ..mapper.mapper import Mapper
 from ..midi.midi import Midi, MidiIn, MidiOut
@@ -81,16 +81,16 @@ class _OptionControl:
         menu: QtWidgets.QComboBox,
         data: BaseModel,
         name: str,
-        values: Callable[[], list[str]] | list[str],
+        options: Options,
     ) -> None:
         self.menu = menu
         self.data = data
         self.name = name
-        self.values = values
+        self.options = options
 
     def refresh(self) -> None:
         value = getattr(self.data, self.name)
-        choices = self.values() if callable(self.values) else self.values
+        choices = self.options.choice_names()
         self.menu.clear()
         self.menu.addItems(_option_choices(self.data, self.name, choices))
         self.menu.setCurrentText(_option_text(self.data, self.name, value, choices))
@@ -682,7 +682,7 @@ def _add_control(
     enum_cls = control_panel_metadata._enum_class(annotation, value)
 
     if options := control_panel_metadata._options_metadata(type(data), name):
-        _add_option_control(parent, data, name, value, options.options, option_controls)
+        _add_option_control(parent, data, name, value, options, option_controls)
     elif enum_cls:
         _add_enum_control(parent, data, name, value, enum_cls)
     elif isinstance(value, bool):
@@ -696,7 +696,7 @@ def _add_option_control(
     data: BaseModel,
     name: str,
     value: Scalar,
-    values: Callable[[], list[str]] | list[str],
+    options: Options,
     option_controls: list[_OptionControl],
 ) -> None:
     frame, layout, _ = _add_labeled_control_frame(parent, name)
@@ -707,7 +707,7 @@ def _add_option_control(
         control_panel_metadata._control_metadata(type(data), name),
     )
     control_panel_sizing._configure_editor(menu, width)
-    choices = values() if callable(values) else values
+    choices = options.choice_names()
     menu.addItems(_option_choices(data, name, choices))
     menu.setCurrentText(_option_text(data, name, value, choices))
     _bind_control(menu, data, name)
@@ -721,13 +721,15 @@ def _add_option_control(
             _after(parent, 0, _rebuild_parent_control_panel, parent)
             _after(parent, 0, _rebuild_note_grid, parent)
         else:
-            _set_model_value(data, name, raw or None, parent)
+            _set_model_value(
+                data, name, options.choice_value(raw) if raw else None, parent
+            )
             _rebuild_note_grid_if_mapping_changed(parent, data)
 
     menu.currentTextChanged.connect(command)
     layout.addWidget(menu)
     _parent_layout(parent).addWidget(frame)
-    option_controls.append(_OptionControl(menu, data, name, values))
+    option_controls.append(_OptionControl(menu, data, name, options))
 
 
 def _add_scala_browser_control(parent: QtWidgets.QWidget) -> None:
@@ -1399,6 +1401,8 @@ def _option_text(data: BaseModel, name: str, value: object, choices: list[str]) 
         prefix = f'[{value}] '
         if choice := next((i for i in choices if i.startswith(prefix)), ''):
             return choice
+    if isinstance(value, enum.Enum):
+        return value.name
     return str(value)
 
 

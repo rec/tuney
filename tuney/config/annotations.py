@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
+from enum import Enum
+from typing import cast
 
 from pydantic import BaseModel, GetCoreSchemaHandler, model_validator
 from pydantic_core import CoreSchema
@@ -20,7 +22,19 @@ class Display(BaseModel, frozen=True):
 
 
 class Options(Display, frozen=True):
-    options: Callable[[], list[str]] | list[str]
+    options: Callable[[], list[str]] | list[str] | type[Enum]
+
+    def choice_names(self) -> list[str]:
+        if isinstance(self.options, list):
+            return cast(list[str], self.options)
+        if isinstance(self.options, type) and issubclass(self.options, Enum):
+            return [member.name for member in self.options]
+        return self.options()
+
+    def choice_value(self, name: str) -> str | Enum:
+        if isinstance(self.options, type) and issubclass(self.options, Enum):
+            return self.options[name]
+        return name
 
 
 class Numeric(Display, frozen=True):

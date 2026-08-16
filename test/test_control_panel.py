@@ -142,6 +142,28 @@ def test_options_accept_fixed_list() -> None:
     assert [menu.itemText(i) for i in range(menu.count())] == ['', 'First', 'Second']
 
 
+def test_options_accept_enum() -> None:
+    from PySide6.QtWidgets import QComboBox, QWidget
+
+    class Choice(Enum):
+        first = 1
+        second = 2
+
+    class Model(BaseModel):
+        choice: Annotated[Choice, Options(options=Choice)] = Choice.first
+
+    _qt_app()
+    parent = QWidget()
+    data = Model()
+    panel = control_panel.ControlPanel(parent, data)
+    menu = panel.findChild(QComboBox)
+
+    assert menu is not None
+    assert [menu.itemText(i) for i in range(menu.count())] == ['', 'first', 'second']
+    menu.setCurrentText('second')
+    assert data.choice is Choice.second
+
+
 def test_set_app_value_preserves_runtime_objects() -> None:
     app = App(gui=True)
     main_window = object()

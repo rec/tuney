@@ -130,8 +130,7 @@ GENERAL_MIDI_PROGRAMS = (
 )
 
 
-def general_midi_program_options() -> list[str]:
-    return [
-        '(none)',
-        *[f'{i + 1} {name}' for i, name in enumerate(GENERAL_MIDI_PROGRAMS)],
-    ]
+GENERAL_MIDI_PROGRAM_OPTIONS = [
+    '(none)',
+    *[f'{i + 1} {name}' for i, name in enumerate(GENERAL_MIDI_PROGRAMS)],
+]

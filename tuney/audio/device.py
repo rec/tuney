@@ -76,10 +76,6 @@ class DType(StrEnum):
     float32 = auto()
 
 
-def dtype_names() -> list[str]:
-    return [dtype.value for dtype in DType]
-
-
 class Device(BaseModel):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[int | None, Beginner, Numeric(row=0, width=6)] = None
@@ -93,9 +89,9 @@ class Device(BaseModel):
     ] = None
 
     # Sample data type sent to the audio output device
-    dtype: Annotated[
-        DType | None, Options(options=dtype_names, column=2, row=0, width=8)
-    ] = None
+    dtype: Annotated[DType | None, Options(options=DType, column=2, row=0, width=8)] = (
+        None
+    )
 
     channels: Annotated[tyro.conf.Suppress[int | None], Hidden, Numeric()] = None
     extra_settings: tyro.conf.Suppress[str | None] = None

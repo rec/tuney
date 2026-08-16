@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..app.platform_info import report_error
 from ..config.annotations import Beginner, Display, Numeric, Options
-from .general_midi import general_midi_program_options
+from .general_midi import GENERAL_MIDI_PROGRAM_OPTIONS
 from .port import OutputPort
 from .ports import midi_names
 from .tuning_dump import tuning_dump
@@ -35,7 +35,7 @@ class MidiBase(BaseModel):
     # MIDI channel, or omni to use all channels
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        Options(options=lambda: MIDI_CHANNEL_OPTIONS, column=2, row=0),
+        Options(options=MIDI_CHANNEL_OPTIONS, column=2, row=0),
     ] = 'omni'
 
     @field_validator('channel', mode='before')
@@ -81,14 +81,14 @@ class MidiOut(MidiBase):
     # MIDI output channel, or omni to use the default channel
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
-        Options(options=lambda: MIDI_CHANNEL_OPTIONS, column=2, row=0),
+        Options(options=MIDI_CHANNEL_OPTIONS, column=2, row=0),
     ] = 1
 
     # General MIDI instrument program
     program: Annotated[
         int | None,
         Beginner,
-        Options(options=general_midi_program_options, column=3, row=0, width=24),
+        Options(options=GENERAL_MIDI_PROGRAM_OPTIONS, column=3, row=0, width=24),
     ] = Field(0, ge=0, le=127)
 
     # General MIDI channel volume
