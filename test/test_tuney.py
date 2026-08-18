@@ -1579,14 +1579,16 @@ def test_configure_logging_sets_frozen_log_path(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setattr(sys, 'frozen', True, raising=False)
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        calls: list[Path] = []
+        calls: list[tuple[Path, str]] = []
         monkeypatch.setattr(
-            platform_info.logging, 'configure', lambda path: calls.append(path)
+            platform_info.logging,
+            'configure',
+            lambda path, *, service_name: calls.append((path, service_name)),
         )
 
         platform_info.configure_logging()
 
-        assert calls == [tmp_path / 'tuney' / 'tuney.log']
+        assert calls == [(tmp_path / 'tuney' / 'tuney.log', 'tuney')]
 
 
 def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:

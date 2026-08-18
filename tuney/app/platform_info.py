@@ -75,7 +75,7 @@ def instance_lock_path() -> Path:
 
 def configure_logging() -> None:
     if is_frozen():
-        logging.configure(log_path())
+        logging.configure(log_path(), service_name='tuney')
         return
     logging.configure()
 
