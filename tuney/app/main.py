@@ -4,20 +4,24 @@ from typing import Annotated
 
 import tyro
 from pydantic import ValidationError
+from reccy import logging
 
 from ..midi.ports import midi_names_json
 from ..presets.preset import merged_data, read_file, read_preset
 from ..ui import startup
+from . import platform_info
 from .app import App
-from .platform_info import exit_with_message
 
 CLI_DESCRIPTION = (
     'Turn text into music. Use positional `TEXT` to play characters as notes, then '
     'tune the scale, audio, MIDI, and timing from the same config model.'
 )
+LOGGER = logging.get_logger(__name__)
 
 
 def main() -> None:
+    platform_info.configure_logging()
+    LOGGER.info('Tuney starting')
     data = {}
     try:
         list_midi, app = parse_cli()
@@ -46,7 +50,7 @@ def main() -> None:
         result = e
     if result is None:
         sys.exit()
-    exit_with_message(str(result))
+    platform_info.exit_with_message(str(result))
 
 
 def parse_cli(default: App | None = None) -> tuple[bool, App]:

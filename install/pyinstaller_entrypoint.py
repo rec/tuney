@@ -20,8 +20,7 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 
 def main() -> None:
     frozen = bool(getattr(sys, 'frozen', False))
-    if frozen:
-        platform_info.start_crash_logging(show_frozen_errors=True)
+    platform_info.configure_logging()
     try:
         sys.argv = app_args(sys.argv, frozen=frozen)
         __main__.main()

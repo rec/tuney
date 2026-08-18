@@ -36,10 +36,10 @@ rather than increasing the top-level minimum repeatedly.
 
 ## Diagnostics
 
-Set `TUNEY_TRACE=1` when reproducing startup, window-geometry, input, MIDI, or
-audio behavior. It enables additional trace entries in Tuney's log. For a
-packaged application, the log is also the first artifact to obtain after a
-crash or device-open failure.
+Tuney configures logging through Reccy. A packaged application writes its log
+to the application state directory by default. Set `RECCY_LOG_PATH` before
+launch to choose a different log file. The log is the first artifact to obtain
+after a crash or device-open failure.
 
 Issue reports can include a self-snapshot. Treat it as potentially sensitive:
 it can capture text and configuration visible in the application window. Ask a

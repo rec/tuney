@@ -165,7 +165,7 @@ def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
     assert calls == [['Tuney', ports.LIST_MIDI]]
 
 
-def test_midi_names_json_handles_output_probe_failure(monkeypatch, capsys):
+def test_midi_names_json_handles_output_probe_failure(monkeypatch, caplog):
     def get_output_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
@@ -173,10 +173,13 @@ def test_midi_names_json_handles_output_probe_failure(monkeypatch, capsys):
     monkeypatch.setattr(ports.mido, 'get_output_names', get_output_names)
 
     assert ports.midi_names_json() == json.dumps([['keyboard'], []], indent=2)
-    assert 'Could not list MIDI outputs: MIDI unavailable' in capsys.readouterr().err
+    assert any(
+        'Could not list MIDI outputs: MIDI unavailable' in message
+        for message in caplog.messages
+    )
 
 
-def test_midi_names_json_handles_input_probe_failure(monkeypatch, capsys):
+def test_midi_names_json_handles_input_probe_failure(monkeypatch, caplog):
     def get_input_names() -> list[str]:
         raise RuntimeError('MIDI unavailable')
 
@@ -184,42 +187,45 @@ def test_midi_names_json_handles_input_probe_failure(monkeypatch, capsys):
     monkeypatch.setattr(ports.mido, 'get_output_names', lambda: ['synth'])
 
     assert ports.midi_names_json() == json.dumps([[], ['synth']], indent=2)
-    assert 'Could not list MIDI inputs: MIDI unavailable' in capsys.readouterr().err
+    assert any(
+        'Could not list MIDI inputs: MIDI unavailable' in message
+        for message in caplog.messages
+    )
 
 
-def test_midi_names_returns_empty_lists_on_probe_failure(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_on_probe_failure(monkeypatch, caplog):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         raise subprocess.CalledProcessError(1, [])
 
     monkeypatch.setattr(ports.subprocess, 'run', run)
 
     assert ports.midi_names() == [[], []]
-    assert 'Could not list MIDI ports:' in capsys.readouterr().err
+    assert any('Could not list MIDI ports:' in message for message in caplog.messages)
 
 
-def test_midi_names_returns_empty_lists_for_bad_output(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_for_bad_output(monkeypatch, caplog):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('{}')
 
     monkeypatch.setattr(ports.subprocess, 'run', run)
 
     assert ports.midi_names() == [[], []]
-    assert (
-        'Could not list MIDI ports: expected two lists, got dict'
-        in capsys.readouterr().err
+    assert any(
+        'Could not list MIDI ports: expected two lists, got dict' in message
+        for message in caplog.messages
     )
 
 
-def test_midi_names_returns_empty_lists_for_wrong_list_shape(monkeypatch, capsys):
+def test_midi_names_returns_empty_lists_for_wrong_list_shape(monkeypatch, caplog):
     def run(*_: object, **__: object) -> subprocess.CompletedProcess[str]:
         return completed_process('["keyboard"]')
 
     monkeypatch.setattr(ports.subprocess, 'run', run)
 
     assert ports.midi_names() == [[], []]
-    assert (
-        'Could not list MIDI ports: expected two lists, got list'
-        in capsys.readouterr().err
+    assert any(
+        'Could not list MIDI ports: expected two lists, got list' in message
+        for message in caplog.messages
     )
 
 
@@ -453,7 +459,7 @@ def test_midi_output_uses_selected_port_instead_of_virtual_port(
 
 
 def test_midi_output_open_failure_disables_output(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     def open_output(*_: object, **__: object) -> object:
         raise SystemError('MidiOutWinMM::openPort: error creating port')
@@ -467,8 +473,9 @@ def test_midi_output_open_failure_disables_output(
 
     assert not midi.enable
     assert midi.pop_open_error() == 'MidiOutWinMM::openPort: error creating port'
-    assert (
-        'Could not open MIDI output: MidiOutWinMM::openPort' in capsys.readouterr().err
+    assert any(
+        'Could not open MIDI output: MidiOutWinMM::openPort' in message
+        for message in caplog.messages
     )
 
 

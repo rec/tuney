@@ -18,7 +18,6 @@ class App(AppPlayback):
             'run', gui=self.gui, frozen=getattr(sys, 'frozen', False)
         )
         if self.gui:
-            platform_info.start_crash_logging()
             if not platform_info.acquire_single_instance():
                 platform_info.show_already_running()
                 return

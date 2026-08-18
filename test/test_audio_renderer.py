@@ -135,9 +135,8 @@ def test_underflow_increases_buffer_size() -> None:
     assert engine.diagnostics.callback_statuses == ['output underflow; buffer_size=64']
 
 
-def test_underflow_logs_buffer_size(monkeypatch, tmp_path) -> None:
-    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-    monkeypatch.setenv('TUNEY_TRACE', '1')
+def test_underflow_logs_buffer_size(caplog) -> None:
+    caplog.set_level('INFO', logger='tuney.app.platform_info')
     engine = AudioEngine(
         mixer=_renderer().mixer,
         buffer_size=32,
@@ -146,9 +145,8 @@ def test_underflow_logs_buffer_size(monkeypatch, tmp_path) -> None:
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'output underflow')
 
-    assert (
-        'output underflow; buffer_size=64'
-        in (tmp_path / 'tuney' / 'tuney.txt').read_text()
+    assert any(
+        'output underflow; buffer_size=64' in message for message in caplog.messages
     )
 
 
@@ -619,10 +617,9 @@ def test_player_passes_buffer_size_to_output_stream(monkeypatch) -> None:
     assert _EngineStream.instances[0].options['blocksize'] == 64
 
 
-def test_stream_logging_includes_device_details(monkeypatch, tmp_path) -> None:
+def test_stream_logging_includes_device_details(monkeypatch, caplog) -> None:
     _EngineStream.instances.clear()
-    monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-    monkeypatch.setenv('TUNEY_TRACE', '1')
+    caplog.set_level('INFO', logger='tuney.app.platform_info')
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
     monkeypatch.setattr(sounddevice, 'default', {'device': [None, 'speaker']})
 
@@ -635,13 +632,15 @@ def test_stream_logging_includes_device_details(monkeypatch, tmp_path) -> None:
 
     Player(device=Device(device='speaker', dtype='float32')).start(0)
 
-    log = (tmp_path / 'tuney' / 'tuney.txt').read_text()
-    assert "requested_device='speaker'" in log
-    assert "resolved_device='speaker'" in log
-    assert "dtype='float32'" in log
-    assert "sounddevice_defaults={'device': [None, 'speaker']}" in log
-    assert "resolved_device_info={'name': 'speaker', 'max_output_channels': 2}" in log
-    assert 'latency=0.01' in log
+    log = '\n'.join(caplog.messages)
+    assert "'requested_device': 'speaker'" in log
+    assert "'resolved_device': 'speaker'" in log
+    assert "'dtype': 'float32'" in log
+    assert "'sounddevice_defaults': {'device': [None, 'speaker']}" in log
+    assert (
+        "'resolved_device_info': {'name': 'speaker', 'max_output_channels': 2}" in log
+    )
+    assert "'latency': 0.01" in log
 
 
 def test_mixer_steals_oldest_voice_at_max_polyphony() -> None:

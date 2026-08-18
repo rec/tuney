@@ -1,9 +1,10 @@
-import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from threading import Thread
 
-from .platform_info import is_frozen, log_exception
+from reccy import logging
+
+LOGGER = logging.get_logger(__name__)
 
 
 def start_thread(target: Callable[[], object], daemon: bool = True) -> Thread:
@@ -13,10 +14,7 @@ def start_thread(target: Callable[[], object], daemon: bool = True) -> Thread:
         try:
             target()
         except Exception as error:
-            if is_frozen():
-                log_exception(error)
-            else:
-                traceback.print_exc()
+            LOGGER.exception('%s', error)
 
     t = Thread(target=catch_target, daemon=daemon)
     t.start()

@@ -99,7 +99,7 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr('sys.argv', ['Tuney'])
     monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
     messages = []
-    crash_logging = []
+    logging_configuration = []
 
     def fail(argv: list[str], *, frozen: bool) -> list[str]:
         raise RuntimeError(f'{argv=} {frozen=}')
@@ -109,8 +109,12 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr('install.pyinstaller_entrypoint.app_args', fail)
     monkeypatch.setattr(
-        'install.pyinstaller_entrypoint.platform_info.start_crash_logging',
-        lambda show_frozen_errors=False: crash_logging.append(show_frozen_errors),
+        'install.pyinstaller_entrypoint.platform_info.configure_logging',
+        lambda: logging_configuration.append(True),
+    )
+    monkeypatch.setattr(
+        'install.pyinstaller_entrypoint.platform_info.log_exception',
+        lambda error: tmp_path / 'tuney' / 'tuney.log',
     )
     monkeypatch.setattr(platform_info, 'show_frozen_exception', show_frozen_exception)
 
@@ -118,12 +122,9 @@ def test_frozen_entrypoint_logs_uncaught_errors(monkeypatch, tmp_path) -> None:
         main()
 
     assert error.value.code == 1
-    log = tmp_path / 'tuney' / 'tuney.txt'
-    text = log.read_text()
-    assert 'RuntimeError' in text
-    assert "argv=['Tuney'] frozen=True" in text
+    log = tmp_path / 'tuney' / 'tuney.log'
     assert len(messages) == 1
     message_error, message_path = messages[0]
     assert isinstance(message_error, RuntimeError)
     assert message_path == log
-    assert crash_logging == [True]
+    assert logging_configuration == [True]

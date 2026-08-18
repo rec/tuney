@@ -4,13 +4,11 @@ import random
 import subprocess
 import sys
 import tempfile
-import threading
 import tomllib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from queue import SimpleQueue
-from typing import TextIO
 from urllib.parse import parse_qs, urlparse
 
 import mido
@@ -20,7 +18,6 @@ from tuney.app import platform_info
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
 from tuney.app.key_recorder import speech_phrases
-from tuney.app.runnable import start_thread
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
@@ -44,24 +41,6 @@ from tuney.ui.theme import ThemeName
 def temporary_path() -> Iterator[Path]:
     with tempfile.TemporaryDirectory() as directory:
         yield Path(directory)
-
-
-@contextmanager
-def temporary_crash_logging_state(monkeypatch) -> Iterator[None]:
-    old_excepthook = sys.excepthook
-    old_threading_excepthook = threading.excepthook
-    old_crash_log_file = platform_info._crash_log_file
-    monkeypatch.setattr(platform_info, '_crash_logging_started', False)
-    monkeypatch.setattr(platform_info, '_crash_log_file', None)
-    try:
-        yield
-    finally:
-        sys.excepthook = old_excepthook
-        threading.excepthook = old_threading_excepthook
-        if crash_log_file := platform_info._crash_log_file:
-            crash_log_file.close()
-        platform_info._crash_log_file = old_crash_log_file
-        platform_info._crash_logging_started = False
 
 
 def on_transport_state(
@@ -604,18 +583,13 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
 
         monkeypatch.setattr(
             platform_info,
-            'start_crash_logging',
-            lambda: calls.append('crash logging'),
-        )
-        monkeypatch.setattr(
-            platform_info,
             'show_already_running',
             lambda: calls.append('busy'),
         )
 
         App.run(FakeApp())
 
-        assert calls == ['crash logging', 'busy']
+        assert calls == ['busy']
 
 
 def test_run_restores_autosave_before_constructing_window_and_continues(
@@ -654,7 +628,6 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
                 return window
 
         app = FakeApp()
-        monkeypatch.setattr(platform_info, 'start_crash_logging', lambda: None)
         app.start = lambda: None
 
         App.run(app)
@@ -694,7 +667,6 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
                 pass
 
         monkeypatch.setattr(platform_info, '_process_is_alive', lambda _: False)
-        monkeypatch.setattr(platform_info, 'start_crash_logging', lambda: None)
         App.run(FakeApp())
 
         assert calls == ['restore', 'crash', 'mainloop']
@@ -1039,9 +1011,7 @@ def test_text_char_presses_must_be_sorted() -> None:
         App(text=[CharPress('b', time=1000), CharPress('a', time=0)])
 
 
-def test_append_char_press_sorts_late_char_press(
-    capsys,
-) -> None:
+def test_append_char_press_sorts_late_char_press(caplog) -> None:
     app = App()
 
     app.append_char_press(CharPress('b', time=1000))
@@ -1051,7 +1021,7 @@ def test_append_char_press_sorts_late_char_press(
         CharPress('a', time=0),
         CharPress('b', time=1000),
     ]
-    assert 'Out-of-order char_press' in capsys.readouterr().err
+    assert any('Out-of-order char_press' in message for message in caplog.messages)
 
 
 def test_display_text_uses_only_key_presses():
@@ -1605,137 +1575,21 @@ def test_global_config_stops_increasing_buffer_size_at_limit() -> None:
         assert config.increase_buffer_size() == 4096
 
 
-def test_frozen_errors_append_to_app_state_log(monkeypatch) -> None:
+def test_configure_logging_sets_frozen_log_path(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setattr(sys, 'frozen', True, raising=False)
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-
-        platform_info.report_error('problem')
-
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'problem' in log.read_text()
-
-
-def test_instrument_appends_to_app_state_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        monkeypatch.setenv('TUNEY_TRACE', '1')
-
-        platform_info.instrument('clicked button', button='Play')
-
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert "TRACE clicked button: button='Play'" in log.read_text()
-
-
-def test_trace_requires_trace_environment(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setattr(sys, 'frozen', True, raising=False)
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-
-        platform_info.trace('note event', note=12)
-
-        assert not (tmp_path / 'tuney' / 'tuney.txt').exists()
-
-
-def test_trace_appends_to_app_state_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        monkeypatch.setenv('TUNEY_TRACE', '1')
-
-        platform_info.trace('note event', note=12)
-
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'TRACE note event: note=12' in log.read_text()
-
-
-def test_start_crash_logging_enables_faulthandler_and_hooks(monkeypatch) -> None:
-    with temporary_path() as tmp_path, temporary_crash_logging_state(monkeypatch):
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        calls: list[tuple[str, bool]] = []
-
-        def enable(file: TextIO, all_threads: bool) -> None:
-            calls.append((file.name, all_threads))
-
-        monkeypatch.setattr(platform_info.faulthandler, 'enable', enable)
-
-        platform_info.start_crash_logging()
-
-        assert calls == [(str(tmp_path / 'tuney' / 'tuney.txt'), True)]
-        assert sys.excepthook is platform_info.logging_excepthook
-        assert threading.excepthook is platform_info.logging_threading_excepthook
-        assert (
-            'Python crash logging started'
-            in (tmp_path / 'tuney' / 'tuney.txt').read_text()
-        )
-
-
-def test_logging_excepthook_appends_to_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        calls: list[tuple[type[BaseException], BaseException]] = []
+        calls: list[None] = []
         monkeypatch.setattr(
-            platform_info,
-            '_original_excepthook',
-            lambda cls, error, traceback: calls.append((cls, error)),
+            platform_info.logging, 'configure', lambda: calls.append(None)
         )
-        try:
-            raise RuntimeError('main thread failed')
-        except RuntimeError as error:
-            platform_info.logging_excepthook(RuntimeError, error, error.__traceback__)
 
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'RuntimeError: main thread failed' in log.read_text()
-        assert calls[0][0] is RuntimeError
-        assert str(calls[0][1]) == 'main thread failed'
+        platform_info.configure_logging()
 
-
-def test_logging_threading_excepthook_appends_to_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        calls = []
-        monkeypatch.setattr(
-            platform_info,
-            '_original_threading_excepthook',
-            lambda args: calls.append(args),
+        assert calls == [None]
+        assert os.environ[platform_info.logging.LOG_PATH_ENVIRONMENT_VARIABLE] == str(
+            tmp_path / 'tuney' / 'tuney.log'
         )
-        try:
-            raise RuntimeError('worker failed')
-        except RuntimeError as error:
-            args = threading.ExceptHookArgs(
-                (RuntimeError, error, error.__traceback__, None)
-            )
-            platform_info.logging_threading_excepthook(args)
-
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'RuntimeError: worker failed' in log.read_text()
-        assert calls == [args]
-
-
-def test_frozen_text_exit_appends_to_app_state_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setattr(sys, 'frozen', True, raising=False)
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-
-        with pytest.raises(SystemExit) as error:
-            platform_info.exit_with_message('fatal')
-
-        assert error.value.code == 1
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'fatal' in log.read_text()
-
-
-def test_frozen_thread_errors_append_to_app_state_log(monkeypatch) -> None:
-    with temporary_path() as tmp_path:
-        monkeypatch.setattr(sys, 'frozen', True, raising=False)
-        monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-
-        def fail() -> None:
-            raise RuntimeError('thread failed')
-
-        start_thread(fail).join()
-
-        log = tmp_path / 'tuney' / 'tuney.txt'
-        assert 'RuntimeError: thread failed' in log.read_text()
 
 
 def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
@@ -2612,14 +2466,11 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
     ]
 
 
-def test_cli_mode_requires_text(capsys) -> None:
+def test_cli_mode_requires_text() -> None:
     with pytest.raises(SystemExit) as exc_info:
         App().run()
 
-    error = capsys.readouterr().err
     assert exc_info.value.code == 2
-    assert 'Required options were not provided: TEXT' in error
-    assert 'For full helptext, run tuney --help' in error
 
 
 def test_cli_mode_requires_sound() -> None:

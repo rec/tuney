@@ -1,24 +1,21 @@
 from __future__ import annotations
 
 import ctypes
-import faulthandler
 import os
 import platform
 import sys
-import threading
 from ctypes import wintypes
-from datetime import datetime, timezone
 from pathlib import Path
 from traceback import format_exception
-from types import TracebackType
-from typing import NoReturn, TextIO
+from typing import NoReturn
 from urllib.parse import urlencode
+
+from reccy import logging
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
-TUNEY_TRACE = 'TUNEY_TRACE'
 APP_STATE_DIR = Path('tuney')
-LOG_FILE = 'tuney.txt'
+LOG_FILE = 'tuney.log'
 CRASH_MARKER_FILE = 'running.txt'
 INSTANCE_LOCK_FILE = 'instance.lock'
 ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
@@ -27,10 +24,7 @@ APP_USER_MODEL_ID = 'rec.tuney.Tuney'
 
 _instance_lock_fd: int | None = None
 _instance_lock_path: Path | None = None
-_crash_log_file: TextIO | None = None
-_crash_logging_started = False
-_original_excepthook = sys.excepthook
-_original_threading_excepthook = threading.excepthook
+LOGGER = logging.get_logger(__name__)
 
 
 def app_config_dir() -> Path:
@@ -61,13 +55,15 @@ def set_windows_app_user_model_id() -> None:
             APP_USER_MODEL_ID
         )
     except (AttributeError, OSError) as error:
-        instrument('windows app user model id error', error=str(error))
+        LOGGER.error('Could not set Windows app user model ID: %s', error)
         return
     if result:
-        instrument('windows app user model id failed', result=result)
+        LOGGER.error('Could not set Windows app user model ID: %s', result)
 
 
 def log_path() -> Path:
+    if path := os.environ.get(logging.LOG_PATH_ENVIRONMENT_VARIABLE):
+        return Path(path)
     return app_state_dir() / LOG_FILE
 
 
@@ -79,45 +75,27 @@ def instance_lock_path() -> Path:
     return app_state_dir() / INSTANCE_LOCK_FILE
 
 
-def append_log(message: str) -> Path:
-    path = log_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).isoformat()
-    with path.open('a') as fp:
-        print(f'[{timestamp}] {message}', file=fp)
-    return path
+def configure_logging() -> None:
+    if is_frozen():
+        os.environ.setdefault(logging.LOG_PATH_ENVIRONMENT_VARIABLE, str(log_path()))
+    logging.configure()
 
 
 def instrument(event: str, **data: object) -> None:
-    if not is_frozen() and os.environ.get(TUNEY_TRACE) != '1':
-        return
-    _append_trace(event, data)
+    LOGGER.info('%s: %s', event, data)
 
 
 def trace(event: str, **data: object) -> None:
-    if os.environ.get(TUNEY_TRACE) != '1':
-        return
-    _append_trace(event, data)
-
-
-def _append_trace(event: str, data: dict[str, object]) -> None:
-    details = ' '.join(f'{k}={v!r}' for k, v in data.items())
-    try:
-        append_log(f'TRACE {event}{": " + details if details else ""}')
-    except OSError:
-        pass
+    LOGGER.debug('%s: %s', event, data)
 
 
 def report_error(message: str) -> None:
-    if is_frozen():
-        append_log(message)
-    else:
-        print(message, file=sys.stderr)
+    LOGGER.error(message)
 
 
 def exit_with_message(message: str, code: int | None = None) -> NoReturn:
     if is_frozen():
-        append_log(message)
+        LOGGER.error(message)
         sys.exit(1 if code is None else code)
     if code is not None:
         print(message, file=sys.stderr)
@@ -126,55 +104,8 @@ def exit_with_message(message: str, code: int | None = None) -> NoReturn:
 
 
 def log_exception(error: BaseException) -> Path:
-    return append_log(''.join(format_exception(error)).rstrip())
-
-
-def start_crash_logging(*, show_frozen_errors: bool = False) -> None:
-    global _crash_logging_started
-
-    if _crash_logging_started:
-        return
-    _crash_logging_started = True
-    _enable_faulthandler()
-    sys.excepthook = frozen_excepthook if show_frozen_errors else logging_excepthook
-    threading.excepthook = logging_threading_excepthook
-
-
-def _enable_faulthandler() -> None:
-    global _crash_log_file
-
-    try:
-        path = append_log('Python crash logging started')
-        _crash_log_file = path.open('a')
-        faulthandler.enable(file=_crash_log_file, all_threads=True)
-    except (OSError, RuntimeError, ValueError):
-        _crash_log_file = None
-
-
-def logging_excepthook(
-    cls: type[BaseException],
-    error: BaseException,
-    traceback: TracebackType | None,
-) -> None:
-    _append_exception_log(cls, error, traceback)
-    _original_excepthook(cls, error, traceback)
-
-
-def logging_threading_excepthook(args: threading.ExceptHookArgs) -> None:
-    if args.exc_value is not None:
-        _append_exception_log(type(args.exc_value), args.exc_value, args.exc_traceback)
-    _original_threading_excepthook(args)
-
-
-def _append_exception_log(
-    cls: type[BaseException],
-    error: BaseException,
-    traceback: TracebackType | None,
-) -> None:
-    try:
-        append_log(''.join(format_exception(cls, error, traceback)).rstrip())
-    except OSError:
-        pass
+    LOGGER.error('%s', error, exc_info=(type(error), error, error.__traceback__))
+    return log_path()
 
 
 def mark_session_started() -> bool:
@@ -444,12 +375,3 @@ def handle_frozen_exception(error: BaseException) -> NoReturn:
     path = log_exception(error)
     show_frozen_exception(error, path)
     sys.exit(1)
-
-
-def frozen_excepthook(
-    cls: type[BaseException],
-    error: BaseException,
-    traceback: TracebackType | None,
-) -> None:
-    path = append_log(''.join(format_exception(cls, error, traceback)).rstrip())
-    show_frozen_exception(error, path)

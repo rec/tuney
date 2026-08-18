@@ -111,11 +111,11 @@ from presets. Autosave persists the current configuration plus GUI-only loop and
 window state. It restores only for a normal GUI launch without an explicit text,
 preset, or configuration source.
 
-The platform layer writes logs and crash markers under the user state directory,
-guards GUI startup with a single-instance lock, and offers issue reporting after
-a detected crash. Autosave parsing is deliberately tolerant of individual
-invalid fields so an old or damaged state file does not prevent the application
-from starting.
+The platform layer configures Reccy logging and maintains crash markers under
+the user state directory, guards GUI startup with a single-instance lock, and
+offers issue reporting after a detected crash. Autosave parsing is deliberately
+tolerant of individual invalid fields so an old or damaged state file does not
+prevent the application from starting.
 
 ## Extension Guidelines
 
