@@ -62,8 +62,6 @@ def set_windows_app_user_model_id() -> None:
 
 
 def log_path() -> Path:
-    if path := os.environ.get(logging.LOG_PATH_ENVIRONMENT_VARIABLE):
-        return Path(path)
     return app_state_dir() / LOG_FILE
 
 
@@ -77,7 +75,8 @@ def instance_lock_path() -> Path:
 
 def configure_logging() -> None:
     if is_frozen():
-        os.environ.setdefault(logging.LOG_PATH_ENVIRONMENT_VARIABLE, str(log_path()))
+        logging.configure(log_path())
+        return
     logging.configure()
 
 
