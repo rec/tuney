@@ -8,10 +8,10 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field
+from reccy.config import tyro_option
 
 from ..config.annotations import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
-from ..config.tyro_option import tyro_option
 
 MIDDLE_NOTE: float = 63.5
 DEFAULT_PLAYER_NOTE_OFFSET: int = 44

@@ -5,6 +5,7 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field, field_validator
+from reccy.config import tyro_option
 
 from ..audio.device import Device
 from ..audio.sound import Sound
@@ -18,7 +19,6 @@ from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.text_timings import TextTimings
 from .annotations import Beginner, General, Hidden, Numeric, Options
-from .tyro_option import tyro_option
 
 
 class Tuney(BaseModel):

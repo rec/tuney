@@ -9,9 +9,9 @@ from itertools import batched, chain
 from typing import Annotated, Self
 
 from pydantic import BaseModel, BeforeValidator, Field, model_validator
+from reccy.config import tyro_option
 
 from ..config.annotations import Beginner, Display, Numeric
-from ..config.tyro_option import tyro_option
 from .accidentals import AccidentalNames, Accidentals
 from .number import NoteNumber
 from .tuning import Tuning

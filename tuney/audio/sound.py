@@ -4,9 +4,9 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field
+from reccy.config import tyro_option
 
 from ..config.annotations import Beginner, Display, General, Hidden, Numeric
-from ..config.tyro_option import tyro_option
 from ..scale.number import NoteNumber
 from .oscillator import Oscillator
 from .polyphony import Polyphony

@@ -6,10 +6,10 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, PrivateAttr, field_validator
+from reccy.config import tyro_option
 
 from ..app.platform_info import report_error
 from ..config.annotations import Beginner, Hidden, Numeric, Options
-from ..config.tyro_option import tyro_option
 
 
 class _SoundDevice:

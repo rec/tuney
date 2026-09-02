@@ -6,9 +6,9 @@ from functools import cached_property
 from typing import Annotated
 
 from pydantic import BaseModel, Field
+from reccy.config import tyro_option
 
 from ..config.annotations import Beginner, Display, Numeric
-from ..config.tyro_option import tyro_option
 from .number import NoteNumber, Number, cents
 from .ratios import Ratios
 from .table import Table
