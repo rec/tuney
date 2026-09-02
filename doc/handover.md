@@ -37,9 +37,8 @@ rather than increasing the top-level minimum repeatedly.
 ## Diagnostics
 
 Tuney configures logging through Reccy. A packaged application writes its log
-to the application state directory by default. Set `RECCY_LOG_PATH` before
-launch to choose a different log file. The log is the first artifact to obtain
-after a crash or device-open failure.
+to the application state directory; source runs log to stderr. The log is the
+first artifact to obtain after a crash or device-open failure.
 
 Issue reports can include a self-snapshot. Treat it as potentially sensitive:
 it can capture text and configuration visible in the application window. Ask a
