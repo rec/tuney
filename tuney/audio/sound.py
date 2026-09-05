@@ -4,8 +4,8 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field
-from reccy import config
-from reccy.units import Hertz, Seconds
+from reccy.configuration.tyro import tyro_option, unit_spec
+from reccy.configuration.units import Hertz, Seconds
 
 from ..config.annotations import Beginner, Display, General, Hidden, Numeric
 from ..scale.number import NoteNumber
@@ -21,7 +21,7 @@ class Binaural(BaseModel):
     # Difference between the left and right frequencies, in hertz
     frequency: Annotated[
         Hertz,
-        config.unit_spec(Hertz, 'HERTZ'),
+        unit_spec(Hertz, 'HERTZ'),
         Beginner,
         Numeric(column=1, row=0, min=0.001, inc=0.1),
     ] = Field(7.8, gt=0)
@@ -39,9 +39,9 @@ class Sound(BaseModel):
     oscillator: Oscillator = Field(default_factory=Oscillator)
 
     # Use the same time origin for every oscillator
-    synchronize_oscillators: Annotated[
-        bool, config.tyro_option('-F'), General, Beginner
-    ] = False
+    synchronize_oscillators: Annotated[bool, tyro_option('-F'), General, Beginner] = (
+        False
+    )
 
     # Binaural beat settings
     binaural: Binaural = Field(default_factory=Binaural)
@@ -54,7 +54,7 @@ class Sound(BaseModel):
     # Audio output gain
     gain: Annotated[
         float,
-        config.tyro_option('-G'),
+        tyro_option('-G'),
         General,
         Beginner,
         Numeric(min=0, max=2.0, dial=True, inc=0.01),
@@ -63,7 +63,7 @@ class Sound(BaseModel):
     # Offset added to generated note numbers before tuning
     note_offset: Annotated[
         NoteNumber,
-        config.tyro_option('-n', name='audio-note-offset'),
+        tyro_option('-n', name='audio-note-offset'),
         General,
         Beginner,
         Numeric(min=-99, max=99, width=3),
@@ -74,8 +74,8 @@ class Sound(BaseModel):
     # Minimum duration of each synthesized note, in seconds
     minimum_note_time: Annotated[
         Seconds,
-        config.unit_spec(Seconds, 'SECONDS'),
-        config.tyro_option('-N'),
+        unit_spec(Seconds, 'SECONDS'),
+        tyro_option('-N'),
         Beginner,
         Numeric(row=0),
     ] = Field(0.5, ge=0)

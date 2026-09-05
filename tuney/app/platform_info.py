@@ -10,7 +10,7 @@ from traceback import format_exception
 from typing import NoReturn
 from urllib.parse import urlencode
 
-from reccy import logging
+from reccy.runtime import logging
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'

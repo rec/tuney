@@ -13,7 +13,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6 import QtWidgets
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QResizeEvent
-from reccy import units
+from reccy.configuration import units
 from tyro._fields import field_list_from_type_or_callable
 
 from ..app.key_recorder import speech_phrases

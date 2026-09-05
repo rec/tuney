@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, PrivateAttr, field_validator
-from reccy.units import Milliseconds
+from reccy.configuration.units import Milliseconds
 
 
 class CharPress(BaseModel):

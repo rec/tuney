@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
-from reccy.units import Seconds
+from reccy.configuration.units import Seconds
 
 from ..app.key_recorder import KeyRecorder
 from ..presets.preset import restore_user_preset_snapshot, user_preset_snapshot

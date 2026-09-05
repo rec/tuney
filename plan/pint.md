@@ -21,7 +21,7 @@ persistence concern, not a replacement for Tuney's numerical calculations.
 
 ## Reccy Prerequisite
 
-Reccy's `units.Seconds`, `Milliseconds`, and `Hertz` already parse Pint
+Reccy's `configuration.units.Seconds`, `Milliseconds`, and `Hertz` already parse Pint
 quantities, preserve authored provenance, and provide `authored_dump()` and
 `revalidation_dump()`.
 
@@ -67,7 +67,7 @@ quantities with an unambiguous Pint unit.
 3. Apply the annotations to the inventory above. Retain each field's existing
    Pydantic bounds and UI `Numeric` metadata so values are converted before
    existing range validation.
-4. Make all CLI unit fields use `reccy.config.unit_spec(...)` through the
+4. Make all CLI unit fields use `reccy.configuration.tyro.unit_spec(...)` through the
    existing `tyro_option` metadata. This must let `tuney --max-gap 2s` and
    `tuney --tuning.root-frequency 0.44kHz` validate identically to TOML input.
    Keep CLI help metavariables explicit about the canonical unit.
@@ -80,7 +80,7 @@ quantities with an unambiguous Pint unit.
    evaluation. Do not pass arbitrary expression fragments to Pint and do not
    change Scala parsing.
 7. Preserve authored values through state transitions and writes. Use
-   `reccy.units.authored_dump()` at Tuney's user-facing persistence boundaries:
+   `reccy.configuration.units.authored_dump()` at Tuney's user-facing persistence boundaries:
    presets, autosave, exported configuration, audio-file comments, and tuning
    export where applicable. Use `revalidation_dump()` whenever an existing
    model is copied then revalidated, so unrelated UI edits do not turn

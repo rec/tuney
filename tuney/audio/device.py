@@ -6,8 +6,8 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, PrivateAttr, field_validator
-from reccy import config
-from reccy.units import WholeHertz
+from reccy.configuration.tyro import tyro_option, unit_spec
+from reccy.configuration.units import WholeHertz
 
 from ..app.platform_info import report_error
 from ..config.annotations import Beginner, Hidden, Numeric, Options
@@ -81,7 +81,7 @@ class Device(BaseModel):
     # Audio output sample rate, in frames per second
     sample_rate: Annotated[
         WholeHertz | None,
-        config.unit_spec(WholeHertz, 'HERTZ'),
+        unit_spec(WholeHertz, 'HERTZ'),
         Beginner,
         Numeric(row=0, width=6),
     ] = None
@@ -89,7 +89,7 @@ class Device(BaseModel):
     # Audio output device name or index
     device: Annotated[
         int | str | None,
-        config.tyro_option('-d', name='audio-device'),
+        tyro_option('-d', name='audio-device'),
         Beginner,
         Options(options=device_names, column=1, row=0),
     ] = None

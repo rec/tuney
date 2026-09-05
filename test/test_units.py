@@ -4,7 +4,7 @@ import tomllib
 import pytest
 import tyro
 from pydantic import ValidationError
-from reccy import units
+from reccy.configuration import units
 
 from tuney.app import app_state
 from tuney.app.app import App

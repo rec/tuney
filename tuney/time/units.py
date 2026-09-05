@@ -1,4 +1,4 @@
-from reccy import units
+from reccy.configuration import units
 
 SEC_IN_MS = 1000.0
 

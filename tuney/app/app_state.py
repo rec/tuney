@@ -7,7 +7,7 @@ import tomllib
 from pathlib import Path
 
 import tomlkit
-from reccy import units
+from reccy.configuration import units
 
 from ..audio.player import Player
 from ..config.serialize import serialize

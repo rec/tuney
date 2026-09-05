@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QMessageBox
-from reccy import units
+from reccy.configuration import units
 
 from ..app.platform_info import instrument
 from ..scale.ratios import Ratios

@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import Annotated
 
 from pydantic import BaseModel
-from reccy import units
+from reccy.configuration import units
 
 from ..config.annotations import Display
 from . import evaluate

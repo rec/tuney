@@ -6,8 +6,8 @@ from functools import cached_property
 from typing import Annotated
 
 from pydantic import BaseModel, Field
-from reccy import config
-from reccy.units import Hertz, MusicalCents
+from reccy.configuration.tyro import tyro_option, unit_spec
+from reccy.configuration.units import Hertz, MusicalCents
 
 from ..config.annotations import Beginner, Display, Numeric
 from .number import NoteNumber, Number, cents
@@ -24,13 +24,13 @@ class Type(StrEnum):
 class Computed(BaseModel):
     #: If limit is greater than zero, use rounded N-limit just intonation
     limit: Annotated[
-        int, config.tyro_option('-v'), Numeric(column=1, row=0, min=0, width=3)
+        int, tyro_option('-v'), Numeric(column=1, row=0, min=0, width=3)
     ] = Field(0, ge=0)
 
     #: Number of divisions of an octave
     notes_per_octave: Annotated[
         int,
-        config.tyro_option('-V'),
+        tyro_option('-V'),
         Beginner,
         Numeric(column=2, row=0, min=1, width=3),
     ] = Field(12, gt=0)
@@ -41,7 +41,7 @@ class Computed(BaseModel):
     #: 100Hz greater in frequency than the previous.
     octave_ratio: Annotated[
         float,
-        config.tyro_option('-J'),
+        tyro_option('-J'),
         Numeric(column=3, row=0, min=0.001, inc=0.001),
     ] = Field(2, gt=0)
 
@@ -77,8 +77,8 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
     #: Detune everything, in cents of an octave division
     detune: Annotated[
         MusicalCents,
-        config.unit_spec(MusicalCents, 'CENTS'),
-        config.tyro_option('-T'),
+        unit_spec(MusicalCents, 'CENTS'),
+        tyro_option('-T'),
         Beginner,
         Numeric(column=1, row=0, decimals=0, inc=1),
     ] = 0
@@ -86,8 +86,8 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
     #: The frequency of the reference `root_note`
     root_frequency: Annotated[
         Hertz,
-        config.unit_spec(Hertz, 'HERTZ'),
-        config.tyro_option('-U'),
+        unit_spec(Hertz, 'HERTZ'),
+        tyro_option('-U'),
         Beginner,
         Numeric(column=4, row=0, min=0.001),
     ] = Field(440, gt=0)
@@ -95,7 +95,7 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
     #: The note number of the reference note
     root_note: Annotated[
         NoteNumber,
-        config.tyro_option('-W'),
+        tyro_option('-W'),
         Numeric(column=5, row=0, min=0, max=127, width=3),
     ] = Field(69, ge=0, le=127)  # MIDI note 69 is A440, for non-Yamaha units
 

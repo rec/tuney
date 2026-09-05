@@ -4,7 +4,7 @@ from typing import Annotated
 
 import tyro
 from pydantic import ValidationError
-from reccy import logging
+from reccy.runtime import logging
 
 from ..midi.ports import midi_names_json
 from ..presets.preset import merged_data, read_file, read_preset

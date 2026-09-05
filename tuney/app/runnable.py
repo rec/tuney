@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from threading import Thread
 
-from reccy import logging
+from reccy.runtime import logging
 
 LOGGER = logging.get_logger(__name__)
 

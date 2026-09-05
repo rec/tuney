@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import TypeAdapter
-from reccy.units import Milliseconds
+from reccy.configuration.units import Milliseconds
 
 from ..time.char_press import CharPress
 

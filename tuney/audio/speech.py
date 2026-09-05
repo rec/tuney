@@ -7,7 +7,7 @@ from typing import Protocol
 import numpy as np
 from numpy.typing import DTypeLike
 from pydantic import BaseModel, ConfigDict
-from reccy.units import Seconds
+from reccy.configuration.units import Seconds
 
 from ..app.platform_info import report_error
 

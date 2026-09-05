@@ -4,7 +4,7 @@ from functools import cached_property
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from reccy.units import Hertz, Seconds
+from reccy.configuration.units import Hertz, Seconds
 
 from .oscillator import Oscillator
 from .sound import Binaural

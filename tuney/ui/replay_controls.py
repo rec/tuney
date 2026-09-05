@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import TypeAdapter, ValidationError
-from reccy.units import Seconds
+from reccy.configuration.units import Seconds
 
 from ..app.platform_info import instrument
 from .main_menu import SAVE_AUDIO_COMMAND

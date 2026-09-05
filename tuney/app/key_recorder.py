@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
-from reccy.units import Milliseconds, Seconds
+from reccy.configuration.units import Milliseconds, Seconds
 
 from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase
 from ..time.char_press import CharPress

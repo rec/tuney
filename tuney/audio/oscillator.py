@@ -4,7 +4,7 @@ from typing import Annotated
 
 import numpy as np
 from pydantic import BaseModel, Field
-from reccy.config import tyro_option
+from reccy.configuration.tyro import tyro_option
 
 from ..config.annotations import Beginner, Display, Numeric
 from ..config.named_enum import NamedEnum
