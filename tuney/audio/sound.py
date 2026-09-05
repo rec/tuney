@@ -4,7 +4,8 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field
-from reccy.config import tyro_option
+from reccy import config
+from reccy.units import Hertz, Seconds
 
 from ..config.annotations import Beginner, Display, General, Hidden, Numeric
 from ..scale.number import NoteNumber
@@ -19,7 +20,10 @@ class Binaural(BaseModel):
 
     # Difference between the left and right frequencies, in hertz
     frequency: Annotated[
-        float, Beginner, Numeric(column=1, row=0, min=0.001, inc=0.1)
+        Hertz,
+        config.unit_spec(Hertz, 'HERTZ'),
+        Beginner,
+        Numeric(column=1, row=0, min=0.001, inc=0.1),
     ] = Field(7.8, gt=0)
 
     # Stereo placement from reversed to centered to normal
@@ -35,9 +39,9 @@ class Sound(BaseModel):
     oscillator: Oscillator = Field(default_factory=Oscillator)
 
     # Use the same time origin for every oscillator
-    synchronize_oscillators: Annotated[bool, tyro_option('-F'), General, Beginner] = (
-        False
-    )
+    synchronize_oscillators: Annotated[
+        bool, config.tyro_option('-F'), General, Beginner
+    ] = False
 
     # Binaural beat settings
     binaural: Binaural = Field(default_factory=Binaural)
@@ -50,7 +54,7 @@ class Sound(BaseModel):
     # Audio output gain
     gain: Annotated[
         float,
-        tyro_option('-G'),
+        config.tyro_option('-G'),
         General,
         Beginner,
         Numeric(min=0, max=2.0, dial=True, inc=0.01),
@@ -59,7 +63,7 @@ class Sound(BaseModel):
     # Offset added to generated note numbers before tuning
     note_offset: Annotated[
         NoteNumber,
-        tyro_option('-n', name='audio-note-offset'),
+        config.tyro_option('-n', name='audio-note-offset'),
         General,
         Beginner,
         Numeric(min=-99, max=99, width=3),
@@ -68,9 +72,13 @@ class Sound(BaseModel):
     polyphony: Polyphony = Field(default_factory=Polyphony)
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: Annotated[float, tyro_option('-N'), Beginner, Numeric(row=0)] = (
-        Field(0.5, ge=0)
-    )
+    minimum_note_time: Annotated[
+        Seconds,
+        config.unit_spec(Seconds, 'SECONDS'),
+        config.tyro_option('-N'),
+        Beginner,
+        Numeric(row=0),
+    ] = Field(0.5, ge=0)
 
     def note_gain(self, note_number: NoteNumber) -> float:
         return self.gain * self.oscillator.gain(note_number)

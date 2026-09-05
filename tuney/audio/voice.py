@@ -4,8 +4,8 @@ from functools import cached_property
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from reccy.units import Hertz, Seconds
 
-from ..time.units import Seconds
 from .oscillator import Oscillator
 from .sound import Binaural
 
@@ -13,7 +13,7 @@ DEFAULT_FADE: Seconds = 0x1000 / 48_000
 
 
 class Voice(BaseModel, frozen=True):
-    frequency: float = 48_000 / 0x100
+    frequency: Hertz = 48_000 / 0x100
     gain: float = 1.0
     fade_in: Seconds = DEFAULT_FADE
     fade_out: Seconds = DEFAULT_FADE

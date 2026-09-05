@@ -5,7 +5,8 @@ from typing import Annotated
 
 import tyro
 from pydantic import BaseModel, Field, field_validator
-from reccy.config import tyro_option
+from reccy import config
+from reccy.units import Seconds
 
 from ..audio.device import Device
 from ..audio.sound import Sound
@@ -52,14 +53,29 @@ class Tuney(BaseModel):
 
     # Maximum silent gap to keep in recordings, in seconds
     max_gap: Annotated[
-        float, tyro_option('-m'), General, Beginner, Numeric(min=0, max=4, inc=0.01)
+        Seconds,
+        config.unit_spec(Seconds, 'SECONDS'),
+        config.tyro_option('-m'),
+        General,
+        Beginner,
+        Numeric(min=0, max=4, inc=0.01),
     ] = 4.0
 
     # Time to hover over a widget before showing help, in seconds
-    hover_time: Annotated[float, General, Numeric()] = 1.0
+    hover_time: Annotated[
+        Seconds,
+        config.unit_spec(Seconds, 'SECONDS'),
+        General,
+        Numeric(),
+    ] = 1.0
 
     # Time to hold backspace before it starts repeating, in seconds
-    backspace_repeat_delay: Annotated[float, Hidden, Numeric()] = 2.0
+    backspace_repeat_delay: Annotated[
+        Seconds,
+        config.unit_spec(Seconds, 'SECONDS'),
+        Hidden,
+        Numeric(),
+    ] = 2.0
 
     # Backspace repeats per second after backspace_repeat_delay
     backspace_repeat_rate: Annotated[float, Hidden, Numeric()] = 4.0
@@ -74,10 +90,10 @@ class Tuney(BaseModel):
     audition_scala: Annotated[tyro.conf.Suppress[bool], Hidden] = True
 
     # Open the graphical interface
-    gui: Annotated[bool, tyro_option('-g'), Hidden] = False
+    gui: Annotated[bool, config.tyro_option('-g'), Hidden] = False
 
     # Disable synthesized audio output
-    silent: Annotated[bool, tyro_option('-s'), General, Beginner] = False
+    silent: Annotated[bool, config.tyro_option('-s'), General, Beginner] = False
 
     # Speak the replay text along with the synthesized notes
     use_speech: Annotated[bool, General, Beginner] = False
@@ -101,27 +117,27 @@ class Tuney(BaseModel):
     ] = None
 
     # Audio file to write while playing text
-    output: Annotated[Path | None, tyro_option('-o'), Hidden] = None
+    output: Annotated[Path | None, config.tyro_option('-o'), Hidden] = None
 
     # If True, listen to the keyboard even when other applications are in front
-    run_in_background: Annotated[bool, tyro_option('-b'), General] = False
+    run_in_background: Annotated[bool, config.tyro_option('-b'), General] = False
 
     # Named performance preset to load
     preset: Annotated[
         str | None,
-        tyro_option('-p'),
+        config.tyro_option('-p'),
         General,
         Beginner,
         Options(options=preset_names),
     ] = None
 
     # Load configs from a JSON or toml file
-    config_file: Annotated[Path | None, tyro_option('-c'), Hidden] = None
+    config_file: Annotated[Path | None, config.tyro_option('-c'), Hidden] = None
 
     # Text to start the program with
     text: Annotated[
         str | list[CharPress] | None,
-        tyro_option(
+        config.tyro_option(
             '-t',
             constructor=str,
             help_behavior_hint='(optional)',
@@ -139,7 +155,7 @@ class Tuney(BaseModel):
     text_args: Annotated[
         list[str],
         tyro.conf.Positional,
-        tyro_option(name='text', metavar='TEXT'),
+        config.tyro_option(name='text', metavar='TEXT'),
         Hidden,
     ] = Field(default_factory=list, exclude=True)
 

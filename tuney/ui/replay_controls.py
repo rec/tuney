@@ -3,12 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pydantic import TypeAdapter, ValidationError
+from reccy.units import Seconds
+
 from ..app.platform_info import instrument
 from .main_menu import SAVE_AUDIO_COMMAND
 from .state import Action, StateChange
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
+
+
+SECONDS = TypeAdapter(Seconds)
 
 
 def on_transport_state(main_window: MainWindow, change: StateChange) -> bool:
@@ -83,7 +89,7 @@ def on_loop_tempo(main_window: MainWindow, tempo: float | str) -> None:
 def on_loop_before(main_window: MainWindow, before: str) -> None:
     instrument('ui loop before', before=before)
     if (
-        value := _float_or_none(before)
+        value := _seconds_or_none(before)
     ) is not None and value != main_window.history.loop_before:
         main_window.history.checkpoint_undo()
         main_window.history.loop_before = value
@@ -92,7 +98,7 @@ def on_loop_before(main_window: MainWindow, before: str) -> None:
 def on_loop_after(main_window: MainWindow, after: str) -> None:
     instrument('ui loop after', after=after)
     if (
-        value := _float_or_none(after)
+        value := _seconds_or_none(after)
     ) is not None and value != main_window.history.loop_after:
         main_window.history.checkpoint_undo()
         main_window.history.loop_after = value
@@ -105,8 +111,8 @@ def on_randomize_on_each_loop(main_window: MainWindow, checked: bool) -> None:
         main_window.history.randomize_on_each_loop = checked
 
 
-def _float_or_none(text: str) -> float | None:
+def _seconds_or_none(text: str) -> Seconds | None:
     try:
-        return float(text)
-    except ValueError:
+        return SECONDS.validate_python(text)
+    except ValidationError:
         return None

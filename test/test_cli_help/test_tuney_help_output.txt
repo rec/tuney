@@ -12,11 +12,11 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         show this help message and exit
   --list-midi
         List MIDI input and output ports as JSON. (default: False)
-  -m FLOAT, --max-gap FLOAT
+  -m SECONDS, --max-gap SECONDS
         Maximum silent gap to keep in recordings, in seconds (default: 4.0)
-  --hover-time FLOAT
+  --hover-time SECONDS
         Time to hover over a widget before showing help, in seconds (default: 1.0)
-  --backspace-repeat-delay FLOAT
+  --backspace-repeat-delay SECONDS
         Time to hold backspace before it starts repeating, in seconds (default: 2.0)
   --backspace-repeat-rate FLOAT
         Backspace repeats per second after backspace_repeat_delay (default: 4.0)
@@ -94,9 +94,9 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --tuning.type {None,computed,table,ratios}
         Which tuning source to use (default: computed)
-  -T FLOAT, --detune FLOAT
+  -T CENTS, --detune CENTS
         Detune everything, in cents of an octave division (default: 0)
-  -U FLOAT, --root-frequency FLOAT
+  -U HERTZ, --root-frequency HERTZ
         The frequency of the reference `root_note` (default: 440)
   -W INT, --root-note INT
         The note number of the reference note (default: 69)
@@ -105,7 +105,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Audio output device settings
   ----------------------------------------------------------------------------------------------------------------------
-  --device.sample-rate {None}|INT
+  --device.sample-rate HERTZ
         Audio output sample rate, in frames per second (default: None)
   -d {None}|INT|STR, --audio-device {None}|INT|STR
         Audio output device name or index (default: None)
@@ -122,7 +122,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
         Audio output gain (default: 1.0)
   -n INT, --audio-note-offset INT
         Offset added to generated note numbers before tuning (default: 44)
-  -N FLOAT, --minimum-note-time FLOAT
+  -N SECONDS, --minimum-note-time SECONDS
         Minimum duration of each synthesized note, in seconds (default: 0.5)
 
  sound.oscillator options
@@ -144,7 +144,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   ----------------------------------------------------------------------------------------------------------------------
   --sound.binaural.enable, --sound.binaural.no-enable
         Add a binaural beat by splitting each note into separate left and right frequencies (default: False)
-  --sound.binaural.frequency FLOAT
+  --sound.binaural.frequency HERTZ
         Difference between the left and right frequencies, in hertz (default: 7.8)
   --sound.binaural.width FLOAT
         Stereo placement from reversed to centered to normal (default: 1.0)
@@ -194,19 +194,19 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
  ----------------------------------------------------------------------------------------------------------------------
   Timings for playing back texts
   ----------------------------------------------------------------------------------------------------------------------
-  --text-timings.space FLOAT
+  --text-timings.space MILLISECONDS
         Base duration for a space, in milliseconds (default: 100)
-  --text-timings.dot FLOAT
+  --text-timings.dot MILLISECONDS
         Base duration for a dot, in milliseconds (default: 300)
-  --text-timings.comma FLOAT
+  --text-timings.comma MILLISECONDS
         Base duration for a comma, in milliseconds (default: 200)
-  --text-timings.colon FLOAT
+  --text-timings.colon MILLISECONDS
         Base duration for a colon, in milliseconds (default: 400)
-  --text-timings.semicolon FLOAT
+  --text-timings.semicolon MILLISECONDS
         Base duration for a semicolon, in milliseconds (default: 400)
-  --text-timings.blank-line FLOAT
+  --text-timings.blank-line MILLISECONDS
         Base duration for a blank line, in milliseconds (default: 1000)
-  --text-timings.overlap FLOAT
+  --text-timings.overlap MILLISECONDS
         Time that consecutive characters overlap, in milliseconds (default: 20)
   --text-timings.seed {None}|INT
         Seed for randomized character timings, or a random seed if empty (default: None)

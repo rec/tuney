@@ -86,7 +86,7 @@ def _is_scalar_numeric_field(cls: type[BaseModel], name: str) -> bool:
     if get_origin(annotation) in {list, dict}:
         return False
     types = set(control_panel_metadata._annotation_types(annotation))
-    if list in types or dict in types or bool in types:
+    if any(get_origin(i) in {list, dict} for i in types) or bool in types:
         return False
     return bool(types & {int, float})
 

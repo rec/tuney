@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+from reccy.units import Seconds
 
 from ..app.key_recorder import KeyRecorder
 from ..presets.preset import restore_user_preset_snapshot, user_preset_snapshot
@@ -14,8 +15,8 @@ if TYPE_CHECKING:
 
 class LoopState(BaseModel, frozen=True):
     replay: bool = False
-    before: float = 0.0
-    after: float = 0.0
+    before: Seconds = 0.0
+    after: Seconds = 0.0
     tempo: float = 1.0
     randomize_on_each_loop: bool = False
 
@@ -54,19 +55,19 @@ class History:
             self.main_window.ui.set_loop_state(loop_replay)
 
     @property
-    def loop_before(self) -> float:
+    def loop_before(self) -> Seconds:
         return self.loop_state.before
 
     @loop_before.setter
-    def loop_before(self, loop_before: float) -> None:
+    def loop_before(self, loop_before: Seconds) -> None:
         self.loop_state = self.loop_state.model_copy(update={'before': loop_before})
 
     @property
-    def loop_after(self) -> float:
+    def loop_after(self) -> Seconds:
         return self.loop_state.after
 
     @loop_after.setter
-    def loop_after(self, loop_after: float) -> None:
+    def loop_after(self, loop_after: Seconds) -> None:
         self.loop_state = self.loop_state.model_copy(update={'after': loop_after})
 
     @property

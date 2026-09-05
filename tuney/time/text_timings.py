@@ -7,46 +7,65 @@ from random import Random
 from typing import Annotated
 
 from pydantic import BaseModel, Field
+from reccy import config
+from reccy.units import Milliseconds
 
 from ..config.annotations import Display, Numeric
 from .char_press import CharPress
 from .sequencer import Sequencer
-from .units import Milliseconds
 
 MAX_GENERATED_SEED = 9999
 
 
 class TextTimings(BaseModel):
     # Base duration for a space, in milliseconds
-    space: Annotated[Milliseconds, Numeric(row=0, width=5, decimals=0, inc=1)] = 100
+    space: Annotated[
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(row=0, width=5, decimals=0, inc=1),
+    ] = 100
 
     # Base duration for a dot, in milliseconds
     dot: Annotated[
-        Milliseconds, Numeric(column=1, row=0, width=5, decimals=0, inc=1)
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(column=1, row=0, width=5, decimals=0, inc=1),
     ] = 300
 
     # Base duration for a comma, in milliseconds
     comma: Annotated[
-        Milliseconds, Numeric(column=2, row=0, width=5, decimals=0, inc=1)
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(column=2, row=0, width=5, decimals=0, inc=1),
     ] = 200
 
     # Base duration for a colon, in milliseconds
     colon: Annotated[
-        Milliseconds, Numeric(column=3, row=0, width=5, decimals=0, inc=1)
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(column=3, row=0, width=5, decimals=0, inc=1),
     ] = 400
 
     # Base duration for a semicolon, in milliseconds
     semicolon: Annotated[
-        Milliseconds, Numeric(column=4, row=0, width=5, decimals=0, inc=1)
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(column=4, row=0, width=5, decimals=0, inc=1),
     ] = 400
 
     # Base duration for a blank line, in milliseconds
     blank_line: Annotated[
-        Milliseconds, Numeric(column=5, row=0, width=5, decimals=0, inc=1)
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(column=5, row=0, width=5, decimals=0, inc=1),
     ] = 1000
 
     # Time that consecutive characters overlap, in milliseconds
-    overlap: Annotated[Milliseconds, Numeric(row=1, decimals=0, inc=1)] = 20
+    overlap: Annotated[
+        Milliseconds,
+        config.unit_spec(Milliseconds, 'MILLISECONDS'),
+        Numeric(row=1, decimals=0, inc=1),
+    ] = 20
 
     # Seed for randomized character timings, or a random seed if empty
     seed: Annotated[int | None, Numeric(column=1, row=1)] = None

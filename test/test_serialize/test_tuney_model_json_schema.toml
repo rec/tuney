@@ -44,7 +44,8 @@ title = "Is Press"
 type = "boolean"
 
 ["$defs".CharPress.properties.time]
-"$ref" = "#/$defs/Seconds"
+title = "Time"
+type = "number"
 
 ["$defs".Computed]
 title = "Computed"
@@ -326,9 +327,6 @@ default = false
 title = "Send Tuning"
 type = "boolean"
 
-["$defs".Milliseconds]
-type = "number"
-
 ["$defs".Oscillator]
 title = "Oscillator"
 type = "object"
@@ -437,9 +435,6 @@ minimum = -99
 title = "Offset"
 type = "integer"
 
-["$defs".Seconds]
-type = "number"
-
 ["$defs".Sound]
 title = "Sound"
 type = "object"
@@ -493,32 +488,39 @@ title = "TextTimings"
 type = "object"
 
 ["$defs".TextTimings.properties.space]
-"$ref" = "#/$defs/Milliseconds"
 default = 100
+title = "Space"
+type = "number"
 
 ["$defs".TextTimings.properties.dot]
-"$ref" = "#/$defs/Milliseconds"
 default = 300
+title = "Dot"
+type = "number"
 
 ["$defs".TextTimings.properties.comma]
-"$ref" = "#/$defs/Milliseconds"
 default = 200
+title = "Comma"
+type = "number"
 
 ["$defs".TextTimings.properties.colon]
-"$ref" = "#/$defs/Milliseconds"
 default = 400
+title = "Colon"
+type = "number"
 
 ["$defs".TextTimings.properties.semicolon]
-"$ref" = "#/$defs/Milliseconds"
 default = 400
+title = "Semicolon"
+type = "number"
 
 ["$defs".TextTimings.properties.blank_line]
-"$ref" = "#/$defs/Milliseconds"
 default = 1000
+title = "Blank Line"
+type = "number"
 
 ["$defs".TextTimings.properties.overlap]
-"$ref" = "#/$defs/Milliseconds"
 default = 20
+title = "Overlap"
+type = "number"
 
 ["$defs".TextTimings.properties.seed]
 default = "<null>"
@@ -549,7 +551,7 @@ title = "Other"
 type = "object"
 
 ["$defs".TextTimings.properties.other.additionalProperties]
-"$ref" = "#/$defs/Milliseconds"
+type = "number"
 
 ["$defs".TextTimings.properties.timings]
 default = "<null>"
@@ -558,7 +560,7 @@ title = "Timings"
 type = "array"
 
 ["$defs".TextTimings.properties.timings.anyOf.items]
-"$ref" = "#/$defs/Milliseconds"
+type = "number"
 
 [["$defs".TextTimings.properties.timings.anyOf]]
 type = "null"

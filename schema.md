@@ -30,10 +30,10 @@ class Tuney:
     text_timings: TextTimings
 
     # Maximum silent gap to keep in recordings, in seconds
-    max_gap: float = 4.0
+    max_gap: Seconds = 4.0
 
     # Time to hover over a widget before showing help, in seconds
-    hover_time: float = 1.0
+    hover_time: Seconds = 1.0
 
     # Disable synthesized audio output
     silent: bool = False
@@ -159,10 +159,10 @@ class Tuning:
     ratios: Ratios | None = None
 
     #: Detune everything, in cents of an octave division
-    detune: float = 0
+    detune: MusicalCents = 0
 
     #: The frequency of the reference `root_note`
-    root_frequency: float = 440
+    root_frequency: Hertz = 440
 
     #: The note number of the reference note
     root_note: NoteNumber = 69
@@ -186,7 +186,7 @@ class Ratios:
 
 class Device:
     # Audio output sample rate, in frames per second
-    sample_rate: int | None = None
+    sample_rate: WholeHertz | None = None
 
     # Audio output device name or index
     device: int | str | None = None
@@ -201,7 +201,7 @@ class Binaural:
     enable: bool = False
 
     # Difference between the left and right frequencies, in hertz
-    frequency: float = 7.8
+    frequency: Hertz = 7.8
 
     # Stereo placement from reversed to centered to normal
     width: float = 1.0
@@ -226,7 +226,7 @@ class Sound:
     polyphony: Polyphony
 
     # Minimum duration of each synthesized note, in seconds
-    minimum_note_time: float = 0.5
+    minimum_note_time: Seconds = 0.5
 
 
 class Oscillator:

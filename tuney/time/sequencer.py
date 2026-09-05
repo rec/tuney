@@ -7,10 +7,11 @@ from threading import Event
 from typing import Annotated, override
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from reccy.units import Milliseconds, Seconds
 
 from ..app.runnable import Runnable
 from .char_press import CharPress
-from .units import Milliseconds, Seconds, to_ms, to_seconds
+from .units import to_ms, to_seconds
 
 MAX_WAIT_MS: Milliseconds = 100.0
 

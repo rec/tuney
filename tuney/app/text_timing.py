@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from pydantic import TypeAdapter
+from reccy.units import Milliseconds
+
 from ..time.char_press import CharPress
+
+MILLISECONDS = TypeAdapter(Milliseconds)
 
 
 def edit_text_timing(
@@ -81,4 +86,4 @@ def _text_timing_pairs(char_presses: list[CharPress]) -> list[tuple[int, int | N
 
 
 def _validated_milliseconds(text: str) -> float:
-    return max(0.0, float(text))
+    return max(0.0, MILLISECONDS.validate_python(text))

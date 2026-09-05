@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
+from reccy.units import Milliseconds, Seconds
 
 from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
-from ..time.units import Milliseconds, Seconds, to_ms
+from ..time.units import to_ms
 from .platform_info import instrument
 
 if TYPE_CHECKING:

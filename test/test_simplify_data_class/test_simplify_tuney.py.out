@@ -27,10 +27,10 @@ class Tuney:
     text_timings: TextTimings
 
     # Maximum silent gap to keep in recordings, in seconds
-    max_gap: float = 4.0
+    max_gap: Seconds = 4.0
 
     # Time to hover over a widget before showing help, in seconds
-    hover_time: float = 1.0
+    hover_time: Seconds = 1.0
 
     # Disable synthesized audio output
     silent: bool = False
@@ -90,10 +90,10 @@ class Tuning:
     ratios: Ratios | None = None
 
     #: Detune everything, in cents of an octave division
-    detune: float = 0
+    detune: MusicalCents = 0
 
     #: The frequency of the reference `root_note`
-    root_frequency: float = 440
+    root_frequency: Hertz = 440
 
     #: The note number of the reference note
     root_note: NoteNumber = 69

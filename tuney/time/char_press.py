@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, PrivateAttr, field_validator
-
-from .units import Seconds
+from reccy.units import Milliseconds
 
 
 class CharPress(BaseModel):
     char: str
     is_press: bool = True
-    time: Seconds
+    time: Milliseconds
     _pressed_char: str = PrivateAttr('')
 
     def __init__(
-        self, char: str = '', is_press: bool = True, time: Seconds = 0
+        self, char: str = '', is_press: bool = True, time: Milliseconds = 0
     ) -> None:
         super().__init__(char=char, is_press=is_press, time=time)
 
@@ -29,5 +28,5 @@ class CharPress(BaseModel):
 
     @field_validator('time')
     @classmethod
-    def _validate_time(cls, time: Seconds) -> Seconds:
+    def _validate_time(cls, time: Milliseconds) -> Milliseconds:
         return max(0.0, time)

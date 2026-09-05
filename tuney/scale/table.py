@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import cached_property
 from typing import Annotated
 
 from pydantic import BaseModel
+from reccy import units
 
 from ..config.annotations import Display
 from . import evaluate
@@ -30,4 +32,14 @@ class Table(BaseModel):
 
 
 def _evaluate_text(text: str) -> list[Number]:
-    return evaluate.evaluate_all(i.strip() for i in text.split(';') if i.strip())
+    return [_evaluate_frequency(i.strip()) for i in text.split(';') if i.strip()]
+
+
+def _evaluate_frequency(expression: str) -> Number:
+    try:
+        value = units.magnitude(expression, 'hertz')
+        if not isinstance(value, (Decimal, float, int)):
+            raise ValueError('Expected a hertz quantity')
+        return float(value)
+    except ValueError:
+        return evaluate.evaluate(expression)
