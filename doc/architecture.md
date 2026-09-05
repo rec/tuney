@@ -117,6 +117,22 @@ offers issue reporting after a detected crash. Autosave parsing is deliberately
 tolerant of individual invalid fields so an old or damaged state file does not
 prevent the application from starting.
 
+## Units
+
+Configured physical quantities accept either bare numbers in Tuney's canonical
+units or Pint unit strings. Time settings use seconds or milliseconds according
+to their field descriptions, frequencies use hertz, and tuning detune uses
+musical cents. For example, `--max-gap 2min`, `--tuning.root-frequency 0.44kHz`,
+and `--text-timings.space 0.1s` are equivalent to their canonical numeric
+values. CLI help identifies each unit-bearing option's canonical unit.
+
+Tuney normalizes these values before audio and sequencing code receives them.
+When a unit-bearing value has not been edited, configuration exports, presets,
+autosave, undo snapshots, and audio-file settings retain its authored spelling.
+Editing a GUI numeric control replaces that field with its displayed canonical
+number. Scala files retain their own decimal-cent and ratio syntax and are not
+parsed as Pint quantities.
+
 ## Extension Guidelines
 
 - Add a musical setting to the relevant Pydantic model first. Its CLI and GUI
