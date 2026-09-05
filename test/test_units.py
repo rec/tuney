@@ -1,7 +1,12 @@
+import json
+import tomllib
+
 import pytest
 import tyro
 from pydantic import ValidationError
+from reccy import units
 
+from tuney.app import app_state
 from tuney.app.app import App
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.device import Device
@@ -12,7 +17,7 @@ from tuney.scale.table import Table
 from tuney.scale.tuning import Tuning
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui.history import LoopState
+from tuney.ui.history import History, LoopState
 
 
 def test_models_normalize_unit_values() -> None:
@@ -94,3 +99,48 @@ def test_text_timing_editor_accepts_unit_values() -> None:
 
 def test_frequency_table_accepts_hertz_quantities() -> None:
     assert Table(text='440Hz; 0.88kHz').values == [440.0, 880.0]
+
+
+def test_persistence_preserves_authored_unit_values(tmp_path) -> None:
+    app = App(
+        max_gap='2 min',
+        tuning=Tuning(root_frequency='440Hz'),
+        text=[CharPress('a', time='250ms')],
+    )
+
+    assert app.dump_data()['max_gap'] == '2 min'
+    assert app.dump_data()['tuning']['root_frequency'] == '440Hz'
+    assert app.dump_data()['text'] == [{'char': 'a', 'is_press': True, 'time': '250ms'}]
+
+    for suffix, loader in [('.toml', tomllib.loads), ('.json', json.loads)]:
+        path = tmp_path / f'config{suffix}'
+        app.save(path)
+        data = loader(path.read_text())
+        restored = App.model_validate(data)
+        assert units.authored_dump(restored)['max_gap'] == '2 min'
+        assert units.authored_dump(restored)['tuning']['root_frequency'] == '440Hz'
+
+    autosave = tmp_path / 'autosave.toml'
+    app.save_autosave(autosave)
+    assert tomllib.loads(autosave.read_text())['max_gap'] == '2 min'
+
+
+def test_preset_application_preserves_authored_unit_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = App(max_gap='2 min')
+    monkeypatch.setattr(app_state, 'read_preset', lambda _: {'silent': True})
+
+    app.apply_preset('test')
+
+    assert app.silent
+    assert units.authored_dump(app)['max_gap'] == '2 min'
+
+
+def test_undo_snapshot_preserves_authored_unit_values() -> None:
+    class Window:
+        app = App(max_gap='2 min')
+
+    state = History(Window()).state()
+
+    assert state.tuney['max_gap'] == '2 min'

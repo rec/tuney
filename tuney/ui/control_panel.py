@@ -13,6 +13,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from PySide6 import QtWidgets
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QResizeEvent
+from reccy import units
 from tyro._fields import field_list_from_type_or_callable
 
 from ..app.key_recorder import speech_phrases
@@ -496,7 +497,9 @@ def _section_preset_section(data: BaseModel | None) -> str | None:
 def _apply_section_preset(
     parent: QtWidgets.QWidget, data: BaseModel, section: str, name: str
 ) -> None:
-    values = merged_data(data.model_dump(), read_section_preset(section, name))
+    values = merged_data(
+        units.revalidation_dump(data), read_section_preset(section, name)
+    )
     validated = type(data).model_validate(values)
     if data.model_dump() != validated.model_dump():
         _checkpoint_undo(parent)
@@ -807,9 +810,10 @@ def _set_loaded_scala_fields(control_panel: ControlPanel, ratios: Ratios) -> Non
 
 def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
     data = (
-        tuning.model_dump()
+        units.revalidation_dump(tuning)
         if isinstance(tuning, Tuning)
-        else app.tuning.model_dump() | {'type': Type.ratios, 'ratios': tuning}
+        else units.revalidation_dump(app.tuning)
+        | {'type': Type.ratios, 'ratios': tuning}
     )
     validated = type(app.tuning).model_validate(data)
     for field in type(app.tuning).model_fields:
@@ -1186,7 +1190,7 @@ def _set_model_value(
 ) -> None:
     instrument('control value set start', model=type(data).__name__, field=name)
     old_value = getattr(data, name)
-    values = data.model_dump()
+    values = units.revalidation_dump(data)
     values[name] = value
     validated = type(data).model_validate(values)
     validated_value = getattr(validated, name)

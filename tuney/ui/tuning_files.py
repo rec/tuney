@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QMessageBox
+from reccy import units
 
 from ..app.platform_info import instrument
 from ..scale.ratios import Ratios
@@ -60,7 +61,7 @@ def on_export_tuning(main_window: MainWindow, *_: object) -> None:
 
 def set_tuning(main_window: MainWindow, tuning: Computed | Ratios | Table) -> None:
     instrument('ui set tuning', tuning=type(tuning).__name__)
-    data = main_window.app.tuning.model_dump()
+    data = units.revalidation_dump(main_window.app.tuning)
     match tuning:
         case Computed():
             data |= {'type': Type.computed, 'computed': tuning}

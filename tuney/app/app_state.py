@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 import tomlkit
+from reccy import units
 
 from ..audio.player import Player
 from ..config.serialize import serialize
@@ -53,7 +54,7 @@ class AppState(AppMembers):
             self.main_window.history.checkpoint_undo()
         intervals, notes = rng.choice(SCALE_CHOICES)
         self.scale = type(self.scale).model_validate(
-            self.scale.model_dump()
+            units.revalidation_dump(self.scale)
             | {
                 'note_names': string.ascii_uppercase,
                 'root': rng.choice('ABCDEFG'),
@@ -66,7 +67,7 @@ class AppState(AppMembers):
             }
         )
         self.tuning = type(self.tuning).model_validate(
-            self.tuning.model_dump()
+            units.revalidation_dump(self.tuning)
             | {
                 'type': Type.computed,
                 'computed': Computed(
@@ -114,7 +115,7 @@ class AppState(AppMembers):
 
             geometry = main_window.geometry()
             instrument('autosave window geometry', **main_window.geometry_log_data())
-            data['loop'] = main_window.history.loop_state.model_dump()
+            data['loop'] = units.authored_dump(main_window.history.loop_state)
             data['window'] = WindowState(
                 x=geometry.x(),
                 y=geometry.y(),
@@ -132,7 +133,9 @@ class AppState(AppMembers):
     def apply_preset(self, name: str) -> None:
         instrument('apply preset', name=name)
         char_presses = self.__dict__.get('char_presses')
-        data = merged_data(self.model_dump(), read_preset(name), {'preset': name})
+        data = merged_data(
+            units.revalidation_dump(self), read_preset(name), {'preset': name}
+        )
         validated = type(self).model_validate(data)
         if isinstance(player := self.__dict__.get('player'), Player):
             player.close()
@@ -155,11 +158,11 @@ class AppState(AppMembers):
         instrument('restore data end')
 
     def dump_data(self) -> dict[str, object]:
-        data = self.model_dump()
+        data = units.authored_dump(self)
         mapper = data.pop('mapper')
         data = {'mapper': mapper, **data}
         if self.char_presses:
-            data['text'] = [c.model_dump() for c in self.char_presses]
+            data['text'] = [units.authored_dump(c) for c in self.char_presses]
         return data
 
     def send_midi_tuning_dump(self) -> None:
