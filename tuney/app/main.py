@@ -41,7 +41,7 @@ def main() -> None:
             if app.config_file:
                 assert isinstance(app.config_file, Path)
                 data = merged_data(data, read_file(app.config_file))
-            list_midi, app = parse_cli(App(**data))
+            list_midi, app = parse_cli(App.model_validate(data))
             if list_midi:
                 print(midi_names_json())
                 sys.exit()

@@ -3,9 +3,7 @@ from __future__ import annotations
 import enum
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-
-from typing_extensions import TypeIs
+from typing import TypeIs
 
 
 def serialize(data: Mapping[str, object]) -> dict[str, object]:
@@ -30,5 +28,5 @@ def _serialize(value: object) -> object:
     return value
 
 
-def _is_str_mapping(value: object) -> TypeIs[Mapping[str, Any]]:
+def _is_str_mapping(value: object) -> TypeIs[Mapping[str, object]]:
     return isinstance(value, Mapping) and all(isinstance(k, str) for k in value)
