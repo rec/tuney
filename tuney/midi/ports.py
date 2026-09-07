@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from collections.abc import Callable
+from functools import cached_property
 
 import mido
 
@@ -17,16 +18,15 @@ MIDO_NAMES_SCRIPT = (
 
 
 class MidiNames:
-    def __init__(self) -> None:
-        self.names: list[list[str]] | None = None
-
     def __call__(self) -> list[list[str]]:
-        if self.names is None:
-            self.names = _subprocess_midi_names()
         return _copy_names(self.names)
 
+    @cached_property
+    def names(self) -> list[list[str]]:
+        return _subprocess_midi_names()
+
     def cache_clear(self) -> None:
-        self.names = None
+        self.__dict__.pop('names', None)
 
     def replace(self, names: list[list[str]]) -> None:
         self.names = _copy_names(names)
@@ -35,8 +35,15 @@ class MidiNames:
 midi_names = MidiNames()
 
 
+def midi_names_json() -> str:
+    return json.dumps(direct_midi_names(), indent=2)
+
+
 def direct_midi_names() -> list[list[str]]:
-    return _direct_midi_names()
+    return [
+        _direct_port_names(mido.get_input_names, 'inputs'),
+        _direct_port_names(mido.get_output_names, 'outputs'),
+    ]
 
 
 def _subprocess_midi_names() -> list[list[str]]:
@@ -69,17 +76,6 @@ def _subprocess_midi_names() -> list[list[str]]:
     return [
         [name for name in names[0] if isinstance(name, str)],
         [name for name in names[1] if isinstance(name, str)],
-    ]
-
-
-def midi_names_json() -> str:
-    return json.dumps(_direct_midi_names(), indent=2)
-
-
-def _direct_midi_names() -> list[list[str]]:
-    return [
-        _direct_port_names(mido.get_input_names, 'inputs'),
-        _direct_port_names(mido.get_output_names, 'outputs'),
     ]
 
 
