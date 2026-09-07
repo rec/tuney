@@ -1,10 +1,9 @@
 import json
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import TypeIs
 
 import tomlkit
-from typing_extensions import TypeIs
 
 from ..config.serialize import serialize
 
@@ -21,11 +20,11 @@ SKIPPED_PRESET_FIELDS = [
 ]
 
 
-def is_str_dict(x: object) -> TypeIs[dict[str, Any]]:
+def is_str_dict(x: object) -> TypeIs[dict[str, object]]:
     return isinstance(x, dict) and all(isinstance(k, str) for k in x.keys())
 
 
-def read_file(path: Path) -> dict[str, Any]:
+def read_file(path: Path) -> dict[str, object]:
     data = path.read_text()
     match path.suffix:
         case '.toml':
@@ -105,14 +104,14 @@ def restore_user_preset_snapshot(snapshot: dict[str, bytes]) -> None:
         (USER_PRESETS / name).write_bytes(data)
 
 
-def read_preset(name: str) -> dict[str, Any]:
+def read_preset(name: str) -> dict[str, object]:
     data = read_file(_preset_path(name))
     if forbidden := [field for field in FORBIDDEN_PRESET_FIELDS if field in data]:
         raise ValueError(f'Preset {name} must not contain {", ".join(forbidden)}')
     return data
 
 
-def read_section_preset(section: str, name: str) -> dict[str, Any]:
+def read_section_preset(section: str, name: str) -> dict[str, object]:
     _validate_section(section)
     data = read_file(_section_preset_path(section, name))
     value = data.get(section)
@@ -121,8 +120,8 @@ def read_section_preset(section: str, name: str) -> dict[str, Any]:
     return value
 
 
-def merged_data(*data: dict[str, Any]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
+def merged_data(*data: dict[str, object]) -> dict[str, object]:
+    result: dict[str, object] = {}
     for item in data:
         result = _merge_data(result, item)
     return result
@@ -192,7 +191,9 @@ def _is_section_preset_path(path: Path) -> bool:
     )
 
 
-def _merge_data(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+def _merge_data(
+    base: dict[str, object], overlay: dict[str, object]
+) -> dict[str, object]:
     result = dict(base)
     for key, value in overlay.items():
         old_value = result.get(key)

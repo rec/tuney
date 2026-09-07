@@ -6,7 +6,7 @@ import json
 import math
 from collections.abc import Callable
 from functools import cache
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -59,8 +59,6 @@ APP_RUNTIME_CACHE = {
 
 if TYPE_CHECKING:
     from ..app.app import App
-
-Scalar: TypeAlias = bool | float | int | str | None
 
 INLINE_CHILDREN = (Polyphony,)
 SECTION_PRESET_PLACEHOLDER = 'Preset...'
@@ -698,7 +696,7 @@ def _add_option_control(
     parent: QtWidgets.QWidget,
     data: BaseModel,
     name: str,
-    value: Scalar,
+    value: bool | float | int | str | None,
     options: Options,
     option_controls: list[_OptionControl],
 ) -> None:
