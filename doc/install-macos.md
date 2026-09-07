@@ -49,7 +49,7 @@ Run:
 pipx install tuney
 ```
 
-## 6. Run Tuney
+## 6. Use Tuney
 
 Check that Tuney is installed:
 
@@ -57,7 +57,17 @@ Check that Tuney is installed:
 tuney --help
 ```
 
-Create a WAV file from text:
+Open the graphical instrument:
+
+```sh
+tuney --gui
+```
+
+In the graphical app you can play with the typing keyboard, edit the scale and
+sound, save presets, browse or import Scala tunings, loop and record a
+performance, use MIDI input or output, and switch between light and dark mode.
+
+Render a WAV file from text without playing it live:
 
 ```sh
 tuney --silent --output hello.wav "Hello from Tuney"
@@ -65,9 +75,26 @@ tuney --silent --output hello.wav "Hello from Tuney"
 
 The file `hello.wav` will be created in the current folder.
 
+Write the same performance as a MIDI file:
+
+```sh
+tuney --output hello.mid "Hello from Tuney"
+```
+
+List the MIDI ports Tuney can currently see:
+
+```sh
+tuney --list-midi
+```
+
+Command-line settings accept the same configuration used by the GUI. Physical
+values can include units, for example `--max-gap 2s` or
+`--root-frequency 440Hz`.
+
 ## Notes
 
-- To open the graphical app from the command line, run `tuney --gui`.
-- MIDI output is optional and needs a MIDI device or MIDI app.
+- MIDI is optional and needs a MIDI device or virtual MIDI application.
+- `--config-file` loads a TOML or JSON configuration, and `--preset` loads a
+  named preset.
 - Tuney on PyPI: <https://pypi.org/project/tuney/>
 - pipx documentation: <https://pipx.pypa.io/stable/>

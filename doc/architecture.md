@@ -12,8 +12,9 @@ then dispatches to GUI or CLI mode.
 
 - GUI mode creates one Qt `MainWindow`, restores autosave state when allowed,
   starts input and MIDI services, and enters the Qt event loop.
-- CLI mode requires text and either plays it or writes audio/MIDI output without
-  constructing the GUI.
+- CLI mode requires text and either plays it, records the live performance to
+  WAV, renders WAV offline with `--silent`, or writes a Standard MIDI File,
+  without constructing the GUI.
 - `--list-midi` is handled before normal application startup, so it can inspect
   MIDI ports without opening a window or audio device.
 
@@ -68,7 +69,8 @@ equivalent mixer and writes file output without opening the live stream.
 `MidiOut` translates note events to MIDI messages independently of synthesized
 audio. It can send program and volume changes at startup and a MIDI tuning dump
 when configured. `MidiIn` routes incoming note events through `MidiListener` to
-the same playback path used by keyboard input.
+the same playback path used by keyboard input. Speech can accompany replayed
+text and is mixed into live or offline audio output.
 
 ## Runtime Boundaries
 
@@ -94,10 +96,12 @@ Qt widgets and model edits run on the GUI thread. Keyboard and MIDI callbacks
 place `CharPress` events on queues consumed by `MainWindow`. Qt timers handle
 queue polling, delayed callbacks, transport updates, and deferred resize work.
 
-MIDI device discovery runs in a background thread only while MIDI input or
-output is enabled. It publishes a new port-name snapshot to the GUI queue when
-the available devices change. The background thread must not manipulate Qt
-widgets directly.
+MIDI device discovery runs every two seconds in a background thread, and only
+while MIDI input or output is enabled. It publishes a new port-name snapshot to
+the GUI queue only when the available devices change. The GUI then refreshes
+its selectors; if the selected output disappears, Tuney closes it, clears the
+saved selection, and tells the user. The background thread must not manipulate
+Qt widgets directly.
 
 The audio callback is a separate real-time boundary. Keep GUI calls, blocking
 I/O, logging, model validation, and stream construction out of it. Commands
@@ -108,23 +112,29 @@ cross into the audio engine through its command queue.
 Tuney reads configuration from TOML or JSON. Presets are partial configurations
 stored in built-in and user preset directories; text-related fields are excluded
 from presets. Autosave persists the current configuration plus GUI-only loop and
-window state. It restores only for a normal GUI launch without an explicit text,
-preset, or configuration source.
+window state. Global GUI preferences such as theme and control-panel layout are
+stored separately. Autosave restores only for a normal GUI launch without an
+explicit text, preset, or configuration source. Restored window geometry is
+adjusted to keep the top of the window reachable on an available screen, and a
+deferred application-level minimum protects the controls without relying on Qt
+top-level minimum-size constraints.
 
 The platform layer configures Reccy logging and maintains crash markers under
 the user state directory, guards GUI startup with a single-instance lock, and
-offers issue reporting after a detected crash. Autosave parsing is deliberately
-tolerant of individual invalid fields so an old or damaged state file does not
-prevent the application from starting.
+offers issue reporting after a detected crash. A report can include the log and
+can save an optional snapshot captured from Tuney's own window. The generated
+issue includes the snapshot's local path so the user can attach it. Autosave
+parsing is deliberately tolerant of individual invalid fields so an old or
+damaged state file does not prevent the application from starting.
 
 ## Units
 
 Configured physical quantities accept either bare numbers in Tuney's canonical
 units or Pint unit strings. Time settings use seconds or milliseconds according
 to their field descriptions, frequencies use hertz, and tuning detune uses
-musical cents. For example, `--max-gap 2min`, `--tuning.root-frequency 0.44kHz`,
-and `--text-timings.space 0.1s` are equivalent to their canonical numeric
-values. CLI help identifies each unit-bearing option's canonical unit.
+musical cents. For example, `--max-gap 2min`, `--root-frequency 0.44kHz`, and
+`--text-timings.space 0.1s` are equivalent to their canonical numeric values.
+CLI help identifies each unit-bearing option's canonical unit.
 
 Tuney normalizes these values before audio and sequencing code receives them.
 When a unit-bearing value has not been edited, configuration exports, presets,
