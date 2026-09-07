@@ -46,7 +46,7 @@ Run:
 python3 --version
 ```
 
-Tuney needs Python 3.12 or newer. If the number is older, use a newer Linux
+Tuney needs Python 3.13 or newer. If the number is older, use a newer Linux
 release or your distribution's instructions for installing a newer Python.
 
 ## 4. Prepare pipx
