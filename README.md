@@ -1,36 +1,65 @@
-# 🎵 tuney 🎵: text to music
+# Tuney: text to music
 
-## What is it?
+Tuney is a desktop instrument and command-line program that maps text and live
+typing to musical notes. It is intended for musicians and poets who want direct
+control over mapping, timing, tuning, synthesis, speech, and MIDI.
 
-`tuney` runs as either a desktop program which is an instrument that turns your typing
-into notes, or as a CLI that turns text into music.
+## Capabilities
 
-## Why is this different from [Brand X text-to-music program]?
+- Play Tuney from the typing keyboard or replay recorded text with its original
+  timings.
+- Configure character mapping, note names, equal divisions, just intonation,
+  ratio tunings, frequency tables, and Scala tunings.
+- Synthesize polyphonic audio with selectable waveforms, key scaling, binaural
+  beats, optional speech, looping, and randomization.
+- Record live output or render text offline to WAV, and export performances as
+  Standard MIDI Files.
+- Receive and send MIDI, including program, volume, channel, velocity, and MIDI
+  Tuning Standard messages.
+- Save TOML or JSON configurations, manage partial presets, autosave GUI state,
+  and use light or dark mode.
 
-It's intended as an instrument for musicians and poets, not a toy.
+## Install
 
-While it warms up in a very regular piano mode, you have a large number of details to
-tweak.
+Tuney requires Python 3.13 or newer. The platform guides install the `tuney`
+command from PyPI with pipx:
 
-If you are interested in microtonal scales, which means scales that are not on the
-standard Western scale, you can tune it to any scale you like: EDO and n-tet Just
-Intonation is built-in, and you don't have to have any idea what these are to have some
-fun with them, or you can take an existing tuning and change a few notes, or create an
-entirely new tuning yourself.
+- [Linux](doc/install-linux.md)
+- [macOS](doc/install-macos.md)
+- [Windows](doc/install-windows.md)
 
-There's a little looper and an audio recorder. You can run it in offline mode to turn a
-large amount of text into music quite fast.
+Open the desktop instrument:
+
+```sh
+tuney --gui
+```
+
+Render text to WAV without opening an audio device:
+
+```sh
+tuney --silent --output hello.wav "Hello from Tuney"
+```
+
+Write a MIDI file:
+
+```sh
+tuney --output hello.mid "Hello from Tuney"
+```
+
+Run `tuney --help` for the complete configuration interface, or
+`tuney --list-midi` to list the available MIDI inputs and outputs.
 
 ## Is this some AI thing?
 
-No. All the scales, oscillators, synths, mappings, tunings, music theory and such were
-conceived of and written by a human, and there's an actual algorithm you can examine
-and change if you like.
-
-The later portions of the code were written with the aid of AI coding models, carefully
+No. The musical system and algorithms were designed and written by a human. The
+later portions of the code were written with the aid of AI coding models and
 reviewed by a human.
 
-## Testing release builds
+## Documentation
 
-See [tester instructions](doc/tester-instructions.md) for downloading and running the
-Windows, macOS and Linux release builds.
+- [Architecture](doc/architecture.md) describes the runtime structure and
+  maintenance boundaries.
+- [Configuration model](schema.md) is generated from the current Pydantic models
+  and checked by the test suite.
+- [Tester instructions](doc/tester-instructions.md) cover packaged release builds
+  and hardware-dependent checks.

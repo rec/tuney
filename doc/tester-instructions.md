@@ -1,7 +1,8 @@
 # Tester Instructions
 
-Thank you for testing Tuney. These builds are unsigned, so Windows and antivirus
-software may warn before running them.
+Thank you for testing Tuney. Windows builds are unsigned, and macOS builds are
+ad-hoc signed but not notarized. The operating system or antivirus software may
+therefore warn before running them.
 
 ## Downloads
 

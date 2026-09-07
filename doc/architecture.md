@@ -1,8 +1,8 @@
 # Tuney Architecture
 
-Tuney is a Python application that maps typed characters to note numbers, turns
-those notes into synthesized audio and optional MIDI, and provides the same
-configuration model to both a Qt GUI and a command-line renderer.
+Tuney is a Python 3.13 application that maps typed characters to note numbers,
+turns those notes into synthesized audio and optional MIDI, and provides the
+same configuration model to both a Qt GUI and a command-line renderer.
 
 ## Entry Points
 
