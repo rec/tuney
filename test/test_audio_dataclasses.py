@@ -150,6 +150,16 @@ def test_midi_names_cache_can_be_replaced_without_subprocess(monkeypatch) -> Non
     assert ports.midi_names() == [['keyboard'], ['synth']]
 
 
+def test_midi_names_cache_is_isolated_from_callers() -> None:
+    names = [['keyboard'], ['synth']]
+    ports.midi_names.replace(names)
+
+    names[0].append('controller')
+    ports.midi_names()[1].append('drums')
+
+    assert ports.midi_names() == [['keyboard'], ['synth']]
+
+
 def test_midi_names_uses_internal_subprocess_when_frozen(monkeypatch):
     calls: list[list[str]] = []
 
