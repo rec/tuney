@@ -27,7 +27,7 @@ Copy this command, paste it into PowerShell, then press **Enter**:
 py --version
 ```
 
-Tuney needs Python 3.12 or newer. If the number is older, install a newer Python
+Tuney needs Python 3.13 or newer. If the number is older, install a newer Python
 from the Python download page above.
 
 ## 4. Install pipx

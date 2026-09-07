@@ -11,7 +11,7 @@ Note scales are highly customizable, with possibilities of just or n-tet tunings
 `tuney` is run as a CLI from the command line, but brings up a GUI.
 
 ## 2. Core Tech Stack
-- **Language:** Python 3.12
+- **Language:** Python 3.13
 - **Environment Management:** uv
 - **Key Dependencies:** pydantic, numpy, tyro, sounddevice, pynput
 
