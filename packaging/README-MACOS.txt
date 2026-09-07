@@ -3,7 +3,7 @@ Tuney for macOS
 
 Version: <version>
 
-This build is unsigned. macOS may warn before running it.
+This build is ad-hoc signed but not notarized. macOS may warn before running it.
 
 How to run Tuney:
 

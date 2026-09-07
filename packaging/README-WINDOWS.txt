@@ -1,6 +1,8 @@
 Tuney for Windows
 =================
 
+Version: <version>
+
 This build is unsigned. Windows or antivirus software may warn before running it.
 
 How to run Tuney:
