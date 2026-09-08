@@ -18,6 +18,7 @@ dependencies = [
     "soundfile>=0.13.1",
     "tomlkit>=0.15.0",
     "tyro>=1.0.13",
+    "ufor @ git+ssh://git@github.com/rec/ufor.git@9fa9d39f356613285e4ec5e55bdb3d894bfd8dbf",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -42,6 +43,7 @@ package = true
 
 [tool.uv.sources]
 reccy = { path = "../reccy", editable = true }
+ufor = { path = "../ufor", editable = true }
 
 [tool.hatch.build.targets.wheel.force-include]
 "scala/scales.toml.zip" = "scala/scales.toml.zip"
@@ -70,3 +72,6 @@ tuney = "tuney.app.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
