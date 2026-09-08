@@ -58,7 +58,7 @@ class Tuney:
 
 
 class Computed:
-    #: If limit is greater than zero, use rounded N-limit just intonation
+    #: Maximum rational denominator; zero disables approximation
     limit: int = 0
 
     #: Number of divisions of an octave

@@ -8,9 +8,9 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
+from ufor.number import NoteNumber
 
 from ..app.platform_info import instrument, trace
-from ..scale.number import NoteNumber
 from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress

@@ -5,10 +5,11 @@ from collections.abc import Callable
 import mido
 import numpy as np
 import pytest
+from ufor.oscillator import Waveform
 
 from tuney.audio import device
 from tuney.audio.device import Device
-from tuney.audio.oscillator import Oscillator, Waveform
+from tuney.audio.oscillator import Oscillator
 from tuney.audio.sample_data import SampleData
 from tuney.audio.sound import Binaural, Sound
 from tuney.midi import port, ports, tuning_dump

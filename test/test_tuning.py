@@ -63,3 +63,31 @@ def test_computed_exports_one_octave_of_ratios() -> None:
     assert Computed(notes_per_octave=3, octave_ratio=8).as_ratios().ratios == (
         pytest.approx([2, 4, 8])
     )
+
+
+def test_table_is_finite_but_tuney_keeps_notes_in_instrument_range() -> None:
+    table = Table(text='440; 660')
+    assert table(0) == 440
+    assert table(1) == 660
+    for note in (-1, 2):
+        with pytest.raises(ValueError, match='outside'):
+            table(note)
+    tuning = Tuning(type=Type.table, table=table)
+    assert tuning(68) == 660
+    assert tuning(71) == 440
+
+
+def test_fractional_and_power_authoring_compiles_to_shared_ratios() -> None:
+    ratios = Ratios(text='5/4; 2^(1/2); 2')
+    assert ratios.definition.values[1] == '5/4'
+    assert ratios(2) == pytest.approx(2**0.5)
+    assert ratios(4) == 2.5
+
+
+def test_edits_to_computed_configuration_update_shared_pitch_resolution() -> None:
+    computed = Computed()
+    tuning = Tuning(computed=computed)
+    original = tuning(70)
+    computed.notes_per_octave = 24
+    assert tuning(70) != original
+    assert tuning(71) == pytest.approx(original)

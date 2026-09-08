@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from enum import StrEnum, auto
-from fractions import Fraction
-from functools import cached_property
 from typing import Annotated
 
 from pydantic import BaseModel, Field
 from reccy.configuration.tyro import tyro_option, unit_spec
 from reccy.configuration.units import Hertz, MusicalCents
+from ufor import tuning
+from ufor.number import NoteNumber, Number
 
 from ..config.annotations import Beginner, Display, Numeric
-from .number import NoteNumber, Number, cents
 from .ratios import Ratios
 from .table import Table
 
@@ -22,7 +21,7 @@ class Type(StrEnum):
 
 
 class Computed(BaseModel):
-    #: If limit is greater than zero, use rounded N-limit just intonation
+    #: Maximum rational denominator; zero disables approximation
     limit: Annotated[
         int, tyro_option('-v'), Numeric(column=1, row=0, min=0, width=3)
     ] = Field(0, ge=0)
@@ -45,14 +44,21 @@ class Computed(BaseModel):
         Numeric(column=3, row=0, min=0.001, inc=0.001),
     ] = Field(2, gt=0)
 
+    @property
+    def definition(self) -> tuning.Computed:
+        return tuning.Computed(
+            limit=self.limit,
+            notes_per_octave=self.notes_per_octave,
+            octave_ratio=str(self.octave_ratio),
+        )
+
     def __call__(self, note_delta: NoteNumber) -> Number:
-        r = self.octave_ratio ** (note_delta / self.notes_per_octave)
-        return Fraction(r).limit_denominator(self.limit) if self.limit else r
+        return self.definition(note_delta)
 
     def as_ratios(self) -> Ratios:
-        return Ratios.from_strings(
-            str(self(i + 1)) for i in range(self.notes_per_octave)
-        )
+        definition = self.definition.as_ratios()
+        assert definition.repeat_ratio is not None
+        return Ratios.from_strings([*definition.values[1:], definition.repeat_ratio])
 
 
 class Tuning(BaseModel, arbitrary_types_allowed=True):
@@ -99,22 +105,26 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         Numeric(column=5, row=0, min=0, max=127, width=3),
     ] = Field(69, ge=0, le=127)  # MIDI note 69 is A440, for non-Yamaha units
 
-    @cached_property
-    def detune_ratio(self) -> float:
-        return cents(self.detune)
-
     @property
     def active(self) -> Computed | Ratios | Table:
-        default = getattr(self, self.type.name if self.type else '')
+        default = getattr(self, self.type.name) if self.type else None
         if p := default or self.table or self.ratios or self.computed:
             return p
         return Computed()
 
+    @property
+    def definition(self) -> tuning.Tuning:
+        return tuning.Tuning(
+            source=self.active.definition,
+            root_note=self.root_note,
+            root_frequency=str(self.root_frequency),
+            detune=self.detune,
+        )
+
     def __call__(self, note_number: NoteNumber) -> Number:
-        """Return the frequency in this tuning for a NoteNumber"""
-        note_delta = note_number - self.root_note
-        tuning = self.active
-        freq = tuning(note_delta)
-        if not isinstance(tuning, Table):
-            freq *= self.root_frequency
-        return freq * self.detune_ratio
+        """Resolve pitch; wrapping a finite instrument range is Tuney policy."""
+        if isinstance(active := self.active, Table):
+            if not active.values:
+                raise ValueError('No frequency table configured')
+            note_number = (note_number - self.root_note) % len(active.values)
+        return self.definition(note_number)

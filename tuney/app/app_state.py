@@ -8,12 +8,12 @@ from pathlib import Path
 
 import tomlkit
 from reccy.configuration import units
+from ufor.accidentals import Accidentals
 
 from ..audio.player import Player
 from ..config.serialize import serialize
 from ..config.text_file import read_text_file
 from ..presets.preset import is_str_dict, merged_data, read_preset
-from ..scale.accidentals import Accidentals
 from ..scale.tuning import Computed, Type
 from .app_members import AppMembers
 from .platform_info import instrument

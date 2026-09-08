@@ -5,9 +5,9 @@ from functools import cached_property, partial
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+from ufor.number import NoteNumber
 
 from ..app.platform_info import instrument, trace
-from ..scale.number import NoteNumber
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .device import Device

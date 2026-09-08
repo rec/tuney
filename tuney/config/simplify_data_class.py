@@ -6,7 +6,9 @@ from pathlib import Path
 
 
 def simplify_data_class(
-    paths: Iterable[Path | str], remove: Container[str] = ()
+    paths: Iterable[Path | str],
+    remove: Container[str] = (),
+    models: Container[str] = (),
 ) -> str:
     classes: list[ast.stmt] = []
     for path in paths:
@@ -15,7 +17,9 @@ def simplify_data_class(
         base_model_classes = _base_model_classes(tree)
         comments = _member_comments(text.splitlines())
         for s in tree.body:
-            if isinstance(s, ast.ClassDef) and s.name in base_model_classes:
+            if isinstance(s, ast.ClassDef) and (
+                s.name in base_model_classes or s.name in models
+            ):
                 classes.append(_simplify_class(s, comments, remove))
 
     simplified = ast.Module(body=classes, type_ignores=[])

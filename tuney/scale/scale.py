@@ -1,47 +1,18 @@
 from __future__ import annotations
 
-import re
 import string
-from collections.abc import Iterable, Iterator
-from contextlib import suppress
-from functools import cached_property
-from itertools import batched, chain
-from typing import Annotated, Self
+from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator, Field, model_validator
+from pydantic import Field
 from reccy.configuration.tyro import tyro_option
+from ufor import scale
+from ufor.accidentals import Accidentals
+from ufor.scale import validate_intervals
 
 from ..config.annotations import Beginner, Display, Numeric
-from .accidentals import AccidentalNames, Accidentals
-from .number import NoteNumber
-from .tuning import Tuning
-
-INTERVALS = [int(i) for i in '2212221']
 
 
-@BeforeValidator
-def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
-    intervals, errors = [], []
-    for c in it:
-        if isinstance(c, str) and c.isspace():
-            continue
-        try:
-            i = int(c)
-        except ValueError:
-            errors.append(f'{c=} is not a number')
-        else:
-            if i < 0:
-                errors.append(f'{c=} is less than 0')
-            else:
-                intervals.append(i)
-    if not intervals:
-        errors.append('No valid intervals')
-    if errors:
-        raise ValueError(*errors)
-    return intervals
-
-
-class Scale(BaseModel):
+class Scale(scale.Scale, frozen=False):
     """A generalized musical Scale, where the default is "regular tuning".
 
     The common Western scale has
@@ -83,7 +54,7 @@ class Scale(BaseModel):
         validate_intervals,
         tyro_option('-i'),
         Display(column=1, row=1, width=7),
-    ] = Field(default_factory=lambda: list(INTERVALS))
+    ] = Field(default_factory=lambda: list(scale.INTERVALS))
 
     # Which accidentals are allowed in note names
     accidentals: Annotated[Accidentals, tyro_option('-X'), Display(column=2, row=1)] = (
@@ -96,128 +67,3 @@ class Scale(BaseModel):
         tyro_option('-Y', name='scale-offset'),
         Numeric(column=3, row=0, min=-99, max=99, width=3),
     ] = Field(0, ge=-99, le=99)
-
-    @model_validator(mode='after')
-    def _validate_note_name_range(self) -> Self:
-        fields = 'begin', 'root', 'end'
-        if missing := [f for f in fields if getattr(self, f) not in self.note_names]:
-            raise ValueError(', '.join(missing) + ' must be present in note_names')
-        b, r, e = (self.note_names.index(i) for i in (self.begin, self.root, self.end))
-        if not b <= r <= e:
-            raise ValueError('begin, root, and end must be ordered in note_names')
-        return self
-
-    # Implements Scale.to_name
-    def to_name(self, note_number: NoteNumber, use_sharp: bool = True) -> str:
-        octave, offset = divmod(note_number - self.offset, self.note_count)
-        name = self.flats_sharps[use_sharp][offset]
-        return f'{name}{octave}'
-
-    # Implements Scale.to_number
-    # This is only used in tests!
-    def to_number(self, s: str) -> NoteNumber:
-        note, octave_text = self._split_note_octave(s)
-        if (semitones := self._note_to_semitones.get(note)) is not None:
-            with suppress(ValueError):
-                note_number = self.note_numbers.index(semitones)
-                return note_number + self.offset + self.note_count * int(octave_text)
-
-        raise ValueError(f'Bad number {s=}')
-
-    def frequency(self, tuning: Tuning, note_number: NoteNumber) -> float:
-        return float(tuning(self.tuning_number(note_number)))
-
-    @cached_property
-    def names(self) -> str:
-        a = self.note_names
-        begin, root, end = a.index(self.begin), a.index(self.root), a.index(self.end)
-        return ''.join(a[i] for i in chain(range(root, end + 1), range(begin, root)))
-
-    @cached_property
-    def octave_length(self) -> int:
-        return sum(self.intervals)
-
-    @cached_property
-    def note_count(self) -> int:
-        return len(self.flats_sharps[0])
-
-    def tuning_number(self, note_number: NoteNumber) -> NoteNumber:
-        octave, offset = divmod(note_number - self.offset, self.note_count)
-        return self.note_numbers[offset] + self.octave_length * octave + self.offset
-
-    def _note_interval_number(self) -> Iterator[tuple[str, int, int]]:
-        assert not self.names or self.intervals
-        semitone = 0
-        for i, note in enumerate(self.names):
-            interval = self.intervals[i % len(self.intervals)]
-            yield note, interval, semitone
-            semitone += interval
-
-    @cached_property
-    def _note_re(self) -> re.Pattern:
-        pat = rf'[{self.names}]'
-        if self.accidental_names.symbols:
-            pat += rf'[{re.escape(self.accidental_names.symbols)}]*'
-        return re.compile(rf'({pat})')
-
-    def _to_notes(self, s: str) -> tuple[list[str], list[str]]:
-        split = self._note_re.split(self.accidental_names.canonical(s)) + ['']
-        errors, values = zip(*batched(split, 2, strict=False), strict=True)
-        if not (notes := [v for v in values[:-1] if v]):
-            notes = list(self.names)
-        return notes, [v for e in errors[:-1] if (v := e.strip())]
-
-    @cached_property
-    def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
-        return (
-            tuple(
-                note
-                for i, note in enumerate(self.all_flats_sharps[0])
-                if i in self.note_numbers
-            ),
-            tuple(
-                note
-                for i, note in enumerate(self.all_flats_sharps[1])
-                if i in self.note_numbers
-            ),
-        )
-
-    @cached_property
-    def _note_to_semitones(self) -> dict[str, NoteNumber]:
-        result = {}
-        for n, notes in enumerate(zip(*self.all_flats_sharps, strict=True)):
-            for note in notes:
-                result.setdefault(note, n)
-        return result
-
-    @cached_property
-    def note_numbers(self) -> tuple[NoteNumber, ...]:
-        if self.notes is None:
-            return tuple(range(self.octave_length))
-        allowed_notes, _ = self._to_notes(self.notes)
-        it = enumerate(zip(*self.all_flats_sharps, strict=True))
-        return tuple(i for i, notes in it if set(notes).intersection(allowed_notes))
-
-    @cached_property
-    def all_flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
-        flats, sharps = [], []
-        for i, (note, interval, _) in enumerate(self._note_interval_number()):
-            flats.append(note)
-            sharps.append(note)
-            if interval > 1:
-                next_note = self.names[(i + 1) % len(self.names)]
-                for j in range(1, interval):
-                    flat, sharp = self.accidental_names.flat_sharp_names(
-                        note, next_note, interval, j
-                    )
-                    flats.append(flat)
-                    sharps.append(sharp)
-
-        return tuple(flats), tuple(sharps)
-
-    @cached_property
-    def accidental_names(self) -> AccidentalNames:
-        return AccidentalNames(self.accidentals)
-
-    def _split_note_octave(self, s: str) -> tuple[str, str]:
-        return self.accidental_names.split_note(s, self.names)
