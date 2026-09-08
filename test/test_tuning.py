@@ -75,6 +75,9 @@ def test_table_is_finite_but_tuney_keeps_notes_in_instrument_range() -> None:
     tuning = Tuning(type=Type.table, table=table)
     assert tuning(68) == 660
     assert tuning(71) == 440
+    assert tuning.definition(69) == 440
+    with pytest.raises(ValueError, match='outside'):
+        tuning.definition(71)
 
 
 def test_fractional_and_power_authoring_compiles_to_shared_ratios() -> None:

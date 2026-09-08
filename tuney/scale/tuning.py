@@ -114,8 +114,11 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
 
     @property
     def definition(self) -> tuning.Tuning:
+        source = self.active.definition
+        if isinstance(source, tuning.FrequencyTable):
+            source = source.model_copy(update={'first_note': self.root_note})
         return tuning.Tuning(
-            source=self.active.definition,
+            source=source,
             root_note=self.root_note,
             root_frequency=str(self.root_frequency),
             detune=self.detune,
@@ -126,5 +129,7 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
         if isinstance(active := self.active, Table):
             if not active.values:
                 raise ValueError('No frequency table configured')
-            note_number = (note_number - self.root_note) % len(active.values)
+            note_number = self.root_note + (note_number - self.root_note) % len(
+                active.values
+            )
         return self.definition(note_number)
