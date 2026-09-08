@@ -18,7 +18,7 @@ dependencies = [
     "soundfile>=0.13.1",
     "tomlkit>=0.15.0",
     "tyro>=1.0.13",
-    "ufor @ git+ssh://git@github.com/rec/ufor.git@9fa9d39f356613285e4ec5e55bdb3d894bfd8dbf",
+    "ufor @ https://github.com/rec/ufor/archive/9fa9d39f356613285e4ec5e55bdb3d894bfd8dbf.tar.gz",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
