@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, model_validator
+from ufor.number import Number
+from ufor.scala import parse_scala, scala_text
+from ufor.tuning import RatioTable
 
-from ..app.platform_info import report_error
 from ..config.annotations import Display
 from ..config.text_file import read_text_file
 from . import evaluate
-from .number import Number, uncents
 
 
 class Ratios(BaseModel):
@@ -30,11 +31,18 @@ class Ratios(BaseModel):
             raise ValueError('No tuning ratios configured')
         return self
 
+    @cached_property
+    def definition(self) -> RatioTable:
+        entries = [str(i) for i in self.ratios]
+        return RatioTable(
+            values=['1', *entries[:-1]],
+            repeat_ratio=entries[-1],
+            name=self.name,
+            desc=self.desc,
+        )
+
     def __call__(self, note_delta: int) -> Number:
-        # Returns a frequency ratio
-        ratios = self.ratios
-        d, m = divmod(note_delta, len(ratios))
-        return ratios[-1] ** d * (ratios[m - 1] if m else 1)
+        return self.definition(note_delta)
 
     @cached_property
     def length(self) -> int:
@@ -49,37 +57,21 @@ class Ratios(BaseModel):
 
     @staticmethod
     def read_scala_file(path: Path, name: str = '') -> Ratios:
-        lines = read_text_file(path).splitlines()
-        desc, length, *names = (i.strip() for i in lines if not i.startswith('!'))
-
-        if int(length) != len(names):
-            report_error(f'In file {path}: {length=} != {len(names)=}')
-
-        it = (s[0] for n in names if (s := n.split()))
-        text = '; '.join(f'cents({s})' if '.' in s else s for s in it)
-        return Ratios(text=text, name=name or path.name, desc=desc)
+        definition = parse_scala(read_text_file(path), name=name or path.name)
+        assert definition.repeat_ratio is not None
+        return Ratios.from_strings(
+            [*definition.values[1:], definition.repeat_ratio],
+            name=definition.name,
+            desc=definition.desc,
+        )
 
     @staticmethod
     def from_strings(strings: Iterable[str], name: str = '', desc: str = '') -> Ratios:
         return Ratios(text='; '.join(strings), name=name, desc=desc)
 
-    def write_scala_file(self, path: Path, encoding='latin-1') -> None:
-        with path.open('w', encoding=encoding) as fp:
-            _ = self.length
-            fp.write(SCALA_TEMPLATE.format(**self.__dict__))
-            for r in self.ratios:
-                s = f'{uncents(r):.6f}' if isinstance(r, float) else str(r)
-                fp.write(f' {s}\n')
+    def write_scala_file(self, path: Path, encoding: str = 'latin-1') -> None:
+        path.write_text(scala_text(self.definition), encoding=encoding)
 
 
 def _split_expression_text(text: str) -> list[str]:
     return [s for i in text.split(';') if (s := i.strip())]
-
-
-SCALA_TEMPLATE = """\
-! {name}
-!
-{desc}
- {length}
-!
-"""

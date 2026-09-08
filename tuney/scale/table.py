@@ -6,10 +6,11 @@ from typing import Annotated
 
 from pydantic import BaseModel
 from reccy.configuration import units
+from ufor.number import Number
+from ufor.tuning import FrequencyTable
 
 from ..config.annotations import Display
 from . import evaluate
-from .number import Number
 
 type Frequency = float  # Must be non-negative
 
@@ -18,10 +19,14 @@ class Table(BaseModel):
     #: Absolute frequency expressions, indexed by note number
     text: Annotated[str, Display(row=0, width=24)] = ''
 
-    def __call__(self, note_delta: int) -> Frequency:
-        if not (values := self.values):
+    @cached_property
+    def definition(self) -> FrequencyTable:
+        if not self.values:
             raise ValueError('No frequency table configured')
-        return values[note_delta % len(values)]
+        return FrequencyTable(values=[str(i) for i in self.values])
+
+    def __call__(self, note_delta: int) -> Frequency:
+        return float(self.definition(note_delta))
 
     @cached_property
     def values(self) -> list[Frequency]:

@@ -6,9 +6,9 @@ import tyro
 from pydantic import BaseModel, Field
 from reccy.configuration.tyro import tyro_option, unit_spec
 from reccy.configuration.units import Hertz, Seconds
+from ufor.number import NoteNumber
 
 from ..config.annotations import Beginner, Display, General, Hidden, Numeric
-from ..scale.number import NoteNumber
 from .oscillator import Oscillator
 from .polyphony import Polyphony
 

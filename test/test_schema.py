@@ -36,6 +36,7 @@ def find_models(m: type[BaseModel]) -> Iterable[type[BaseModel]]:
 
 
 def test_schema(file_regression) -> None:
-    files = {inspect.getfile(m): None for m in find_models(Tuney)}
-    data = simplify_data_class(files, remove=OMIT)
+    models = list(find_models(Tuney))
+    files = {inspect.getfile(m): None for m in models}
+    data = simplify_data_class(files, remove=OMIT, models={m.__name__ for m in models})
     file_regression.check(MARKDOWN_TEMPLATE.format(data), fullpath=MARKDOWN_PATH)

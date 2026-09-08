@@ -1,7 +1,7 @@
 import pytest
+from ufor.accidentals import Accidentals
 
 from test import twelve_tet
-from tuney.scale.accidentals import Accidentals
 from tuney.scale.nearest_note import nearest_note
 from tuney.scale.scale import Scale
 

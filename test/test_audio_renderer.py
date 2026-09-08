@@ -10,13 +10,14 @@ import pytest
 import sounddevice
 import soundfile
 from sounddevice import CallbackAbort, PortAudioError
+from ufor.oscillator import Waveform
 
 from tuney.app.app import App
 from tuney.audio import device, speech, test_sheet
 from tuney.audio.device import Device
 from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
 from tuney.audio.mixer import Mixer, NotePress
-from tuney.audio.oscillator import Oscillator, Waveform
+from tuney.audio.oscillator import Oscillator
 from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony

@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Annotated
 
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import Field
 from reccy.configuration.tyro import tyro_option
+from ufor import oscillator
+from ufor.number import NoteNumber
+from ufor.oscillator import Waveform
 
 from ..config.annotations import Beginner, Display, Numeric
-from ..config.named_enum import NamedEnum
-from ..scale.number import NoteNumber
 from . import scipy
 from .scipy import sawtooth
 
@@ -27,19 +28,7 @@ def square(out: np.ndarray, duty_cycle: float) -> np.ndarray:
     return out
 
 
-class Waveform(NamedEnum):
-    # A pure sine wave, where the duty cycle does nothing
-    sine = (sine,)
-
-    # A classic square wave.
-    square = (square,)
-
-    # Triangle or sawtooth wave.
-    # Duty cycle 0 = sawtooth, 0.5 = triangle, 1.0 = reverse sawtooth
-    triangle = (triangle,)
-
-
-class Oscillator(BaseModel):
+class Oscillator(oscillator.Oscillator, frozen=False):
     # Waveform used to synthesize notes
     waveform: Annotated[Waveform, tyro_option('-w'), Beginner, Display(row=0)] = (
         Waveform.triangle
@@ -50,7 +39,7 @@ class Oscillator(BaseModel):
         float,
         tyro_option('-u'),
         Numeric(column=1, row=0, min=0, max=1.0, dial=True, inc=0.01),
-    ] = 0.5
+    ] = Field(0.5, ge=0, le=1)
 
     # Note number with no keyboard gain adjustment
     key_scale_note: Annotated[
@@ -69,7 +58,7 @@ class Oscillator(BaseModel):
         end = start + length
         ratio = 2 * np.pi / period
         wave = np.linspace(start * ratio, end * ratio, length, endpoint=False)
-        return self.waveform.value[0](wave, self.duty_cycle)
+        return WAVEFORMS[self.waveform](wave, self.duty_cycle)
 
-    def gain(self, note_number: NoteNumber) -> float:
-        return 10 ** (self.key_scale * (note_number - self.key_scale_note) / 12 / 20)
+
+WAVEFORMS = {Waveform.sine: sine, Waveform.square: square, Waveform.triangle: triangle}

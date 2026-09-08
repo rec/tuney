@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable
 from fractions import Fraction
 from functools import cached_property, singledispatchmethod
 
-from .number import Number, cents
+from ufor.number import Number, cents
 
 MODULES = {'math': math, 'random': random}
 FUNCTIONS = {'cents': cents}
@@ -38,7 +38,9 @@ class _Evaluate:
 
     @cached_property
     def root(self) -> ast.AST:
-        return ast.parse(self.expression.partition('#')[0], mode='eval')
+        return ast.parse(
+            self.expression.partition('#')[0].replace('^', '**'), mode='eval'
+        )
 
     @singledispatchmethod
     def _eval(self, node: ast.AST) -> Number:
