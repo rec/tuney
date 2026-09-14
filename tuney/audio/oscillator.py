@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import numpy as np
+from enge.synth import waveform_samples
 from pydantic import Field
 from reccy.configuration.tyro import tyro_option
 from ufor import oscillator
@@ -10,22 +11,6 @@ from ufor.number import NoteNumber
 from ufor.oscillator import Waveform
 
 from ..config.annotations import Beginner, Display, Numeric
-from . import scipy
-from .scipy import sawtooth
-
-
-def sine(out: np.ndarray, duty_cycle: float) -> np.ndarray:
-    return np.sin(out, out=out)
-
-
-def triangle(out: np.ndarray, duty_cycle: float) -> np.ndarray:
-    out[:] = sawtooth(out, duty_cycle)
-    return out
-
-
-def square(out: np.ndarray, duty_cycle: float) -> np.ndarray:
-    out[:] = scipy.square(out, duty_cycle)
-    return out
 
 
 class Oscillator(oscillator.Oscillator, frozen=False):
@@ -54,11 +39,4 @@ class Oscillator(oscillator.Oscillator, frozen=False):
     def __call__(
         self, start: float | np.ndarray, length: int, period: float | np.ndarray
     ) -> np.ndarray:
-        # TODO: add intensity to compensate for different energies
-        end = start + length
-        ratio = 2 * np.pi / period
-        wave = np.linspace(start * ratio, end * ratio, length, endpoint=False)
-        return WAVEFORMS[self.waveform](wave, self.duty_cycle)
-
-
-WAVEFORMS = {Waveform.sine: sine, Waveform.square: square, Waveform.triangle: triangle}
+        return waveform_samples(self, start, length, period)
