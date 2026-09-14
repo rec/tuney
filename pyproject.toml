@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chardet>=7.4.3",
+    "enge",
     "mido>=1.3.3",
     "numpy>=2.4.1",
     "pydantic>=2.13.3",
@@ -44,6 +45,7 @@ package = true
 [tool.uv.sources]
 reccy = { path = "../reccy", editable = true }
 ufor = { path = "../ufor", editable = true }
+enge = { path = "../enge", editable = true }
 
 [tool.hatch.build.targets.wheel.force-include]
 "scala/scales.toml.zip" = "scala/scales.toml.zip"
