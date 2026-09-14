@@ -1,0 +1,101 @@
+# Maintaining Tuney
+
+This guide describes the boundaries that keep the desktop instrument and the
+command-line renderer consistent.
+
+## Architecture
+
+`tuney.app.main:main` is the installed entry point. It parses an `App`, overlays
+a preset or TOML/JSON configuration when requested, then starts GUI or CLI mode.
+`--list-midi` is handled before normal application startup.
+
+The mutable Pydantic application model is shared by every interface:
+
+```text
+App -> AppPlayback -> AppState -> AppMembers -> Tuney -> BaseModel
+```
+
+`Tuney` holds user-visible configuration. `AppMembers` owns cached runtime
+collaborators. `AppState` validates edits, replaces configuration, persists
+state, randomizes settings, and invalidates caches. `AppPlayback` converts
+character events to audio and MIDI and implements offline rendering. `App`
+owns the application lifecycle.
+
+The GUI must update this one model through validation. Do not create a parallel
+UI configuration model or freeze `App` or `Tuney`: GUI edits deliberately copy
+validated values into the live mutable object.
+
+| Area | Main package | Responsibility |
+| --- | --- | --- |
+| Application | `tuney/app/` | Lifecycle, state, playback, platform integration |
+| Configuration | `tuney/config/` | Pydantic models, CLI metadata, serialization |
+| Music | `tuney/mapper/`, `tuney/scale/` | Character mapping, scales, tunings, Scala data |
+| Time | `tuney/time/` | Character presses, recording, sequencing |
+| Audio | `tuney/audio/` | Voices, mixer, live output, offline rendering, speech |
+| MIDI | `tuney/midi/` | Ports, input, output, files, tuning dumps |
+| Input | `tuney/keyboard/` | Global keyboard listener and modifiers |
+| Persistence | `tuney/presets/` | Presets and autosave |
+| UI | `tuney/ui/` | Qt controls, transport, dialogs, note grid |
+
+Tuney uses Ufor for shared musical definitions such as pitch arithmetic, tuning
+definitions, Scala conversion, oscillator parameters, and gain. Tuney retains
+its UI and CLI annotations, mutable application model, expression handling, and
+NumPy waveform generation. For local development, keep Ufor at `../ufor` and
+run `uv sync`; installations use the pinned source archive in `pyproject.toml`.
+
+## Runtime boundaries
+
+Qt widgets and model edits run on the GUI thread. Keyboard and MIDI callbacks
+enqueue character presses; Qt timers consume them and handle deferred GUI work.
+MIDI discovery runs in a background thread only while MIDI is enabled, publishes
+a changed port-name snapshot, and never touches widgets directly.
+
+The audio callback is real-time code. Do not put GUI calls, blocking I/O,
+logging, model validation, or stream construction in it. Send work to the audio
+engine through its command queue.
+
+Audio and MIDI use the same route from a `CharPress` through the mapper, scale,
+and tuning. Offline rendering constructs an equivalent mixer without opening a
+live stream. Keep audio-device, MIDI-device, keyboard, and platform effects at
+their package boundaries so unit tests can isolate them.
+
+## Persistence and units
+
+Presets are partial TOML or JSON configurations and exclude text. Autosave also
+stores text, GUI loop state, and window state. Restore is deliberately tolerant:
+invalid saved fields are discarded one at a time so one stale value cannot stop
+Tuney from starting.
+
+Quantities accept bare canonical numbers or Pint unit strings. Times use seconds
+or milliseconds as their field descriptions specify, frequencies use hertz, and
+detuning uses cents. Preserve an authored unit spelling through configuration,
+preset, autosave, undo, and file output until the GUI field is edited. Scala
+syntax remains Scala syntax and is not parsed as Pint input.
+
+## Change and release checks
+
+Use the smallest change that keeps GUI, CLI, and runtime state consistent. Add a
+new musical setting to the relevant Pydantic model first, then let its CLI and
+GUI representations derive from that field. Keep runtime-only state cached or
+private, never serialized.
+
+After changing Python code or data it uses, run the project checks from the
+repository root:
+
+```sh
+uv run pytest
+uv run ruff check --fix --select B,E,F,I tuney test
+uv run ruff format
+uv run ty check tuney
+version=$(cat .python-version)
+version=${version//./}
+find test tuney -name '*.py' | xargs uv run pyupgrade --py${version}-plus
+git diff --check
+```
+
+The automated suite cannot prove physical audio, MIDI, global-keyboard, or
+window-manager behavior. Before a release, test typing and replay, changes to
+scale/tuning/sound/timing, preset and Scala import/export, WAV export, dark
+mode, autosave, resizing, and reconnecting MIDI devices. Check that a missing
+selected MIDI output is cleared and reported, and that an output-open failure
+disables MIDI output until it is enabled again.
