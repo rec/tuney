@@ -21,12 +21,8 @@ control over mapping, timing, tuning, synthesis, speech, and MIDI.
 
 ## Install
 
-Tuney requires Python 3.13 or newer. The platform guides install the `tuney`
-command from PyPI with pipx:
-
-- [Linux](doc/install-linux.md)
-- [macOS](doc/install-macos.md)
-- [Windows](doc/install-windows.md)
+Tuney requires Python 3.13 or newer. [Using Tuney](doc/using-tuney.md) explains
+installation on Linux, macOS, and Windows.
 
 Open the desktop instrument:
 
@@ -57,9 +53,9 @@ reviewed by a human.
 
 ## Documentation
 
-- [Architecture](doc/architecture.md) describes the runtime structure and
-  maintenance boundaries.
+- [Using Tuney](doc/using-tuney.md) covers installation, the desktop instrument,
+  command-line rendering, settings, files, and support.
+- [Maintaining Tuney](doc/maintaining-tuney.md) describes the runtime structure,
+  project boundaries, and release checks.
 - [Configuration model](schema.md) is generated from the current Pydantic models
   and checked by the test suite.
-- [Tester instructions](doc/tester-instructions.md) cover packaged release builds
-  and hardware-dependent checks.
