@@ -463,6 +463,11 @@ cases, report child diagnostics, and bound subprocess execution time.
 
 ### 23. Obsolete waveform code and a test-only production wrapper remain
 
+**Resolved:** Removed the unused copied waveform functions and `OfflineRenderer`.
+Repository and sibling source searches found no production consumers. Tests now
+exercise `Mixer` directly, alongside the existing production file-rendering tests;
+the existing WAV fixtures remain unchanged.
+
 **Evidence:** [audio/scipy.py](../tuney/audio/scipy.py) still contains copied
 waveform implementations, but a repository Python-reference search found no
 consumer after Enge adoption. [OfflineRenderer](../tuney/audio/renderer.py) is
