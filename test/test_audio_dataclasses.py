@@ -369,6 +369,8 @@ def test_midi_input_listener_converts_note_without_sending_output() -> None:
     listener.on_message(mido.Message('note_on', channel=3, note=72, velocity=64))
     listener.on_message(mido.Message('note_off', channel=2, note=72, velocity=0))
 
+    assert events == []
+    listener.dispatch_pending()
     assert events == [(60, True), (60, False)]
 
 

@@ -23,6 +23,7 @@ from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.audio.speech import SpeechPhrase
 from tuney.midi import port
+from tuney.midi.listener import MidiListener
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.tuning import Computed, Type
 from tuney.time.char_press import CharPress
@@ -495,6 +496,7 @@ def test_audio_diagnostics_use_reportable_dialog() -> None:
 
     class FakeApp:
         player = FakePlayer()
+        midi_listener = MidiListener(Midi(), lambda note, is_press: None)
 
     class FakeWindow:
         key_queue = SimpleQueue()

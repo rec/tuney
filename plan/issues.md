@@ -318,6 +318,11 @@ keeping Qt mutations on the GUI thread.
 
 ### 16. MIDI callbacks bypass the documented input queue boundary
 
+**Resolved:** MIDI callbacks only enqueue messages. The GUI timer handles input
+filtering, note conversion, and playback. Closing a listener discards queued
+messages. MIDI input retains direct-note playback without generating text.
+Tests verify ordered dispatch on the consuming thread and pending-message cleanup.
+
 **Evidence:** [AppMembers.midi_listener](../tuney/app/app_members.py) connects
 the MIDI callback directly to `play_note`; [MidiListener.on_message](../tuney/midi/listener.py)
 invokes it directly. That reaches mutable `Player` state and stream startup.

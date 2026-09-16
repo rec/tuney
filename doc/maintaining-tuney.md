@@ -45,8 +45,10 @@ run `uv sync`; installations use the pinned source archive in `pyproject.toml`.
 
 ## Runtime boundaries
 
-Qt widgets and model edits run on the GUI thread. Keyboard and MIDI callbacks
-enqueue character presses; Qt timers consume them and handle deferred GUI work.
+Qt widgets and model edits run on the GUI thread. Keyboard callbacks enqueue
+character presses; MIDI callbacks enqueue MIDI messages. Qt timers consume both
+queues and handle deferred GUI work. MIDI input plays notes directly without
+character mapping or text recording. Closing MIDI input discards pending messages.
 MIDI discovery runs in a background thread only while MIDI is enabled, publishes
 a changed port-name snapshot, and never touches widgets directly.
 

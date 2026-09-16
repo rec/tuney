@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
 import mido
@@ -17,6 +18,7 @@ class MidiListener:
         self.midi = midi
         self.callback = callback
         self.port: mido.InputPort | None = None
+        self.messages = SimpleQueue[mido.Message]()
 
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
@@ -29,8 +31,15 @@ class MidiListener:
         if self.port is not None:
             self.port.close()
             self.port = None
+        while not self.messages.empty():
+            self.messages.get()
 
     def on_message(self, m: mido.Message) -> None:
-        if self.midi.input.accepts(m) and m.type.startswith('note_'):
-            is_on = m.type == 'note_on' and m.velocity > 0
-            self.callback(self.midi.output.tuney_note(m.note), is_on)
+        self.messages.put(m)
+
+    def dispatch_pending(self) -> None:
+        while not self.messages.empty():
+            m = self.messages.get()
+            if self.midi.input.accepts(m) and m.type.startswith('note_'):
+                is_on = m.type == 'note_on' and m.velocity > 0
+                self.callback(self.midi.output.tuney_note(m.note), is_on)
