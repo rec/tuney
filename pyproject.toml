@@ -1,7 +1,7 @@
 [project]
 name = "tuney"
 version = "0.3.55"
-description = "🎶 Turn text into music (#noAI) 🎶"
+description = "🎶 Turn text into music 🎶"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
