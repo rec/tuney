@@ -15,13 +15,13 @@ from ..audio.player import Player
 from ..config.serialize import serialize
 from ..config.text_file import read_text_file
 from ..presets.preset import is_str_dict, merged_data, read_preset
-from ..scale.tuning import Computed, Type
-from .app_members import AppMembers
+from ..scale.tuning import Computed, TuningSource
+from .app_runtime import AppRuntime
 from .file_output import atomic_output
 from .platform_info import instrument
 
 
-class AppState(AppMembers):
+class AppState(AppRuntime):
     def clear(self) -> None:
         instrument('clear')
         main_window = self.__dict__.get('main_window')
@@ -70,7 +70,7 @@ class AppState(AppMembers):
         self.tuning = type(self.tuning).model_validate(
             units.revalidation_dump(self.tuning)
             | {
-                'type': Type.computed,
+                'type': TuningSource.computed,
                 'computed': Computed(
                     limit=rng.choice([0, 0, 0, 3, 5, 7, 11]),
                     notes_per_octave=sum(intervals),

@@ -25,7 +25,7 @@ from ..presets.preset import merged_data, read_section_preset, section_preset_na
 from ..scale.ratios import Ratios
 from ..scale.scale import Scale
 from ..scale.table import Table
-from ..scale.tuning import Tuning, Type
+from ..scale.tuning import Tuning, TuningSource
 from . import (
     control_panel_metadata,
     control_panel_scala,
@@ -347,21 +347,21 @@ def _add_tuning_controls(
 
     stack = _CurrentPageStackedWidget(parent)
     stack.setObjectName('tuning_form_stack')
-    for tuning_type in Type:
+    for tuning_type in TuningSource:
         page = QtWidgets.QWidget(stack)
         page.setObjectName(f'tuning_form_{tuning_type.value}')
         layout = QtWidgets.QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(3)
         match tuning_type:
-            case Type.computed:
+            case TuningSource.computed:
                 if data.computed is not None:
                     _add_model_controls(
                         page, data.computed, option_controls, advanced=advanced
                     )
-            case Type.table:
+            case TuningSource.table:
                 _add_control_group_grid(page, [(data, 'table')], option_controls)
-            case Type.ratios:
+            case TuningSource.ratios:
                 _add_control_group_grid(page, [(data, 'ratios')], option_controls)
         stack.addWidget(page)
     _parent_layout(parent).addWidget(stack)
@@ -783,7 +783,7 @@ def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
         units.revalidation_dump(tuning)
         if isinstance(tuning, Tuning)
         else units.revalidation_dump(app.tuning)
-        | {'type': Type.ratios, 'ratios': tuning}
+        | {'type': TuningSource.ratios, 'ratios': tuning}
     )
     validated = type(app.tuning).model_validate(data)
     for field in type(app.tuning).model_fields:
@@ -1117,7 +1117,7 @@ def _set_tuning_type_form(parent: QtWidgets.QWidget, data: Tuning) -> None:
 
 def _set_tuning_form(stack: QtWidgets.QStackedWidget, data: Tuning) -> None:
     stack.setCurrentIndex(
-        list(Type).index(control_panel_visibility._active_tuning_type(data))
+        list(TuningSource).index(control_panel_visibility._active_tuning_type(data))
     )
     stack.updateGeometry()
 

@@ -388,7 +388,7 @@ title = "Desc"
 type = "string"
 
 ["$defs".Scale]
-description = "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale generalizes this to allow more or less than 12 notes per octave, N-just limit,\ncustom tunings, different note names and intervals."
+description = "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale supports different note names and intervals. Tuning separately selects\nfrequencies, octave divisions, and an optional maximum rational denominator."
 title = "Scale"
 type = "object"
 
@@ -577,7 +577,7 @@ type = "object"
 ["$defs".Tuning.properties.type]
 default = "computed"
 [["$defs".Tuning.properties.type.anyOf]]
-"$ref" = "#/$defs/Type"
+"$ref" = "#/$defs/TuningSource"
 
 [["$defs".Tuning.properties.type.anyOf]]
 type = "null"
@@ -619,9 +619,9 @@ type = "number"
 "$ref" = "#/$defs/ufor__number__NoteNumber__1"
 default = 69
 
-["$defs".Type]
+["$defs".TuningSource]
 enum = ["computed", "table", "ratios"]
-title = "Type"
+title = "TuningSource"
 type = "string"
 
 ["$defs".Waveform]

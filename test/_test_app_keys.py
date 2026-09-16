@@ -16,7 +16,7 @@ from tuney.mapper.mapper import Mapper
 from tuney.presets import preset
 from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
-from tuney.scale.tuning import Computed, Tuning, Type
+from tuney.scale.tuning import Computed, Tuning, TuningSource
 from tuney.time.char_press import CharPress
 from tuney.ui import (
     error_dialogs,
@@ -753,7 +753,7 @@ def test_app_imports_and_exports_tuning() -> None:
 
     app = HistoryApp()
     app.app.tuning = app.app.tuning.model_copy(
-        update={'type': Type.computed, 'computed': Computed(octave_ratio=4)}
+        update={'type': TuningSource.computed, 'computed': Computed(octave_ratio=4)}
     )
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -786,12 +786,14 @@ def test_app_imports_and_exports_tuning() -> None:
     assert app.export_tuning_action.enabled
 
     app.app.tuning = app.app.tuning.model_copy(
-        update={'type': Type.table, 'table': Table(text='440')}
+        update={'type': TuningSource.table, 'table': Table(text='440')}
     )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
 
-    app.app.tuning = Tuning(type=Type.table, table=None, computed=None, ratios=None)
+    app.app.tuning = Tuning(
+        type=TuningSource.table, table=None, computed=None, ratios=None
+    )
     MainWindow._update_export_tuning_action(app)
     assert not app.export_tuning_action.enabled
 

@@ -88,12 +88,12 @@ class TextTimings(BaseModel):
     timings: Annotated[list[Milliseconds] | None, Display(column=1, row=2)] = None
 
     @cached_property
-    def timings_(self) -> list[Milliseconds]:
+    def effective_timings(self) -> list[Milliseconds]:
         return self.timings or _TIMINGS
 
     @cached_property
     def average_time(self) -> float:
-        return sum(self.timings_) / len(self.timings_)
+        return sum(self.effective_timings) / len(self.effective_timings)
 
     @cached_property
     def random(self) -> Random:
@@ -113,7 +113,7 @@ class TextTimings(BaseModel):
         for char in _filter_chars(chars):
             dt = self.char_to_time.get(char)
             if char.isalpha() or not (dt is None and self.alpha_only):
-                dt = (dt or 0.0) + self.random.choice(self.timings_)
+                dt = (dt or 0.0) + self.random.choice(self.effective_timings)
                 begin = time * self.scale
                 end = (time + dt) * self.scale
                 presses.append(CharPress(char, time=begin))

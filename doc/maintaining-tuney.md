@@ -12,10 +12,10 @@ a preset or TOML/JSON configuration when requested, then starts GUI or CLI mode.
 The mutable Pydantic application model is shared by every interface:
 
 ```text
-App -> AppPlayback -> AppState -> AppMembers -> Tuney -> BaseModel
+App -> AppPlayback -> AppState -> AppRuntime -> Tuney -> BaseModel
 ```
 
-`Tuney` holds user-visible configuration. `AppMembers` owns cached runtime
+`Tuney` holds user-visible configuration. `AppRuntime` owns cached runtime
 collaborators. `AppState` validates edits, replaces configuration, persists
 state, randomizes settings, and invalidates caches. `AppPlayback` converts
 character events to audio and MIDI and implements offline rendering. `App`

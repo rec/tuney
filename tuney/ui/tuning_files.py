@@ -9,7 +9,7 @@ from reccy.configuration import units
 from ..app.platform_info import instrument
 from ..scale.ratios import Ratios
 from ..scale.table import Table
-from ..scale.tuning import Computed, Tuning, Type
+from ..scale.tuning import Computed, Tuning, TuningSource
 from .main_menu import EXPORT_TUNING_COMMAND, IMPORT_TUNING_COMMAND
 
 if TYPE_CHECKING:
@@ -64,11 +64,11 @@ def set_tuning(main_window: MainWindow, tuning: Computed | Ratios | Table) -> No
     data = units.revalidation_dump(main_window.app.tuning)
     match tuning:
         case Computed():
-            data |= {'type': Type.computed, 'computed': tuning}
+            data |= {'type': TuningSource.computed, 'computed': tuning}
         case Ratios():
-            data |= {'type': Type.ratios, 'ratios': tuning}
+            data |= {'type': TuningSource.ratios, 'ratios': tuning}
         case Table():
-            data |= {'type': Type.table, 'table': tuning}
+            data |= {'type': TuningSource.table, 'table': tuning}
     validated = type(main_window.app.tuning).model_validate(data)
     for field in type(main_window.app.tuning).model_fields:
         setattr(main_window.app.tuning, field, getattr(validated, field))
@@ -86,9 +86,9 @@ def update_export_tuning_action(main_window: MainWindow) -> None:
 
 def export_tuning_source(tuning: Tuning) -> Computed | Ratios | None:
     match tuning.type:
-        case Type.computed:
+        case TuningSource.computed:
             return tuning.computed
-        case Type.ratios:
+        case TuningSource.ratios:
             return tuning.ratios
-        case Type.table | None:
+        case TuningSource.table | None:
             return None

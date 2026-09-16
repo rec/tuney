@@ -23,7 +23,7 @@ from tuney.scale.ratios import Ratios
 from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
 from tuney.scale.table import Table
-from tuney.scale.tuning import Computed, Tuning, Type
+from tuney.scale.tuning import Computed, Tuning, TuningSource
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
 from tuney.ui import (
@@ -1386,7 +1386,7 @@ def test_ratio_fractions_are_serialized_for_text_entry() -> None:
     from PySide6.QtWidgets import QLineEdit, QWidget
 
     _qt_app()
-    app = Tuney(tuning=Tuning(type=Type.ratios, ratios=Ratios(text='3/2')))
+    app = Tuney(tuning=Tuning(type=TuningSource.ratios, ratios=Ratios(text='3/2')))
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, app)
 
@@ -1411,7 +1411,7 @@ def test_tuning_type_selects_visible_control_form() -> None:
         'computed'
     ]
     assert control_panel_visibility._visible_control_names(
-        Tuning(type=Type.table, table=Table(text='440')), advanced=True
+        Tuning(type=TuningSource.table, table=Table(text='440')), advanced=True
     ) == [
         'type',
         'detune',
@@ -1420,7 +1420,7 @@ def test_tuning_type_selects_visible_control_form() -> None:
         'table',
     ]
     assert control_panel_visibility._visible_control_names(
-        Tuning(type=Type.ratios, ratios=Ratios(text='2')), advanced=True
+        Tuning(type=TuningSource.ratios, ratios=Ratios(text='2')), advanced=True
     ) == [
         'type',
         'detune',
@@ -1586,7 +1586,7 @@ def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
     _press(browser, Qt.Key.Key_B, 'b')
     _press(browser, Qt.Key.Key_C, 'c')
 
-    assert app.tuning.type == Type.ratios
+    assert app.tuning.type == TuningSource.ratios
     assert app.tuning.ratios == ratios
     assert closed == ['close']
     assert 'player' not in app.__dict__
@@ -1630,7 +1630,7 @@ def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
     assert description.text() == ''
     _press(browser, Qt.Key.Key_Return)
 
-    assert app.tuning.type == Type.ratios
+    assert app.tuning.type == TuningSource.ratios
     assert app.tuning.ratios == ratios
     assert app.main_window.history.undo_count == 1
     assert app.main_window.ui.rebuild_count == 1

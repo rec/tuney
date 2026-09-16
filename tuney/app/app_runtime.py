@@ -22,13 +22,13 @@ if TYPE_CHECKING:
     from .app import App
 
 
-class _AppRuntime(Protocol):
+class _PlaybackCallbacks(Protocol):
     def on_char(self, c: CharPress) -> None: ...
 
     def play_note(self, note: int, is_press: bool) -> None: ...
 
 
-class AppMembers(Tuney):
+class AppRuntime(Tuney):
     """Turn text into music.
 
     Use positional `TEXT` to play characters as notes, then tune the scale,
@@ -44,14 +44,14 @@ class AppMembers(Tuney):
 
     @cached_property
     def keyboard_listener(self) -> KeyboardListener:
-        runtime = cast(_AppRuntime, self)
+        runtime = cast(_PlaybackCallbacks, self)
         return KeyboardListener(
             self.main_window.on_key if self.gui else lambda c: runtime.on_char(c)
         )
 
     @cached_property
     def midi_listener(self) -> MidiListener:
-        runtime = cast(_AppRuntime, self)
+        runtime = cast(_PlaybackCallbacks, self)
         return self.midi.listener(
             lambda note, is_press: runtime.play_note(note, is_press)
         )

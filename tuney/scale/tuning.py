@@ -14,7 +14,7 @@ from .ratios import Ratios
 from .table import Table
 
 
-class Type(StrEnum):
+class TuningSource(StrEnum):
     computed = auto()
     table = auto()
     ratios = auto()
@@ -69,7 +69,9 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
     """
 
     #: Which tuning source to use
-    type: Annotated[Type | None, Display(column=0, row=0)] = Type.computed
+    type: Annotated[TuningSource | None, Display(column=0, row=0)] = (
+        TuningSource.computed
+    )
 
     #: Computed tuning parameters
     computed: Annotated[Computed | None, Beginner] = Field(default_factory=Computed)

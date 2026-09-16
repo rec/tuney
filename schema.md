@@ -35,7 +35,7 @@ class Tuney:
     # Time to hover over a widget before showing help, in seconds
     hover_time: Seconds = 1.0
 
-    # Disable synthesized audio output
+    # Disable live synthesized sound; audio file output still renders offline
     silent: bool = False
 
     # Speak the replay text along with the synthesized notes
@@ -93,8 +93,8 @@ class Scale:
     * Note names CDEFGAB, with intervals of 2212221 semitones between them
     * FLAT to lower pitch by a semitone, SHARP to raise it
 
-    Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
-    custom tunings, different note names and intervals.
+    Scale supports different note names and intervals. Tuning separately selects
+    frequencies, octave divisions, and an optional maximum rational denominator.
     """
     #: The base note names
     note_names: str = string.ascii_uppercase
@@ -147,7 +147,7 @@ class Tuning:
     can be customized.
     """
     #: Which tuning source to use
-    type: Type | None = Type.computed
+    type: TuningSource | None = TuningSource.computed
 
     #: Computed tuning parameters
     computed: Computed | None
@@ -272,7 +272,7 @@ class MidiOut:
     # MIDI port name
     name: str | None = None
 
-    # MIDI output channel, or omni to use the default channel
+    # MIDI output channel; omni uses channel 1, not all channels
     channel: Literal['omni'] | Annotated[int, Field(ge=1, le=16)] = 1
 
     # General MIDI instrument program
