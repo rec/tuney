@@ -227,11 +227,11 @@ def on_paste_text(main_window: MainWindow, *_: object) -> None:
     text = main_window.qt_app.clipboard().text()
     if not text:
         return
-    main_window.history.checkpoint_undo()
-    main_window.app.__dict__['char_presses'] = list(
-        main_window.app.text_timings.char_presses(text)
-    )
-    main_window.app.key_recorder.clear()
+    with main_window.history.text_edit():
+        main_window.app.__dict__['char_presses'] = list(
+            main_window.app.text_timings.char_presses(text)
+        )
+        main_window.app.key_recorder.clear()
     main_window.update_text_display()
 
 

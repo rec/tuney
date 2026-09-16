@@ -68,6 +68,12 @@ their package boundaries so unit tests can isolate them.
 
 ## Persistence and units
 
+Text undo stores event edits and recorder timing state. Use `History.text_edit`
+around text mutations; supplying the first affected index avoids copying an
+unchanged prefix while recording. Whole-configuration edits use snapshots,
+and preset undo tracks only the files touched by the preset operation. Undo
+history has no fixed depth limit.
+
 Presets are partial TOML or JSON configurations and exclude text. Autosave also
 stores text, GUI loop state, and window state. Restore is deliberately tolerant:
 invalid saved fields are discarded one at a time so one stale value cannot stop

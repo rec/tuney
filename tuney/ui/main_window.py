@@ -400,8 +400,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_text_timing_changed(self, row: int, column: int, text: str) -> None:
         instrument('ui text timing changed', row=row, column=column, text=text)
         try:
-            self.history.checkpoint_undo()
-            edit_text_timing(self.app.char_presses, row, column, text)
+            with self.history.text_edit():
+                edit_text_timing(self.app.char_presses, row, column, text)
         except ValueError as error:
             QtWidgets.QMessageBox.critical(self, 'Show Text Timings', str(error))
         self.update_text_display()

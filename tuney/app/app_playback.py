@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_right
 from collections.abc import Callable
 from contextlib import nullcontext
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ from ..time.sequencer import Sequencer
 from ..time.units import to_ms
 from .app_state import AppState
 from .file_output import atomic_output
-from .key_recorder import speech_phrases
+from .key_recorder import last_char_index, speech_phrases
 from .platform_info import exit_with_message, report_error, trace
 
 if TYPE_CHECKING:
@@ -31,20 +32,25 @@ class AppPlayback(AppState):
         if c.char == '\b' and not c.is_press:
             self.stop_backspace_repeat()
         if self._is_listening:
-            if c.char != '\b' or (c.is_press and self.char_presses):
-                self.main_window.history.checkpoint_undo()
+            history = self.main_window.history
+            recorder = history.recorder_state()
             recorded = self.key_recorder.recorded_char_press(
                 c, self.char_presses, self.max_gap
             )
-            if c.is_press:
-                if c.char != '\b':
-                    self.append_char_press(recorded)
-                elif self.char_presses:
-                    self.key_recorder.delete_last_char(self.char_presses)
-                    self.start_backspace_repeat()
-                self.main_window.update_text_display()
-            else:
-                if c.char != '\b':
+            index = (
+                last_char_index(self.char_presses)
+                if c.char == '\b'
+                else bisect_right(self.char_presses, recorded)
+            )
+            with history.text_edit(index, recorder):
+                if c.is_press:
+                    if c.char != '\b':
+                        self.append_char_press(recorded)
+                    elif self.char_presses:
+                        self.key_recorder.delete_last_char(self.char_presses)
+                        self.start_backspace_repeat()
+                    self.main_window.update_text_display()
+                elif c.char != '\b':
                     self.append_char_press(recorded)
             self.play_char(c)
 
@@ -66,8 +72,8 @@ class AppPlayback(AppState):
         self.key_recorder.backspace_repeat_after_id = None
         if not self._is_listening or not self.char_presses:
             return
-        self.main_window.history.checkpoint_undo()
-        self.key_recorder.delete_last_char(self.char_presses)
+        with self.main_window.history.text_edit(last_char_index(self.char_presses)):
+            self.key_recorder.delete_last_char(self.char_presses)
         self.main_window.update_text_display()
         self.play_char(CharPress('\b', time=0))
         if self.char_presses:

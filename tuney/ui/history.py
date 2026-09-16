@@ -10,7 +10,9 @@ from PySide6.QtWidgets import QMessageBox
 from reccy.configuration.units import Seconds
 
 from ..app.key_recorder import KeyRecorder
+from ..audio.player import Player
 from ..presets.preset import restore_user_preset_snapshot, user_preset_snapshot
+from ..time.char_press import CharPress
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -39,14 +41,21 @@ class HistoryState(BaseModel, frozen=True):
     expected_user_presets: dict[str, bytes | None] = Field(default_factory=dict)
 
 
+class TextEdit(BaseModel, frozen=True):
+    index: int
+    remove_count: int
+    presses: list[CharPress]
+    key_recorder: KeyRecorder
+
+
 class History:
     def __init__(self, main_window: MainWindow) -> None:
         self.main_window = main_window
         self.loop_state = main_window.app.__dict__.pop(
             '_autosave_loop_state', LoopState()
         )
-        self.undo_stack: list[HistoryState] = []
-        self.redo_stack: list[HistoryState] = []
+        self.undo_stack: list[HistoryState | TextEdit] = []
+        self.redo_stack: list[HistoryState | TextEdit] = []
 
     @property
     def loop_replay(self) -> bool:
@@ -107,6 +116,57 @@ class History:
         self._restore_history(self.redo_stack, self.undo_stack)
 
     @contextmanager
+    def text_edit(
+        self, index: int = 0, recorder: KeyRecorder | None = None
+    ) -> Iterator[None]:
+        app = self.main_window.app
+        before = [c.model_copy(deep=True) for c in app.char_presses[index:]]
+        recorder = recorder if recorder is not None else self.recorder_state()
+        try:
+            yield
+        finally:
+            after = app.char_presses
+            prefix = 0
+            while (
+                prefix < len(before)
+                and index + prefix < len(after)
+                and before[prefix] == after[index + prefix]
+            ):
+                prefix += 1
+            end = len(before)
+            after_end = len(after)
+            while (
+                end > prefix
+                and after_end > index + prefix
+                and before[end - 1] == after[after_end - 1]
+            ):
+                end -= 1
+                after_end -= 1
+            if (
+                end != prefix
+                or after_end != index + prefix
+                or recorder != self.recorder_state()
+            ):
+                self.undo_stack.append(
+                    TextEdit(
+                        index=index + prefix,
+                        remove_count=after_end - index - prefix,
+                        presses=before[prefix:end],
+                        key_recorder=recorder,
+                    )
+                )
+                self.redo_stack.clear()
+
+    def recorder_state(self) -> KeyRecorder:
+        recorder = self.main_window.app.key_recorder
+        return KeyRecorder(
+            start_time=recorder.start_time,
+            time_offset=recorder.time_offset,
+            insert_time=recorder.insert_time,
+            replay_text=recorder.replay_text,
+        )
+
+    @contextmanager
     def preset_edit(self, names: list[str]) -> Iterator[None]:
         state = self.state()
         before = user_preset_snapshot(names)
@@ -136,12 +196,7 @@ class History:
     def state(self) -> HistoryState:
         return HistoryState(
             tuney=deepcopy(self.main_window.app.dump_data()),
-            key_recorder=KeyRecorder(
-                start_time=self.main_window.app.key_recorder.start_time,
-                time_offset=self.main_window.app.key_recorder.time_offset,
-                insert_time=self.main_window.app.key_recorder.insert_time,
-                replay_text=self.main_window.app.key_recorder.replay_text,
-            ),
+            key_recorder=self.recorder_state(),
             loop=self.loop_state,
         )
 
@@ -149,10 +204,7 @@ class History:
         window = self.main_window
         restore_user_preset_snapshot(state.user_presets, state.expected_user_presets)
         window.app.restore_data(state.tuney)
-        window.app.key_recorder.start_time = state.key_recorder.start_time
-        window.app.key_recorder.time_offset = state.key_recorder.time_offset
-        window.app.key_recorder.insert_time = state.key_recorder.insert_time
-        window.app.key_recorder.replay_text = state.key_recorder.replay_text
+        self._restore_recorder(state.key_recorder)
         self.loop_state = state.loop
         window.update_text_display()
         window.ui.rebuild_control_panel()
@@ -166,11 +218,38 @@ class History:
             window.show_text_timings_action.setChecked(window.app.show_text_timings)
 
     def _restore_history(
-        self, source: list[HistoryState], destination: list[HistoryState]
+        self,
+        source: list[HistoryState | TextEdit],
+        destination: list[HistoryState | TextEdit],
     ) -> None:
         if not source:
             return
         state = source[-1]
+        if isinstance(state, TextEdit):
+            app = self.main_window.app
+            try:
+                if isinstance(player := app.__dict__.get('player'), Player):
+                    player.close()
+            except (OSError, ValueError) as error:
+                QMessageBox.critical(self.main_window, 'Undo/Redo', str(error))
+                return
+            end = state.index + state.remove_count
+            inverse_edit = TextEdit(
+                index=state.index,
+                remove_count=len(state.presses),
+                presses=[
+                    c.model_copy(deep=True) for c in app.char_presses[state.index : end]
+                ],
+                key_recorder=self.recorder_state(),
+            )
+            app.char_presses[state.index : end] = [
+                c.model_copy(deep=True) for c in state.presses
+            ]
+            self._restore_recorder(state.key_recorder)
+            source.pop()
+            destination.append(inverse_edit)
+            self.main_window.update_text_display()
+            return
         inverse = self.state().model_copy(
             update={
                 'user_presets': state.expected_user_presets,
@@ -184,3 +263,10 @@ class History:
             return
         source.pop()
         destination.append(inverse)
+
+    def _restore_recorder(self, recorder: KeyRecorder) -> None:
+        current = self.main_window.app.key_recorder
+        current.start_time = recorder.start_time
+        current.time_offset = recorder.time_offset
+        current.insert_time = recorder.insert_time
+        current.replay_text = recorder.replay_text

@@ -4,6 +4,7 @@ import json
 import random
 import string
 import tomllib
+from contextlib import nullcontext
 from pathlib import Path
 
 import tomlkit
@@ -41,10 +42,9 @@ class AppState(AppMembers):
         instrument('randomize timing')
         if not (text := self.display_text):
             return
-        if self.gui:
-            self.main_window.history.checkpoint_undo()
-        self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
-        self.key_recorder.clear()
+        with self.main_window.history.text_edit() if self.gui else nullcontext():
+            self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
+            self.key_recorder.clear()
         if self.gui:
             self.main_window.update_text_display()
 
@@ -92,10 +92,9 @@ class AppState(AppMembers):
     def load_text_file(self, path: Path) -> None:
         instrument('load text file', path=path)
         text = read_text_file(path)
-        if self.gui:
-            self.main_window.history.checkpoint_undo()
-        self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
-        self.key_recorder.clear()
+        with self.main_window.history.text_edit() if self.gui else nullcontext():
+            self.__dict__['char_presses'] = list(self.text_timings.char_presses(text))
+            self.key_recorder.clear()
         if self.gui:
             self.main_window.update_text_display()
 
@@ -165,7 +164,7 @@ class AppState(AppMembers):
         data = units.authored_dump(self)
         mapper = data.pop('mapper')
         data = {'mapper': mapper, **data}
-        if self.char_presses:
+        if self.char_presses or self.text or self.text_file or self.text_args:
             data['text'] = [units.authored_dump(c) for c in self.char_presses]
         return data
 
