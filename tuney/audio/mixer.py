@@ -31,7 +31,7 @@ class Mixer(BaseModel):
     def apply(self, note: NotePress, prepared: VoiceState | None = None) -> bool:
         note_number = note.note_number
         if note.is_press:
-            if note_number in self.voices:
+            if note_number in self.pressed_notes:
                 return False
             state = (
                 prepared
