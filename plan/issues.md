@@ -220,6 +220,11 @@ clock-jump test.
 
 ### 11. Restored zero loop tempo reaches division by zero
 
+**Resolved:** LoopState requires a positive, finite tempo. GUI edits use that
+validation before creating undo history. Invalid saved tempo reports a restore
+error and uses the default while retaining valid text; tests cover zero,
+negative values, infinities, and NaN.
+
 **Evidence:** [LoopState.tempo](../tuney/ui/history.py) is an unconstrained float;
 autosave validates against this model. The GUI edit callback rejects nonpositive
 values, but [AppPlayback.replay_char_presses](../tuney/app/app_playback.py)

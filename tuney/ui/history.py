@@ -20,7 +20,7 @@ class LoopState(BaseModel, frozen=True):
     replay: bool = False
     before: Seconds = 0.0
     after: Seconds = 0.0
-    tempo: float = 1.0
+    tempo: float = Field(1.0, gt=0, allow_inf_nan=False)
     randomize_on_each_loop: bool = False
 
 
@@ -80,7 +80,9 @@ class History:
 
     @loop_tempo.setter
     def loop_tempo(self, loop_tempo: float) -> None:
-        self.loop_state = self.loop_state.model_copy(update={'tempo': loop_tempo})
+        self.loop_state = LoopState.model_validate(
+            self.loop_state.model_dump() | {'tempo': loop_tempo}
+        )
 
     @property
     def randomize_on_each_loop(self) -> bool:

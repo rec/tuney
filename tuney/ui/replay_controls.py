@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 from reccy.configuration.units import Seconds
 
 from ..app.platform_info import instrument
+from .history import LoopState
 from .main_menu import SAVE_AUDIO_COMMAND
 from .state import Action, StateChange
 
@@ -78,10 +79,10 @@ def on_master_gain(main_window: MainWindow, master_gain: float) -> None:
 def on_loop_tempo(main_window: MainWindow, tempo: float | str) -> None:
     instrument('ui loop tempo', tempo=tempo)
     try:
-        value = float(tempo)
+        value = LoopState(tempo=float(tempo)).tempo
     except ValueError:
         return
-    if value > 0 and value != main_window.history.loop_tempo:
+    if value != main_window.history.loop_tempo:
         main_window.history.checkpoint_undo()
         main_window.history.loop_tempo = value
 
