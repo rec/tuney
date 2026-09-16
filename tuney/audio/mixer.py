@@ -47,7 +47,7 @@ class Mixer(BaseModel):
             ):
                 self._release_oldest()
             phase = self.frame_count % voice.period_samples
-            state.phase = phase if self.synchronize_oscillators else 0
+            state.phase_origin = phase if self.synchronize_oscillators else 0
             self.voices[note_number] = state
             self.pressed_notes.append(note_number)
             return True
