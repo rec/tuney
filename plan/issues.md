@@ -90,6 +90,11 @@ I/O out of the callback, and measure callback duration under realistic load.
 
 ### 4. Retriggering a note during its release tail loses the new press
 
+**Resolved:** Only a still-held note rejects a duplicate press. A new press after
+release replaces that note's fading voice with a fresh attack. The regression
+covers press/release/repress before minimum duration, duplicate held presses,
+and the subsequent release, with a one-second WAV fixture.
+
 **Evidence:** [Mixer.apply](../tuney/audio/mixer.py) rejects a press whenever
 the note exists in `voices`, even when it has already been removed from
 `pressed_notes` and is merely fading out. [Player.start](../tuney/audio/player.py)

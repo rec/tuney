@@ -107,6 +107,26 @@ def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
     assert not renderer.apply(release)
 
 
+@pytest.mark.parametrize('held_frames', [12_000, 30_000])
+def test_note_retriggers_during_release(file_regression, held_frames: int) -> None:
+    renderer = _renderer()
+    assert renderer.apply(NotePress(0))
+    first = renderer.render([], held_frames)
+    assert renderer.apply(NotePress(0, False))
+    tail = renderer.render([], 1_000)
+    assert renderer.apply(NotePress(0))
+    assert not renderer.apply(NotePress(0))
+    attack = renderer.render([], 12_000)
+    np.testing.assert_array_equal(attack, first[:12_000])
+    assert renderer.apply(NotePress(0, False))
+    remaining = renderer.render([], 23_000)
+    file_regression.check(
+        _wav(np.concatenate([first, tail, attack, remaining])),
+        binary=True,
+        extension='.wav',
+    )
+
+
 def test_callback_records_status_without_printing(
     capsys,
 ) -> None:
