@@ -324,7 +324,11 @@ def test_parse_entry_value_parses_optional_lists_as_json(
 
     _check_regression(
         file_regression,
-        {'value': control_panel._parse_entry_value('[1, 2]', annotation, None)},
+        {
+            'value': control_panel_metadata._parse_entry_value(
+                '[1, 2]', annotation, None
+            )
+        },
     )
 
 
@@ -336,7 +340,7 @@ def test_parse_entry_value_keeps_intervals_as_text(
     _check_regression(
         file_regression,
         {
-            'value': control_panel._parse_entry_value(
+            'value': control_panel_metadata._parse_entry_value(
                 '221 2221', annotation, [2], 'intervals'
             )
         },
@@ -350,7 +354,7 @@ def test_parse_entry_value_keeps_text_as_text(
 
     _check_regression(
         file_regression,
-        {'value': control_panel._parse_entry_value('hello', annotation, None)},
+        {'value': control_panel_metadata._parse_entry_value('hello', annotation, None)},
     )
 
 
@@ -1394,10 +1398,10 @@ def test_ratio_fractions_are_serialized_for_text_entry() -> None:
 
 
 def test_tuning_expression_fields_use_semicolon_separated_expressions() -> None:
-    assert control_panel._parse_entry_value(
+    assert control_panel_metadata._parse_entry_value(
         '3 / 2; cents(100)', object, None, 'ratios'
     ) == Ratios.from_strings(['3 / 2', 'cents(100)'])
-    assert control_panel._parse_entry_value(
+    assert control_panel_metadata._parse_entry_value(
         '440; 880 / 2', object, None, 'table'
     ) == Table(text='440; 880 / 2')
 

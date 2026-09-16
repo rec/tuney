@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 import enum
-import inspect
 import json
 import math
 from collections.abc import Callable
-from functools import cache
 from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ValidationError
 from PySide6 import QtWidgets
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QResizeEvent
 from reccy.configuration import units
-from tyro._fields import field_list_from_type_or_callable
 
 from ..app.key_recorder import speech_phrases
 from ..app.platform_info import instrument
@@ -608,7 +605,7 @@ def _add_field_tooltips(
         ):
             Tooltip(
                 widget,
-                _field_hover_text(model, name),
+                control_panel_metadata._field_hover_text(model, name),
                 lambda: float(getattr(control_panel.data, 'hover_time', 1.0)),
             )
 
@@ -630,31 +627,6 @@ def _field_widgets(parent: object) -> list[object]:
     if not children:
         return [parent]
     return [widget for child in children for widget in _field_widgets(child)]
-
-
-def _field_hover_text(model: type[BaseModel], name: str) -> str:
-    return _rewrap_hover_text(_field_help(model, name) or name)
-
-
-def _rewrap_hover_text(text: str) -> str:
-    return '\n\n'.join(' '.join(paragraph.split()) for paragraph in text.split('\n\n'))
-
-
-@cache
-def _field_help(model: type[BaseModel], name: str) -> str | None:
-    result = field_list_from_type_or_callable(
-        model,
-        model(),
-        support_single_arg_types=False,
-        in_union_context=False,
-    )
-    if not isinstance(result, tuple):
-        return None
-    for field in result[1]:
-        if field.intern_name == name:
-            text = field.helptext
-            return text() if callable(text) else text
-    return None
 
 
 def _add_labeled_control_frame(
@@ -936,7 +908,7 @@ def _add_entry_control(
         return
     if name == 'alphabet' and value in (None, '') and hasattr(data, 'alphabet_'):
         value = data.alphabet_
-    text = _entry_text(data, name, value, annotation)
+    text = control_panel_metadata._entry_text(data, name, value, annotation)
 
     frame, layout, _ = _add_labeled_control_frame(parent, name)
     entry = QtWidgets.QLineEdit(text, frame)
@@ -954,7 +926,10 @@ def _add_entry_control(
         raw = entry.text()
         try:
             _set_model_value(
-                data, name, _parse_entry_value(raw, annotation, value, name), parent
+                data,
+                name,
+                control_panel_metadata._parse_entry_value(raw, annotation, value, name),
+                parent,
             )
         except ValidationError:
             _set_invalid_scale_widget(entry, text_color)
@@ -1122,7 +1097,7 @@ def _add_enum_control(
         radio.setProperty('skip_field_tooltip', True)
         Tooltip(
             radio,
-            _enum_hover_text(member),
+            control_panel_metadata._enum_hover_text(member),
             lambda: float(getattr(_control_panel(parent).data, 'hover_time', 1.0)),
         )
         _bind_control(radio, data, name, member)
@@ -1131,42 +1106,6 @@ def _add_enum_control(
         )
         layout.addWidget(radio)
     _parent_layout(parent).addWidget(frame)
-
-
-def _enum_hover_text(member: enum.Enum) -> str:
-    return _enum_member_comments(type(member)).get(member.name, member.name)
-
-
-@cache
-def _enum_member_comments(enum_cls: type[enum.Enum]) -> dict[str, str]:
-    try:
-        lines, _ = inspect.getsourcelines(enum_cls)
-    except (OSError, TypeError):
-        return {}
-
-    comments: list[str] = []
-    result: dict[str, str] = {}
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith('#'):
-            if comment := stripped.removeprefix('#').removeprefix(':').strip():
-                comments.append(comment)
-        elif not stripped:
-            comments.clear()
-        elif name := _enum_member_name(enum_cls, stripped):
-            if comments:
-                result[name] = '\n'.join(comments)
-            comments.clear()
-        else:
-            comments.clear()
-    return result
-
-
-def _enum_member_name(enum_cls: type[enum.Enum], line: str) -> str | None:
-    for name in enum_cls.__members__:
-        if line.startswith(f'{name} =') or line.startswith(f'{name}:'):
-            return name
-    return None
 
 
 def _set_tuning_type_form(parent: QtWidgets.QWidget, data: Tuning) -> None:
@@ -1311,47 +1250,6 @@ def _clear_invalid_scale_widgets() -> None:
         INVALID_SCALE_WIDGET_TEXT_COLORS.pop(widget, None)
 
 
-def _parse_entry_value(
-    raw: str, annotation: object, old_value: object, name: str = ''
-) -> object:
-    if raw == '':
-        return None
-    if isinstance(old_value, Ratios):
-        return Ratios(text=raw, name=old_value.name, desc=old_value.desc)
-    if isinstance(old_value, Table):
-        return Table(text=raw)
-    if name in {'table', 'ratios'}:
-        return Ratios(text=raw) if name == 'ratios' else Table(text=raw)
-    if name == 'intervals' and isinstance(old_value, list):
-        return raw
-    if isinstance(old_value, list | dict) or control_panel_metadata._expects_json(
-        annotation
-    ):
-        return json.loads(raw)
-    return raw
-
-
-def _tuning_expression_text(value: object) -> str:
-    if value is None:
-        return ''
-    if isinstance(value, Ratios | Table):
-        return value.text
-    assert isinstance(value, list | tuple)
-    return '; '.join(str(i) for i in value)
-
-
-def _entry_text(data: BaseModel, name: str, value: object, annotation: object) -> str:
-    if isinstance(data, Scale) and name == 'intervals' and isinstance(value, list):
-        return ''.join(str(i) for i in value)
-    if isinstance(data, Tuning) and name in {'table', 'ratios'}:
-        return _tuning_expression_text(value)
-    if value is None:
-        return ''
-    if isinstance(value, list | dict):
-        return json.dumps(TypeAdapter(annotation).dump_python(value, mode='json'))
-    return str(value)
-
-
 def _bind_control(
     widget: QtWidgets.QWidget,
     data: BaseModel,
@@ -1386,7 +1284,9 @@ def _sync_model_controls(parent: QtWidgets.QWidget, data: BaseModel, name: str) 
         ):
             widget.setValue(float(value))
         elif isinstance(widget, QtWidgets.QLineEdit):
-            widget.setText(_entry_text(data, name, value, annotation))
+            widget.setText(
+                control_panel_metadata._entry_text(data, name, value, annotation)
+            )
         del blocker
 
 

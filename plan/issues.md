@@ -422,6 +422,13 @@ test it or remove the unused payload and explain timing regeneration.
 
 ### 21. Large modules concentrate unrelated responsibilities
 
+**Resolved by responsibility, not a size limit:** Control-panel parsing and
+field/enum help now live in the existing metadata module. The former 2,800-line
+application test file is split into platform/startup, persistence, playback,
+and editing tests with one shared harness. Test count and fixtures are unchanged.
+The remaining Qt window/layout and control-panel modules retain their widget
+coordination role; splitting those solely to meet a line count would add indirection.
+
 **Measured:** [control_panel.py](../tuney/ui/control_panel.py) has 1,432 lines,
 [main_window.py](../tuney/ui/main_window.py) 659, and
 [layout.py](../tuney/ui/layout.py) 604. Control-panel code combines generic widget

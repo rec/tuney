@@ -11,7 +11,7 @@ from tuney.config.tuney import Tuney
 from tuney.mapper.mapper import Mapper
 from tuney.scale.scale import Scale
 from tuney.scale.tuning import Tuning
-from tuney.ui import control_panel, control_panel_visibility
+from tuney.ui import control_panel, control_panel_metadata, control_panel_visibility
 from tuney.ui.layout import REPLAY_TOOLTIPS
 from tuney.ui.tooltip import Tooltip
 from tuney.ui.transport import TOOLTIPS
@@ -33,21 +33,23 @@ class _Widget:
 
 
 def test_field_help_uses_tyro_help_text() -> None:
-    assert control_panel._field_help(Tuney, 'max_gap') == (
+    assert control_panel_metadata._field_help(Tuney, 'max_gap') == (
         'Maximum silent gap to keep in recordings, in seconds'
     )
-    assert control_panel._field_help(Scale, 'note_names') == 'The base note names'
+    assert (
+        control_panel_metadata._field_help(Scale, 'note_names') == 'The base note names'
+    )
 
 
 def test_field_name_is_used_when_help_is_missing() -> None:
-    assert control_panel._field_hover_text(Mapper, 'map') == 'map'
+    assert control_panel_metadata._field_hover_text(Mapper, 'map') == 'map'
 
 
 def test_enum_hover_text_uses_member_comment_or_name() -> None:
-    assert control_panel._enum_hover_text(TooltipEnum.alpha) == (
+    assert control_panel_metadata._enum_hover_text(TooltipEnum.alpha) == (
         'Alpha tooltip text\nwith preserved line break'
     )
-    assert control_panel._enum_hover_text(TooltipEnum.beta) == 'beta'
+    assert control_panel_metadata._enum_hover_text(TooltipEnum.beta) == 'beta'
 
 
 def test_enum_radio_buttons_have_member_tooltips() -> None:
@@ -72,10 +74,10 @@ def test_enum_radio_buttons_have_member_tooltips() -> None:
 
 
 def test_hover_text_rewraps_lines_and_preserves_paragraphs() -> None:
-    assert control_panel._rewrap_hover_text(
+    assert control_panel_metadata._rewrap_hover_text(
         'first line\nsecond line\n\nnext paragraph'
     ) == ('first line second line\n\nnext paragraph')
-    assert control_panel._field_hover_text(Scale, 'notes').count('\n') == 2
+    assert control_panel_metadata._field_hover_text(Scale, 'notes').count('\n') == 2
 
 
 def test_tooltips_bind_only_to_leaf_widgets() -> None:
@@ -118,7 +120,7 @@ def test_all_visible_fields_have_hover_text() -> None:
     assert [
         f'{type(data).__name__}.{name}'
         for data, name in controls
-        if control_panel._field_help(type(data), name) is None
+        if control_panel_metadata._field_help(type(data), name) is None
     ] == []
 
 
