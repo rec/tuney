@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from reccy.configuration.tyro import tyro_option, unit_spec
 from reccy.configuration.units import Hertz, MusicalCents
 from ufor import tuning
-from ufor.number import NoteNumber, Number
+from ufor.number import NoteNumber, PitchNumber
 
 from ..config.annotations import Beginner, Display, Numeric
 from .ratios import Ratios
@@ -47,12 +47,12 @@ class Computed(BaseModel):
     @property
     def definition(self) -> tuning.Computed:
         return tuning.Computed(
-            limit=self.limit,
+            denominator_limit=self.limit,
             notes_per_octave=self.notes_per_octave,
             octave_ratio=str(self.octave_ratio),
         )
 
-    def __call__(self, note_delta: NoteNumber) -> Number:
+    def __call__(self, note_delta: NoteNumber) -> PitchNumber:
         return self.definition(note_delta)
 
     def as_ratios(self) -> Ratios:
@@ -121,10 +121,10 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
             source=source,
             root_note=self.root_note,
             root_frequency=str(self.root_frequency),
-            detune=self.detune,
+            detune_cents=self.detune,
         )
 
-    def __call__(self, note_number: NoteNumber) -> Number:
+    def __call__(self, note_number: NoteNumber) -> PitchNumber:
         """Resolve pitch; wrapping a finite instrument range is Tuney policy."""
         if isinstance(active := self.active, Table):
             if not active.values:

@@ -6,17 +6,17 @@ from collections.abc import Callable, Iterable
 from fractions import Fraction
 from functools import cached_property, singledispatchmethod
 
-from ufor.number import Number, cents
+from ufor.number import PitchNumber, cents_to_ratio
 
 MODULES = {'math': math, 'random': random}
-FUNCTIONS = {'cents': cents}
+FUNCTIONS = {'cents': cents_to_ratio}
 
 
-def evaluate(expression: str) -> Number:
+def evaluate(expression: str) -> PitchNumber:
     return _Evaluate(expression).evaluate()
 
 
-def evaluate_all(expressions: Iterable[str]) -> list[Number]:
+def evaluate_all(expressions: Iterable[str]) -> list[PitchNumber]:
     values, bad = [], []
     for s in expressions:
         try:
@@ -33,7 +33,7 @@ class _Evaluate:
     def __init__(self, expression: str) -> None:
         self.expression = expression
 
-    def evaluate(self) -> Number:
+    def evaluate(self) -> PitchNumber:
         return self._eval(self.root)
 
     @cached_property
@@ -43,15 +43,15 @@ class _Evaluate:
         )
 
     @singledispatchmethod
-    def _eval(self, node: ast.AST) -> Number:
+    def _eval(self, node: ast.AST) -> PitchNumber:
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
     @_eval.register
-    def _(self, node: ast.Expression) -> Number:
+    def _(self, node: ast.Expression) -> PitchNumber:
         return self._eval(node.body)
 
     @_eval.register
-    def _(self, node: ast.Constant) -> Number:
+    def _(self, node: ast.Constant) -> PitchNumber:
         if type(node.value) is int:
             return self.number(node.value)
         if type(node.value) is float:
@@ -59,7 +59,7 @@ class _Evaluate:
         raise ValueError(f'Unsupported expression {ast.unparse(node)}')
 
     @_eval.register
-    def _(self, node: ast.BinOp) -> Number:
+    def _(self, node: ast.BinOp) -> PitchNumber:
         if (operation := BINARY_OPERATORS.get(type(node.op))) is None:
             raise ValueError(
                 f'Unsupported binary operator {node.op.__class__.__name__}'
@@ -67,7 +67,7 @@ class _Evaluate:
         return operation(self._eval(node.left), self._eval(node.right))
 
     @_eval.register
-    def _(self, node: ast.UnaryOp) -> Number:
+    def _(self, node: ast.UnaryOp) -> PitchNumber:
         value = self._eval(node.operand)
         if isinstance(node.op, ast.UAdd):
             return value
@@ -76,7 +76,7 @@ class _Evaluate:
         raise ValueError(f'Unsupported unary operator {node.op.__class__.__name__}')
 
     @_eval.register
-    def _(self, node: ast.Call) -> Number:
+    def _(self, node: ast.Call) -> PitchNumber:
         if node.keywords:
             raise ValueError('Keyword arguments are not supported')
 
@@ -98,17 +98,17 @@ class _Evaluate:
         if not callable(func):
             raise TypeError(f'{ast.unparse(f)} is not callable')
 
-        def convert(node: ast.AST) -> Number:
+        def convert(node: ast.AST) -> PitchNumber:
             v = float(self._eval(node))
             return int(v) if v.is_integer() else v
 
         result = func(*(convert(a) for a in node.args))
-        if isinstance(result, Number):
+        if isinstance(result, PitchNumber):
             return self.number(result)
         raise TypeError(f'Function returned unsupported value {result!r}')
 
     @_eval.register
-    def _(self, node: ast.Attribute) -> Number:
+    def _(self, node: ast.Attribute) -> PitchNumber:
         if not isinstance(node.value, ast.Name):
             raise ValueError('Only math and random attributes can be used')
         if node.attr.startswith('_'):
@@ -116,15 +116,17 @@ class _Evaluate:
         if node.value.id not in MODULES:
             raise NameError(f'Unknown name {node.value.id!r}')
         value = getattr(MODULES[node.value.id], node.attr)
-        if isinstance(value, Number):
+        if isinstance(value, PitchNumber):
             return self.number(value)
         raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
 
-    def number(self, v: Number) -> Number:
+    def number(self, v: PitchNumber) -> PitchNumber:
         return Fraction(str(v)) if isinstance(v, float) else Fraction(v)
 
 
-BINARY_OPERATORS: dict[type[ast.operator], Callable[[Number, Number], Number]] = {
+BINARY_OPERATORS: dict[
+    type[ast.operator], Callable[[PitchNumber, PitchNumber], PitchNumber]
+] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
