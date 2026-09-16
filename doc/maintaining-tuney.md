@@ -84,6 +84,18 @@ and frozen application packaging still need platform runtime checks.
 
 ## Persistence and units
 
+Use `reccy.runtime.files.atomic_output` for destination-side temporary writes;
+writers must close their handles before the context publishes the result. It
+also creates missing parent directories. Single-field GUI edits use
+`reccy.configuration.update.validated_update`; tuney retains undo, cache
+invalidation, device actions, and widget refresh. Preset merging stays local.
+
+The GUI holds a `reccy.runtime.claims.ResourceClaim` on `instance.lock` for its
+lifetime. The file is stable and must never be deleted or atomically replaced.
+The separate `running.txt` PID marker still identifies unclean sessions. Close
+all older tuney processes before launching a version using OS-backed claims:
+the old PID-file ownership scheme does not coordinate with OS locks.
+
 Text undo stores event edits and recorder timing state. Use `History.text_edit`
 around text mutations; supplying the first affected index avoids copying an
 unchanged prefix while recording. Whole-configuration edits use snapshots,

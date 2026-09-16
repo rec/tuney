@@ -6,6 +6,9 @@ from pathlib import Path
 from queue import SimpleQueue
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+from reccy.runtime.claims import ResourceClaim
+
 from tuney.app import platform_info
 from tuney.app.app import App
 from tuney.midi.listener import MidiListener
@@ -494,32 +497,48 @@ def test_crash_marker_clean_exit_only_removes_current_process(monkeypatch) -> No
 def test_single_instance_lock_blocks_second_instance(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
-        platform_info.instance_lock_path().parent.mkdir(parents=True)
-        platform_info.instance_lock_path().write_text(str(os.getpid()))
-
-        assert not platform_info.acquire_single_instance()
-        platform_info.instance_lock_path().unlink()
-        assert platform_info.acquire_single_instance()
+        path = platform_info.instance_lock_path()
+        with ResourceClaim(path):
+            assert not platform_info.acquire_single_instance()
+        try:
+            assert platform_info.acquire_single_instance()
+            assert platform_info.acquire_single_instance()
+        finally:
+            platform_info.release_single_instance()
         platform_info.release_single_instance()
+        assert path.exists()
+        with ResourceClaim(path):
+            assert not platform_info.acquire_single_instance()
 
 
-def test_single_instance_lock_replaces_stale_lock(monkeypatch) -> None:
+def test_single_instance_claim_preserves_old_pid_file(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         platform_info.instance_lock_path().parent.mkdir(parents=True)
-        platform_info.instance_lock_path().write_text('123456')
-        monkeypatch.setattr(platform_info, '_process_is_alive', lambda _: False)
+        path = platform_info.instance_lock_path()
+        original = str(os.getpid())
+        path.write_text(original)
+        try:
+            assert platform_info.acquire_single_instance()
+            assert path.read_text() == original
+        finally:
+            platform_info.release_single_instance()
+        assert path.read_text() == original
 
-        assert platform_info.acquire_single_instance()
-        platform_info.release_single_instance()
+
+def test_instance_claim_io_error_is_not_reported_as_contention(monkeypatch) -> None:
+    def fail(self: ResourceClaim) -> ResourceClaim:
+        raise PermissionError('cannot open instance lock')
+
+    monkeypatch.setattr(ResourceClaim, 'acquire', fail)
+    with pytest.raises(PermissionError, match='cannot open instance lock'):
+        platform_info.acquire_single_instance()
 
 
 def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         calls: list[str] = []
-        platform_info.instance_lock_path().parent.mkdir(parents=True)
-        platform_info.instance_lock_path().write_text(str(os.getpid()))
 
         class Autosave:
             @staticmethod
@@ -542,7 +561,8 @@ def test_gui_run_exits_when_another_instance_is_running(monkeypatch) -> None:
             lambda: calls.append('busy'),
         )
 
-        App.run(FakeApp())
+        with ResourceClaim(platform_info.instance_lock_path()):
+            App.run(FakeApp())
 
         assert calls == ['busy']
 

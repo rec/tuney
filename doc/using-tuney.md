@@ -163,6 +163,9 @@ data shape for hand-written configuration files.
 
 ## Packaged releases and problem reports
 
+Close older tuney processes before launching an updated version. Instance
+ownership now uses an OS lock; older PID-file claims do not coordinate with it.
+
 Release builds are attached to GitHub releases. Download the platform archive,
 extract it, and run the contained application without moving it out of its
 folder. Windows builds are unsigned and macOS builds are ad-hoc signed but not

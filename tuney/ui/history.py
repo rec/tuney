@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 from PySide6.QtWidgets import QMessageBox
 from reccy.configuration.units import Seconds
+from reccy.configuration.update import validated_update
 
 from ..app.key_recorder import KeyRecorder
 from ..audio.player import Player
@@ -89,9 +90,7 @@ class History:
 
     @loop_tempo.setter
     def loop_tempo(self, loop_tempo: float) -> None:
-        self.loop_state = LoopState.model_validate(
-            self.loop_state.model_dump() | {'tempo': loop_tempo}
-        )
+        self.loop_state = validated_update(self.loop_state, ['tempo'], loop_tempo)
 
     @property
     def randomize_on_each_loop(self) -> bool:

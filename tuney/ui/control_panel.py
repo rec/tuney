@@ -12,6 +12,7 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import QLocale, QSignalBlocker, Qt, QTimer
 from PySide6.QtGui import QResizeEvent
 from reccy.configuration import units
+from reccy.configuration.update import validated_update
 
 from ..app.key_recorder import speech_phrases
 from ..app.platform_info import instrument
@@ -1127,9 +1128,7 @@ def _set_model_value(
 ) -> None:
     instrument('control value set start', model=type(data).__name__, field=name)
     old_value = getattr(data, name)
-    values = units.revalidation_dump(data)
-    values[name] = value
-    validated = type(data).model_validate(values)
+    validated = validated_update(data, [name], value)
     validated_value = getattr(validated, name)
     if isinstance(validated_value, Table) and not validated_value.values:
         raise ValueError('No frequency table configured')
