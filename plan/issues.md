@@ -190,6 +190,9 @@ not only test sheets.
 
 ### 9. MIDI-only CLI playback is rejected by the silent-mode guard
 
+**Resolved:** Silent CLI playback accepts enabled MIDI output. A regression
+checks MIDI press/release delivery without constructing an audio player.
+
 **Evidence:** [AppPlayback.run_cli](../tuney/app/app_playback.py) rejects
 `silent=True` without a file, regardless of MIDI output being enabled.
 

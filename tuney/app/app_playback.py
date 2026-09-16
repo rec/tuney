@@ -137,7 +137,7 @@ class AppPlayback(AppState):
                 2,
             )
 
-        if self.silent and not self.output:
+        if self.silent and not self.output and not self.midi.output.enable:
             exit_with_message('CLI mode requires sound')
 
         start_time = datetime.now(timezone.utc)
