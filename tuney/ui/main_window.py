@@ -27,6 +27,7 @@ from . import (
     startup,
     tuning_files,
 )
+from .export_dialog import ExportDialog
 from .file_dialogs import get_open_file_name, get_save_file_name
 from .help import show_help
 from .history import History, WindowState
@@ -109,6 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._is_replaying = False
         self.history = History(self)
         self._is_saving = False
+        self.export_dialog: ExportDialog | None = None
         self._has_focus = True
         self.minimum_content_height = 0
         self._minimum_size_timer = QTimer(self)
@@ -271,6 +273,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         instrument('close event start')
+        if self.export_dialog is not None:
+            self.export_dialog.shutdown()
         self._close_app()
         super().closeEvent(event)
         instrument('close event end')

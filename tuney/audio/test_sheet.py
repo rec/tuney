@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
@@ -27,10 +27,19 @@ SILENCE_AFTER_PHRASE_SECONDS = 1
 BLOCK_SIZE = 1024
 
 
-def render_test_sheet(path: Path, app: App, preset_names: Sequence[str]) -> None:
+def prepare_test_sheet(app: App, preset_names: Sequence[str]) -> list[App]:
+    return [_preset_app(app, n) for n in preset_names]
+
+
+def render_test_sheet(
+    path: Path,
+    app: App,
+    presets: Sequence[App],
+    progress: Callable[[float, str], None] | None = None,
+) -> None:
     import soundfile
 
-    presets = [_preset_app(app, name) for name in preset_names]
+    preset_names = [p.preset or '' for p in presets]
     sample_rate = app.player.sample_rate
     channels = max([app.player.channels] + [i.player.channels for i in presets])
     start_time = datetime.now(timezone.utc)
@@ -41,7 +50,9 @@ def render_test_sheet(path: Path, app: App, preset_names: Sequence[str]) -> None
         channels=channels,
     ) as file:
         _set_comment(file, app, preset_names, start_time)
-        for preset in presets:
+        for i, preset in enumerate(presets):
+            if progress is not None:
+                progress(i / len(presets), f'Preparing speech for {preset.preset}')
             _write_silence(file, sample_rate, channels, SILENCE_BEFORE_PRESET_SECONDS)
             _write_preset_name(file, preset, sample_rate, channels)
             _write_silence(file, sample_rate, channels, SILENCE_AFTER_NAME_SECONDS)
@@ -51,6 +62,14 @@ def render_test_sheet(path: Path, app: App, preset_names: Sequence[str]) -> None
                 preset.note_events(sample_rate),
                 sample_rate,
                 channels,
+                (
+                    lambda frames, total, index=i, name=preset.preset: progress(
+                        (index + min(0.99, frames / max(1, total))) / len(presets),
+                        f'Rendering {name}',
+                    )
+                )
+                if progress is not None
+                else None,
             )
             _write_silence(file, sample_rate, channels, SILENCE_AFTER_PHRASE_SECONDS)
         _set_comment(file, app, preset_names, start_time)
@@ -89,6 +108,7 @@ def _write_note_events(
     events: list[tuple[int, NotePress]],
     sample_rate: int,
     channels: int,
+    progress: Callable[[int, int], None] | None = None,
 ) -> None:
     mixer = Mixer(
         voice_maker=partial(player.voice_maker, sample_rate=sample_rate),
@@ -98,14 +118,17 @@ def _write_note_events(
     )
     rendered = 0
     for frame, note in events:
-        if frame > rendered:
+        while frame > rendered:
+            count = min(BLOCK_SIZE, frame - rendered)
             file.write(
                 _mastered(
-                    mixer.render(frame - rendered, np.float32, channels),
+                    mixer.render(count, np.float32, channels),
                     player.output_gain,
                 )
             )
-            rendered = frame
+            rendered += count
+            if progress is not None:
+                progress(rendered, events[-1][0])
         mixer.apply(note)
 
     mixer.stop_all()
@@ -115,6 +138,9 @@ def _write_note_events(
                 mixer.render(BLOCK_SIZE, np.float32, channels), player.output_gain
             )
         )
+        rendered += BLOCK_SIZE
+        if progress is not None:
+            progress(rendered, events[-1][0] if events else 0)
 
 
 def _channels(data: np.ndarray, channels: int) -> np.ndarray:

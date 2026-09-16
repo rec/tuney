@@ -136,6 +136,7 @@ class Player(BaseModel, frozen=True):
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None = None,
         speech: SpeechPlayback | None = None,
+        progress: Callable[[int, int], None] | None = None,
     ) -> None:
         mixer = Mixer(
             voice_maker=partial(self.voice_maker, sample_rate=self.sample_rate),
@@ -152,6 +153,7 @@ class Player(BaseModel, frozen=True):
             comment,
             self.output_gain,
             speech,
+            progress,
         )
 
     def start_recording(

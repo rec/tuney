@@ -268,7 +268,10 @@ def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(test_sheet, 'render_speech', render_speech)
     path = tmp_path / 'test-sheet.wav'
 
-    test_sheet.render_test_sheet(path, App(text=[]), ['first', 'second'])
+    app = App(text=[])
+    test_sheet.render_test_sheet(
+        path, app, test_sheet.prepare_test_sheet(app, ['first', 'second'])
+    )
 
     data, sample_rate = soundfile.read(path, always_2d=True)
     assert sample_rate == SAMPLE_RATE
@@ -296,7 +299,11 @@ def test_test_sheet_preserves_live_app_state(monkeypatch, tmp_path) -> None:
     )
     char_presses = list(app.char_presses)
 
-    test_sheet.render_test_sheet(tmp_path / 'test-sheet.wav', app, ['changed'])
+    test_sheet.render_test_sheet(
+        tmp_path / 'test-sheet.wav',
+        app,
+        test_sheet.prepare_test_sheet(app, ['changed']),
+    )
 
     assert app.preset == 'original'
     assert app.max_gap == 3.0
