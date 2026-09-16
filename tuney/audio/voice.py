@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from fractions import Fraction
 from functools import cached_property
 
 import numpy as np
+from enge.synth import envelope_samples
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from reccy.configuration.units import Hertz, Seconds
+from ufor.envelope import Envelope, Segment
 
 from .oscillator import Oscillator
 from .sound import Binaural
@@ -42,16 +45,19 @@ class Voice(BaseModel, frozen=True):
         return self.sample_rate / frequencies
 
     @cached_property
-    def fade_in_samples(self) -> float:
-        return self.fade_in * self.sample_rate
+    def envelope(self) -> Envelope:
+        return Envelope(
+            segments=[Segment(duration=Fraction(str(self.fade_in)), target=1)],
+            release=[Segment(duration=Fraction(str(self.fade_out)), target=0)],
+        )
 
     @cached_property
-    def fade_out_samples(self) -> float:
-        return self.fade_out * self.sample_rate
+    def fade_out_samples(self) -> Fraction:
+        return self.envelope.release[0].duration * self.sample_rate
 
     @cached_property
-    def minimum_note_samples(self) -> float:
-        return self.minimum_note_time * self.sample_rate
+    def minimum_note_samples(self) -> Fraction:
+        return Fraction(str(self.minimum_note_time)) * self.sample_rate
 
 
 class VoiceState(BaseModel):
@@ -60,20 +66,17 @@ class VoiceState(BaseModel):
     voice: Voice
     phase: float | np.ndarray = 0
     frame_count: int = 0
-    release_frame: float | None = None
-    release_gain: float = 1.0
+    release_frame: Fraction | None = None
     complete: bool = False
 
     def release(self) -> bool:
         if self.release_frame is not None or self.complete:
             return False
-        self.release_frame = max(self.frame_count, self.voice.minimum_note_samples)
+        self.release_frame = max(
+            Fraction(self.frame_count), self.voice.minimum_note_samples
+        )
         if self.voice.fade_out_samples <= 0 and self.release_frame <= self.frame_count:
             self.complete = True
-        else:
-            self.release_gain = 1.0
-            if (fade := self.voice.fade_in_samples) > 0:
-                self.release_gain = min(1.0, self.release_frame / fade)
         return True
 
     def render(self, frame_size: int) -> np.ndarray:
@@ -90,15 +93,16 @@ class VoiceState(BaseModel):
         wave = self.voice.oscillator(self.phase, frame_size, period_samples).astype(
             float, copy=False
         )
-        frames = self.frame_count + np.arange(frame_size)
+        envelope = envelope_samples(
+            self.voice.envelope,
+            self.frame_count,
+            frame_size,
+            self.voice.sample_rate,
+            self.release_frame,
+        )
         if self.voice.binaural.enable:
             wave = self._binaural_wave(wave)
-            envelope = self._envelope(frames)
-            if isinstance(envelope, int):
-                envelope = np.full(frame_size, envelope)
             envelope = envelope[:, np.newaxis]
-        else:
-            envelope = self._envelope(frames)
         wave *= envelope * self.voice.gain
 
         self.phase = (self.phase + frame_size) % period_samples
@@ -120,18 +124,3 @@ class VoiceState(BaseModel):
                 wave[:, 0] * low_right + wave[:, 1] * high_right,
             ]
         )
-
-    def _envelope(self, frames: np.ndarray) -> np.ndarray | int:
-        if self.voice.fade_in_samples <= 0:
-            fade_in: np.ndarray | int = 1
-        else:
-            fade_in = np.clip(frames / self.voice.fade_in_samples, 0, 1)
-
-        if self.release_frame is None:
-            return fade_in
-        if self.voice.fade_out_samples <= 0:
-            return fade_in * (frames < self.release_frame)
-
-        elapsed = 1 - (frames - self.release_frame) / self.voice.fade_out_samples
-        fade_out = self.release_gain * np.clip(elapsed, 0, 1)
-        return np.minimum(fade_in, fade_out)
