@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chardet>=7.4.3",
-    "enge @ https://github.com/rec/enge/archive/4639ac7bc0b9340cb3588948fdc85cf90b6fe8d3.tar.gz",
+    "enge",
     "mido>=1.3.3",
     "numpy>=2.4.1",
     "pydantic>=2.13.3",
@@ -14,12 +14,12 @@ dependencies = [
     "pyside6>=6.11.1",
     "python-rtmidi>=1.5.8",
     "pyttsx3>=2.99",
-    "reccy @ https://github.com/rec/reccy/archive/88a0b6b34e810cd86a93eb253c4b17131a9ef8e9.tar.gz",
+    "reccy",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
     "tomlkit>=0.15.0",
     "tyro>=1.0.13",
-    "ufor @ https://github.com/rec/ufor/archive/2e5b02ea97aa05b9229d836795da298f51b1be49.tar.gz",
+    "ufor",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -43,9 +43,9 @@ dev = [
 package = true
 
 [tool.uv.sources]
-reccy = { path = "../reccy", editable = true }
-ufor = { path = "../ufor", editable = true }
-enge = { path = "../enge", editable = true }
+reccy = { git = "https://github.com/rec/reccy.git", branch = "main" }
+ufor = { git = "https://github.com/rec/ufor.git", branch = "main" }
+enge = { git = "https://github.com/rec/enge.git", branch = "main" }
 
 [tool.hatch.build.targets.wheel.force-include]
 "scala/scales.toml.zip" = "scala/scales.toml.zip"
