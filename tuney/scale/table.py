@@ -6,7 +6,7 @@ from typing import Annotated
 
 from pydantic import BaseModel
 from reccy.configuration import units
-from ufor.number import Number
+from ufor.number import PitchNumber
 from ufor.tuning import FrequencyTable
 
 from ..config.annotations import Display
@@ -36,11 +36,11 @@ class Table(BaseModel):
         return values
 
 
-def _evaluate_text(text: str) -> list[Number]:
+def _evaluate_text(text: str) -> list[PitchNumber]:
     return [_evaluate_frequency(i.strip()) for i in text.split(';') if i.strip()]
 
 
-def _evaluate_frequency(expression: str) -> Number:
+def _evaluate_frequency(expression: str) -> PitchNumber:
     try:
         value = units.magnitude(expression, 'hertz')
         if not isinstance(value, (Decimal, float, int)):

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, model_validator
-from ufor.number import Number
+from ufor.number import PitchNumber
 from ufor.scala import parse_scala, scala_text
 from ufor.tuning import RatioTable
 
@@ -38,10 +38,10 @@ class Ratios(BaseModel):
             values=['1', *entries[:-1]],
             repeat_ratio=entries[-1],
             name=self.name,
-            desc=self.desc,
+            description=self.desc,
         )
 
-    def __call__(self, note_delta: int) -> Number:
+    def __call__(self, note_delta: int) -> PitchNumber:
         return self.definition(note_delta)
 
     @cached_property
@@ -49,7 +49,7 @@ class Ratios(BaseModel):
         return len(self.ratios)
 
     @cached_property
-    def ratios(self) -> list[Number]:
+    def ratios(self) -> list[PitchNumber]:
         ratios = evaluate.evaluate_all(_split_expression_text(self.text))
         if any(i <= 0 for i in ratios):
             raise ValueError('Tuning ratios must be positive')
@@ -62,7 +62,7 @@ class Ratios(BaseModel):
         return Ratios.from_strings(
             [*definition.values[1:], definition.repeat_ratio],
             name=definition.name,
-            desc=definition.desc,
+            desc=definition.description,
         )
 
     @staticmethod

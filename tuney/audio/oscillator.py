@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from fractions import Fraction
+from functools import cached_property
 from typing import Annotated
 
 import numpy as np
 from enge.synth import waveform_samples
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from reccy.configuration.tyro import tyro_option
 from ufor import oscillator
 from ufor.number import NoteNumber
@@ -13,7 +15,7 @@ from ufor.oscillator import Waveform
 from ..config.annotations import Beginner, Display, Numeric
 
 
-class Oscillator(oscillator.Oscillator, frozen=False):
+class Oscillator(BaseModel):
     # Waveform used to synthesize notes
     waveform: Annotated[Waveform, tyro_option('-w'), Beginner, Display(row=0)] = (
         Waveform.triangle
@@ -36,7 +38,30 @@ class Oscillator(oscillator.Oscillator, frozen=False):
         float, tyro_option('-k'), Numeric(column=3, row=0, width=5)
     ] = 0.0
 
+    @field_validator('duty_cycle', mode='before')
+    @classmethod
+    def numeric_duty_cycle(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError('duty_cycle must be numeric')
+        return value
+
+    @cached_property
+    def definition(self) -> oscillator.Oscillator:
+        return oscillator.Oscillator(
+            waveform=self.waveform,
+            duty_cycle=Fraction(str(self.duty_cycle)),
+            key_scale_note=self.key_scale_note,
+            key_scale_db_per_12_steps=self.key_scale,
+        )
+
+    def gain(self, note_number: NoteNumber) -> float:
+        return self.definition.gain(note_number)
+
     def __call__(
         self, start: float | np.ndarray, length: int, period: float | np.ndarray
     ) -> np.ndarray:
-        return waveform_samples(self, start, length, period)
+        return waveform_samples(self.definition, start, length, period)
+
+    model_config = ConfigDict(
+        extra='forbid', allow_inf_nan=False, validate_default=True
+    )

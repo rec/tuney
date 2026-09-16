@@ -241,6 +241,7 @@ class Oscillator:
 
     # Gain decibels added per keyboard octave above key_scale_note
     key_scale: float = 0.0
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, validate_default=True)
 
 
 class Polyphony:
