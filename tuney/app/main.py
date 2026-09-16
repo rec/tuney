@@ -34,13 +34,16 @@ def main() -> None:
             update = {'config_file': None, 'preset': None}
             app = app.model_copy(update=update)
         elif app.config_file or app.preset:
-            if app.preset:
-                data = merged_data(
-                    data, read_preset(app.preset), {'preset': app.preset}
-                )
-            if app.config_file:
-                assert isinstance(app.config_file, Path)
-                data = merged_data(data, read_file(app.config_file))
+            try:
+                if app.preset:
+                    data = merged_data(
+                        data, read_preset(app.preset), {'preset': app.preset}
+                    )
+                if app.config_file:
+                    assert isinstance(app.config_file, Path)
+                    data = merged_data(data, read_file(app.config_file))
+            except (OSError, ValueError) as error:
+                platform_info.exit_with_message(str(error))
             list_midi, app = parse_cli(App.model_validate(data))
             if list_midi:
                 print(midi_names_json())
