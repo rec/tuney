@@ -39,9 +39,16 @@ validated values into the live mutable object.
 
 Tuney uses Ufor for shared musical definitions such as pitch arithmetic, tuning
 definitions, Scala conversion, oscillator parameters, and gain. Tuney retains
-its UI and CLI annotations, mutable application model, expression handling, and
-NumPy waveform generation. For local development, keep Ufor at `../ufor` and
-run `uv sync`; installations use the pinned source archive in `pyproject.toml`.
+its UI and CLI annotations, mutable application model, and expression handling.
+Enge generates waveform buffers. Tuney's oscillator settings compose a Ufor
+definition so library field names do not leak into its saved configuration.
+
+For local development, keep the Reccy, Ufor, and Enge checkouts at `../reccy`,
+`../ufor`, and `../enge`, then run `uv sync`. Release installations use the pinned
+public source archives in `pyproject.toml`; Reccy and Enge are not currently
+published on PyPI. Verify dependency updates in a separate checkout with
+`uv sync --no-sources` and `uv run --no-sources pytest`, in addition to local
+checks. Editable sibling checkouts alone do not establish release compatibility.
 
 ## Runtime boundaries
 
