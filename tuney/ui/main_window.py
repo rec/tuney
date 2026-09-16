@@ -593,6 +593,7 @@ class MainWindow(QtWidgets.QMainWindow):
         replay_controls.on_randomize_on_each_loop(self, checked)
 
     def _handle_queue(self) -> None:
+        self.app.midi_listener.dispatch_pending()
         while not self.key_queue.empty():
             self.app.on_char(self.key_queue.get())
         while not self.queue.empty():
