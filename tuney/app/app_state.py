@@ -16,6 +16,7 @@ from ..config.text_file import read_text_file
 from ..presets.preset import is_str_dict, merged_data, read_preset
 from ..scale.tuning import Computed, Type
 from .app_members import AppMembers
+from .file_output import atomic_output
 from .platform_info import instrument
 
 
@@ -106,7 +107,8 @@ class AppState(AppMembers):
                 text = json.dumps(serialize(self.dump_data()), indent=2) + '\n'
             case _:
                 raise ValueError(f'Do not understand file {path}')
-        path.write_text(text)
+        with atomic_output(path) as output:
+            output.write_text(text)
 
     def save_autosave(self, path: Path) -> None:
         data = serialize(self.dump_data())
@@ -122,7 +124,9 @@ class AppState(AppMembers):
                 width=geometry.width(),
                 height=geometry.height(),
             ).model_dump()
-        path.write_text(tomlkit.dumps(data))
+        text = tomlkit.dumps(data)
+        with atomic_output(path) as output:
+            output.write_text(text)
 
     def dump_toml(self) -> str:
         return tomlkit.dumps(serialize(self.dump_data()))

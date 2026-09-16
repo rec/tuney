@@ -8,6 +8,7 @@ import tomlkit
 from pydantic import BaseModel, Field, field_validator
 
 from ..ui.theme import ThemeName
+from .file_output import atomic_output
 from .platform_info import app_config_dir, report_error
 
 GLOBAL_CONFIG_FILE = 'global.toml'
@@ -48,17 +49,17 @@ class GlobalConfig(BaseModel):
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            tomlkit.dumps(
-                {
-                    'directories': self.directories,
-                    'control_panel_sections': self.control_panel_sections,
-                    'control_panel_scroll': self.control_panel_scroll,
-                    'buffer_size': self.buffer_size,
-                    'theme': self.theme.value,
-                }
-            )
+        text = tomlkit.dumps(
+            {
+                'directories': self.directories,
+                'control_panel_sections': self.control_panel_sections,
+                'control_panel_scroll': self.control_panel_scroll,
+                'buffer_size': self.buffer_size,
+                'theme': self.theme.value,
+            }
         )
+        with atomic_output(self.path) as output:
+            output.write_text(text)
 
     def directory(self, name: str) -> str:
         return self.directories.get(name, '')
