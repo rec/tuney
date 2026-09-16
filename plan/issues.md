@@ -2,7 +2,8 @@
 
 Reviewed 2026-09-16 against Tuney commit `1aab15a` by reading implementation,
 tests, documentation, dependency declarations, and release configuration.
-This is a prioritized backlog, not authorization to implement changes.
+Implementation authorized on 2026-09-16. Completed items retain their original
+evidence below and are marked with their resolution.
 
 Evidence below is from source inspection unless stated otherwise. No application,
 hardware test, release build, or test suite was run for this documentation-only
@@ -21,6 +22,12 @@ issues to fix by reinstating stricter Ufor validation.
 ## P1: data safety and runtime correctness
 
 ### 1. Failed CLI export can delete an existing destination
+
+**Resolved:** CLI audio/MIDI and GUI exports use temporary destination-side
+files and replace the destination only after successful writer cleanup.
+Recorded-audio Save preserves the source and destination if copying fails.
+Regression tests cover failures before writing, during writing/cleanup, and at
+replacement; existing outputs survive and temporary files are removed.
 
 **Evidence:** [AppPlayback.run_cli](../tuney/app/app_playback.py) unlinks
 `self.output` whenever `completed` remains false. That includes failures before a
@@ -376,4 +383,4 @@ retriggering. Resolve dependency/release divergence before packaging. Follow wit
 timing/export behavior and documentation corrections. Organize large modules
 only as needed for those fixes.
 
-Additional work beyond the prompt: None. This change records findings only.
+Additional work beyond the prompt: None.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 
@@ -13,6 +14,7 @@ from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.units import to_ms
 from .app_state import AppState
+from .file_output import atomic_output
 from .platform_info import exit_with_message, report_error, trace
 
 if TYPE_CHECKING:
@@ -136,7 +138,6 @@ class AppPlayback(AppState):
         if self.silent and not self.output:
             exit_with_message('CLI mode requires sound')
 
-        completed = False
         start_time = datetime.now(timezone.utc)
 
         def comment() -> str:
@@ -150,33 +151,35 @@ class AppPlayback(AppState):
             )
 
         midi_file_output = self.output is not None and is_midi_file(self.output)
-        try:
-            if self.output and midi_file_output:
-                write_midi_file(
-                    self.output,
-                    self.note_events(MIDI_FILE_TICKS_PER_BEAT),
-                    self.midi.output,
-                )
-            elif self.output and self.silent:
-                self.player.render_file(
-                    self.output,
-                    self.note_events(self.player.sample_rate),
-                    comment,
-                )
-            else:
-                if self.output:
-                    self.player.start_recording(self.output, comment)
-                self.play_cli()
-            completed = True
-        finally:
-            if not (self.silent or midi_file_output):
-                self.player.stop_all()
-                self.player.wait()
-                if self.output:
-                    self.player.stop_recording()
-                self.player.close()
-            if self.output and not completed:
-                self.output.unlink(missing_ok=True)
+        with atomic_output(self.output) if self.output else nullcontext() as output:
+            try:
+                if output and midi_file_output:
+                    write_midi_file(
+                        output,
+                        self.note_events(MIDI_FILE_TICKS_PER_BEAT),
+                        self.midi.output,
+                    )
+                elif output and self.silent:
+                    self.player.render_file(
+                        output,
+                        self.note_events(self.player.sample_rate),
+                        comment,
+                    )
+                else:
+                    if output:
+                        self.player.start_recording(output, comment)
+                    self.play_cli()
+            finally:
+                if not (self.silent or midi_file_output):
+                    try:
+                        self.player.stop_all()
+                        self.player.wait()
+                    finally:
+                        try:
+                            if output:
+                                self.player.stop_recording()
+                        finally:
+                            self.player.close()
 
     def note_events(self, sample_rate: int) -> list[tuple[int, NotePress]]:
         events: list[tuple[int, NotePress]] = []

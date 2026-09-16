@@ -796,7 +796,9 @@ def test_app_saves_audio_from_current_text() -> None:
         MainWindow.on_save_as_audio(app)
 
     output, events, comment = rendered[0]
-    assert output == path
+    assert output != path
+    assert output.parent == path.parent
+    assert output.suffix == path.suffix
     assert [(frame, note.is_press) for frame, note in events] == [
         (0, True),
         (4800, False),
@@ -837,7 +839,9 @@ def test_app_saves_test_sheet_from_current_text() -> None:
         file_commands.render_test_sheet = old_render_test_sheet
 
     output, rendered_app, presets = rendered[0]
-    assert output == path
+    assert output != path
+    assert output.parent == path.parent
+    assert output.suffix == path.suffix
     assert rendered_app is app.app
     assert presets == ['first', 'second']
 
