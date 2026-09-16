@@ -2497,6 +2497,7 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch, tmp_path) -> None:
         output: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None,
+        speech: object,
     ) -> None:
         rendered.append((output, events, comment))
 
@@ -2619,6 +2620,7 @@ def test_interrupted_output_removes_partial_file(monkeypatch) -> None:
             output: Path,
             events: list[tuple[int, NotePress]],
             comment: Callable[[], str] | None,
+            speech: object,
         ) -> None:
             output.write_bytes(b'partial')
             raise KeyboardInterrupt

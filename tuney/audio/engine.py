@@ -41,8 +41,8 @@ class Configure(BaseModel, frozen=True):
     synchronize_oscillators: bool = False
 
 
-class StopAll:
-    pass
+class StopAll(BaseModel, frozen=True):
+    finish_speech: bool = False
 
 
 class PreparedNote(BaseModel, frozen=True):
@@ -244,7 +244,7 @@ class AudioEngine(BaseModel):
             self.notifications.put((True, str(error)))
             self.playback_complete.set()
             raise CallbackAbort from error
-        if self.stop_when_silent and not self.mixer.voices:
+        if self.stop_when_silent and not self.mixer.voices and self.speech is None:
             self.playback_complete.set()
 
     def _drain_commands(self) -> None:
@@ -265,7 +265,8 @@ class AudioEngine(BaseModel):
                 self.speech = command.speech
             else:
                 self.stop_when_silent = True
-                self.speech = None
+                if not command.finish_speech:
+                    self.speech = None
                 self.mixer.stop_all()
 
 

@@ -783,7 +783,7 @@ def test_app_saves_audio_from_current_text() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        def render_file(output, events, comment):
+        def render_file(output, events, comment, speech):
             rendered.append((output, events, comment))
 
         file_dialogs.QFileDialog = FakeSaveDialog

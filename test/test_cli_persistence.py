@@ -67,6 +67,7 @@ def test_cli_output_only_writes_explicit_output(
         path: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str],
+        speech: object,
     ) -> None:
         path.write_bytes(b'wav')
 
@@ -89,6 +90,7 @@ def test_interrupted_cli_output_removes_partial_file_without_persistence(
         path: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str],
+        speech: object,
     ) -> None:
         path.write_bytes(b'partial')
         raise KeyboardInterrupt

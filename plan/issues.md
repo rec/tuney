@@ -168,6 +168,12 @@ event-frame boundaries.
 
 ### 8. Ordinary audio exports omit speech
 
+**Resolved:** Audio exports and CLI playback include enabled speech. Natural
+completion lets speech finish, and GUI loops wait for it before restarting.
+Explicit Stop still cancels speech. Tests cover exported speech tails, callback
+completion, CLI routing, and replay/loop completion. Speech synthesis is mocked;
+WAV fixtures verify the mixing and completion behavior at 48 kHz.
+
 **Evidence:** Speech replay is started in
 [KeyRecorder.on_replay](../tuney/app/key_recorder.py). Both GUI Save as Audio
 and silent CLI output use [Player.render_file](../tuney/audio/player.py), which

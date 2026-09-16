@@ -28,6 +28,7 @@ def test_failed_offline_export_preserves_destination(
         output: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None,
+        speech: object,
     ) -> None:
         if partial:
             soundfile.write(output, np.ones(48_000), 48_000)
