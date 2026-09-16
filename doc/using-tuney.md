@@ -120,7 +120,9 @@ table has a fixed range, but Tuney wraps instrument keys before using it so
 typing remains playable.
 
 The sound controls select the oscillator and its gain, polyphony, minimum note
-duration, binaural beats, and output level. Speech can accompany replayed text.
+duration, binaural beats, and output level. Enabled speech accompanies GUI replay,
+CLI playback, and audio exports. Speech finishes even when it outlasts the notes;
+replay loops wait for it before restarting. Explicit Stop cancels speech.
 MIDI input follows the same playback path as typing. MIDI output can send note
 events, program and volume changes, and a MIDI Tuning Standard dump when
 configured.

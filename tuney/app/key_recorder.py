@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 from reccy.configuration.units import Milliseconds, Seconds
 
-from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase
+from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase, SpeechPlayback
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.units import to_ms
@@ -19,6 +19,7 @@ class KeyRecorder(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     sequencer: Sequencer | None = Field(default=None, exclude=True)
+    speech: SpeechPlayback | None = Field(default=None, exclude=True)
     start_time: Seconds | None = None
     time_offset: Milliseconds = 0.0
     insert_time: Milliseconds | None = None
@@ -79,6 +80,7 @@ class KeyRecorder(BaseModel):
             is_replaying=state.main_window.is_replaying,
         )
         state.player.stop_all()
+        self.speech = None
 
         sequencer, self.sequencer = self.sequencer, None
         if sequencer:
@@ -91,7 +93,7 @@ class KeyRecorder(BaseModel):
             instrument('key recorder replay events', count=len(char_presses))
             state.main_window.ui.start_loop_clock()
             if state.use_speech and char_presses:
-                state.player.start_speech(
+                self.speech = state.player.start_speech(
                     speech_phrases(char_presses, state.use_phrase_mode),
                     state.speech_level,
                     state.speech_speed,
@@ -144,6 +146,29 @@ class KeyRecorder(BaseModel):
         instrument('key recorder finish replay')
         if not state.main_window.is_replaying:
             return
+        if (
+            self.speech is not None
+            and not self.speech.complete
+            and state.player.engine.stream.active
+        ):
+            sequencer = self.sequencer
+            speech = self.speech
+            state.player.stop_all(finish_speech=True)
+
+            def finish() -> None:
+                if (
+                    not state.main_window.is_replaying
+                    or self.sequencer is not sequencer
+                ):
+                    return
+                if not speech.complete and state.player.engine.stream.active:
+                    state.main_window.after(20, finish)
+                else:
+                    self.finish_replay(state)
+
+            state.main_window.after(20, finish)
+            return
+        self.speech = None
         if state.main_window.history.loop_replay and state.replay_char_presses():
             state.on_replay()
             return

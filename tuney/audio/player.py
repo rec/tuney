@@ -135,6 +135,7 @@ class Player(BaseModel, frozen=True):
         path: Path,
         events: list[tuple[int, NotePress]],
         comment: Callable[[], str] | None = None,
+        speech: SpeechPlayback | None = None,
     ) -> None:
         mixer = Mixer(
             voice_maker=partial(self.voice_maker, sample_rate=self.sample_rate),
@@ -150,6 +151,7 @@ class Player(BaseModel, frozen=True):
             self.channels,
             comment,
             self.output_gain,
+            speech,
         )
 
     def start_recording(
@@ -230,11 +232,11 @@ class Player(BaseModel, frozen=True):
         self.engine.submit(NotePress(note_number, False))
         return True
 
-    def stop_all(self) -> None:
+    def stop_all(self, finish_speech: bool = False) -> None:
         instrument('player stop all')
         self.pressed_notes.clear()
         if 'engine' in self.__dict__:
-            self.engine.submit(StopAll())
+            self.engine.submit(StopAll(finish_speech=finish_speech))
 
     @cached_property
     def prepared_speech(self) -> PreparedSpeech:
@@ -251,7 +253,7 @@ class Player(BaseModel, frozen=True):
 
     def start_speech(
         self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None
-    ) -> None:
+    ) -> SpeechPlayback | None:
         instrument(
             'player start speech', phrases=len(phrases), level=level, speed=speed
         )
@@ -260,6 +262,8 @@ class Player(BaseModel, frozen=True):
         if speech is not None:
             self.engine.submit(PlaySpeech(speech=speech))
             self.engine.start()
+
+        return speech
 
     def speech_request(
         self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None

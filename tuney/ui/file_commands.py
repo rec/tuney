@@ -76,6 +76,7 @@ def on_save_as_audio(main_window: MainWindow, *_: object) -> None:
                         output,
                         main_window.app.note_events(main_window.app.player.sample_rate),
                         main_window.app.output_comment(),
+                        main_window.app.render_output_speech(),
                     )
             except (OSError, RuntimeError, ValueError) as error:
                 QMessageBox.critical(

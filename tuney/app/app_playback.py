@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 import tomlkit
 
 from ..audio.mixer import NotePress
+from ..audio.speech import SpeechPlayback, SpeechRequest, render_speech
 from ..config.serialize import serialize
 from ..midi.file import MIDI_FILE_TICKS_PER_BEAT, is_midi_file, write_midi_file
 from ..time.char_press import CharPress
@@ -15,6 +16,7 @@ from ..time.sequencer import Sequencer
 from ..time.units import to_ms
 from .app_state import AppState
 from .file_output import atomic_output
+from .key_recorder import speech_phrases
 from .platform_info import exit_with_message, report_error, trace
 
 if TYPE_CHECKING:
@@ -151,6 +153,7 @@ class AppPlayback(AppState):
             )
 
         midi_file_output = self.output is not None and is_midi_file(self.output)
+        completed = False
         with atomic_output(self.output) if self.output else nullcontext() as output:
             try:
                 if output and midi_file_output:
@@ -164,15 +167,20 @@ class AppPlayback(AppState):
                         output,
                         self.note_events(self.player.sample_rate),
                         comment,
+                        self.render_output_speech(),
                     )
                 else:
                     if output:
                         self.player.start_recording(output, comment)
                     self.play_cli()
+                    completed = True
             finally:
                 if not (self.silent or midi_file_output):
                     try:
-                        self.player.stop_all()
+                        if completed and self.use_speech:
+                            self.player.stop_all(finish_speech=True)
+                        else:
+                            self.player.stop_all()
                         self.player.wait()
                     finally:
                         try:
@@ -180,6 +188,19 @@ class AppPlayback(AppState):
                                 self.player.stop_recording()
                         finally:
                             self.player.close()
+
+    def render_output_speech(self) -> SpeechPlayback | None:
+        if not self.use_speech:
+            return None
+        return render_speech(
+            SpeechRequest(
+                phrases=speech_phrases(self.char_presses, self.use_phrase_mode),
+                sample_rate=self.player.sample_rate,
+                level=self.speech_level,
+                speed=self.speech_speed,
+                voice=self.speech_voice,
+            )
+        )
 
     def note_events(self, sample_rate: int) -> list[tuple[int, NotePress]]:
         events: list[tuple[int, NotePress]] = []
@@ -205,6 +226,14 @@ class AppPlayback(AppState):
         return comment
 
     def play_cli(self) -> None:
+        if self.use_speech and not self.silent:
+            self.player.start_speech(
+                speech_phrases(self.char_presses, self.use_phrase_mode),
+                self.speech_level,
+                self.speech_speed,
+                self.speech_voice,
+            )
+
         def callback(c: CharPress | None) -> None:
             if c:
                 if c.is_press:

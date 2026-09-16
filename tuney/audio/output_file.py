@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from .mixer import Mixer, NotePress
+from .speech import SpeechPlayback
 
 if TYPE_CHECKING:
     import soundfile
@@ -59,6 +60,7 @@ def render_file(
     channels: int,
     comment: Callable[[], str] | None = None,
     master_gain: float = 1.0,
+    speech: SpeechPlayback | None = None,
 ) -> None:
     import soundfile
 
@@ -79,15 +81,21 @@ def render_file(
                     _mastered(
                         mixer.render(count, np.float32, channels),
                         master_gain,
+                        speech,
                     )
                 )
                 rendered += count
             mixer.apply(note)
 
         mixer.stop_all()
-        while mixer.voices:
+        while mixer.voices or (speech is not None and not speech.complete):
+            count = BLOCK_SIZE
+            if not mixer.voices and speech is not None:
+                count = min(count, len(speech.data) - speech.position)
             file.write(
-                _mastered(mixer.render(BLOCK_SIZE, np.float32, channels), master_gain)
+                _mastered(
+                    mixer.render(count, np.float32, channels), master_gain, speech
+                )
             )
 
         if comment is not None:
@@ -104,6 +112,10 @@ def _set_comment(file: 'soundfile.SoundFile', comment: str) -> None:
             raise
 
 
-def _mastered(block: np.ndarray, master_gain: float) -> np.ndarray:
+def _mastered(
+    block: np.ndarray, master_gain: float, speech: SpeechPlayback | None
+) -> np.ndarray:
+    if speech is not None and not speech.complete:
+        block += speech.render(len(block), block.dtype, block.shape[1])
     block *= master_gain
     return block
