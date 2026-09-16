@@ -32,7 +32,7 @@ class Tuney:
     # Time to hover over a widget before showing help, in seconds
     hover_time: Seconds = 1.0
 
-    # Disable synthesized audio output
+    # Disable live synthesized sound; audio file output still renders offline
     silent: bool = False
 
     # Speak the replay text along with the synthesized notes
@@ -78,7 +78,7 @@ class Tuning:
     can be customized.
     """
     #: Which tuning source to use
-    type: Type | None = Type.computed
+    type: TuningSource | None = TuningSource.computed
 
     #: Computed tuning parameters
     computed: Computed | None

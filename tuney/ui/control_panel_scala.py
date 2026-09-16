@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QLabel, QLineEdit, QWidget
 from ..app.platform_info import instrument
 from ..scale.ratios import Ratios
 from ..scale.scala_browser import ScalaTrie, scala_trie
-from ..scale.tuning import Tuning, Type
+from ..scale.tuning import Tuning, TuningSource
 from .theme import scala_completion_style, scala_tooltip_style, widget_theme
 
 if TYPE_CHECKING:
@@ -194,6 +194,6 @@ def loaded_scala_description(app: App | None) -> str:
 
 
 def loaded_scala_ratios(app: App | None) -> Ratios | None:
-    if app is None or app.tuning.type != Type.ratios:
+    if app is None or app.tuning.type != TuningSource.ratios:
         return None
     return app.tuning.ratios

@@ -6,7 +6,7 @@ from PySide6.QtCore import QMimeData
 
 from tuney.app.app import App
 from tuney.app.text_timing import edit_text_timing
-from tuney.scale.tuning import Computed, Type
+from tuney.scale.tuning import Computed, TuningSource
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
 from tuney.time.text_timings import TextTimings
@@ -247,7 +247,7 @@ def test_randomize_settings_changes_valid_scale_and_tuning_only() -> None:
     assert type(app).model_validate(app.model_dump())
     assert app.text_timings == text_timings
     assert app.char_presses == char_presses
-    assert app.tuning.type == Type.computed
+    assert app.tuning.type == TuningSource.computed
     assert isinstance(app.tuning.computed, Computed)
     assert app.tuning.computed.notes_per_octave == sum(app.scale.intervals)
     assert 5 <= app.tuning.computed.notes_per_octave <= 12

@@ -2,7 +2,8 @@
 
 Reviewed 2026-09-16 against Tuney commit `1aab15a` by reading implementation,
 tests, documentation, dependency declarations, and release configuration.
-Implementation authorized on 2026-09-16. Completed items retain their original
+Implementation authorized on 2026-09-16. All 24 review items are now addressed.
+Completed items retain their original
 evidence below and are marked with their resolution.
 
 Evidence below is from source inspection unless stated otherwise. No application,
@@ -323,7 +324,7 @@ filtering, note conversion, and playback. Closing a listener discards queued
 messages. MIDI input retains direct-note playback without generating text.
 Tests verify ordered dispatch on the consuming thread and pending-message cleanup.
 
-**Evidence:** [AppMembers.midi_listener](../tuney/app/app_members.py) connects
+**Evidence:** The original [runtime MIDI listener](../tuney/app/app_runtime.py) connected
 the MIDI callback directly to `play_note`; [MidiListener.on_message](../tuney/midi/listener.py)
 invokes it directly. That reaches mutable `Player` state and stream startup.
 The maintenance guide says MIDI callbacks enqueue character presses for Qt.
@@ -468,9 +469,9 @@ Repository and sibling source searches found no production consumers. Tests now
 exercise `Mixer` directly, alongside the existing production file-rendering tests;
 the existing WAV fixtures remain unchanged.
 
-**Evidence:** [audio/scipy.py](../tuney/audio/scipy.py) still contains copied
+**Evidence:** The removed `audio/scipy.py` contained copied
 waveform implementations, but a repository Python-reference search found no
-consumer after Enge adoption. [OfflineRenderer](../tuney/audio/renderer.py) is
+consumer after Enge adoption. The removed `OfflineRenderer` was
 only used by `test_audio_renderer.py`; production file rendering uses
 `output_file.render_file` directly.
 
@@ -482,6 +483,12 @@ waveforms, and test the production rendering path directly or make the wrapper
 an explicitly test-local helper.
 
 ### 24. Ambiguous names obscure units, roles, and destinations
+
+**Resolved:** Internal names are now `effective_timings`, `AppRuntime`, and
+`TuningSource`. Help explains live muting versus offline rendering, supported
+MIDI filename extensions, and output `omni` meaning channel 1. Scale documentation
+separates naming/intervals from tuning and denominator approximation. Existing
+public option names and saved values are preserved; help/schema fixtures are updated.
 
 **Evidence:** `TextTimings.timings_` means effective durations, distinct from
 `timings`; `AppMembers` gives little indication that it constructs runtime

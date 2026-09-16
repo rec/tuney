@@ -105,7 +105,8 @@ Write a Standard MIDI file by choosing a MIDI filename:
 tuney --output hello.mid "Hello from Tuney"
 ```
 
-Without `--silent`, `--output` records the live playback while it is heard.
+MIDI filenames (`.mid`, `.midi`, or `.smf`) export without live playback.
+For audio files, `--output` records live playback unless `--silent` is given.
 Use `--list-midi` to print available MIDI inputs and outputs as JSON.
 
 Every musical setting is available to both the GUI and the command line. Run
@@ -137,6 +138,9 @@ replay loops wait for it before restarting. Explicit Stop cancels speech.
 MIDI input plays notes directly without adding recorded text. MIDI output can send note
 events, program and volume changes, and a MIDI Tuning Standard dump when
 configured.
+
+MIDI input channel `omni` accepts every channel. For MIDI output, the same
+stored value uses channel 1; it does not broadcast to every channel.
 
 ## Save and share settings
 

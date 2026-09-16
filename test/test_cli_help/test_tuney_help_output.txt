@@ -24,7 +24,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   -g, --gui, --no-gui
         Open the graphical interface (default: False)
   -s, --silent, --no-silent
-        Disable synthesized audio output (default: False)
+        Disable live synthesized sound; audio file output still renders offline (default: False)
   --use-speech, --no-use-speech
         Speak the replay text along with the synthesized notes (default: False)
   --use-phrase-mode, --no-use-phrase-mode
@@ -36,7 +36,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --speech-voice {None}|STR
         Voice used for speech (default: None)
   -o {None}|PATH, --output {None}|PATH
-        Audio file to write while playing text (default: None)
+        Write audio, or MIDI for .mid/.midi/.smf; silent mode renders audio offline (default: None)
   -b, --run-in-background, --no-run-in-background
         If True, listen to the keyboard even when other applications are in front (default: False)
   -p {None}|STR, --preset {None}|STR
@@ -177,7 +177,7 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   --midi.output.name {None}|STR
         MIDI port name (default: None)
   --midi.output.channel {omni}|INT
-        MIDI output channel, or omni to use the default channel (default: 1)
+        MIDI output channel; omni uses channel 1, not all channels (default: 1)
   --midi.output.program {None}|INT
         General MIDI instrument program (default: 0)
   --midi.output.volume INT

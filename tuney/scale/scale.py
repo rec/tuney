@@ -20,8 +20,8 @@ class Scale(scale.Scale, frozen=False):
     * Note names CDEFGAB, with intervals of 2212221 semitones between them
     * FLAT to lower pitch by a semitone, SHARP to raise it
 
-    Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
-    custom tunings, different note names and intervals.
+    Scale supports different note names and intervals. Tuning separately selects
+    frequencies, octave divisions, and an optional maximum rational denominator.
     """
 
     #: The base note names

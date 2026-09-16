@@ -78,7 +78,7 @@ class MidiOut(MidiBase):
         Options(options=lambda: midi_names()[1], column=1, row=0, width=12),
     ] = None
 
-    # MIDI output channel, or omni to use the default channel
+    # MIDI output channel; omni uses channel 1, not all channels
     channel: Annotated[
         Literal['omni'] | Annotated[int, Field(ge=1, le=16)],
         Options(options=MIDI_CHANNEL_OPTIONS, column=2, row=0),

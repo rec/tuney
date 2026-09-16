@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from ..config.annotations import Beginner, Display, General, Hidden
 from ..midi.midi import Midi
-from ..scale.tuning import Tuning, Type
+from ..scale.tuning import Tuning, TuningSource
 from . import control_panel_metadata
 
 
@@ -52,7 +52,7 @@ def _visible_child_names(data: BaseModel, advanced: bool = True) -> list[str]:
     if isinstance(data, Tuning):
         return (
             ['computed']
-            if _active_tuning_type(data) is Type.computed
+            if _active_tuning_type(data) is TuningSource.computed
             and data.computed is not None
             and _has_visible_fields(data.computed, advanced)
             else []
@@ -79,15 +79,15 @@ def _has_visible_fields(data: BaseModel, advanced: bool = True) -> bool:
 def _visible_tuning_control_names(data: Tuning) -> list[str]:
     names = ['type', 'detune', 'root_frequency', 'root_note']
     match _active_tuning_type(data):
-        case Type.table:
+        case TuningSource.table:
             names.append('table')
-        case Type.ratios:
+        case TuningSource.ratios:
             names.append('ratios')
     return names
 
 
-def _active_tuning_type(data: Tuning) -> Type:
-    return data.type or Type.computed
+def _active_tuning_type(data: Tuning) -> TuningSource:
+    return data.type or TuningSource.computed
 
 
 def _is_beginner_field(data: BaseModel, name: str) -> bool:

@@ -2,11 +2,11 @@ import pytest
 
 from tuney.scale.ratios import Ratios
 from tuney.scale.table import Table
-from tuney.scale.tuning import Computed, Tuning, Type
+from tuney.scale.tuning import Computed, Tuning, TuningSource
 
 
 def test_tuning_uses_table_when_present() -> None:
-    assert Tuning(type=Type.table, table=Table(text='440'))(0) == 440
+    assert Tuning(type=TuningSource.table, table=Table(text='440'))(0) == 440
 
 
 def test_tuning_uses_computed_by_default() -> None:
@@ -20,7 +20,7 @@ def test_computed_tuning_rejects_zero_notes_per_octave() -> None:
 
 def test_empty_frequency_table_reports_configuration_error() -> None:
     with pytest.raises(ValueError, match='No frequency table configured'):
-        Tuning(type=Type.table, table=Table())(69)
+        Tuning(type=TuningSource.table, table=Table())(69)
 
 
 def test_empty_ratios_report_configuration_error() -> None:
@@ -43,12 +43,12 @@ def test_tuning_sources_require_positive_values(
 
 
 def test_tuning_uses_ratios_when_present() -> None:
-    assert Tuning(type=Type.ratios, ratios=Ratios(text='2'))(70) == 880
+    assert Tuning(type=TuningSource.ratios, ratios=Ratios(text='2'))(70) == 880
 
 
 def test_tuning_keeps_inactive_values() -> None:
     tuning = Tuning(
-        type=Type.table,
+        type=TuningSource.table,
         computed=Computed(notes_per_octave=19),
         table=Table(text='440'),
         ratios=Ratios(text='3; 2'),
@@ -72,7 +72,7 @@ def test_table_is_finite_but_tuney_keeps_notes_in_instrument_range() -> None:
     for note in (-1, 2):
         with pytest.raises(ValueError, match='outside'):
             table(note)
-    tuning = Tuning(type=Type.table, table=table)
+    tuning = Tuning(type=TuningSource.table, table=table)
     assert tuning(68) == 660
     assert tuning(71) == 440
     assert tuning.definition(69) == 440

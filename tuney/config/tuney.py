@@ -92,7 +92,7 @@ class Tuney(BaseModel):
     # Open the graphical interface
     gui: Annotated[bool, tyro_option('-g'), Hidden] = False
 
-    # Disable synthesized audio output
+    # Disable live synthesized sound; audio file output still renders offline
     silent: Annotated[bool, tyro_option('-s'), General, Beginner] = False
 
     # Speak the replay text along with the synthesized notes
@@ -116,7 +116,7 @@ class Tuney(BaseModel):
         str | None, General, Beginner, Options(options=voice_names)
     ] = None
 
-    # Audio file to write while playing text
+    # Write audio, or MIDI for .mid/.midi/.smf; silent mode renders audio offline
     output: Annotated[Path | None, tyro_option('-o'), Hidden] = None
 
     # If True, listen to the keyboard even when other applications are in front
