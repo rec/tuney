@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+from PySide6.QtWidgets import QMessageBox
 from reccy.configuration.units import Seconds
 
 from ..app.key_recorder import KeyRecorder
@@ -32,7 +35,8 @@ class HistoryState(BaseModel, frozen=True):
     tuney: dict[str, object]
     key_recorder: KeyRecorder = Field(default_factory=KeyRecorder)
     loop: LoopState = Field(default_factory=LoopState)
-    user_presets: dict[str, bytes] = Field(default_factory=user_preset_snapshot)
+    user_presets: dict[str, bytes | None] = Field(default_factory=dict)
+    expected_user_presets: dict[str, bytes | None] = Field(default_factory=dict)
 
 
 class History:
@@ -95,16 +99,30 @@ class History:
         self.redo_stack.clear()
 
     def undo(self, *_: object) -> None:
-        if not self.undo_stack:
-            return
-        self.redo_stack.append(self.state())
-        self.restore(self.undo_stack.pop())
+        self._restore_history(self.undo_stack, self.redo_stack)
 
     def redo(self, *_: object) -> None:
-        if not self.redo_stack:
-            return
-        self.undo_stack.append(self.state())
-        self.restore(self.redo_stack.pop())
+        self._restore_history(self.redo_stack, self.undo_stack)
+
+    @contextmanager
+    def preset_edit(self, names: list[str]) -> Iterator[None]:
+        state = self.state()
+        before = user_preset_snapshot(names)
+        try:
+            yield
+        finally:
+            after = user_preset_snapshot(names)
+            changed = [n for n in before if before[n] != after[n]]
+            if changed:
+                self.undo_stack.append(
+                    state.model_copy(
+                        update={
+                            'user_presets': {n: before[n] for n in changed},
+                            'expected_user_presets': {n: after[n] for n in changed},
+                        }
+                    )
+                )
+                self.redo_stack.clear()
 
     def clear_settings(self) -> None:
         self.checkpoint_undo()
@@ -123,12 +141,11 @@ class History:
                 replay_text=self.main_window.app.key_recorder.replay_text,
             ),
             loop=self.loop_state,
-            user_presets=user_preset_snapshot(),
         )
 
     def restore(self, state: HistoryState) -> None:
         window = self.main_window
-        restore_user_preset_snapshot(state.user_presets)
+        restore_user_preset_snapshot(state.user_presets, state.expected_user_presets)
         window.app.restore_data(state.tuney)
         window.app.key_recorder.start_time = state.key_recorder.start_time
         window.app.key_recorder.time_offset = state.key_recorder.time_offset
@@ -145,3 +162,23 @@ class History:
             window.load_autosave_action.setChecked(window.app.load_autosave)
         if hasattr(window, 'show_text_timings_action'):
             window.show_text_timings_action.setChecked(window.app.show_text_timings)
+
+    def _restore_history(
+        self, source: list[HistoryState], destination: list[HistoryState]
+    ) -> None:
+        if not source:
+            return
+        state = source[-1]
+        inverse = self.state().model_copy(
+            update={
+                'user_presets': state.expected_user_presets,
+                'expected_user_presets': state.user_presets,
+            }
+        )
+        try:
+            self.restore(state)
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self.main_window, 'Undo/Redo', str(error))
+            return
+        source.pop()
+        destination.append(inverse)

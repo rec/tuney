@@ -1,10 +1,12 @@
 import json
 import tomllib
+from contextlib import ExitStack
 from pathlib import Path
 from typing import TypeIs
 
 import tomlkit
 
+from ..app.file_output import atomic_output
 from ..config.serialize import serialize
 
 BUILTIN_PRESETS = Path(__file__).resolve().parent
@@ -85,23 +87,35 @@ def delete_presets(names: list[str]) -> None:
                 path.unlink()
 
 
-def user_preset_snapshot() -> dict[str, bytes]:
-    if not USER_PRESETS.exists():
-        return {}
+def user_preset_snapshot(names: list[str]) -> dict[str, bytes | None]:
     return {
-        path.name: path.read_bytes()
-        for path in sorted(USER_PRESETS.iterdir())
-        if path.suffix in PRESET_SUFFIXES
+        p.name: p.read_bytes() if p.exists() else None
+        for n in names
+        for p in _user_preset_paths(n)
     }
 
 
-def restore_user_preset_snapshot(snapshot: dict[str, bytes]) -> None:
+def restore_user_preset_snapshot(
+    snapshot: dict[str, bytes | None], expected: dict[str, bytes | None]
+) -> None:
+    if not snapshot:
+        return
+    for name in snapshot:
+        path = USER_PRESETS / name
+        current = path.read_bytes() if path.exists() else None
+        if current != expected[name]:
+            raise ValueError(
+                f'Preset {name} changed outside this edit; undo/redo cancelled'
+            )
     USER_PRESETS.mkdir(parents=True, exist_ok=True)
-    for path in USER_PRESETS.iterdir():
-        if path.suffix in PRESET_SUFFIXES:
-            path.unlink()
+    with ExitStack() as writers:
+        for name, data in snapshot.items():
+            if data is not None:
+                output = writers.enter_context(atomic_output(USER_PRESETS / name))
+                output.write_bytes(data)
     for name, data in snapshot.items():
-        (USER_PRESETS / name).write_bytes(data)
+        if data is None:
+            (USER_PRESETS / name).unlink(missing_ok=True)
 
 
 def read_preset(name: str) -> dict[str, object]:

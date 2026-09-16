@@ -45,6 +45,12 @@ current export. Test failure before opening and midway through writing.
 
 ### 2. Undo can delete presets unrelated to the action being undone
 
+**Resolved:** Only explicit preset edits capture preset files, and only changed
+files enter undo history. Undo/redo verifies expected contents and reports a
+conflict rather than overwriting external changes. Writes are staged before
+replacement; ordinary text/settings history does no preset I/O. Tests cover
+undo/redo isolation, conflicts, and a failure while writing restored files.
+
 **Evidence:** [History.restore](../tuney/ui/history.py) always calls
 `restore_user_preset_snapshot`. That function in
 [preset.py](../tuney/presets/preset.py) deletes every TOML/JSON file in the preset
