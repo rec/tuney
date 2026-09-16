@@ -2480,6 +2480,23 @@ def test_cli_mode_requires_sound() -> None:
         App(silent=True, text='a').run()
 
 
+def test_silent_cli_can_play_midi_without_opening_audio(monkeypatch) -> None:
+    app = App(silent=True, text=[CharPress('a'), CharPress('a', False)])
+    app.midi.output.enable = True
+    sent: list[bool] = []
+    monkeypatch.setattr(
+        type(app.midi.output),
+        'send_note',
+        lambda self, note, is_press: sent.append(is_press),
+    )
+    monkeypatch.setattr(
+        Player, 'on_note', lambda *args: pytest.fail('audio was opened')
+    )
+    app.run_cli()
+    assert sent == [True, False]
+    assert 'player' not in app.__dict__
+
+
 def test_output_forces_cli_mode() -> None:
     app = App(gui=True, output=Path('out.wav'))
 
