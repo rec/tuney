@@ -1,3 +1,4 @@
+$ tuney --help
 usage: tuney [-h] [OPTIONS] [TUNING.COMPUTED] [TUNING.TABLE] [TUNING.RATIOS]
 
 Turn text into music. Use positional `TEXT` to play characters as notes, then tune the scale, audio, MIDI, and timing from the same config model.
