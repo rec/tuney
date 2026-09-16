@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chardet>=7.4.3",
-    "enge",
+    "enge @ https://github.com/rec/enge/archive/7995d052e50037cea3a39e7385182bdd38d227d1.tar.gz",
     "mido>=1.3.3",
     "numpy>=2.4.1",
     "pydantic>=2.13.3",
@@ -14,12 +14,12 @@ dependencies = [
     "pyside6>=6.11.1",
     "python-rtmidi>=1.5.8",
     "pyttsx3>=2.99",
-    "reccy",
+    "reccy @ https://github.com/rec/reccy/archive/349ee5a9cf3e124aa17b5ddee610257d74e2d9c9.tar.gz",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
     "tomlkit>=0.15.0",
     "tyro>=1.0.13",
-    "ufor @ https://github.com/rec/ufor/archive/9fa9d39f356613285e4ec5e55bdb3d894bfd8dbf.tar.gz",
+    "ufor @ https://github.com/rec/ufor/archive/2e5b02ea97aa05b9229d836795da298f51b1be49.tar.gz",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
