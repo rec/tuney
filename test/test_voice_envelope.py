@@ -1,0 +1,73 @@
+from io import BytesIO
+
+import numpy as np
+import pytest
+import soundfile
+from pytest_regressions.file_regression import FileRegressionFixture
+from ufor.oscillator import Waveform
+
+from tuney.audio.oscillator import Oscillator
+from tuney.audio.sound import Binaural
+from tuney.audio.voice import Voice, VoiceState
+
+
+@pytest.mark.parametrize('binaural', [False, True], ids=['mono', 'binaural'])
+@pytest.mark.parametrize('scenario', ['early_release', 'fractional_hold', 'immediate'])
+def test_shared_envelope_preserves_tuney_audio(
+    file_regression: FileRegressionFixture, scenario: str, binaural: bool
+) -> None:
+    voice = Voice(
+        frequency=100,
+        gain=0.37,
+        sample_rate=48000,
+        fade_in=0 if scenario == 'immediate' else 0.2,
+        fade_out=0 if scenario == 'immediate' else 0.05003125,
+        minimum_note_time=0.10003125 if scenario == 'fractional_hold' else 0,
+        oscillator=Oscillator(waveform=Waveform.sine),
+        binaural=Binaural(enable=binaural, frequency=20, width=0.3),
+    )
+    frames = np.arange(48000)
+    release = max(1200, voice.minimum_note_time * 48000)
+    attack = (
+        np.ones(48000)
+        if voice.fade_in == 0
+        else np.clip(frames / (voice.fade_in * 48000), 0, 1)
+    )
+    if voice.fade_out == 0:
+        envelope = attack * (frames < release)
+    else:
+        captured = min(1, release / (voice.fade_in * 48000))
+        envelope = np.where(
+            frames < release,
+            attack,
+            captured * np.clip(1 - (frames - release) / (voice.fade_out * 48000), 0, 1),
+        )
+    if binaural:
+        low = np.sin(2 * np.pi * frames * 90 / 48000)
+        high = np.sin(2 * np.pi * frames * 110 / 48000)
+        expected = np.column_stack([0.65 * low + 0.35 * high, 0.35 * low + 0.65 * high])
+    else:
+        expected = np.sin(2 * np.pi * frames * 100 / 48000)[:, None]
+    expected *= envelope[:, None] * voice.gain
+
+    outputs: list[np.ndarray] = []
+    for block in (997, 1024):
+        state = VoiceState(voice=voice)
+        chunks: list[np.ndarray] = []
+        start = 0
+        while start < 48000:
+            if start == 1200:
+                assert state.release()
+                assert not state.release()
+            end = min(start + block, 1200 if start < 1200 else 48000)
+            chunks.append(state.render(end - start))
+            start = end
+        actual = np.concatenate(chunks).reshape(48000, -1)
+        assert state.complete
+        assert np.all(np.isfinite(actual))
+        np.testing.assert_allclose(actual, expected, atol=1e-10, rtol=1e-9)
+        outputs.append(actual)
+    np.testing.assert_allclose(outputs[0], outputs[1], atol=1e-12, rtol=1e-12)
+    wav = BytesIO()
+    soundfile.write(wav, outputs[0], 48000, format='WAV', subtype='PCM_16')
+    file_regression.check(wav.getvalue(), binary=True, extension='.wav')
