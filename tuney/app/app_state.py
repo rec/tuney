@@ -9,6 +9,7 @@ from pathlib import Path
 
 import tomlkit
 from reccy.configuration import units
+from reccy.runtime.files import atomic_output
 from ufor.accidentals import Accidentals
 
 from ..audio.player import Player
@@ -17,7 +18,6 @@ from ..config.text_file import read_text_file
 from ..presets.preset import is_str_dict, merged_data, read_preset
 from ..scale.tuning import Computed, TuningSource
 from .app_runtime import AppRuntime
-from .file_output import atomic_output
 from .platform_info import instrument
 
 

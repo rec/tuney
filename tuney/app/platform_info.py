@@ -11,6 +11,7 @@ from typing import NoReturn
 from urllib.parse import urlencode
 
 from reccy.runtime import logging
+from reccy.runtime.claims import ResourceClaim, ResourceClaimConflict
 
 XDG_STATE_HOME = 'XDG_STATE_HOME'
 XDG_CONFIG_HOME = 'XDG_CONFIG_HOME'
@@ -22,8 +23,7 @@ ISSUE_URL = 'https://github.com/rec/tuney/issues/new'
 MAX_ISSUE_BODY = 6000
 APP_USER_MODEL_ID = 'rec.tuney.Tuney'
 
-_instance_lock_fd: int | None = None
-_instance_lock_path: Path | None = None
+_instance_claim: ResourceClaim | None = None
 LOGGER = logging.get_logger(__name__)
 
 
@@ -131,47 +131,24 @@ def mark_session_clean_exit() -> None:
 
 
 def acquire_single_instance() -> bool:
-    global _instance_lock_fd, _instance_lock_path
+    global _instance_claim
 
-    if _instance_lock_fd is not None:
+    if _instance_claim is not None:
         return True
-    path = instance_lock_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    for _ in range(2):
-        try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            if _marker_process_is_alive(path):
-                return False
-            try:
-                path.unlink()
-            except OSError:
-                return False
-            continue
-        except OSError:
-            return False
-        try:
-            os.write(fd, str(os.getpid()).encode())
-        except OSError:
-            os.close(fd)
-            path.unlink(missing_ok=True)
-            return False
-        _instance_lock_fd = fd
-        _instance_lock_path = path
-        return True
-    return False
+    try:
+        _instance_claim = ResourceClaim(instance_lock_path()).acquire()
+    except ResourceClaimConflict:
+        return False
+    return True
 
 
 def release_single_instance() -> None:
-    global _instance_lock_fd, _instance_lock_path
+    global _instance_claim
 
-    fd, path = _instance_lock_fd, _instance_lock_path
-    _instance_lock_fd = None
-    _instance_lock_path = None
-    if fd is not None:
-        os.close(fd)
-    if path is not None and _marker_pid(path) == os.getpid():
-        path.unlink(missing_ok=True)
+    claim = _instance_claim
+    _instance_claim = None
+    if claim is not None:
+        claim.release()
 
 
 def _marker_process_is_alive(path: Path) -> bool:

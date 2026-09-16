@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import TypeIs
 
 import tomlkit
+from reccy.runtime.files import atomic_output
 
-from ..app.file_output import atomic_output
 from ..config.serialize import serialize
 
 BUILTIN_PRESETS = Path(__file__).resolve().parent

@@ -4,10 +4,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 import soundfile
+from reccy.runtime.files import atomic_output
 
 from tuney.app.app import App
 from tuney.app.audio_recorder import AudioRecorder
-from tuney.app.file_output import atomic_output
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 

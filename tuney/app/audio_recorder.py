@@ -7,10 +7,10 @@ from pathlib import Path
 from shutil import copyfile
 
 from pydantic import BaseModel
+from reccy.runtime.files import atomic_output
 
 from ..audio.player import Player
 from ..ui.state import Action, State, StateChange
-from .file_output import atomic_output
 from .platform_info import instrument
 
 

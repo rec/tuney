@@ -5,7 +5,8 @@ from typing import Annotated, get_origin
 
 import pytest
 import tomlkit
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from reccy.configuration import units
 
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -124,6 +125,14 @@ def test_set_model_value_validates_and_clears_cached_values(
             'after': mapper.char_to_number['b'],
         },
     )
+
+    tuning = Tuning(root_frequency='440Hz')
+    control_panel._set_model_value(tuning, 'root_note', 70)
+    assert tuning.root_note == 70
+    assert units.authored_dump(tuning)['root_frequency'] == '440Hz'
+    with pytest.raises(ValidationError):
+        control_panel._set_model_value(tuning, 'root_frequency', '0Hz')
+    assert units.authored_dump(tuning)['root_frequency'] == '440Hz'
 
 
 def test_options_accept_fixed_list() -> None:

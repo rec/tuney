@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 
 import tomlkit
+from reccy.runtime.files import atomic_output
 
 from ..audio.mixer import NotePress
 from ..audio.speech import SpeechPlayback, SpeechRequest, render_speech
@@ -16,7 +17,6 @@ from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.units import to_ms
 from .app_state import AppState
-from .file_output import atomic_output
 from .key_recorder import last_char_index, speech_phrases
 from .platform_info import exit_with_message, report_error, trace
 

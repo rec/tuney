@@ -6,9 +6,9 @@ from pathlib import Path
 
 import tomlkit
 from pydantic import BaseModel, Field, field_validator
+from reccy.runtime.files import atomic_output
 
 from ..ui.theme import ThemeName
-from .file_output import atomic_output
 from .platform_info import app_config_dir, report_error
 
 GLOBAL_CONFIG_FILE = 'global.toml'
