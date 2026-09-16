@@ -1,5 +1,6 @@
 import os
 import signal
+import sys
 import tempfile
 from importlib.metadata import version
 from pathlib import Path
@@ -33,6 +34,7 @@ from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 
 
 def run(names: list[str]) -> None:
+    _qt_app = QApplication.instance() or QApplication([])
     for name in names:
         globals()[name]()
 
@@ -1179,3 +1181,7 @@ class HistoryApp:
 
     def _config_path(self) -> Path:
         return MainWindow._config_path(self)
+
+
+if __name__ == '__main__':
+    run(sys.argv[1:])
