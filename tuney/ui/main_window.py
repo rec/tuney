@@ -597,6 +597,7 @@ class MainWindow(QtWidgets.QMainWindow):
             while not midi_device_queue.empty():
                 self._on_midi_devices_changed(midi_device_queue.get())
         if engine := self.app.player.__dict__.get('engine'):
+            engine.process_notifications()
             for error in engine.diagnostics.take_errors():
                 self.show_audio_error(error)
 

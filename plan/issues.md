@@ -66,6 +66,12 @@ operation. Preserve unrelated files and avoid deleting the collection first.
 
 ### 3. Audio callback performs disk writes, logging, and model construction
 
+**Resolved:** Voice models are prepared at submission. Recording uses a bounded
+queue and a writer thread; stopping drains and closes it, propagating failures.
+Callback diagnostics and settings persistence are deferred to GUI polling or CLI
+cleanup. Tests check thread ownership, sample preservation, writer failure,
+overload, and stopping during a write. Hardware latency remains unmeasured.
+
 **Evidence:** [AudioEngine.callback and _drain_commands](../tuney/audio/engine.py)
 write recorded blocks synchronously, log status/commands, and call `Mixer.apply`.
 [Mixer.apply](../tuney/audio/mixer.py) calls `voice_maker` and constructs
@@ -113,6 +119,11 @@ improving the current session. The test checks the field and log, not the stream
 distinguish requested settings from the active stream's actual configuration.
 
 ### 6. Recording stop can race with callback writes
+
+**Resolved with issue 3:** The callback retains a local recording reference.
+Recording serializes queue submission and stop, then joins the writer before
+closing its file. Late submissions are ignored after stop. A test holds a write
+in progress while another thread stops, and verifies intact recorded samples.
 
 **Evidence:** [Player.stop_recording](../tuney/audio/player.py) detaches and closes
 the writer directly. [AudioEngine.callback](../tuney/audio/engine.py) checks

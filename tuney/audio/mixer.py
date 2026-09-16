@@ -28,12 +28,17 @@ class Mixer(BaseModel):
     voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
-    def apply(self, note: NotePress) -> bool:
+    def apply(self, note: NotePress, prepared: VoiceState | None = None) -> bool:
         note_number = note.note_number
         if note.is_press:
             if note_number in self.voices:
                 return False
-            voice = self.voice_maker(note_number)
+            state = (
+                prepared
+                if prepared is not None
+                else VoiceState(voice=self.voice_maker(note_number))
+            )
+            voice = state.voice
             voice_count = _voice_count(voice)
             while (
                 self.pressed_notes
@@ -42,10 +47,8 @@ class Mixer(BaseModel):
             ):
                 self._release_oldest()
             phase = self.frame_count % voice.period_samples
-            self.voices[note_number] = VoiceState(
-                voice=voice,
-                phase=phase if self.synchronize_oscillators else 0,
-            )
+            state.phase = phase if self.synchronize_oscillators else 0
+            self.voices[note_number] = state
             self.pressed_notes.append(note_number)
             return True
 

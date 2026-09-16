@@ -14,6 +14,7 @@ from .device import Device
 from .engine import AudioEngine, Configure, PlaySpeech, StopAll
 from .mixer import Mixer, NotePress
 from .output_file import AudioFileWriter, render_file
+from .recording import Recording
 from .sound import Sound
 from .speech import SpeechPhrase, SpeechPlayback, SpeechRequest, render_speech
 from .voice import Voice
@@ -158,9 +159,12 @@ class Player(BaseModel, frozen=True):
         append: bool = False,
     ) -> None:
         instrument('player start recording', path=path, append=append)
+        self.stop_recording()
         stream = self.engine.stream
-        self.engine.recorder = AudioFileWriter(
-            path, int(stream.samplerate), stream.channels, comment, append
+        self.engine.recorder = Recording(
+            AudioFileWriter(
+                path, int(stream.samplerate), stream.channels, comment, append
+            )
         )
 
     def stop_recording(self) -> None:
@@ -272,7 +276,10 @@ class Player(BaseModel, frozen=True):
         instrument('player close')
         self.pressed_notes.clear()
         if 'engine' in self.__dict__:
-            self.engine.close()
+            try:
+                self.engine.close()
+            finally:
+                self.stop_recording()
 
     def wait(self, timeout: float | None = None) -> None:
         instrument('player wait', timeout=timeout)

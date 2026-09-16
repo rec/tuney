@@ -486,6 +486,9 @@ def test_audio_diagnostics_use_reportable_dialog() -> None:
     class FakeEngine:
         diagnostics = FakeDiagnostics()
 
+        def process_notifications(self) -> None:
+            pass
+
     class FakePlayer:
         def __init__(self) -> None:
             self.engine = FakeEngine()

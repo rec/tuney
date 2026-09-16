@@ -21,6 +21,7 @@ from tuney.audio.oscillator import Oscillator
 from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
+from tuney.audio.recording import Recording
 from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
@@ -112,6 +113,7 @@ def test_callback_records_status_without_printing(
     engine = AudioEngine(mixer=_renderer().mixer)
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
+    engine.process_notifications()
 
     assert engine.diagnostics.callback_statuses == ['underflow; buffer_size=32']
     assert capsys.readouterr().out == ''
@@ -131,6 +133,8 @@ def test_underflow_increases_buffer_size() -> None:
     )
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'output underflow')
+    assert engine.buffer_size == 32
+    engine.process_notifications()
 
     assert engine.buffer_size == 64
     assert engine.diagnostics.callback_statuses == ['output underflow; buffer_size=64']
@@ -145,6 +149,7 @@ def test_underflow_logs_buffer_size(caplog) -> None:
     )
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'output underflow')
+    engine.process_notifications()
 
     assert any(
         'output underflow; buffer_size=64' in message for message in caplog.messages
@@ -358,11 +363,15 @@ def test_player_recording_uses_integer_stream_sample_rate(
         ) -> None:
             sample_rates.append(sample_rate)
 
+        def close(self) -> None:
+            pass
+
     monkeypatch.setattr('tuney.audio.player.AudioFileWriter', Writer)
     player = Player()
     player.engine.stream.samplerate = 44_100.0
 
     player.start_recording(tmp_path / 'out.wav')
+    player.stop_recording()
 
     assert sample_rates == [44_100]
 
@@ -373,15 +382,16 @@ def test_callback_failure_is_recorded() -> None:
     with pytest.raises(CallbackAbort):
         engine.callback(np.zeros((4, 1)), 4, 0.0, None)
 
+    engine.process_notifications()
     assert engine.diagnostics.take_errors() == ['cannot render block']
 
 
 def test_engine_records_rendered_callback_block(tmp_path) -> None:
     path = tmp_path / 'out.wav'
     engine = AudioEngine(mixer=_renderer().mixer)
-    engine.recorder = AudioFileWriter(path, SAMPLE_RATE, 1)
+    engine.recorder = Recording(AudioFileWriter(path, SAMPLE_RATE, 1))
     engine.submit(NotePress(0))
-    out = np.zeros((1_024, 1), dtype=np.float32)
+    out = np.zeros((SAMPLE_RATE, 1), dtype=np.float32)
 
     engine.callback(out, len(out), None, None)
     engine.recorder.close()
