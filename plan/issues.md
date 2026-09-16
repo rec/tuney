@@ -205,6 +205,9 @@ and make the two muting controls' relationship clear.
 
 ### 10. Wall-clock changes affect performance timing
 
+**Resolved:** Sequencer uses monotonic time. A deterministic clock test jumps
+wall time forward and backward while checking exact event deadlines and waits.
+
 **Evidence:** [Sequencer._run](../tuney/time/sequencer.py) computes elapsed time
 with `time.time()`.
 
