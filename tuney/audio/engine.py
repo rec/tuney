@@ -14,10 +14,10 @@ from ..app.platform_info import instrument, trace
 from .device import Device, output_device
 from .diagnostics import AudioDiagnostics
 from .mixer import Mixer, NotePress
-from .output_file import AudioFileWriter
 from .polyphony import Polyphony
+from .recording import Recording
 from .speech import SpeechPlayback
-from .voice import Voice
+from .voice import Voice, VoiceState
 
 
 @runtime_checkable
@@ -45,6 +45,11 @@ class StopAll:
     pass
 
 
+class PreparedNote(BaseModel, frozen=True):
+    note: NotePress
+    voice: VoiceState | None = None
+
+
 class PlaySpeech(BaseModel, frozen=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -60,13 +65,21 @@ class AudioEngine(BaseModel):
     increase_buffer_size: Callable[[], int] | None = Field(default=None, exclude=True)
     device: Device = Field(default_factory=Device)
     diagnostics: AudioDiagnostics = Field(default_factory=AudioDiagnostics)
-    recorder: AudioFileWriter | None = Field(default=None, exclude=True)
+    recorder: Recording | None = Field(default=None, exclude=True)
     speech: SpeechPlayback | None = Field(default=None, exclude=True)
     stop_when_silent: bool = False
 
     @cached_property
-    def commands(self) -> SimpleQueue[NotePress | Configure | PlaySpeech | StopAll]:
+    def commands(self) -> SimpleQueue[PreparedNote | Configure | PlaySpeech | StopAll]:
         return SimpleQueue()
+
+    @cached_property
+    def notifications(self) -> SimpleQueue[tuple[bool, str]]:
+        return SimpleQueue()
+
+    @cached_property
+    def voice_maker(self) -> Callable[[NoteNumber], Voice]:
+        return self.mixer.voice_maker
 
     @cached_property
     def playback_complete(self) -> Event:
@@ -108,7 +121,40 @@ class AudioEngine(BaseModel):
 
     def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> None:
         trace('audio command submit', command=type(command).__name__)
-        self.commands.put(command)
+        if isinstance(command, Configure):
+            self.__dict__['voice_maker'] = command.voice_maker
+        if isinstance(command, NotePress):
+            voice = (
+                VoiceState(voice=self.voice_maker(command.note_number))
+                if command.is_press
+                else None
+            )
+            self.commands.put(PreparedNote(note=command, voice=voice))
+        else:
+            self.commands.put(command)
+
+    def process_notifications(self) -> None:
+        if (recorder := self.recorder) is not None:
+            if recorder.error is not None and not recorder.error_reported:
+                recorder.error_reported = True
+                self.diagnostics.record_callback_error(
+                    f'Recording failed: {recorder.error}'
+                )
+        while True:
+            try:
+                failed, message = self.notifications.get_nowait()
+            except Empty:
+                return
+            if failed:
+                instrument('audio callback error', error=message)
+                self.diagnostics.record_callback_error(message)
+            else:
+                if 'underflow' in message.lower():
+                    if self.increase_buffer_size is not None:
+                        self.buffer_size = self.increase_buffer_size()
+                    message = f'{message}; buffer_size={self.buffer_size}'
+                instrument('audio callback status', status=message)
+                self.diagnostics.record_callback_status(message)
 
     def start(self) -> None:
         self.playback_complete.clear()
@@ -131,6 +177,7 @@ class AudioEngine(BaseModel):
         if stream := self.__dict__.pop('stream', None):
             stream.stop()
             stream.close()
+        self.process_notifications()
         self.__dict__.pop('commands', None)
         self.mixer.pressed_notes.clear()
         self.mixer.voices.clear()
@@ -152,18 +199,13 @@ class AudioEngine(BaseModel):
                     instrument('audio stream wait timeout')
                 stream.stop()
                 instrument('audio stream stopped after wait')
+        self.process_notifications()
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: object, status: object
     ) -> None:
         if status:
-            status_text = str(status)
-            if 'underflow' in status_text.lower():
-                if self.increase_buffer_size is not None:
-                    self.buffer_size = self.increase_buffer_size()
-                status_text = f'{status_text}; buffer_size={self.buffer_size}'
-            instrument('audio callback status', status=status_text)
-            self.diagnostics.record_callback_status(status_text)
+            self.notifications.put((False, str(status)))
 
         try:
             self._drain_commands()
@@ -174,13 +216,12 @@ class AudioEngine(BaseModel):
                     self.speech = None
             mixed *= self.master_gain
             out[:] = mixed.astype(out.dtype, copy=False)
-            if self.recorder:
-                self.recorder.write(out)
+            if (recorder := self.recorder) is not None:
+                recorder.write(out)
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
             from sounddevice import CallbackAbort
 
-            instrument('audio callback error', error=repr(error))
-            self.diagnostics.record_callback_error(str(error))
+            self.notifications.put((True, str(error)))
             self.playback_complete.set()
             raise CallbackAbort from error
         if self.stop_when_silent and not self.mixer.voices:
@@ -193,25 +234,16 @@ class AudioEngine(BaseModel):
             except Empty:
                 return
 
-            if isinstance(command, NotePress):
-                trace(
-                    'audio command apply',
-                    command='NotePress',
-                    note=command.note_number,
-                    is_press=command.is_press,
-                )
+            if isinstance(command, PreparedNote):
                 self.stop_when_silent = False
-                self.mixer.apply(command)
+                self.mixer.apply(command.note, command.voice)
             elif isinstance(command, Configure):
-                trace('audio command apply', command='Configure')
                 self.mixer.voice_maker = command.voice_maker
                 self.mixer.polyphony = command.polyphony
                 self.mixer.synchronize_oscillators = command.synchronize_oscillators
             elif isinstance(command, PlaySpeech):
-                trace('audio command apply', command='PlaySpeech')
                 self.speech = command.speech
             else:
-                trace('audio command apply', command='StopAll')
                 self.stop_when_silent = True
                 self.speech = None
                 self.mixer.stop_all()

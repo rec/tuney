@@ -54,6 +54,13 @@ The audio callback is real-time code. Do not put GUI calls, blocking I/O,
 logging, model validation, or stream construction in it. Send work to the audio
 engine through its command queue.
 
+Note submission prepares voices before the callback consumes them. Recording
+copies blocks into a bounded queue; a writer thread drains it. Stopping waits
+for queued writes before closing the file and reports write failures or queue
+overflow. Callback diagnostics and buffer-setting persistence run when the GUI
+polls the engine, or after CLI playback stops. These changes preserve synthesis
+and recording samples; they do not guarantee real-time deadlines in Python.
+
 Audio and MIDI use the same route from a `CharPress` through the mapper, scale,
 and tuning. Offline rendering constructs an equivalent mixer without opening a
 live stream. Keep audio-device, MIDI-device, keyboard, and platform effects at
