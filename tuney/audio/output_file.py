@@ -73,14 +73,15 @@ def render_file(
             _set_comment(file, comment())
 
         for frame, note in events:
-            if frame > rendered:
+            while frame > rendered:
+                count = min(BLOCK_SIZE, frame - rendered)
                 file.write(
                     _mastered(
-                        mixer.render(frame - rendered, np.float32, channels),
+                        mixer.render(count, np.float32, channels),
                         master_gain,
                     )
                 )
-                rendered = frame
+                rendered += count
             mixer.apply(note)
 
         mixer.stop_all()
