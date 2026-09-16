@@ -147,9 +147,10 @@ def test_cli_help_gives_expected_public_options_a_short_alias(
         if _has_option(line, OPTIONS_WITHOUT_SHORT_ALIAS)
     ]
     short_options = [
-        SHORT_OPTION_RE.search(line).group(0)
+        match.group(0)
         for line in lines_with_short_alias
         if not re.search(r'--no-[a-z0-9-]+\b', line)
+        and (match := SHORT_OPTION_RE.search(line))
     ]
 
     assert len(short_options) == len(set(short_options))
