@@ -337,6 +337,11 @@ then align the code and documentation.
 
 ### 17. Missing or malformed configuration gets inconsistent CLI errors
 
+**Resolved:** Expected file and parse errors during configuration/preset loading
+use the existing concise exit-message path. Tests cover missing files, malformed
+TOML/JSON, invalid document shape, unknown extensions/presets, and propagation of
+unexpected runtime errors. The new catch is limited to reading startup inputs.
+
 **Evidence:** [main](../tuney/app/main.py) catches `ValidationError` and
 `FileExistsError`, but [read_file/read_preset](../tuney/presets/preset.py) can
 raise `FileNotFoundError`, TOML/JSON parse errors, or plain `ValueError` for an
