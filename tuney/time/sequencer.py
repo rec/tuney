@@ -33,12 +33,12 @@ class Sequencer(BaseModel, Runnable, frozen=True):
     def _run(self) -> None:
         try:
             self.stop_event.clear()
-            start: Seconds = time.time()
+            start: Seconds = time.monotonic()
             for cp in self.char_presses:
                 while True:
                     if not self._running:
                         return
-                    elapsed_ms = to_ms(time.time() - start)
+                    elapsed_ms = to_ms(time.monotonic() - start)
                     if (next_time := max(0, cp.time - elapsed_ms)) <= 0:
                         self.callback(cp)
                         break
