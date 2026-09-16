@@ -4,13 +4,14 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
 from ..app.platform_info import instrument
 from ..presets.preset import delete_presets, preset_names, read_file, write_preset
+from ..time.char_press import CharPress
 from . import main_menu
 from .export_dialog import ExportDialog
 from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
@@ -206,13 +207,22 @@ def on_copy_text(main_window: MainWindow, *_: object) -> None:
 
 def on_paste_text(main_window: MainWindow, *_: object) -> None:
     instrument('ui paste text')
-    text = main_window.qt_app.clipboard().text()
-    if not text:
-        return
+    clipboard = main_window.qt_app.clipboard()
+    mime = clipboard.mimeData()
+    if mime is not None and mime.hasFormat(CHAR_PRESSES_MIME):
+        try:
+            presses = TypeAdapter(list[CharPress]).validate_json(
+                bytes(mime.data(CHAR_PRESSES_MIME).data())
+            )
+        except ValidationError as error:
+            QMessageBox.critical(main_window, 'Paste text', str(error))
+            return
+    else:
+        if not (text := clipboard.text()):
+            return
+        presses = list(main_window.app.text_timings.char_presses(text))
     with main_window.history.text_edit():
-        main_window.app.__dict__['char_presses'] = list(
-            main_window.app.text_timings.char_presses(text)
-        )
+        main_window.app.__dict__['char_presses'] = presses
         main_window.app.key_recorder.clear()
     main_window.update_text_display()
 

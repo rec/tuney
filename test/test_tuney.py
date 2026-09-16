@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 import mido
 import pytest
+from PySide6.QtCore import QMimeData
 
 from tuney.app import platform_info
 from tuney.app.app import App
@@ -785,6 +786,9 @@ class _FakeClipboard:
 
     def setMimeData(self, mime: object) -> None:
         self.mime = mime
+
+    def mimeData(self) -> QMimeData | None:
+        return self.mime
 
     def text(self) -> str:
         return self._text
@@ -2193,6 +2197,35 @@ def test_copy_text_exports_text_and_char_presses_json() -> None:
         {'char': 'a', 'is_press': True, 'time': 0.0},
         {'char': 'a', 'is_press': False, 'time': 100.0},
     ]
+    destination = App(gui=True, text='old')
+    pasted = _TextClipboardWindow(destination, clipboard)
+    on_paste_text(pasted)
+    assert destination.char_presses == app.char_presses
+    assert pasted.undo_count == 1
+    assert pasted.update_count == 1
+
+
+@pytest.mark.parametrize('payload', [b'not json', b'{}', b'[{"time":"later"}]'])
+def test_invalid_clipboard_timing_keeps_current_text(
+    monkeypatch, payload: bytes
+) -> None:
+    app = App(gui=True, text='old')
+    original = list(app.char_presses)
+    clipboard = _FakeClipboard('replacement')
+    mime = QMimeData()
+    mime.setData(CHAR_PRESSES_MIME, payload)
+    clipboard.setMimeData(mime)
+    window = _TextClipboardWindow(app, clipboard)
+    errors: list[str] = []
+    monkeypatch.setattr(
+        'tuney.ui.file_commands.QMessageBox.critical',
+        lambda parent, title, message: errors.append(message),
+    )
+    on_paste_text(window)
+    assert errors
+    assert app.char_presses == original
+    assert window.undo_count == 0
+    assert window.update_count == 0
 
 
 def test_paste_text_replaces_text_with_timed_clipboard_text() -> None:

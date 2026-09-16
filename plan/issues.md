@@ -405,6 +405,11 @@ actual paths and sibling setup, and order installation instructions by prerequis
 
 ### 20. Copying text records timing metadata that pasting ignores
 
+**Resolved:** Paste uses and validates Tuney's event metadata when present,
+preserving press/release timing. External plain text retains generated timings.
+Invalid event metadata reports an error without changing text or undo history.
+Tests cover a copy/paste round trip, plain text, and malformed metadata.
+
 **Evidence:** [on_copy_text](../tuney/ui/file_commands.py) writes a custom
 `application/x-tuney-char-presses+json` payload. `on_paste_text` reads only plain
 text and generates fresh timings; no other consumer reads that MIME type.
