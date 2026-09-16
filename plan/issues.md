@@ -112,6 +112,12 @@ event sequence, including overlapping characters mapped to the same note.
 
 ### 5. Reported buffer growth does not resize the active audio stream
 
+**Resolved:** Deferred underflow handling recreates an existing stream with the
+new block size, preserving mixer voices, queued commands, and recording. A batch
+of underflows increases the setting once. GUI polling or subsequent playback
+submission applies it outside the callback. A fake-stream test verifies actual
+block size and uninterrupted synthesized samples across stream replacement.
+
 **Evidence:** [AudioEngine.stream](../tuney/audio/engine.py) reads `buffer_size`
 only when constructing the cached stream. Underflow handling changes the Python
 field and saves it, but does not replace the active stream.

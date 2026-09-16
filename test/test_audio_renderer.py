@@ -176,6 +176,62 @@ def test_underflow_logs_buffer_size(caplog) -> None:
     )
 
 
+def test_underflow_resizes_stream_without_resetting_notes(
+    monkeypatch, file_regression
+) -> None:
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    increases: list[int] = []
+
+    def increase() -> int:
+        increases.append(64)
+        return 64
+
+    engine = AudioEngine(mixer=_renderer().mixer, increase_buffer_size=increase)
+    engine.submit(NotePress(0))
+    engine.start()
+    original = engine.stream
+    first = np.zeros((24_000, 1))
+    engine.callback(first, len(first), None, 'output underflow')
+    second = np.zeros((24_000, 1))
+    engine.callback(second, len(second), None, 'output underflow')
+    assert engine.stream is original
+    assert increases == []
+    engine.process_notifications()
+    assert not original.active
+    assert original.closed
+    assert engine.stream is not original
+    assert engine.stream.blocksize == 64
+    assert engine.stream.active
+    assert increases == [64]
+    assert engine.diagnostics.callback_statuses[0] == (
+        'output underflow; buffer_size=64; active_blocksize=32'
+    )
+    last = np.zeros((48_000, 1))
+    engine.callback(last, len(last), None, None)
+    engine.close()
+    audio = np.concatenate([first, second, last])
+    expected = _renderer()
+    expected.apply(NotePress(0))
+    np.testing.assert_allclose(audio, expected.render([], len(audio)), atol=1e-11)
+    file_regression.check(_wav(audio), binary=True, extension='.wav')
+
+
+def test_failed_buffer_resize_reports_device_error(monkeypatch) -> None:
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    engine = AudioEngine(mixer=_renderer().mixer, increase_buffer_size=lambda: 64)
+    engine.start()
+
+    def fail(**kwargs: object) -> None:
+        raise PortAudioError('cannot reopen device')
+
+    monkeypatch.setattr(sounddevice, 'OutputStream', fail)
+    engine.notifications.put((False, 'output underflow'))
+    engine.process_notifications()
+    assert engine.diagnostics.take_errors() == ['cannot reopen device']
+    assert engine.playback_complete.is_set()
+    assert 'stream' not in engine.__dict__
+
+
 def test_engine_master_gain_scales_output() -> None:
     engine = AudioEngine(mixer=_renderer().mixer, master_gain=0.25)
     engine.submit(NotePress(0))

@@ -140,23 +140,43 @@ class AudioEngine(BaseModel):
                 self.diagnostics.record_callback_error(
                     f'Recording failed: {recorder.error}'
                 )
+        increased = False
         while True:
             try:
                 failed, message = self.notifications.get_nowait()
             except Empty:
-                return
+                break
             if failed:
                 instrument('audio callback error', error=message)
                 self.diagnostics.record_callback_error(message)
             else:
                 if 'underflow' in message.lower():
-                    if self.increase_buffer_size is not None:
+                    if not increased and self.increase_buffer_size is not None:
                         self.buffer_size = self.increase_buffer_size()
+                        increased = True
                     message = f'{message}; buffer_size={self.buffer_size}'
+                    if (stream := self.__dict__.get('stream')) is not None:
+                        message += (
+                            f'; active_blocksize={getattr(stream, "blocksize", None)}'
+                        )
                 instrument('audio callback status', status=message)
                 self.diagnostics.record_callback_status(message)
+        if increased and (stream := self.__dict__.get('stream')) is not None:
+            if getattr(stream, 'blocksize', None) != self.buffer_size:
+                restart = stream.active
+                stream.stop()
+                stream.close()
+                self.__dict__.pop('stream')
+                if restart:
+                    from sounddevice import PortAudioError
+
+                    try:
+                        self.start()
+                    except PortAudioError:
+                        self.playback_complete.set()
 
     def start(self) -> None:
+        self.process_notifications()
         self.playback_complete.clear()
         if 'stream' in self.__dict__ and self.stream.active:
             return
