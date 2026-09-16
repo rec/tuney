@@ -86,28 +86,8 @@ REMOVED_SHORT_ALIASES = {
 }
 
 
-def test_tuney_help_output(
-    capsys,
-    file_regression,
-    monkeypatch,
-) -> None:
-    monkeypatch.setenv('COLUMNS', '120')
-    monkeypatch.setenv('NO_COLOR', '1')
-    monkeypatch.setattr('sys.argv', ['tuney', '--help'])
-
-    with pytest.raises(SystemExit) as exc_info:
-        main()
-
-    assert exc_info.value.code == 0
-    file_regression.check(_strip_line_end_padding(capsys.readouterr().out))
-
-
-def _strip_line_end_padding(text: str) -> str:
-    return '\n'.join(_normalize_help_line(line).rstrip() for line in text.splitlines())
-
-
-def _normalize_help_line(line: str) -> str:
-    return line.replace('    \u2022 ', '    - ').replace('    \ufffd ', '    - ')
+def test_tuney_help_output(cli_help) -> None:
+    cli_help('tuney', main)
 
 
 def test_cli_help_uses_unique_names(
