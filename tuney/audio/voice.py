@@ -4,7 +4,7 @@ from fractions import Fraction
 from functools import cached_property
 
 import numpy as np
-from enge.synth import envelope_samples
+from enge.synth import OscillatorState, envelope_samples, oscillator_samples
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from reccy.configuration.units import Hertz, Seconds
 from ufor.envelope import Envelope, Segment
@@ -39,10 +39,11 @@ class Voice(BaseModel, frozen=True):
         return self.period * self.sample_rate
 
     @cached_property
-    def binaural_period_samples(self) -> np.ndarray:
+    def frequencies(self) -> list[float]:
+        if not self.binaural.enable:
+            return [self.frequency]
         beat = self.binaural.frequency / 2
-        frequencies = np.array([self.frequency - beat, self.frequency + beat])
-        return self.sample_rate / frequencies
+        return [self.frequency - beat, self.frequency + beat]
 
     @cached_property
     def envelope(self) -> Envelope:
@@ -64,10 +65,17 @@ class VoiceState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     voice: Voice
-    phase: float | np.ndarray = 0
+    phase_origin: float = 0
     frame_count: int = 0
     release_frame: Fraction | None = None
     complete: bool = False
+
+    @cached_property
+    def oscillators(self) -> list[OscillatorState]:
+        return [
+            OscillatorState.at_frame(self.phase_origin, f, self.voice.sample_rate)
+            for f in self.voice.frequencies
+        ]
 
     def release(self) -> bool:
         if self.release_frame is not None or self.complete:
@@ -84,15 +92,16 @@ class VoiceState(BaseModel):
             shape = (frame_size, 2) if self.voice.binaural.enable else frame_size
             return np.zeros(shape)
 
-        period_samples: float | np.ndarray
-        period_samples = (
-            self.voice.binaural_period_samples
-            if self.voice.binaural.enable
-            else self.voice.period_samples
-        )
-        wave = self.voice.oscillator(self.phase, frame_size, period_samples).astype(
-            float, copy=False
-        )
+        waves: list[np.ndarray] = []
+        for i, frequency in enumerate(self.voice.frequencies):
+            wave, self.oscillators[i] = oscillator_samples(
+                self.voice.oscillator.definition,
+                self.oscillators[i],
+                np.full(frame_size, frequency),
+                self.voice.sample_rate,
+            )
+            waves.append(wave)
+        wave = np.column_stack(waves) if self.voice.binaural.enable else waves[0]
         envelope = envelope_samples(
             self.voice.envelope,
             self.frame_count,
@@ -105,7 +114,6 @@ class VoiceState(BaseModel):
             envelope = envelope[:, np.newaxis]
         wave *= envelope * self.voice.gain
 
-        self.phase = (self.phase + frame_size) % period_samples
         self.frame_count += frame_size
         if self.release_frame is not None:
             last_sample = self.release_frame + self.voice.fade_out_samples

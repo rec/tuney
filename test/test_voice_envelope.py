@@ -6,7 +6,9 @@ import soundfile
 from pytest_regressions.file_regression import FileRegressionFixture
 from ufor.oscillator import Waveform
 
+from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator
+from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Binaural
 from tuney.audio.voice import Voice, VoiceState
 
@@ -70,4 +72,40 @@ def test_shared_envelope_preserves_tuney_audio(
     np.testing.assert_allclose(outputs[0], outputs[1], atol=1e-12, rtol=1e-12)
     wav = BytesIO()
     soundfile.write(wav, outputs[0], 48000, format='WAV', subtype='PCM_16')
+    file_regression.check(wav.getvalue(), binary=True, extension='.wav')
+
+
+@pytest.mark.parametrize('binaural', [False, True], ids=['square', 'binaural_sync'])
+def test_shared_phase_preserves_edges_and_binaural_onset(
+    file_regression: FileRegressionFixture, binaural: bool
+) -> None:
+    voice = Voice(
+        frequency=100,
+        fade_in=0,
+        oscillator=Oscillator(waveform=Waveform.sine if binaural else Waveform.square),
+        binaural=Binaural(enable=binaural, frequency=20),
+    )
+    mixer = Mixer(
+        voice_maker=lambda _: voice,
+        synchronize_oscillators=binaural,
+        polyphony=Polyphony(headroom=1),
+    )
+    mixer.render(1257)
+    mixer.apply(NotePress(0))
+    audio = np.concatenate(
+        [mixer.render(min(997, 48000 - i), channels=2) for i in range(0, 48000, 997)]
+    )
+    frames = np.arange(48000)
+    if binaural:
+        # Preserve Tuney's onset convention: the shared sample-position origin
+        # wraps at the base note period before initializing both oscillators.
+        positions = frames + 1257 % 480
+        expected = np.sin(2 * np.pi * positions[:, None] * np.array([90, 110]) / 48000)
+    else:
+        expected = np.repeat(
+            np.where(frames % 480 < 240, 1.0, -1.0)[:, None], 2, axis=1
+        )
+    np.testing.assert_allclose(audio, expected, atol=1e-10, rtol=1e-9)
+    wav = BytesIO()
+    soundfile.write(wav, audio / 2, 48000, format='WAV', subtype='PCM_16')
     file_regression.check(wav.getvalue(), binary=True, extension='.wav')

@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import sounddevice
 import soundfile
+from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackAbort, PortAudioError
 from ufor.oscillator import Waveform
 
@@ -311,7 +312,9 @@ def test_test_sheet_preserves_live_app_state(monkeypatch, tmp_path) -> None:
     assert app.char_presses == char_presses
 
 
-def test_synchronized_oscillators_use_mixer_frame_count() -> None:
+def test_synchronized_oscillators_use_mixer_frame_count(
+    file_regression: FileRegressionFixture,
+) -> None:
     voice = Voice(
         frequency=480,
         sample_rate=48_000,
@@ -322,10 +325,16 @@ def test_synchronized_oscillators_use_mixer_frame_count() -> None:
     mixer.render(125)
     mixer.apply(NotePress(0))
 
-    assert mixer.voices[0].phase == 25
+    audio = mixer.render(SAMPLE_COUNT)
+    frames = np.arange(SAMPLE_COUNT)
+    expected = np.sin(2 * np.pi * (frames + 125) / 100) * np.clip(frames / 4096, 0, 1)
+    np.testing.assert_allclose(audio[:, 0], expected / 4, atol=1e-10, rtol=1e-9)
+    file_regression.check(_wav(audio), binary=True, extension='.wav')
 
 
-def test_unsynchronized_oscillators_start_at_zero() -> None:
+def test_unsynchronized_oscillators_start_at_zero(
+    file_regression: FileRegressionFixture,
+) -> None:
     voice = Voice(
         frequency=480,
         sample_rate=48_000,
@@ -336,7 +345,11 @@ def test_unsynchronized_oscillators_start_at_zero() -> None:
     mixer.render(125)
     mixer.apply(NotePress(0))
 
-    assert mixer.voices[0].phase == 0
+    audio = mixer.render(SAMPLE_COUNT)
+    frames = np.arange(SAMPLE_COUNT)
+    expected = np.sin(2 * np.pi * frames / 100) * np.clip(frames / 4096, 0, 1)
+    np.testing.assert_allclose(audio[:, 0], expected / 4, atol=1e-10, rtol=1e-9)
+    file_regression.check(_wav(audio), binary=True, extension='.wav')
 
 
 def test_configure_sets_synchronized_oscillators() -> None:
@@ -878,7 +891,9 @@ def test_mixer_does_not_clip_floating_point_output() -> None:
     assert out.max() == 2
 
 
-def test_binaural_voice_splits_frequencies_across_stereo_channels() -> None:
+def test_binaural_voice_splits_frequencies_across_stereo_channels(
+    file_regression: FileRegressionFixture,
+) -> None:
     voice = Voice(
         frequency=100,
         sample_rate=SAMPLE_RATE,
@@ -891,11 +906,15 @@ def test_binaural_voice_splits_frequencies_across_stereo_channels() -> None:
     out = mixer.render(SAMPLE_RATE, np.float32, channels=2)
 
     assert out.shape == (SAMPLE_RATE, 2)
-    np.testing.assert_allclose(
-        voice.binaural_period_samples,
-        [SAMPLE_RATE / 90, SAMPLE_RATE / 110],
+    frames = np.arange(SAMPLE_RATE)
+    expected = (
+        np.sin(2 * np.pi * frames[:, None] * np.array([90, 110]) / SAMPLE_RATE)
+        * np.clip(frames[:, None] / 4096, 0, 1)
+        / 4
     )
+    np.testing.assert_allclose(out, expected, atol=1e-8, rtol=1e-6)
     assert not np.allclose(out[:, 0], out[:, 1])
+    file_regression.check(_wav(out), binary=True, extension='.wav')
 
 
 def test_binaural_voice_is_not_changed_by_later_config_edits() -> None:
