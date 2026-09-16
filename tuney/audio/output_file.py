@@ -41,9 +41,11 @@ class AudioFileWriter:
         self.file.write(block)
 
     def close(self) -> None:
-        if self.comment is not None:
-            self._set_comment(self.comment())
-        self.file.close()
+        try:
+            if self.comment is not None:
+                self._set_comment(self.comment())
+        finally:
+            self.file.close()
 
     def _set_comment(self, comment: str) -> None:
         _set_comment(self.file, comment)

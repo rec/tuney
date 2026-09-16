@@ -9,6 +9,7 @@ from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
+from ..app.file_output import atomic_output
 from ..app.platform_info import instrument
 from ..audio.test_sheet import render_test_sheet
 from ..presets.preset import delete_presets, read_file, write_preset
@@ -70,11 +71,12 @@ def on_save_as_audio(main_window: MainWindow, *_: object) -> None:
         )
         if filename := result[0]:
             try:
-                main_window.app.player.render_file(
-                    Path(filename),
-                    main_window.app.note_events(main_window.app.player.sample_rate),
-                    main_window.app.output_comment(),
-                )
+                with atomic_output(Path(filename)) as output:
+                    main_window.app.player.render_file(
+                        output,
+                        main_window.app.note_events(main_window.app.player.sample_rate),
+                        main_window.app.output_comment(),
+                    )
             except (OSError, RuntimeError, ValueError) as error:
                 QMessageBox.critical(
                     main_window, main_menu.SAVE_AS_AUDIO_COMMAND, str(error)
@@ -97,7 +99,8 @@ def on_save_test_sheet(main_window: MainWindow, *_: object) -> None:
         )
         if filename := result[0]:
             try:
-                render_test_sheet(Path(filename), main_window.app, presets)
+                with atomic_output(Path(filename)) as output:
+                    render_test_sheet(output, main_window.app, presets)
             except (OSError, RuntimeError, ValueError) as error:
                 QMessageBox.critical(
                     main_window, main_menu.SAVE_TEST_SHEET_COMMAND, str(error)

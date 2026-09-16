@@ -2483,8 +2483,8 @@ def test_output_forces_cli_mode() -> None:
     assert not app.gui
 
 
-def test_silent_cli_mode_writes_audio_file(monkeypatch) -> None:
-    path = Path('out.wav')
+def test_silent_cli_mode_writes_audio_file(monkeypatch, tmp_path) -> None:
+    path = tmp_path / 'out.wav'
     rendered: list[
         tuple[Path, list[tuple[int, NotePress]], Callable[[], str] | None]
     ] = []
@@ -2510,7 +2510,9 @@ def test_silent_cli_mode_writes_audio_file(monkeypatch) -> None:
     app.run()
     output, events, comment = rendered[0]
 
-    assert output == path
+    assert output != path
+    assert output.parent == path.parent
+    assert output.suffix == path.suffix
     assert app.player.tuning == app.tuning
     assert [(frame, note.is_press) for frame, note in events] == [
         (0, True),
@@ -2555,8 +2557,8 @@ def test_text_file_output_writes_midi_file_without_audio(monkeypatch, tmp_path) 
     ]
 
 
-def test_live_cli_output_records_during_playback(monkeypatch) -> None:
-    path = Path('out.wav')
+def test_live_cli_output_records_during_playback(monkeypatch, tmp_path) -> None:
+    path = tmp_path / 'out.wav'
     lifecycle: list[object] = []
     monkeypatch.setattr(Player, 'on_note', lambda *args: True)
     monkeypatch.setattr(
@@ -2586,7 +2588,9 @@ def test_live_cli_output_records_during_playback(monkeypatch) -> None:
 
     start_recording, play_cli, stop_all, wait, stop_recording, close = lifecycle
     assert start_recording[0] == 'start_recording'
-    assert start_recording[1] == path
+    assert start_recording[1] != path
+    assert start_recording[1].parent == path.parent
+    assert start_recording[1].suffix == path.suffix
     assert callable(start_recording[2])
     assert [
         play_cli,

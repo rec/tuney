@@ -4,12 +4,13 @@ import tempfile
 import uuid
 from collections.abc import Callable
 from pathlib import Path
-from shutil import move
+from shutil import copyfile
 
 from pydantic import BaseModel
 
 from ..audio.player import Player
 from ..ui.state import Action, State, StateChange
+from .file_output import atomic_output
 from .platform_info import instrument
 
 
@@ -74,7 +75,9 @@ class AudioRecorder(BaseModel):
         instrument('audio recorder save', path=path)
         if self.path is None:
             return
-        move(self.path, path)
+        with atomic_output(path) as output:
+            copyfile(self.path, output)
+        self.path.unlink()
         self._forget()
 
     def clear(self) -> None:
