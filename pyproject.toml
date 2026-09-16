@@ -14,7 +14,7 @@ dependencies = [
     "pyside6>=6.11.1",
     "python-rtmidi>=1.5.8",
     "pyttsx3>=2.99",
-    "reccy @ https://github.com/rec/reccy/archive/349ee5a9cf3e124aa17b5ddee610257d74e2d9c9.tar.gz",
+    "reccy @ https://github.com/rec/reccy/archive/88a0b6b34e810cd86a93eb253c4b17131a9ef8e9.tar.gz",
     "sounddevice>=0.5.3",
     "soundfile>=0.13.1",
     "tomlkit>=0.15.0",
