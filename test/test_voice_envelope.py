@@ -3,6 +3,7 @@ from io import BytesIO
 import numpy as np
 import pytest
 import soundfile
+from enge.synth import VoiceRenderer
 from pytest_regressions.file_regression import FileRegressionFixture
 from ufor.oscillator import Waveform
 
@@ -10,7 +11,7 @@ from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.sound import Binaural
-from tuney.audio.voice import Voice, VoiceState
+from tuney.audio.voice import Voice
 
 
 @pytest.mark.parametrize('binaural', [False, True], ids=['mono', 'binaural'])
@@ -54,7 +55,7 @@ def test_shared_envelope_preserves_tuney_audio(
 
     outputs: list[np.ndarray] = []
     for block in (997, 1024):
-        state = VoiceState(voice=voice)
+        state = VoiceRenderer.start(voice.definition)
         chunks: list[np.ndarray] = []
         start = 0
         while start < 48000:
@@ -72,6 +73,33 @@ def test_shared_envelope_preserves_tuney_audio(
     np.testing.assert_allclose(outputs[0], outputs[1], atol=1e-12, rtol=1e-12)
     wav = BytesIO()
     soundfile.write(wav, outputs[0], 48000, format='WAV', subtype='PCM_16')
+    file_regression.check(wav.getvalue(), binary=True, extension='.wav')
+
+
+@pytest.mark.parametrize('channels', [1, 3])
+def test_binaural_output_conversion_keeps_tuney_channel_policy(
+    file_regression: FileRegressionFixture, channels: int
+) -> None:
+    voice = Voice(
+        frequency=100,
+        fade_in=0,
+        oscillator=Oscillator(waveform=Waveform.sine),
+        binaural=Binaural(enable=True, frequency=20, width=-0.4),
+    )
+    mixer = Mixer(voice_maker=lambda _: voice, polyphony=Polyphony(headroom=1))
+    mixer.apply(NotePress(0))
+    actual = mixer.render(48000, channels=channels)
+    frames = np.arange(48000)
+    low = np.sin(2 * np.pi * frames * 90 / 48000)
+    high = np.sin(2 * np.pi * frames * 110 / 48000)
+    signal = (low + high) / 2 if channels == 1 else 0.3 * low + 0.7 * high
+    expected = np.repeat(signal[:, None], channels, axis=1)
+    np.testing.assert_allclose(actual, expected, atol=1e-10, rtol=1e-9)
+    saved = actual.copy()
+    mixer.render(128, channels=channels)
+    np.testing.assert_array_equal(actual, saved)
+    wav = BytesIO()
+    soundfile.write(wav, actual, 48000, format='WAV', subtype='PCM_16')
     file_regression.check(wav.getvalue(), binary=True, extension='.wav')
 
 

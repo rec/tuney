@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import sounddevice
 import soundfile
+from enge.synth import VoiceRenderer
 from pytest_regressions.file_regression import FileRegressionFixture
 from sounddevice import CallbackAbort, PortAudioError
 from ufor.oscillator import Waveform
@@ -25,7 +26,7 @@ from tuney.audio.polyphony import Polyphony
 from tuney.audio.recording import Recording
 from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
-from tuney.audio.voice import Voice, VoiceState
+from tuney.audio.voice import Voice
 from tuney.presets import preset
 from tuney.scale.scale import Scale
 from tuney.time.char_press import CharPress
@@ -570,7 +571,7 @@ def test_player_uses_one_stream_for_polyphony(monkeypatch) -> None:
 
     assert player.engine.mixer.pressed_notes == [0, 7]
     assert all(
-        state.voice.sample_rate == 44_100
+        state.definition.sample_rate == 44_100
         for state in player.engine.mixer.voices.values()
     )
 
@@ -783,14 +784,14 @@ def test_mixer_counts_binaural_notes_as_two_voices() -> None:
 
 def test_envelope_duration_is_stable_across_sample_rates_and_blocks() -> None:
     def render(sample_rate: int, block_size: int) -> np.ndarray:
-        state = VoiceState(
-            voice=Voice(
+        state = VoiceRenderer.start(
+            Voice(
                 frequency=100,
                 fade_in=0.1,
                 fade_out=0.1,
                 oscillator=Oscillator(waveform=Waveform.sine),
                 sample_rate=sample_rate,
-            )
+            ).definition
         )
         release_frame = sample_rate // 10
         sample_count = sample_rate // 5
@@ -815,14 +816,14 @@ def test_envelope_duration_is_stable_across_sample_rates_and_blocks() -> None:
 
 
 def test_voice_holds_early_release_until_minimum_note_time() -> None:
-    state = VoiceState(
-        voice=Voice(
+    state = VoiceRenderer.start(
+        Voice(
             fade_in=0,
             fade_out=0,
             minimum_note_time=0.5,
             oscillator=Oscillator(waveform=Waveform.triangle),
             sample_rate=SAMPLE_RATE,
-        )
+        ).definition
     )
 
     state.render(1)
@@ -837,12 +838,12 @@ def test_voice_holds_early_release_until_minimum_note_time() -> None:
 
 
 def test_square_wave_renders_with_float_envelope() -> None:
-    state = VoiceState(
-        voice=Voice(
+    state = VoiceRenderer.start(
+        Voice(
             fade_in=0.1,
             oscillator=Oscillator(waveform=Waveform.square),
             sample_rate=SAMPLE_RATE,
-        )
+        ).definition
     )
 
     out = state.render(128)
@@ -925,7 +926,7 @@ def test_binaural_voice_is_not_changed_by_later_config_edits() -> None:
         oscillator=Oscillator(waveform=Waveform.sine),
         binaural=binaural,
     )
-    state = VoiceState(voice=voice)
+    state = VoiceRenderer.start(voice.definition)
 
     state.render(128)
     binaural.enable = False
@@ -935,13 +936,13 @@ def test_binaural_voice_is_not_changed_by_later_config_edits() -> None:
 
 
 def test_centered_binaural_width_mixes_both_frequencies_to_both_channels() -> None:
-    state = VoiceState(
-        voice=Voice(
+    state = VoiceRenderer.start(
+        Voice(
             frequency=100,
             sample_rate=SAMPLE_RATE,
             oscillator=Oscillator(waveform=Waveform.sine),
             binaural=Binaural(enable=True, frequency=20, width=0),
-        )
+        ).definition
     )
 
     out = state.render(SAMPLE_RATE)

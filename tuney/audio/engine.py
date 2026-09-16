@@ -17,7 +17,7 @@ from .mixer import Mixer, NotePress
 from .polyphony import Polyphony
 from .recording import Recording
 from .speech import SpeechPlayback
-from .voice import Voice, VoiceState
+from .voice import Voice
 
 
 @runtime_checkable
@@ -47,7 +47,7 @@ class StopAll(BaseModel, frozen=True):
 
 class PreparedNote(BaseModel, frozen=True):
     note: NotePress
-    voice: VoiceState | None = None
+    voice: Voice | None = None
 
 
 class PlaySpeech(BaseModel, frozen=True):
@@ -124,11 +124,10 @@ class AudioEngine(BaseModel):
         if isinstance(command, Configure):
             self.__dict__['voice_maker'] = command.voice_maker
         if isinstance(command, NotePress):
-            voice = (
-                VoiceState(voice=self.voice_maker(command.note_number))
-                if command.is_press
-                else None
-            )
+            voice = self.voice_maker(command.note_number) if command.is_press else None
+            if voice is not None:
+                # Validate and prepare the cached definition on the submitting thread.
+                _ = voice.definition
             self.commands.put(PreparedNote(note=command, voice=voice))
         else:
             self.commands.put(command)

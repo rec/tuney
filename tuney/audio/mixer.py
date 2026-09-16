@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+from enge.synth import VoiceRenderer, route_samples
 from numpy.typing import DTypeLike
 from pydantic import BaseModel, Field
 from ufor.number import NoteNumber
 
 from .polyphony import Polyphony
-from .voice import Voice, VoiceState
+from .voice import Voice
 
 
 class NotePress(BaseModel, frozen=True):
@@ -25,21 +26,16 @@ class Mixer(BaseModel):
     polyphony: Polyphony = Field(default_factory=Polyphony)
     synchronize_oscillators: bool = False
     frame_count: int = 0
-    voices: dict[NoteNumber, VoiceState] = Field(default_factory=dict)
+    voices: dict[NoteNumber, VoiceRenderer] = Field(default_factory=dict)
     pressed_notes: list[NoteNumber] = Field(default_factory=list)
 
-    def apply(self, note: NotePress, prepared: VoiceState | None = None) -> bool:
+    def apply(self, note: NotePress, prepared: Voice | None = None) -> bool:
         note_number = note.note_number
         if note.is_press:
             if note_number in self.pressed_notes:
                 return False
-            state = (
-                prepared
-                if prepared is not None
-                else VoiceState(voice=self.voice_maker(note_number))
-            )
-            voice = state.voice
-            voice_count = _voice_count(voice)
+            voice = prepared if prepared is not None else self.voice_maker(note_number)
+            voice_count = len(voice.definition.frequencies)
             while (
                 self.pressed_notes
                 and self._pressed_voice_count() + voice_count
@@ -47,8 +43,9 @@ class Mixer(BaseModel):
             ):
                 self._release_oldest()
             phase = self.frame_count % voice.period_samples
-            state.phase_origin = phase if self.synchronize_oscillators else 0
-            self.voices[note_number] = state
+            self.voices[note_number] = VoiceRenderer.start(
+                voice.definition, phase if self.synchronize_oscillators else 0
+            )
             self.pressed_notes.append(note_number)
             return True
 
@@ -75,7 +72,7 @@ class Mixer(BaseModel):
 
     def _pressed_voice_count(self) -> int:
         return sum(
-            _voice_count(self.voices[note_number].voice)
+            len(self.voices[note_number].definition.frequencies)
             for note_number in self.pressed_notes
         )
 
@@ -89,21 +86,19 @@ class Mixer(BaseModel):
         mixed = np.zeros((frame_size, channel_count))
         for note_number, voice in tuple(self.voices.items()):
             rendered = voice.render(frame_size)
-            if rendered.ndim == 1:
-                mixed += rendered[:, np.newaxis]
-            elif rendered.shape[1] == channel_count:
+            if rendered.shape[1] == channel_count:
                 mixed += rendered
-            elif channel_count == 1:
-                mixed += rendered.mean(axis=1)[:, np.newaxis]
             else:
-                mixed += rendered[:, :1]
+                inputs = rendered.shape[1]
+                routes = (
+                    [[1 / inputs] for _ in range(inputs)]
+                    if channel_count == 1
+                    else [[float(i == 0)] * channel_count for i in range(inputs)]
+                )
+                mixed += route_samples(rendered, routes)
             if voice.complete:
                 self.voices.pop(note_number)
         mixed /= self.polyphony.headroom
 
         self.frame_count += frame_size
         return mixed.astype(dtype, copy=False)
-
-
-def _voice_count(voice: Voice) -> int:
-    return 2 if voice.binaural.enable else 1
