@@ -1,10 +1,31 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from test._test_app_keys import HistoryApp
+from tuney.app.app import App
 from tuney.presets import preset
+from tuney.presets.autosave import Autosave, AutosaveRestoreError
 from tuney.ui import history
+from tuney.ui.replay_controls import on_loop_tempo
+
+
+@pytest.mark.parametrize('tempo', ['0', '-1', 'inf', '-inf', 'nan'])
+def test_invalid_saved_tempo_recovers_without_losing_text(
+    monkeypatch, tmp_path: Path, tempo: str
+) -> None:
+    path = tmp_path / 'state.toml'
+    path.write_text(f'text = "abc"\n[loop]\ntempo = {tempo}\n')
+    monkeypatch.setattr('tuney.presets.autosave.startup_modifier_held', lambda: False)
+    app = App(gui=True)
+    assert isinstance(Autosave(file=path).restore(app), AutosaveRestoreError)
+    assert app.display_text == 'abc'
+    assert history.History(SimpleNamespace(app=app)).loop_tempo == 1.0
+    window = HistoryApp()
+    on_loop_tempo(window, tempo)
+    assert window.history.loop_tempo == 1.0
+    assert window.history.undo_stack == []
 
 
 def test_text_undo_and_redo_never_read_or_rewrite_presets(
