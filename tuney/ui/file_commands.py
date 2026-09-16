@@ -115,7 +115,8 @@ def on_save_preset(main_window: MainWindow, *_: object) -> None:
     if (name := preset_name(main_window)) is None:
         return
     try:
-        write_preset(name, main_window.app.dump_data())
+        with main_window.history.preset_edit([name]):
+            write_preset(name, main_window.app.dump_data())
     except (OSError, ValueError) as error:
         QMessageBox.critical(main_window, 'Save preset', str(error))
         return
@@ -127,8 +128,8 @@ def on_delete_presets(main_window: MainWindow, *_: object) -> None:
     if not (names := selected_preset_names(main_window)):
         return
     try:
-        main_window.history.checkpoint_undo()
-        delete_presets(names)
+        with main_window.history.preset_edit(names):
+            delete_presets(names)
     except (OSError, ValueError) as error:
         QMessageBox.critical(main_window, 'Delete presets', str(error))
         return

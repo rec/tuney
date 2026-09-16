@@ -59,12 +59,12 @@ def test_user_presets_can_be_written_deleted_and_restored(
     monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
 
     preset.write_preset('mine', {'max_gap': 2.0, 'text': 'not a preset'})
-    snapshot = preset.user_preset_snapshot()
+    snapshot = preset.user_preset_snapshot(['mine'])
     preset.delete_presets(['mine'])
 
     assert not (tmp_path / 'mine.toml').exists()
 
-    preset.restore_user_preset_snapshot(snapshot)
+    preset.restore_user_preset_snapshot(snapshot, preset.user_preset_snapshot(['mine']))
 
     assert preset.read_preset('mine') == {'max_gap': 2.0}
 
