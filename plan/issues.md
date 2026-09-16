@@ -355,6 +355,13 @@ masking programming errors.
 
 ### 18. Local dependency success does not establish release compatibility
 
+**Resolved:** Tuney uses Ufor's current API through its existing configuration
+models, including an explicitly composed oscillator. Ufor, Reccy, and Enge are
+pinned to verified public source archives; the latter two are absent from PyPI.
+All 583 tests passed both locally and in a separate checkout installed with
+`--no-sources`. Public CLI/configuration and audio fixtures remain unchanged.
+Native hardware and packaged executables were not exercised.
+
 **Evidence:** [pyproject.toml](../pyproject.toml) uses editable `../reccy`,
 `../ufor`, and `../enge`, while pinning installed Ufor to archive `9fa9d39...`
 and leaving Reccy/Enge versions unspecified. The
@@ -373,6 +380,11 @@ in their own commit.
 ## P3: documentation, naming, and maintenance
 
 ### 19. The consolidated guides contain misleading instructions
+
+**Resolved:** The guides now show the actual root-frequency option, preset path,
+file-menu capabilities, MIDI input behavior, three editable sibling checkouts,
+and Enge waveform ownership. Installation instructions establish Python and
+pipx first and explicitly check the interpreter version.
 
 **Evidence:** [Using Tuney](../doc/using-tuney.md) shows
 `--tuning.root-frequency`; the committed

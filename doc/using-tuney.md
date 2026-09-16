@@ -5,12 +5,8 @@ shape a performance, or use the command line to play, record, or render text.
 
 ## Start here
 
-Tuney needs Python 3.13 or later. Install it from [PyPI](https://pypi.org/project/tuney/)
-with [pipx](https://pipx.pypa.io/stable/):
-
-```sh
-pipx install tuney
-```
+Tuney needs Python 3.13 or later and [pipx](https://pipx.pypa.io/stable/).
+Set up these prerequisites before installing Tuney.
 
 On macOS, install a current Python from [python.org](https://www.python.org/downloads/macos/)
 first, then install pipx with:
@@ -42,11 +38,19 @@ sudo dnf install python3 python3-pip pipx portaudio
 sudo pacman -S python python-pipx portaudio
 ```
 
-Restart the terminal after `ensurepath`, then check the installation:
+Check that `python3 --version` (or `py --version` on Windows) reports at least
+3.13. A Linux distribution's default Python may be older; install a supported
+Python first if necessary.
+
+Restart the terminal after `ensurepath`, then install Tuney and check it:
 
 ```sh
+pipx install --python python3 tuney
 tuney --help
 ```
+
+On Windows, use `pipx install --python python tuney`. If multiple Python versions
+are installed, pass the path to the Python 3.13-or-later executable to `--python`.
 
 ## Play in the graphical instrument
 
@@ -62,7 +66,7 @@ performance. Use the transport controls to replay text and loop a selected
 range. **Edit** offers undo, redo, randomization, and clearing; **View** offers
 dark mode, advanced controls, and recorded text timings.
 
-Use **File** to open a text file, save or load configuration, save a preset,
+Use **File** to open a text file, save configuration, save a preset,
 import or export a Scala tuning, and save the current text as audio. Tuney
 autosaves the GUI configuration, text, loop state, and window position. That
 autosave is restored only for an ordinary GUI launch, not when you give text, a
@@ -106,7 +110,7 @@ Every musical setting is available to both the GUI and the command line. Run
 accept either Tuney's ordinary numeric unit or a unit string, for example:
 
 ```sh
-tuney --max-gap 2s --tuning.root-frequency 440Hz "text"
+tuney --max-gap 2s --root-frequency 440Hz "text"
 ```
 
 ## Shape the music
@@ -127,7 +131,7 @@ The sound controls select the oscillator and its gain, polyphony, minimum note
 duration, binaural beats, and output level. Enabled speech accompanies GUI replay,
 CLI playback, and audio exports. Speech finishes even when it outlasts the notes;
 replay loops wait for it before restarting. Explicit Stop cancels speech.
-MIDI input follows the same playback path as typing. MIDI output can send note
+MIDI input plays notes directly without adding recorded text. MIDI output can send note
 events, program and volume changes, and a MIDI Tuning Standard dump when
 configured.
 
@@ -145,8 +149,8 @@ Presets are named partial configurations. Select one in the GUI or load it with:
 tuney --preset white-notes "text"
 ```
 
-Presets do not contain text. User presets are stored in the platform user
-configuration directory under `tuney/presets`; built-in presets remain available
+Presets do not contain text. User presets are stored in `~/.config/tuney/presets`
+on every platform, where `~` means your home directory; built-in presets remain available
 as fallbacks. The generated [configuration model](../schema.md) gives the full
 data shape for hand-written configuration files.
 
