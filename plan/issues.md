@@ -150,6 +150,10 @@ recording stop before closing it.
 
 ### 7. Offline rendering allocates an entire gap between events
 
+**Resolved:** Every inter-event interval uses blocks of at most 1,024 frames,
+including a shorter final block at each exact event boundary. A WAV regression
+checks onset and silence positions and rejects oversized render requests.
+
 **Evidence:** [render_file](../tuney/audio/output_file.py) passes
 `frame - rendered` to `Mixer.render` as a single allocation. `BLOCK_SIZE` is used
 only for the final release tail.
