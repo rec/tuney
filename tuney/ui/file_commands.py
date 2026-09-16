@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QMessageBox
 from ..app.file_output import atomic_output
 from ..app.platform_info import instrument
 from ..audio.test_sheet import render_test_sheet
-from ..presets.preset import delete_presets, read_file, write_preset
+from ..presets.preset import delete_presets, preset_names, read_file, write_preset
 from . import main_menu
 from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
 
@@ -114,6 +114,18 @@ def on_save_test_sheet(main_window: MainWindow, *_: object) -> None:
 def on_save_preset(main_window: MainWindow, *_: object) -> None:
     instrument('ui save preset')
     if (name := preset_name(main_window)) is None:
+        return
+    if (
+        name in preset_names()
+        and QMessageBox.question(
+            main_window,
+            'Save preset',
+            f'Use the current settings in place of preset "{name}"?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        != QMessageBox.StandardButton.Yes
+    ):
         return
     try:
         with main_window.history.preset_edit([name]):

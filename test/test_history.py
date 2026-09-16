@@ -2,13 +2,49 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtWidgets import QMessageBox
 
 from test._test_app_keys import HistoryApp
 from tuney.app.app import App
 from tuney.presets import preset
 from tuney.presets.autosave import Autosave, AutosaveRestoreError
-from tuney.ui import history
+from tuney.ui import file_commands, history
 from tuney.ui.replay_controls import on_loop_tempo
+
+
+@pytest.mark.parametrize('accept', [False, True])
+@pytest.mark.parametrize('source', ['user', 'builtin'])
+def test_preset_replacement_requires_confirmation_and_can_be_undone(
+    monkeypatch, tmp_path: Path, accept: bool, source: str
+) -> None:
+    user, builtin = tmp_path / 'user', tmp_path / 'builtin'
+    user.mkdir()
+    builtin.mkdir()
+    monkeypatch.setattr(preset, 'USER_PRESETS', user)
+    monkeypatch.setattr(preset, 'BUILTIN_PRESETS', builtin)
+    original = (user if source == 'user' else builtin) / 'saved.toml'
+    original.write_text('max_gap = 3.0\n')
+    monkeypatch.setattr(file_commands, 'preset_name', lambda _: 'saved')
+
+    def confirm(
+        parent: object, title: str, text: str, buttons: object, default: object
+    ) -> QMessageBox.StandardButton:
+        assert default == QMessageBox.StandardButton.No
+        return (
+            QMessageBox.StandardButton.Yes if accept else QMessageBox.StandardButton.No
+        )
+
+    monkeypatch.setattr(QMessageBox, 'question', confirm)
+    window = HistoryApp()
+    window.app.max_gap = 2.0
+    file_commands.on_save_preset(window)
+    if accept:
+        assert preset.read_preset('saved')['max_gap'] == 2.0
+        window.history.undo()
+    else:
+        assert window.history.undo_stack == []
+    assert preset.read_preset('saved')['max_gap'] == 3.0
+    assert original.read_text() == 'max_gap = 3.0\n'
 
 
 @pytest.mark.parametrize('tempo', ['0', '-1', 'inf', '-inf', 'nan'])

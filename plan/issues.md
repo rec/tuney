@@ -256,6 +256,10 @@ succeed. Test failure without modifying the last valid file.
 
 ### 13. Saving a preset silently overwrites an existing preset
 
+**Resolved:** Reusing a user or built-in preset name asks for confirmation,
+defaulting to No. Accepted replacements use the targeted preset undo from issue
+2. Tests cover refusal, confirmation, and undo for both kinds of preset.
+
 **Evidence:** [preset_name](../tuney/ui/preset_dialogs.py) only asks for a name.
 [on_save_preset](../tuney/ui/file_commands.py) immediately writes it without an
 overwrite prompt or its own undo checkpoint.
