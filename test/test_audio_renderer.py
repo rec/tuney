@@ -22,7 +22,6 @@ from tuney.audio.output_file import AudioFileWriter
 from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.recording import Recording
-from tuney.audio.renderer import OfflineRenderer
 from tuney.audio.sound import Binaural, Sound
 from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
 from tuney.audio.voice import Voice, VoiceState
@@ -44,12 +43,12 @@ def _voice_maker(note_number: int) -> Voice:
     )
 
 
-def _renderer(voice_maker: Callable[[int], Voice] = _voice_maker) -> OfflineRenderer:
-    return OfflineRenderer(mixer=Mixer(voice_maker=voice_maker))
+def _mixer(voice_maker: Callable[[int], Voice] = _voice_maker) -> Mixer:
+    return Mixer(voice_maker=voice_maker)
 
 
 def _render_scenario(scenario: str, block_size: int = 997) -> np.ndarray:
-    renderer = _renderer()
+    mixer = _mixer()
     blocks: list[np.ndarray] = []
     rendered = 0
     block_index = 0
@@ -67,8 +66,10 @@ def _render_scenario(scenario: str, block_size: int = 997) -> np.ndarray:
         if scenario == 'overlap' and rendered >= 36_000 > rendered - frame_size:
             notes.append(NotePress(7, False))
         if scenario == 'stop_all' and rendered >= 24_000 > rendered - frame_size:
-            renderer.stop_all()
-        blocks.append(renderer.render(notes, frame_size, np.float32))
+            mixer.stop_all()
+        for note in notes:
+            mixer.apply(note)
+        blocks.append(mixer.render(frame_size, np.float32))
         rendered += frame_size
         block_index += 1
     return np.concatenate(blocks)
@@ -98,28 +99,28 @@ def test_audio_rendering(file_regression, scenario: str) -> None:
 
 
 def test_note_events_reject_repeated_press_and_unmatched_release() -> None:
-    renderer = _renderer()
+    mixer = _mixer()
     press = NotePress(0)
     release = NotePress(1, False)
 
-    assert renderer.apply(press)
-    assert not renderer.apply(press)
-    assert not renderer.apply(release)
+    assert mixer.apply(press)
+    assert not mixer.apply(press)
+    assert not mixer.apply(release)
 
 
 @pytest.mark.parametrize('held_frames', [12_000, 30_000])
 def test_note_retriggers_during_release(file_regression, held_frames: int) -> None:
-    renderer = _renderer()
-    assert renderer.apply(NotePress(0))
-    first = renderer.render([], held_frames)
-    assert renderer.apply(NotePress(0, False))
-    tail = renderer.render([], 1_000)
-    assert renderer.apply(NotePress(0))
-    assert not renderer.apply(NotePress(0))
-    attack = renderer.render([], 12_000)
+    mixer = _mixer()
+    assert mixer.apply(NotePress(0))
+    first = mixer.render(held_frames)
+    assert mixer.apply(NotePress(0, False))
+    tail = mixer.render(1_000)
+    assert mixer.apply(NotePress(0))
+    assert not mixer.apply(NotePress(0))
+    attack = mixer.render(12_000)
     np.testing.assert_array_equal(attack, first[:12_000])
-    assert renderer.apply(NotePress(0, False))
-    remaining = renderer.render([], 23_000)
+    assert mixer.apply(NotePress(0, False))
+    remaining = mixer.render(23_000)
     file_regression.check(
         _wav(np.concatenate([first, tail, attack, remaining])),
         binary=True,
@@ -130,7 +131,7 @@ def test_note_retriggers_during_release(file_regression, held_frames: int) -> No
 def test_callback_records_status_without_printing(
     capsys,
 ) -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     engine.callback(np.zeros((4, 1)), 4, 0.0, 'underflow')
     engine.process_notifications()
@@ -147,7 +148,7 @@ def test_underflow_increases_buffer_size() -> None:
         return buffer_sizes[0]
 
     engine = AudioEngine(
-        mixer=_renderer().mixer,
+        mixer=_mixer(),
         buffer_size=buffer_sizes[0],
         increase_buffer_size=increase_buffer_size,
     )
@@ -163,7 +164,7 @@ def test_underflow_increases_buffer_size() -> None:
 def test_underflow_logs_buffer_size(caplog) -> None:
     caplog.set_level('INFO', logger='tuney.app.platform_info')
     engine = AudioEngine(
-        mixer=_renderer().mixer,
+        mixer=_mixer(),
         buffer_size=32,
         increase_buffer_size=lambda: 64,
     )
@@ -186,7 +187,7 @@ def test_underflow_resizes_stream_without_resetting_notes(
         increases.append(64)
         return 64
 
-    engine = AudioEngine(mixer=_renderer().mixer, increase_buffer_size=increase)
+    engine = AudioEngine(mixer=_mixer(), increase_buffer_size=increase)
     engine.submit(NotePress(0))
     engine.start()
     original = engine.stream
@@ -210,15 +211,15 @@ def test_underflow_resizes_stream_without_resetting_notes(
     engine.callback(last, len(last), None, None)
     engine.close()
     audio = np.concatenate([first, second, last])
-    expected = _renderer()
+    expected = _mixer()
     expected.apply(NotePress(0))
-    np.testing.assert_allclose(audio, expected.render([], len(audio)), atol=1e-11)
+    np.testing.assert_allclose(audio, expected.render(len(audio)), atol=1e-11)
     file_regression.check(_wav(audio), binary=True, extension='.wav')
 
 
 def test_failed_buffer_resize_reports_device_error(monkeypatch) -> None:
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer, increase_buffer_size=lambda: 64)
+    engine = AudioEngine(mixer=_mixer(), increase_buffer_size=lambda: 64)
     engine.start()
 
     def fail(**kwargs: object) -> None:
@@ -233,13 +234,13 @@ def test_failed_buffer_resize_reports_device_error(monkeypatch) -> None:
 
 
 def test_engine_master_gain_scales_output() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer, master_gain=0.25)
+    engine = AudioEngine(mixer=_mixer(), master_gain=0.25)
     engine.submit(NotePress(0))
     out = np.zeros((128, 1), dtype=np.float32)
 
     engine.callback(out, len(out), 0.0, None)
 
-    expected = AudioEngine(mixer=_renderer().mixer)
+    expected = AudioEngine(mixer=_mixer())
     expected.submit(NotePress(0))
     unscaled = np.zeros((128, 1), dtype=np.float32)
     expected.callback(unscaled, len(unscaled), 0.0, None)
@@ -247,7 +248,7 @@ def test_engine_master_gain_scales_output() -> None:
 
 
 def test_engine_master_gain_accepts_integer_output_buffer() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer, master_gain=0.25)
+    engine = AudioEngine(mixer=_mixer(), master_gain=0.25)
     engine.submit(NotePress(0))
     out = np.zeros((128, 1), dtype=np.int16)
 
@@ -339,7 +340,7 @@ def test_unsynchronized_oscillators_start_at_zero() -> None:
 
 
 def test_configure_sets_synchronized_oscillators() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.submit(
         Configure(
             voice_maker=_voice_maker,
@@ -397,7 +398,7 @@ class _FailingMixer(Mixer):
 def test_stream_failure_is_recorded(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _FailingEngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     with pytest.raises(PortAudioError, match='device unavailable'):
         engine.start()
@@ -409,7 +410,7 @@ def test_stream_failure_is_recorded(monkeypatch) -> None:
 
 def test_stream_open_failure_leaves_engine_stopped(monkeypatch) -> None:
     monkeypatch.setattr(sounddevice, 'OutputStream', _FailingOpenStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     with pytest.raises(PortAudioError, match='cannot open device'):
         engine.start()
@@ -471,7 +472,7 @@ def test_callback_failure_is_recorded() -> None:
 
 def test_engine_records_rendered_callback_block(tmp_path) -> None:
     path = tmp_path / 'out.wav'
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.recorder = Recording(AudioFileWriter(path, SAMPLE_RATE, 1))
     engine.submit(NotePress(0))
     out = np.zeros((SAMPLE_RATE, 1), dtype=np.float32)
@@ -838,7 +839,7 @@ def test_square_wave_renders_with_float_envelope() -> None:
 
 
 def test_mixer_maps_mono_signal_to_each_channel() -> None:
-    mixer = _renderer().mixer
+    mixer = _mixer()
     mixer.apply(NotePress(0))
 
     out = mixer.render(48_000, np.float32, channels=3)
@@ -931,7 +932,7 @@ def test_centered_binaural_width_mixes_both_frequencies_to_both_channels() -> No
 
 
 def test_engine_applies_stop_all_on_next_block() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.submit(NotePress(0))
     engine.submit(StopAll())
     out = np.zeros((4_800, 1), dtype=np.float32)
@@ -949,7 +950,7 @@ def test_engine_applies_stop_all_on_next_block() -> None:
 
 
 def test_engine_mixes_speech_playback() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     speech_playback = SpeechPlayback(
         data=np.ones((8, 1), dtype=np.float32) * 0.25, level=2.0
     )
@@ -963,7 +964,7 @@ def test_engine_mixes_speech_playback() -> None:
 
 
 def test_engine_clears_speech_playback_when_complete() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     speech_playback = SpeechPlayback(data=np.ones((4, 1), dtype=np.float32), level=1.0)
     engine.submit(PlaySpeech(speech=speech_playback))
 
@@ -973,7 +974,7 @@ def test_engine_clears_speech_playback_when_complete() -> None:
 
 
 def test_engine_stop_all_clears_speech_playback() -> None:
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.submit(PlaySpeech(speech=SpeechPlayback(data=np.ones((8, 1)), level=1.0)))
     engine.submit(StopAll())
 
@@ -1115,7 +1116,7 @@ def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
 def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.submit(NotePress(0))
     engine.submit(StopAll())
     engine.start()
@@ -1142,7 +1143,7 @@ def test_engine_waits_for_final_audio_block(monkeypatch) -> None:
 def test_engine_wait_timeout_stops_stream_without_callback(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
     engine.submit(NotePress(0))
     engine.submit(StopAll())
     engine.start()
@@ -1155,7 +1156,7 @@ def test_engine_wait_timeout_stops_stream_without_callback(monkeypatch) -> None:
 def test_engine_wait_ignores_inactive_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     _ = engine.stream
     engine.wait()
@@ -1166,7 +1167,7 @@ def test_engine_wait_ignores_inactive_stream(monkeypatch) -> None:
 def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     engine.close()
 
@@ -1176,7 +1177,7 @@ def test_engine_close_does_not_open_unused_stream(monkeypatch) -> None:
 def test_engine_close_closes_existing_stream(monkeypatch) -> None:
     _EngineStream.instances.clear()
     monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
-    engine = AudioEngine(mixer=_renderer().mixer)
+    engine = AudioEngine(mixer=_mixer())
 
     engine.start()
     engine.close()
