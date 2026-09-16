@@ -446,6 +446,10 @@ and 33 in `test`; those counts alone do not justify additional nesting.
 
 ### 22. Qt tests are hidden inside one subprocess test
 
+**Resolved:** Each of the 18 checks is a separate selectable pytest parameter
+and runs in its own child process. Children execute a test module directly,
+have a 30-second timeout, and report captured stdout/stderr on failure.
+
 **Evidence:** [test_app_keys.py](../test/test_app_keys.py) runs 17 named checks
 through a hard-coded subprocess script, all reported as `test_app_keys`.
 `subprocess.run` captures output and has no timeout.

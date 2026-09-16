@@ -1,13 +1,16 @@
 import subprocess
 import sys
 
+import pytest
+
 # We need to run Qt tests in a new process, because you can't really
 # bring Qt up and down without side-effects.
 # See _test_app_keys.py for the bodies of the functions.
 
 
-def test_app_keys() -> None:
-    _run_app_key_scripts(
+@pytest.mark.parametrize(
+    'name',
+    [
         'test_qt_key_events',
         'test_macos_option_composed_characters',
         'test_macos_option_special_keys_remain_ignored',
@@ -25,14 +28,17 @@ def test_app_keys() -> None:
         'test_app_saves_test_sheet_from_current_text',
         'test_app_saves_and_deletes_presets',
         'test_close_releases_audio_before_closing_player',
+        'test_export_progress_cancel_and_shutdown',
+    ],
+)
+def test_app_keys(name: str) -> None:
+    result = subprocess.run(
+        [sys.executable, '-m', 'test._test_app_keys', name],
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
-
-
-def test_export_progress_cancel_and_shutdown() -> None:
-    _run_app_key_scripts('test_export_progress_cancel_and_shutdown')
-
-
-def _run_app_key_scripts(*names: str) -> None:
-    command = f'from test import _test_app_keys; _test_app_keys.run({list(names)!r})'
-    cmd = sys.executable, '-c', command
-    subprocess.run(cmd, check=True, capture_output=True, text=True)
+    assert result.returncode == 0, (
+        f'{name} exited with {result.returncode}\n'
+        f'STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}'
+    )
