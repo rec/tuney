@@ -77,7 +77,9 @@ def write_preset(name: str, data: dict[str, object]) -> None:
     path = _user_preset_path(name)
     path.parent.mkdir(parents=True, exist_ok=True)
     values = {k: v for k, v in data.items() if k not in SKIPPED_PRESET_FIELDS}
-    path.write_text(tomlkit.dumps(serialize(values)))
+    text = tomlkit.dumps(serialize(values))
+    with atomic_output(path) as output:
+        output.write_text(text)
 
 
 def delete_presets(names: list[str]) -> None:

@@ -239,6 +239,10 @@ and test autosave recovery from an invalid value.
 
 ### 12. Configuration and preset writes are not atomic
 
+**Resolved:** Configuration, autosave, global settings, and preset saves serialize
+first, write a temporary sibling, and atomically replace the destination. Tests
+inject a partial write failure into each path and verify the old file survives.
+
 **Evidence:** [AppState.save/save_autosave](../tuney/app/app_state.py),
 [GlobalConfig.save](../tuney/app/global_config.py), and
 [write_preset](../tuney/presets/preset.py) use direct `write_text` replacement.
