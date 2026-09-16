@@ -66,6 +66,9 @@ performance. Use the transport controls to replay text and loop a selected
 range. **Edit** offers undo, redo, randomization, and clearing; **View** offers
 dark mode, advanced controls, and recorded text timings.
 
+Copying and pasting text within Tuney preserves recorded press/release timing.
+Plain text from another application uses the current text timing settings.
+
 Use **File** to open a text file, save configuration, save a preset,
 import or export a Scala tuning, and save the current text as audio. Tuney
 autosaves the GUI configuration, text, loop state, and window position. That
