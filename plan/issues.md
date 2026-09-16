@@ -272,6 +272,18 @@ checkpoint before writing.
 
 ### 14. Undo cost grows with every recorded event
 
+**Resolved:** Text operations retain the changed event slice and recorder timing
+state. Normal recording appends take constant-sized undo entries; backspace,
+paste, file loading, timing edits, and timing randomization use the same edit
+representation. Full configuration changes still use whole-state snapshots.
+Undo depth remains unlimited. Tests cover every-event undo/redo, interleaved
+settings, out-of-order events, backspace, and empty-text persistence.
+
+A focused 400-event history measurement fell from 79,800 retained event copies
+and 17.00 MiB to no duplicated events in the undo entries and 0.69 MiB. Measured
+checkpoint time fell from 1.691 s to 0.014 s before final review; these are local
+unit measurements, not GUI latency guarantees.
+
 **Evidence:** [AppPlayback.on_char](../tuney/app/app_playback.py) checkpoints
 presses and releases. [History.state](../tuney/ui/history.py) deep-copies the
 whole configuration and recorded text and rereads every user preset from disk.

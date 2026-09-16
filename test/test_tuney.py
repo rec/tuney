@@ -17,7 +17,7 @@ import pytest
 from tuney.app import platform_info
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
-from tuney.app.key_recorder import speech_phrases
+from tuney.app.key_recorder import KeyRecorder, speech_phrases
 from tuney.app.text_timing import edit_text_timing
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
@@ -737,6 +737,16 @@ class FakeApp:
     def checkpoint_undo(self) -> None:
         self.undo_count += 1
 
+    def recorder_state(self) -> KeyRecorder:
+        return KeyRecorder()
+
+    @contextmanager
+    def text_edit(
+        self, index: int = 0, recorder: KeyRecorder | None = None
+    ) -> Iterator[None]:
+        self.checkpoint_undo()
+        yield
+
     @staticmethod
     def start() -> None:
         pass
@@ -796,6 +806,11 @@ class _TextClipboardWindow:
 
     def checkpoint_undo(self) -> None:
         self.undo_count += 1
+
+    @contextmanager
+    def text_edit(self) -> Iterator[None]:
+        self.checkpoint_undo()
+        yield
 
     def update_text_display(self) -> None:
         self.update_count += 1

@@ -64,13 +64,10 @@ class KeyRecorder(BaseModel):
 
     def delete_last_char(self, char_presses: list[CharPress]) -> None:
         instrument('key recorder delete last char', count=len(char_presses))
-        deleted_time = None
-        while char_presses:
-            if (deleted := char_presses.pop()).is_press:
-                deleted_time = deleted.time
-                break
-        if deleted_time is not None:
-            self.insert_time = deleted_time
+        index = last_char_index(char_presses)
+        if char_presses and char_presses[index].is_press:
+            self.insert_time = char_presses[index].time
+        del char_presses[index:]
 
     def on_replay(self, state: App) -> None:
         from .text_timing import text_timing_active_indexes
@@ -181,6 +178,12 @@ class KeyRecorder(BaseModel):
         self.time_offset = 0.0
         self.insert_time = None
         self.replay_text = ''
+
+
+def last_char_index(char_presses: list[CharPress]) -> int:
+    return next(
+        (i for i in range(len(char_presses) - 1, -1, -1) if char_presses[i].is_press), 0
+    )
 
 
 def speech_phrases(

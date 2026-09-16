@@ -8,8 +8,123 @@ from test._test_app_keys import HistoryApp
 from tuney.app.app import App
 from tuney.presets import preset
 from tuney.presets.autosave import Autosave, AutosaveRestoreError
+from tuney.time.char_press import CharPress
 from tuney.ui import file_commands, history
 from tuney.ui.replay_controls import on_loop_tempo
+
+
+def test_text_undo_retains_edits_without_serializing_full_state(monkeypatch) -> None:
+    window = HistoryApp()
+
+    def unexpected_snapshot(self: App) -> dict[str, object]:
+        pytest.fail('Typing must not serialize configuration or the recorded text')
+
+    monkeypatch.setattr(App, 'dump_data', unexpected_snapshot)
+    for i in range(400):
+        with window.history.text_edit(len(window.app.char_presses)):
+            window.app.char_presses.append(CharPress('a', i % 2 == 0, i * 10))
+            window.app.key_recorder.time_offset = i
+    assert len(window.history.undo_stack) == 400
+    assert all(isinstance(e, history.TextEdit) for e in window.history.undo_stack)
+    assert sum(len(e.presses) for e in window.history.undo_stack) == 0
+    for _ in range(400):
+        window.history.undo()
+    assert window.app.char_presses == []
+    assert window.app.key_recorder.time_offset == 0
+    assert sum(len(e.presses) for e in window.history.redo_stack) == 400
+    for _ in range(400):
+        window.history.redo()
+    assert len(window.app.char_presses) == 400
+    assert window.app.key_recorder.time_offset == 399
+
+
+def test_text_edits_interleave_with_settings_and_restore_recorder_timing() -> None:
+    window = HistoryApp()
+    window.app.text = 'original'
+    window.app.__dict__['char_presses'] = [
+        CharPress('a', time=100),
+        CharPress('a', False, 200),
+    ]
+    with window.history.text_edit():
+        window.app.key_recorder.delete_last_char(window.app.char_presses)
+    assert window.app.dump_data()['text'] == []
+    assert window.app.key_recorder.insert_time == 100
+    window.history.checkpoint_undo()
+    window.app.max_gap = 2
+    window.history.undo()
+    assert window.app.char_presses == []
+    window.history.undo()
+    assert window.app.display_text == 'a'
+    assert window.app.key_recorder.insert_time is None
+    window.history.redo()
+    assert window.app.char_presses == []
+    assert window.app.key_recorder.insert_time == 100
+    window.history.redo()
+    assert window.app.max_gap == 2
+
+
+def test_unchanged_text_can_still_undo_recorder_reset() -> None:
+    window = HistoryApp()
+    window.app.key_recorder.time_offset = 250
+    with window.history.text_edit():
+        window.app.key_recorder.clear()
+    window.history.undo()
+    assert window.app.key_recorder.time_offset == 250
+    window.history.redo()
+    assert window.app.key_recorder.time_offset == 0
+
+
+def test_text_edit_keeps_only_changed_middle_and_new_edit_discards_redo() -> None:
+    window = HistoryApp()
+    window.app.__dict__['char_presses'] = [
+        CharPress('a'),
+        CharPress('b', time=10),
+        CharPress('c', time=20),
+    ]
+    with window.history.text_edit():
+        window.app.char_presses[1] = CharPress('z', time=10)
+    edit = window.history.undo_stack[-1]
+    assert isinstance(edit, history.TextEdit)
+    assert edit.index == 1
+    assert edit.remove_count == 1
+    assert [c.char for c in edit.presses] == ['b']
+    window.history.undo()
+    assert window.app.display_text == 'abc'
+    with window.history.text_edit(3):
+        window.app.char_presses.append(CharPress('d', time=30))
+    assert window.history.redo_stack == []
+
+
+@pytest.mark.parametrize(
+    'times', [[100, 100.1, 100.2, 100.3], [100, 100.3, 100.1, 100.2]]
+)
+def test_recorded_events_and_backspace_round_trip_through_undo(
+    monkeypatch, times: list[float]
+) -> None:
+    window = HistoryApp()
+    app = window.app
+    app.silent = True
+    app.backspace_repeat_delay = -1
+    app.__dict__['main_window'] = window
+    monkeypatch.setattr(App, '_is_listening', property(lambda _: True))
+    snapshots: list[list[CharPress]] = []
+    offsets: list[float] = []
+    for c, p, t in zip(
+        'aabb\b', [True, False, True, False, True], [*times, 100.4], strict=True
+    ):
+        snapshots.append([e.model_copy(deep=True) for e in app.char_presses])
+        offsets.append(app.key_recorder.time_offset)
+        app.on_char(CharPress(c, p, t))
+    final = [c.model_copy(deep=True) for c in app.char_presses]
+    final_insert_time = app.key_recorder.insert_time
+    for s, o in zip(reversed(snapshots), reversed(offsets), strict=True):
+        window.history.undo()
+        assert app.char_presses == s
+        assert app.key_recorder.time_offset == o
+    for _ in snapshots:
+        window.history.redo()
+    assert app.char_presses == final
+    assert app.key_recorder.insert_time == final_insert_time
 
 
 @pytest.mark.parametrize('accept', [False, True])
