@@ -9,11 +9,10 @@ from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
 
-from ..app.file_output import atomic_output
 from ..app.platform_info import instrument
-from ..audio.test_sheet import render_test_sheet
 from ..presets.preset import delete_presets, preset_names, read_file, write_preset
 from . import main_menu
+from .export_dialog import ExportDialog
 from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
 
 if TYPE_CHECKING:
@@ -62,52 +61,35 @@ def on_save(main_window: MainWindow, *_: object) -> None:
 
 def on_save_as_audio(main_window: MainWindow, *_: object) -> None:
     instrument('ui save as audio')
-    main_window._is_saving = True
-    try:
-        result = main_window._get_save_file_name(
-            main_menu.SAVE_AS_AUDIO_COMMAND,
-            main_menu.SAVE_AS_AUDIO_COMMAND,
-            'WAV (*.wav);;All files (*)',
-        )
-        if filename := result[0]:
-            try:
-                with atomic_output(Path(filename)) as output:
-                    main_window.app.player.render_file(
-                        output,
-                        main_window.app.note_events(main_window.app.player.sample_rate),
-                        main_window.app.output_comment(),
-                        main_window.app.render_output_speech(),
-                    )
-            except (OSError, RuntimeError, ValueError) as error:
-                QMessageBox.critical(
-                    main_window, main_menu.SAVE_AS_AUDIO_COMMAND, str(error)
-                )
-    finally:
-        main_window._is_saving = False
-        main_window._has_focus = False
+    _save_export(main_window, main_menu.SAVE_AS_AUDIO_COMMAND)
 
 
 def on_save_test_sheet(main_window: MainWindow, *_: object) -> None:
     instrument('ui save test sheet')
     if not (presets := test_sheet_preset_names(main_window)):
         return
+    _save_export(main_window, main_menu.SAVE_TEST_SHEET_COMMAND, presets)
+
+
+def _save_export(
+    main_window: MainWindow, title: str, presets: list[str] | None = None
+) -> None:
+    if main_window.export_dialog is not None:
+        return
     main_window._is_saving = True
     try:
         result = main_window._get_save_file_name(
-            main_menu.SAVE_TEST_SHEET_COMMAND,
-            main_menu.SAVE_TEST_SHEET_COMMAND,
+            title,
+            title,
             'WAV (*.wav);;All files (*)',
         )
         if filename := result[0]:
             try:
-                with atomic_output(Path(filename)) as output:
-                    render_test_sheet(output, main_window.app, presets)
+                ExportDialog(main_window, Path(filename), title, presets)
             except (OSError, RuntimeError, ValueError) as error:
-                QMessageBox.critical(
-                    main_window, main_menu.SAVE_TEST_SHEET_COMMAND, str(error)
-                )
+                QMessageBox.critical(main_window, title, str(error))
     finally:
-        main_window._is_saving = False
+        main_window._is_saving = main_window.export_dialog is not None
         main_window._has_focus = False
 
 

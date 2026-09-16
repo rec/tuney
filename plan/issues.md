@@ -298,6 +298,14 @@ unchanged preset files for text operations, and choose a history retention polic
 
 ### 15. Export blocks the GUI until rendering finishes
 
+**Resolved:** GUI audio and test-sheet exports run in a spawned process with
+progress and cancellation. Text, settings, and presets are captured at launch.
+Only the parent publishes completed output; cancellation, worker failure, and
+replacement failure preserve existing files. Shutdown terminates the worker and
+removes temporary output and speech files. Tests cover worker rendering and
+snapshot isolation, cancellation, failures, and Qt dialog lifecycle. Native
+speech and frozen builds still require platform validation.
+
 **Evidence:** [on_save_as_audio/on_save_test_sheet](../tuney/ui/file_commands.py)
 perform the complete render synchronously in the menu callback.
 

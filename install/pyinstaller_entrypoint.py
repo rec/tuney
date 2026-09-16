@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from multiprocessing import freeze_support
 from pathlib import Path
 
 from tuney import __main__
@@ -19,6 +20,7 @@ def app_args(argv: list[str], *, frozen: bool) -> list[str]:
 
 
 def main() -> None:
+    freeze_support()
     frozen = bool(getattr(sys, 'frozen', False))
     platform_info.configure_logging()
     try:

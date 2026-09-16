@@ -61,10 +61,14 @@ def render_file(
     comment: Callable[[], str] | None = None,
     master_gain: float = 1.0,
     speech: SpeechPlayback | None = None,
+    progress: Callable[[int, int], None] | None = None,
 ) -> None:
     import soundfile
 
     rendered = 0
+    total = max(
+        events[-1][0] if events else 0, len(speech.data) if speech is not None else 0
+    )
     with soundfile.SoundFile(
         path,
         mode='w',
@@ -85,6 +89,8 @@ def render_file(
                     )
                 )
                 rendered += count
+                if progress is not None:
+                    progress(rendered, total)
             mixer.apply(note)
 
         mixer.stop_all()
@@ -97,6 +103,9 @@ def render_file(
                     mixer.render(count, np.float32, channels), master_gain, speech
                 )
             )
+            rendered += count
+            if progress is not None:
+                progress(rendered, total)
 
         if comment is not None:
             _set_comment(file, comment())

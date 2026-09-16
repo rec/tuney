@@ -66,6 +66,13 @@ and tuning. Offline rendering constructs an equivalent mixer without opening a
 live stream. Keep audio-device, MIDI-device, keyboard, and platform effects at
 their package boundaries so unit tests can isolate them.
 
+GUI audio and test-sheet exports render in a spawned process using captured
+settings and text. Qt polls progress and owns all widget changes. The parent
+owns the temporary output and speech scratch directory, replaces the destination
+only after a successful worker exit, and cleans up after cancellation or failure.
+Cancel and application shutdown terminate the worker. Native speech synthesis
+and frozen application packaging still need platform runtime checks.
+
 ## Persistence and units
 
 Text undo stores event edits and recorder timing state. Use `History.text_edit`

@@ -28,6 +28,10 @@ def test_app_keys() -> None:
     )
 
 
+def test_export_progress_cancel_and_shutdown() -> None:
+    _run_app_key_scripts('test_export_progress_cancel_and_shutdown')
+
+
 def _run_app_key_scripts(*names: str) -> None:
     command = f'from test import _test_app_keys; _test_app_keys.run({list(names)!r})'
     cmd = sys.executable, '-c', command

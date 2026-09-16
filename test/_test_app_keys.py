@@ -6,8 +6,10 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
+from PySide6.QtWidgets import QApplication, QPushButton, QWidget
 
 from tuney.app.app import App
+from tuney.app.export_job import ExportUpdate
 from tuney.app.global_config import GlobalConfig
 from tuney.mapper.mapper import Mapper
 from tuney.presets import preset
@@ -17,6 +19,7 @@ from tuney.scale.tuning import Computed, Tuning, Type
 from tuney.time.char_press import CharPress
 from tuney.ui import (
     error_dialogs,
+    export_dialog,
     file_commands,
     file_dialogs,
     key_events,
@@ -32,6 +35,62 @@ from tuney.ui.main_window import SIGNAL_POLL_IN_MS, MainWindow
 def run(names: list[str]) -> None:
     for name in names:
         globals()[name]()
+
+
+def test_export_progress_cancel_and_shutdown() -> None:
+    qt_app = QApplication.instance() or QApplication([])
+
+    class Window(QWidget):
+        def __init__(self) -> None:
+            super().__init__()
+            self.app = App(text='a')
+            self.qt_app = qt_app
+            self.export_dialog = None
+            self._is_saving = False
+            self._has_focus = False
+
+    class Job:
+        def __init__(self, *args: object) -> None:
+            self.update = ExportUpdate(percent=25, message='Rendering audio')
+            self.cancelled = False
+            self.finished = False
+
+        def poll(self) -> bool:
+            return self.finished
+
+        def cancel(self) -> None:
+            self.cancelled = True
+
+        def close(self) -> None:
+            self.cancelled = True
+            self.finished = True
+
+    old_job = export_dialog.ExportJob
+    export_dialog.ExportJob = Job
+    try:
+        window = Window()
+        dialog = export_dialog.ExportDialog(window, Path('unused.wav'), 'Export')
+        assert window._is_saving
+        dialog.poll()
+        assert dialog.value() == 25
+        assert dialog.labelText() == 'Rendering audio'
+        button = dialog.findChild(QPushButton)
+        assert button is not None
+        button.click()
+        assert dialog.job.cancelled
+        dialog.job.finished = True
+        dialog.poll()
+        assert window.export_dialog is None
+        assert not window._is_saving
+        assert not dialog.timer.isActive()
+        second = export_dialog.ExportDialog(window, Path('unused.wav'), 'Export')
+        second.shutdown()
+        assert second.job.finished
+        assert second.job.cancelled
+        assert not second.timer.isActive()
+        window.close()
+    finally:
+        export_dialog.ExportJob = old_job
 
 
 def _shortcut_text(shortcuts: list[QKeySequence]) -> str:
@@ -783,34 +842,26 @@ def test_app_saves_audio_from_current_text() -> None:
             def getSaveFileName(*_: object) -> tuple[str, str]:
                 return str(path), ''
 
-        def render_file(output, events, comment, speech):
-            rendered.append((output, events, comment))
-
         file_dialogs.QFileDialog = FakeSaveDialog
-        app.app.__dict__['player'] = type(
-            'FakePlayer',
-            (),
-            {'render_file': staticmethod(render_file), 'sample_rate': 48_000},
-        )()
+        old_export_dialog = file_commands.ExportDialog
+        try:
+            file_commands.ExportDialog = lambda *args: rendered.append(args)
+            MainWindow.on_save_as_audio(app)
+        finally:
+            file_commands.ExportDialog = old_export_dialog
 
-        MainWindow.on_save_as_audio(app)
-
-    output, events, comment = rendered[0]
-    assert output != path
-    assert output.parent == path.parent
-    assert output.suffix == path.suffix
-    assert [(frame, note.is_press) for frame, note in events] == [
-        (0, True),
-        (4800, False),
-    ]
-    assert callable(comment)
+    window, output, title, presets = rendered[0]
+    assert window is app
+    assert output == path
+    assert title == file_commands.main_menu.SAVE_AS_AUDIO_COMMAND
+    assert presets is None
 
 
 def test_app_saves_test_sheet_from_current_text() -> None:
     app = HistoryApp()
     rendered = []
     old_preset_names = file_commands.test_sheet_preset_names
-    old_render_test_sheet = file_commands.render_test_sheet
+    old_export_dialog = file_commands.ExportDialog
     try:
         with tempfile.TemporaryDirectory() as tmp:
             app.app.__dict__['global_config'] = GlobalConfig(
@@ -823,26 +874,21 @@ def test_app_saves_test_sheet_from_current_text() -> None:
                 def getSaveFileName(*_: object) -> tuple[str, str]:
                     return str(path), ''
 
-            def render_test_sheet(output, app, presets):
-                rendered.append((output, app, presets))
-
             file_dialogs.QFileDialog = FakeSaveDialog
             file_commands.test_sheet_preset_names = lambda _: [
                 'first',
                 'second',
             ]
-            file_commands.render_test_sheet = render_test_sheet
+            file_commands.ExportDialog = lambda *args: rendered.append(args)
 
             MainWindow.on_save_test_sheet(app)
     finally:
         file_commands.test_sheet_preset_names = old_preset_names
-        file_commands.render_test_sheet = old_render_test_sheet
+        file_commands.ExportDialog = old_export_dialog
 
-    output, rendered_app, presets = rendered[0]
-    assert output != path
-    assert output.parent == path.parent
-    assert output.suffix == path.suffix
-    assert rendered_app is app.app
+    window, output, title, presets = rendered[0]
+    assert output == path
+    assert window is app
     assert presets == ['first', 'second']
 
 
@@ -850,15 +896,15 @@ def test_app_cancels_test_sheet_without_preset_selection() -> None:
     app = HistoryApp()
     calls = []
     old_preset_names = file_commands.test_sheet_preset_names
-    old_render_test_sheet = file_commands.render_test_sheet
+    old_export_dialog = file_commands.ExportDialog
     try:
         file_commands.test_sheet_preset_names = lambda _: []
-        file_commands.render_test_sheet = lambda *args: calls.append(args)
+        file_commands.ExportDialog = lambda *args: calls.append(args)
 
         MainWindow.on_save_test_sheet(app)
     finally:
         file_commands.test_sheet_preset_names = old_preset_names
-        file_commands.render_test_sheet = old_render_test_sheet
+        file_commands.ExportDialog = old_export_dialog
 
     assert calls == []
 
@@ -1052,6 +1098,7 @@ class FakeGeometry:
 
 class HistoryApp:
     def __init__(self) -> None:
+        self.export_dialog = None
         self.app = App(max_gap=1.0)
         self.ui = FakeLayout()
         self.history = History(self)

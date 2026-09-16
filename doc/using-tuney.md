@@ -68,6 +68,10 @@ autosaves the GUI configuration, text, loop state, and window position. That
 autosave is restored only for an ordinary GUI launch, not when you give text, a
 preset, or a configuration file on the command line.
 
+Audio and test-sheet exports show progress and a Cancel button. They use the
+text, settings, and selected presets captured when export starts. Cancelling
+leaves any existing destination file intact, as does a failed export.
+
 Global keyboard input is optional. Turn on **Run in Background** only when you
 want Tuney to receive typing while another application is active.
 
