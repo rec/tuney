@@ -45,10 +45,10 @@ definition so library field names do not leak into its saved configuration.
 
 For local development, keep the Reccy, Ufor, and Enge checkouts at `../reccy`,
 `../ufor`, and `../enge`, then run `uv sync`. Release installations use the pinned
-public source archives in `pyproject.toml`; Reccy and Enge are not currently
-published on PyPI. Verify dependency updates in a separate checkout with
-`uv sync --no-sources` and `uv run --no-sources pytest`, in addition to local
-checks. Editable sibling checkouts alone do not establish release compatibility.
+Git sources pinned in `uv.lock`; reccy and enge are not currently published on
+PyPI. Verify dependency updates in a separate checkout with `uv sync --frozen`
+and `uv run pytest`, in addition to local checks. Editable sibling checkouts
+alone do not establish release compatibility.
 
 ## Runtime boundaries
 
@@ -124,7 +124,7 @@ After changing Python code or data it uses, run the project checks from the
 repository root:
 
 ```sh
-uv run pytest
+QT_QPA_PLATFORM=offscreen uv run pytest -n auto --dist=loadfile
 uv run ruff check --fix --select B,E,F,I tuney test
 uv run ruff format
 uv run ty check tuney
@@ -133,6 +133,10 @@ version=${version//./}
 find test tuney -name '*.py' | xargs uv run pyupgrade --py${version}-plus
 git diff --check
 ```
+
+Use `-n 0` to reproduce a failure serially, or a fixed worker count such as
+`-n 2` on a constrained machine. `--force-regen` rewrites committed regression
+fixtures, so run it serially with `-n 0 --force-regen` and review its changes.
 
 The automated suite cannot prove physical audio, MIDI, global-keyboard, or
 window-manager behavior. Before a release, test typing and replay, changes to

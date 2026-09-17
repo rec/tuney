@@ -59,3 +59,15 @@ reviewed by a human.
   project boundaries, and release checks.
 - [Configuration model](schema.md) is generated from the current Pydantic models
   and checked by the test suite.
+
+## Development
+
+Run the unit suite in parallel:
+
+```sh
+QT_QPA_PLATFORM=offscreen uv run pytest -n auto --dist=loadfile
+```
+
+Use `-n 0` to reproduce a failure serially, or replace `auto` with a fixed
+worker count such as `2` on a constrained machine. Regenerate regression
+fixtures serially with `-n 0 --force-regen`.
