@@ -29,7 +29,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       ARTIFACT_NAME: Tuney-${{ github.ref_name }}-${{ matrix.package }}.${{ matrix.extension }}
-      UV_NO_SOURCES: '1'
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +64,9 @@ jobs:
         run: uv sync --dev
 
       - name: Test
-        run: uv run pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: uv run pytest -n auto --dist=loadfile
 
       - name: Write Windows version metadata
         if: runner.os == 'Windows'
