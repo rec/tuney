@@ -3,7 +3,7 @@
 ```
 class Tuney:
     """
-    Tuney is the top-level data representation for the tuny program
+    Tuney is the top-level data representation for the tuney program
 
     Use positional `TEXT` to play characters as notes, then tune the scale,
     audio, MIDI, and timing from the same config model.
