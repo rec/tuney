@@ -3282,7 +3282,7 @@ wheels = [
 [[package]]
 name = "reccy"
 version = "0.1.0"
-source = { git = "https://github.com/rec/reccy.git?branch=main#88a0b6b34e810cd86a93eb253c4b17131a9ef8e9" }
+source = { git = "https://github.com/rec/reccy.git?branch=main#1299805ccfbaa3eb6c2ee82994554c0284a85e6b" }
 dependencies = [
     { name = "pint" },
     { name = "pydantic" },
