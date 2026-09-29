@@ -484,6 +484,30 @@ def test_invalid_clipboard_timing_keeps_current_text(
     assert window.update_count == 0
 
 
+def test_out_of_order_clipboard_timing_is_rejected(monkeypatch) -> None:
+    app = App(gui=True, text='old')
+    clipboard = _FakeClipboard('replacement')
+    mime = QMimeData()
+    mime.setData(
+        CHAR_PRESSES_MIME,
+        b'[{"char":"b","time":100},{"char":"a","time":0}]',
+    )
+    clipboard.setMimeData(mime)
+    window = _TextClipboardWindow(app, clipboard)
+    errors: list[str] = []
+    monkeypatch.setattr(
+        'tuney.ui.file_commands.QMessageBox.critical',
+        lambda parent, title, message: errors.append(message),
+    )
+
+    on_paste_text(window)
+
+    assert errors == ['char_presses are not sorted by time']
+    assert app.display_text == 'old'
+    assert window.undo_count == 0
+    assert window.update_count == 0
+
+
 def test_paste_text_replaces_text_with_timed_clipboard_text() -> None:
     app = App(gui=True, text=[CharPress('x', time=0)])
     clipboard = _FakeClipboard('ab')
