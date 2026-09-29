@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -10,6 +11,8 @@ from tuney.app.app import App
 from tuney.app.audio_recorder import AudioRecorder
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
+from tuney.presets.autosave import Autosave
+from tuney.ui.file_commands import on_swap_with_autosave
 
 
 @pytest.mark.parametrize('existing', [False, True])
@@ -147,3 +150,34 @@ def test_failed_recording_start_cannot_be_saved(
     assert recorder.comment is None
     assert not recorder.started
     assert list(tmp_path.iterdir()) == []
+
+
+def test_failed_autosave_swap_preserves_previous_autosave(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / 'state.toml'
+    App(gui=False, max_gap=2.0).save(path)
+    original = path.read_bytes()
+    app = App(gui=True, max_gap=3.0)
+    app.__dict__['_autosave'] = Autosave(file=path)
+    messages: list[str] = []
+
+    def fail(self: App, data: dict[str, object]) -> None:
+        assert path.read_bytes() == original
+        raise ValueError('restore failed')
+
+    monkeypatch.setattr(App, 'restore_data', fail)
+    monkeypatch.setattr(
+        'tuney.ui.file_commands.QMessageBox.critical',
+        lambda parent, title, message: messages.append(message),
+    )
+    window = SimpleNamespace(
+        app=app,
+        history=SimpleNamespace(checkpoint_undo=lambda: None),
+    )
+
+    on_swap_with_autosave(window)
+
+    assert messages == ['restore failed']
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]
