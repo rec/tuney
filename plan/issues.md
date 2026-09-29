@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 17. Swap with autosave can destroy the previous autosave before restore succeeds
-
-`on_swap_with_autosave` validates first, writes the current state over the autosave, then restores the old data ([tuney/ui/file_commands.py](../tuney/ui/file_commands.py), lines 238-253). If restore fails during player or device reconfiguration, the old autosave is gone. Stage both states until the UI transition succeeds, or provide rollback. Test a restore failure after the write.
-
 ### 18. Losing keyboard focus can leave a note held (risk)
 
 The key event handler caches a pressed character until release ([tuney/ui/key_events.py](../tuney/ui/key_events.py), lines 50-76). `MainWindow.focusOutEvent` does not release or clear held keys ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 534-536). If the key is released after focus moves, the window can miss it and sustain the note. Release held keys on focus loss and verify focus-switch behavior with the global keyboard listener.
