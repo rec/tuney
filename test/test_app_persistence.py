@@ -130,6 +130,22 @@ def test_configure_logging_sets_frozen_log_path(monkeypatch) -> None:
         assert calls == [(tmp_path / 'tuney' / 'tuney.log', 'tuney')]
 
 
+def test_configure_logging_uses_stderr_when_log_is_claimed(monkeypatch) -> None:
+    monkeypatch.setattr(sys, 'frozen', True, raising=False)
+    calls: list[Path | None] = []
+
+    def configure(path: Path | None = None, *, service_name: str | None = None) -> None:
+        calls.append(path)
+        if path is not None:
+            raise platform_info.ResourceClaimConflict(11, 'Resource is already claimed')
+
+    monkeypatch.setattr(platform_info.logging, 'configure', configure)
+
+    platform_info.configure_logging()
+
+    assert calls == [platform_info.log_path(), None]
+
+
 def test_autosave_writes_current_model_without_app_state(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
