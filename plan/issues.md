@@ -8,10 +8,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P3: structure, reuse, and verification
 
-### 27. Failure-path tests miss the most consequential interleavings
-
-The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise sparse long speech or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
-
 ### 28. Some test files overlap and packaged behavior remains unverified
 
 Audio renderer and voice-envelope tests both cover envelope, binaural, and phase behavior at different layers; control-panel and layout tests also overlap in widget assertions. Review duplicated assertions when editing those files, while preserving their distinct integration coverage. The release workflow runs headless tests and builds packages, but does not launch a packaged GUI or validate physical audio, MIDI, or global keyboard input ([.github/workflows/release-builds.yml](../.github/workflows/release-builds.yml)). Keep those as explicit release checks rather than treating CI success as hardware validation.
