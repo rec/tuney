@@ -273,6 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         instrument('close event start')
+        self.is_replaying = False
         if self.export_dialog is not None:
             self.export_dialog.shutdown()
         self._close_app()
