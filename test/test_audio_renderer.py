@@ -484,6 +484,22 @@ def test_callback_failure_is_recorded() -> None:
     assert engine.diagnostics.take_errors() == ['cannot render block']
 
 
+@pytest.mark.parametrize('error', [OSError('device lost'), MemoryError('no memory')])
+def test_unexpected_callback_failure_releases_waiter(error: Exception) -> None:
+    class FailingMixer(Mixer):
+        def render(self, *_: object, **__: object) -> np.ndarray:
+            raise error
+
+    engine = AudioEngine(mixer=FailingMixer(voice_maker=_voice_maker))
+
+    with pytest.raises(type(error), match=str(error)):
+        engine.callback(np.zeros((4, 1)), 4, 0.0, None)
+
+    assert engine.playback_complete.is_set()
+    with pytest.raises(RuntimeError, match=str(error)):
+        engine.wait()
+
+
 def test_engine_records_rendered_callback_block(tmp_path) -> None:
     path = tmp_path / 'out.wav'
     engine = AudioEngine(mixer=_mixer())

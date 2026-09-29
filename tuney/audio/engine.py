@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
@@ -219,14 +220,17 @@ class AudioEngine(BaseModel):
                 stream.stop()
                 instrument('audio stream stopped after wait')
         self.process_notifications()
+        if timeout is None and self.diagnostics.callback_errors:
+            raise RuntimeError('; '.join(self.diagnostics.callback_errors))
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: object, status: object
     ) -> None:
-        if status:
-            self.notifications.put((False, str(status)))
-
+        completed = False
+        reported = False
         try:
+            if status:
+                self.notifications.put((False, str(status)))
             self._drain_commands()
             mixed = self.mixer.render(frame_size, float, out.shape[1])
             if self.speech is not None:
@@ -237,14 +241,20 @@ class AudioEngine(BaseModel):
             out[:] = mixed.astype(out.dtype, copy=False)
             if (recorder := self.recorder) is not None:
                 recorder.write(out)
+            if self.stop_when_silent and not self.mixer.voices and self.speech is None:
+                self.playback_complete.set()
+            completed = True
         except (ArithmeticError, RuntimeError, TypeError, ValueError) as error:
             from sounddevice import CallbackAbort
 
             self.notifications.put((True, str(error)))
-            self.playback_complete.set()
+            reported = True
             raise CallbackAbort from error
-        if self.stop_when_silent and not self.mixer.voices and self.speech is None:
-            self.playback_complete.set()
+        finally:
+            if not completed:
+                self.playback_complete.set()
+                if not reported and (error := sys.exception()) is not None:
+                    self.notifications.put((True, f'{type(error).__name__}: {error}'))
 
     def _drain_commands(self) -> None:
         while True:
