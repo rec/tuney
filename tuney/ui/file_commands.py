@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QMessageBox
 from ..app.platform_info import instrument
 from ..presets.preset import delete_presets, preset_names, read_file, write_preset
 from ..time.char_press import CharPress
+from ..time.sequencer import is_sorted
 from . import main_menu
 from .export_dialog import ExportDialog
 from .preset_dialogs import preset_name, selected_preset_names, test_sheet_preset_names
@@ -211,10 +212,12 @@ def on_paste_text(main_window: MainWindow, *_: object) -> None:
     mime = clipboard.mimeData()
     if mime is not None and mime.hasFormat(CHAR_PRESSES_MIME):
         try:
-            presses = TypeAdapter(list[CharPress]).validate_json(
-                bytes(mime.data(CHAR_PRESSES_MIME).data())
+            presses = is_sorted(
+                TypeAdapter(list[CharPress]).validate_json(
+                    bytes(mime.data(CHAR_PRESSES_MIME).data())
+                )
             )
-        except ValidationError as error:
+        except (ValidationError, ValueError) as error:
             QMessageBox.critical(main_window, 'Paste text', str(error))
             return
     else:
