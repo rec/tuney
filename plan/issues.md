@@ -4,10 +4,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P1: data and runtime safety
 
-### 11. GUI input queues can grow without bound and starve event processing (risk)
-
-The main window and MIDI listener use unbounded queues, and their GUI handlers drain until empty ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 94-96 and 595-606; [tuney/midi/listener.py](../tuney/midi/listener.py), lines 21 and 40-45). A sustained keyboard or MIDI flood can grow memory and prevent paint, close, and timer events. Bound backlog and work per GUI tick, with an explicit drop policy for stale input.
-
 ## P2: behavior and user-facing traps
 
 ### 13. Text-file errors silently change what is played
