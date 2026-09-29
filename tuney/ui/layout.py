@@ -16,7 +16,6 @@ from .control_panel import ControlPanel
 from .control_panel_layout import _FlowLayout
 from .main_window import MainWindow
 from .note_button import MIN_BUTTON_HEIGHT, MIN_FONT_SIZE, NoteButton, _note_font_size
-from .platform import command_key
 from .splitter import SpacedSplitter
 from .theme import replay_style
 from .tooltip import Tooltip
@@ -29,7 +28,7 @@ REPLAY_FRAME_HEIGHT = 40
 LOOP_CONTROLS_HEIGHT = 28
 FONT_FAMILY = 'Arial'
 FONT_SIZE = 14
-COMMAND_KEY = command_key(sys.platform)
+COMMAND_KEY = 'Command' if sys.platform == 'darwin' else 'Ctrl'
 REPLAY_TOOLTIPS = {
     'replay': 'Play recorded text, or stop playback',
     'randomize': 'Randomize time for the recorded text',
