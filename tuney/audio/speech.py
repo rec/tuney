@@ -1,41 +1,76 @@
 from __future__ import annotations
 
+from functools import cached_property
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Protocol
 
 import numpy as np
 from numpy.typing import DTypeLike
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from reccy.configuration.units import Seconds
 
 from ..app.platform_info import report_error
 
 BASE_SPEECH_RATE = 200
 PHRASE_PUNCTUATION = '.:;!?'
+SPEECH_BLOCK_FRAMES = 8192
+
+
+class SpeechSegment(BaseModel, frozen=True):
+    start: int
+    data: np.ndarray
+
+    @property
+    def end(self) -> int:
+        return self.start + len(self.data)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class SpeechPlayback(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    data: np.ndarray
+    segments: list[SpeechSegment]
     level: float
     position: int = 0
+    next_segment: int = 0
+    active_segments: list[int] = Field(default_factory=list)
+    temporary: TemporaryDirectory[str] | None = Field(default=None, exclude=True)
+
+    @cached_property
+    def total_frames(self) -> int:
+        return max((s.end for s in self.segments), default=0)
 
     @property
     def complete(self) -> bool:
-        return self.position >= len(self.data)
+        return self.position >= self.total_frames
 
     def render(self, frame_size: int, dtype: DTypeLike, channels: int) -> np.ndarray:
         end = self.position + frame_size
-        out = self.data[self.position : end]
+        out = np.zeros((frame_size, channels), dtype=np.float64)
+        while (
+            self.next_segment < len(self.segments)
+            and self.segments[self.next_segment].start < end
+        ):
+            self.active_segments.append(self.next_segment)
+            self.next_segment += 1
+        remaining = []
+        for index in self.active_segments:
+            segment = self.segments[index]
+            if segment.end <= self.position:
+                continue
+            start = max(self.position, segment.start)
+            finish = min(end, segment.end)
+            data = segment.data[start - segment.start : finish - segment.start]
+            if data.shape[1] != channels:
+                data = np.repeat(data.mean(axis=1)[:, np.newaxis], channels, axis=1)
+            out[start - self.position : finish - self.position] += data
+            if segment.end > end:
+                remaining.append(index)
+        self.active_segments = remaining
         self.position = end
-        if len(out) < frame_size:
-            pad = np.zeros((frame_size - len(out), out.shape[1]))
-            out = np.concatenate([out, pad])
-        if out.shape[1] != channels:
-            out = np.repeat(out.mean(axis=1)[:, np.newaxis], channels, axis=1)
         return (out * self.level).astype(dtype, copy=False)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class SpeechPhrase(BaseModel, frozen=True):
@@ -54,26 +89,48 @@ class SpeechRequest(BaseModel, frozen=True):
 def render_speech(
     request: SpeechRequest,
 ) -> SpeechPlayback | None:
-    phrases = request.phrases
-    if not phrases:
+    if not request.phrases:
         return None
-    with TemporaryDirectory() as directory:
-        rendered = _render_phrases(
-            Path(directory), phrases, request.speed, request.voice
-        )
-        if not rendered:
-            return None
-        return SpeechPlayback(
-            data=_align_phrases(rendered, request.sample_rate),
-            level=request.level,
-        )
+    temporary = TemporaryDirectory(prefix='tuney-speech-')
+    playback = None
+    try:
+        segments = []
+        for index, phrase in enumerate(request.phrases):
+            path = Path(temporary.name) / f'phrase-{index}.wav'
+            if speech_file := _render_speech(
+                phrase.text, BASE_SPEECH_RATE, path, request.voice
+            ):
+                if speech_file.frames == 0:
+                    continue
+                data = _resample_file(
+                    speech_file,
+                    Path(temporary.name) / f'phrase-{index}.npy',
+                    request.sample_rate,
+                    request.speed,
+                )
+                segments.append(
+                    SpeechSegment(
+                        start=round(phrase.start * request.sample_rate), data=data
+                    )
+                )
+                path.unlink()
+        if segments:
+            playback = SpeechPlayback(
+                segments=sorted(segments, key=lambda s: s.start),
+                level=request.level,
+                temporary=temporary,
+            )
+        return playback
+    finally:
+        if playback is None:
+            temporary.cleanup()
 
 
 class _SpeechFile(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    data: np.ndarray
+    path: Path
     sample_rate: int
+    frames: int
+    channels: int
 
 
 class _SpeechEngine(Protocol):
@@ -112,8 +169,13 @@ def _render_speech(
     engine.runAndWait()
     if not path.exists():
         return None
-    data, sample_rate = soundfile.read(path, always_2d=True)
-    return _SpeechFile(data=data, sample_rate=sample_rate)
+    info = soundfile.info(path)
+    return _SpeechFile(
+        path=path,
+        sample_rate=info.samplerate,
+        frames=info.frames,
+        channels=info.channels,
+    )
 
 
 def _set_voice(engine: _SpeechEngine, name: str) -> None:
@@ -124,61 +186,32 @@ def _set_voice(engine: _SpeechEngine, name: str) -> None:
             return
 
 
-def _render_phrases(
-    directory: Path, phrases: list[SpeechPhrase], speed: float, voice: str | None
-) -> list[tuple[SpeechPhrase, _SpeechFile]]:
-    rendered = []
-    for i, phrase in enumerate(phrases):
-        path = directory / f'phrase-{i}.wav'
-        if speech_file := _render_speech(phrase.text, BASE_SPEECH_RATE, path, voice):
-            speech_file.data = _scale_duration(speech_file.data, speed)
-            rendered.append((phrase, speech_file))
-    return rendered
-
-
-def _scale_duration(data: np.ndarray, speed: float) -> np.ndarray:
-    if speed == 1:
-        return data
-    old = np.arange(len(data))
-    new_count = max(1, round(len(data) / speed))
-    new = np.linspace(0, len(data) - 1, new_count)
-    return np.stack(
-        [np.interp(new, old, data[:, i]) for i in range(data.shape[1])],
-        axis=1,
-    )
-
-
-def _align_phrases(
-    rendered: list[tuple[SpeechPhrase, _SpeechFile]], sample_rate: int
+def _resample_file(
+    speech_file: _SpeechFile, path: Path, sample_rate: int, speed: float
 ) -> np.ndarray:
-    resampled = [
-        (phrase, _resample(speech_file, sample_rate))
-        for phrase, speech_file in rendered
-    ]
-    channels = max(data.shape[1] for _, data in resampled)
-    length = max(
-        round(phrase.start * sample_rate) + len(data) for phrase, data in resampled
-    )
-    out = np.zeros((length, channels))
-    for phrase, data in resampled:
-        start = round(phrase.start * sample_rate)
-        end = start + len(data)
-        if data.shape[1] != channels:
-            data = np.repeat(data.mean(axis=1)[:, np.newaxis], channels, axis=1)
-        out[start:end] += data
-    return out
+    import soundfile
 
-
-def _resample(speech_file: _SpeechFile, sample_rate: int) -> np.ndarray:
-    if speech_file.sample_rate == sample_rate:
-        return speech_file.data
-    old = np.arange(len(speech_file.data))
-    new_count = round(len(speech_file.data) * sample_rate / speech_file.sample_rate)
-    new = np.linspace(0, len(speech_file.data) - 1, new_count)
-    return np.stack(
-        [
-            np.interp(new, old, speech_file.data[:, i])
-            for i in range(speech_file.data.shape[1])
-        ],
-        axis=1,
+    scaled_frames = max(1, round(speech_file.frames / speed))
+    frames = max(1, round(scaled_frames * sample_rate / speech_file.sample_rate))
+    data = np.lib.format.open_memmap(
+        path, mode='w+', dtype=np.float64, shape=(frames, speech_file.channels)
     )
+    source_step = (speech_file.frames - 1) / max(1, frames - 1)
+    block_size = max(
+        1, min(SPEECH_BLOCK_FRAMES, round(SPEECH_BLOCK_FRAMES / max(1, source_step)))
+    )
+    with soundfile.SoundFile(speech_file.path) as source:
+        for start in range(0, frames, block_size):
+            end = min(frames, start + block_size)
+            positions = np.arange(start, end) * source_step
+            source_start = int(positions[0])
+            source_end = min(speech_file.frames, int(np.ceil(positions[-1])) + 1)
+            source.seek(source_start)
+            samples = source.read(source_end - source_start, always_2d=True)
+            source_positions = np.arange(source_start, source_start + len(samples))
+            for channel in range(speech_file.channels):
+                data[start:end, channel] = np.interp(
+                    positions, source_positions, samples[:, channel]
+                )
+    data.flush()
+    return data

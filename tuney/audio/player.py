@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from functools import cached_property, partial
 from pathlib import Path
+from threading import Thread
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from ufor.number import NoteNumber
 
 from ..app.platform_info import instrument, trace
+from ..app.runnable import start_thread
 from ..scale.scale import Scale
 from ..scale.tuning import Tuning
 from .device import Device
@@ -23,16 +25,28 @@ from .voice import Voice
 class PreparedSpeech(BaseModel):
     request: SpeechRequest | None = None
     playback: SpeechPlayback | None = None
+    worker: Thread | None = Field(default=None, exclude=True)
 
     def prepare(self, request: SpeechRequest) -> None:
         self.request = request
-        self.playback = render_speech(request)
+        self.playback = None
+        if self.worker is not None and self.worker.is_alive():
+            return
+
+        def render() -> None:
+            playback = render_speech(request)
+            if self.request is request:
+                self.playback = playback
+
+        self.worker = start_thread(render)
 
     def take(self, request: SpeechRequest) -> SpeechPlayback | None:
         if self.request != request:
             return None
         playback, self.playback = self.playback, None
         return playback
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Player(BaseModel, frozen=True):
@@ -262,10 +276,13 @@ class Player(BaseModel, frozen=True):
         request = self.speech_request(phrases, level, speed, voice)
         speech = self.prepared_speech.take(request) or render_speech(request)
         if speech is not None:
-            self.engine.submit(PlaySpeech(speech=speech))
-            self.engine.start()
+            self.play_speech(speech)
 
         return speech
+
+    def play_speech(self, speech: SpeechPlayback) -> None:
+        self.engine.submit(PlaySpeech(speech=speech))
+        self.engine.start()
 
     def speech_request(
         self, phrases: list[SpeechPhrase], level: float, speed: float, voice: str | None

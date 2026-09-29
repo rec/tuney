@@ -99,7 +99,9 @@ def _write_preset_name(
         voice=app.speech_voice,
     )
     if speech := render_speech(request):
-        file.write(_channels(speech.data * speech.level, channels))
+        while not speech.complete:
+            count = min(BLOCK_SIZE, speech.total_frames - speech.position)
+            file.write(speech.render(count, np.float32, channels))
 
 
 def _write_note_events(
@@ -141,14 +143,6 @@ def _write_note_events(
         rendered += BLOCK_SIZE
         if progress is not None:
             progress(rendered, events[-1][0] if events else 0)
-
-
-def _channels(data: np.ndarray, channels: int) -> np.ndarray:
-    if data.shape[1] == channels:
-        return data
-    if channels == 1:
-        return data.mean(axis=1)[:, np.newaxis]
-    return np.repeat(data[:, :1], channels, axis=1)
 
 
 def _mastered(block: np.ndarray, master_gain: float) -> np.ndarray:

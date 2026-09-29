@@ -67,7 +67,7 @@ def render_file(
 
     rendered = 0
     total = max(
-        events[-1][0] if events else 0, len(speech.data) if speech is not None else 0
+        events[-1][0] if events else 0, speech.total_frames if speech is not None else 0
     )
     with soundfile.SoundFile(
         path,
@@ -97,7 +97,7 @@ def render_file(
         while mixer.voices or (speech is not None and not speech.complete):
             count = BLOCK_SIZE
             if not mixer.voices and speech is not None:
-                count = min(count, len(speech.data) - speech.position)
+                count = min(count, speech.total_frames - speech.position)
             file.write(
                 _mastered(
                     mixer.render(count, np.float32, channels), master_gain, speech

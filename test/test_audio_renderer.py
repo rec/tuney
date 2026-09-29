@@ -25,7 +25,12 @@ from tuney.audio.player import Player
 from tuney.audio.polyphony import Polyphony
 from tuney.audio.recording import Recording
 from tuney.audio.sound import Binaural, Sound
-from tuney.audio.speech import SpeechPhrase, SpeechPlayback, SpeechRequest
+from tuney.audio.speech import (
+    SpeechPhrase,
+    SpeechPlayback,
+    SpeechRequest,
+    SpeechSegment,
+)
 from tuney.audio.voice import Voice
 from tuney.presets import preset
 from tuney.scale.scale import Scale
@@ -266,7 +271,9 @@ def test_test_sheet_renders_preset_sections(monkeypatch, tmp_path) -> None:
     speech_data = np.ones((SAMPLE_RATE // 2, 1), dtype=np.float32)
 
     def render_speech(_: SpeechRequest) -> SpeechPlayback:
-        return SpeechPlayback(data=speech_data, level=0.5)
+        return SpeechPlayback(
+            segments=[SpeechSegment(start=0, data=speech_data)], level=0.5
+        )
 
     monkeypatch.setattr(test_sheet, 'render_speech', render_speech)
     path = tmp_path / 'test-sheet.wav'
@@ -993,7 +1000,10 @@ def test_engine_applies_stop_all_on_next_block() -> None:
 def test_engine_mixes_speech_playback() -> None:
     engine = AudioEngine(mixer=_mixer())
     speech_playback = SpeechPlayback(
-        data=np.ones((8, 1), dtype=np.float32) * 0.25, level=2.0
+        segments=[
+            SpeechSegment(start=0, data=np.ones((8, 1), dtype=np.float32) * 0.25)
+        ],
+        level=2.0,
     )
     engine.submit(PlaySpeech(speech=speech_playback))
     out = np.zeros((4, 1), dtype=np.float32)
@@ -1006,7 +1016,10 @@ def test_engine_mixes_speech_playback() -> None:
 
 def test_engine_clears_speech_playback_when_complete() -> None:
     engine = AudioEngine(mixer=_mixer())
-    speech_playback = SpeechPlayback(data=np.ones((4, 1), dtype=np.float32), level=1.0)
+    speech_playback = SpeechPlayback(
+        segments=[SpeechSegment(start=0, data=np.ones((4, 1), dtype=np.float32))],
+        level=1.0,
+    )
     engine.submit(PlaySpeech(speech=speech_playback))
 
     engine.callback(np.zeros((8, 1), dtype=np.float32), 8, None, None)
@@ -1016,7 +1029,13 @@ def test_engine_clears_speech_playback_when_complete() -> None:
 
 def test_engine_stop_all_clears_speech_playback() -> None:
     engine = AudioEngine(mixer=_mixer())
-    engine.submit(PlaySpeech(speech=SpeechPlayback(data=np.ones((8, 1)), level=1.0)))
+    engine.submit(
+        PlaySpeech(
+            speech=SpeechPlayback(
+                segments=[SpeechSegment(start=0, data=np.ones((8, 1)))], level=1.0
+            )
+        )
+    )
     engine.submit(StopAll())
 
     engine.callback(np.zeros((4, 1)), 4, None, None)
@@ -1040,7 +1059,7 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
             calls.append((name, value))
 
         def save_to_file(self, _: str, path: str) -> None:
-            Path(path).touch()
+            soundfile.write(path, np.zeros(SAMPLE_RATE), SAMPLE_RATE)
 
         @staticmethod
         def runAndWait() -> None:
@@ -1051,12 +1070,6 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
         'pyttsx3',
         SimpleNamespace(init=lambda: Engine()),
     )
-    monkeypatch.setattr(
-        soundfile,
-        'read',
-        lambda *_args, **_kwargs: (np.zeros((8, 1)), SAMPLE_RATE),
-    )
-
     speech._render_speech('hello', 200, tmp_path / 'speech.wav', 'Second')
 
     assert ('voice', 'voice-2') in calls
@@ -1064,12 +1077,12 @@ def test_speech_renderer_selects_voice(monkeypatch, tmp_path) -> None:
 
 def test_render_speech_aligns_phrases_without_stretching(monkeypatch) -> None:
     def render(
-        text: str, _rate: int, _path: Path, _voice: str | None
+        text: str, _rate: int, path: Path, _voice: str | None
     ) -> speech._SpeechFile | None:
-        values = {'a': 1.0, 'b': 2.0}
+        values = {'a': 0.25, 'b': 0.5}
+        soundfile.write(path, np.full(SAMPLE_RATE, values[text]), SAMPLE_RATE)
         return speech._SpeechFile(
-            data=np.ones((2, 1), dtype=np.float32) * values[text],
-            sample_rate=4,
+            path=path, sample_rate=SAMPLE_RATE, frames=SAMPLE_RATE, channels=1
         )
 
     monkeypatch.setattr(speech, '_render_speech', render)
@@ -1080,7 +1093,7 @@ def test_render_speech_aligns_phrases_without_stretching(monkeypatch) -> None:
                 SpeechPhrase(text='a', start=0.0),
                 SpeechPhrase(text='b', start=0.5),
             ],
-            sample_rate=4,
+            sample_rate=SAMPLE_RATE,
             level=1.0,
             speed=1.0,
             voice=None,
@@ -1088,24 +1101,30 @@ def test_render_speech_aligns_phrases_without_stretching(monkeypatch) -> None:
     )
 
     assert playback is not None
-    np.testing.assert_allclose(playback.data[:, 0], [1.0, 1.0, 2.0, 2.0])
+    assert playback.total_frames == SAMPLE_RATE * 3 // 2
+    np.testing.assert_allclose(playback.render(SAMPLE_RATE // 2, np.float32, 1), 0.25)
+    np.testing.assert_allclose(playback.render(SAMPLE_RATE // 2, np.float32, 1), 0.75)
+    np.testing.assert_allclose(playback.render(SAMPLE_RATE // 2, np.float32, 1), 0.5)
 
 
 def test_render_speech_scales_phrase_duration(monkeypatch) -> None:
     rates = []
 
     def render(
-        _text: str, rate: int, _path: Path, _voice: str | None
+        _text: str, rate: int, path: Path, _voice: str | None
     ) -> speech._SpeechFile | None:
         rates.append(rate)
-        return speech._SpeechFile(data=np.ones((4, 1)), sample_rate=4)
+        soundfile.write(path, np.ones(SAMPLE_RATE), SAMPLE_RATE)
+        return speech._SpeechFile(
+            path=path, sample_rate=SAMPLE_RATE, frames=SAMPLE_RATE, channels=1
+        )
 
     monkeypatch.setattr(speech, '_render_speech', render)
 
     playback = speech.render_speech(
         SpeechRequest(
             phrases=[SpeechPhrase(text='a', start=0.0)],
-            sample_rate=4,
+            sample_rate=SAMPLE_RATE,
             level=1.0,
             speed=0.8,
             voice=None,
@@ -1114,7 +1133,35 @@ def test_render_speech_scales_phrase_duration(monkeypatch) -> None:
 
     assert playback is not None
     assert rates == [200]
-    assert len(playback.data) == 5
+    assert playback.total_frames == SAMPLE_RATE * 5 // 4
+
+
+def test_render_speech_keeps_distant_phrase_sparse(monkeypatch) -> None:
+    def render(
+        _text: str, _rate: int, path: Path, _voice: str | None
+    ) -> speech._SpeechFile:
+        soundfile.write(path, np.full(SAMPLE_RATE, 0.25), SAMPLE_RATE)
+        return speech._SpeechFile(
+            path=path, sample_rate=SAMPLE_RATE, frames=SAMPLE_RATE, channels=1
+        )
+
+    monkeypatch.setattr(speech, '_render_speech', render)
+    playback = speech.render_speech(
+        SpeechRequest(
+            phrases=[SpeechPhrase(text='later', start=3600)],
+            sample_rate=SAMPLE_RATE,
+            level=1,
+            speed=1,
+            voice=None,
+        )
+    )
+
+    assert playback is not None
+    assert playback.total_frames == 3601 * SAMPLE_RATE
+    assert len(playback.segments[0].data) == SAMPLE_RATE
+    np.testing.assert_array_equal(playback.render(1024, np.float32, 1), 0)
+    playback.position = 3600 * SAMPLE_RATE
+    np.testing.assert_allclose(playback.render(1024, np.float32, 1), 0.25)
 
 
 def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
@@ -1134,7 +1181,10 @@ def test_player_uses_prepared_speech_at_loop_start(monkeypatch) -> None:
         def start(self) -> None:
             self.starts += 1
 
-    playback = SpeechPlayback(data=np.ones((8, 1), dtype=np.float32), level=1.0)
+    playback = SpeechPlayback(
+        segments=[SpeechSegment(start=0, data=np.ones((8, 1), dtype=np.float32))],
+        level=1.0,
+    )
     player = Player()
     engine = Engine()
     player.__dict__['engine'] = engine

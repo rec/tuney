@@ -11,7 +11,7 @@ from tuney.app.app import App
 from tuney.audio.engine import AudioEngine, PlaySpeech, StopAll
 from tuney.audio.mixer import Mixer
 from tuney.audio.player import Player
-from tuney.audio.speech import SpeechPlayback, SpeechRequest
+from tuney.audio.speech import SpeechPlayback, SpeechRequest, SpeechSegment
 from tuney.audio.voice import Voice
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
@@ -24,7 +24,10 @@ def test_audio_export_finishes_speech_after_notes(
 
     def speech(request: SpeechRequest) -> SpeechPlayback:
         requests.append(request)
-        return SpeechPlayback(data=np.ones((72_001, 1)), level=request.level)
+        return SpeechPlayback(
+            segments=[SpeechSegment(start=0, data=np.ones((72_001, 1)))],
+            level=request.level,
+        )
 
     monkeypatch.setattr('tuney.app.app_playback.render_speech', speech)
     path = tmp_path / 'spoken.wav'
@@ -52,7 +55,12 @@ def test_live_completion_preserves_speech_but_explicit_stop_cancels(
 ) -> None:
     engine = AudioEngine(mixer=Mixer(voice_maker=lambda _: Voice()))
     engine.submit(
-        PlaySpeech(speech=SpeechPlayback(data=np.full((48_000, 1), 0.25), level=1))
+        PlaySpeech(
+            speech=SpeechPlayback(
+                segments=[SpeechSegment(start=0, data=np.full((48_000, 1), 0.25))],
+                level=1,
+            )
+        )
     )
     engine.submit(StopAll(finish_speech=finish_speech))
     first, second = np.zeros((24_000, 1)), np.zeros((24_000, 1))
@@ -89,7 +97,9 @@ def test_replay_waits_for_speech_before_stopping_or_looping(
     )
     monkeypatch.setattr(App, 'on_replay', lambda _: calls.append('loop'))
     monkeypatch.setattr(App, 'replay_char_presses', lambda _: [CharPress('a')])
-    speech = SpeechPlayback(data=np.ones((48_000, 1)), level=1)
+    speech = SpeechPlayback(
+        segments=[SpeechSegment(start=0, data=np.ones((48_000, 1)))], level=1
+    )
     app.key_recorder.speech = speech
     app.key_recorder.finish_replay(app)
     assert window.is_replaying
