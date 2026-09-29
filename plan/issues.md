@@ -1,12 +1,8 @@
 # tuney issues
 
-Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the production code, tests, configuration, documentation, and release workflow, with local reccy source checked for reusable facilities. No application, hardware, or test suite was run. Findings labelled **risk** describe plausible failure paths that need a reproducer; the others follow directly from the current code. P1 means potential data loss, unbounded resource use, or an important runtime failure; P2 means a behavioral or usability defect; P3 means maintainability or coverage debt.
+Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the production code, tests, configuration, documentation, and release workflow, with local reccy source checked for reusable facilities. No application or hardware was run for that review. Findings labelled **risk** describe plausible failure paths that need a reproducer; the others follow directly from the current code. P1 means potential data loss, unbounded resource use, or an important runtime failure; P2 means a behavioral or usability defect; P3 means maintainability or coverage debt. Issue numbers remain stable as completed findings are removed.
 
 ## P1: data and runtime safety
-
-### 1. Scala export can truncate an existing file
-
-`Ratios.write_scala_file` writes directly with `Path.write_text` ([tuney/scale/ratios.py](../tuney/scale/ratios.py), lines 72-73). The UI allows an existing destination ([tuney/ui/tuning_files.py](../tuney/ui/tuning_files.py), lines 39-56). A disk-full or interrupted write can leave a partial file. Use reccy's `atomic_output`, already used elsewhere in tuney, and cover a failed write to an existing destination.
 
 ### 2. Preset snapshot restore is only individually atomic
 
@@ -108,10 +104,6 @@ The key event handler caches a pressed character until release ([tuney/ui/key_ev
 
 [tuney/error.py](../tuney/error.py) defines `TuneyError` but has no references in the repository. [tuney/ui/platform.py](../tuney/ui/platform.py) contains one five-line `command_key` helper used only by layout. Remove the unused error type and consider placing the helper at its sole call site during nearby work. Other small modules such as time units and UI constants have multiple consumers and are serving a useful shared role.
 
-### 26. Reccy reuse is broad, with one remaining output gap
-
-Tuney already uses reccy's atomic output, validated updates, unit types, resource claims, and logging. Scala export in finding 1 is a concrete duplicate of the atomic-output service. The mutable, appendable live WAV recorder has different requirements from reccy's capture and asset-store facilities; replacing it on name similarity alone would change behavior. No further direct duplicate of a suitable reccy service was established by this review.
-
 ### 27. Failure-path tests miss the most consequential interleavings
 
 The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise publication failure after the first preset file, replay callback overlap with stop/close, a blocked monitor across restart, stalled writer/process shutdown, late MIDI send failure, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
@@ -126,7 +118,7 @@ The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/co
 
 ## Scope and suggested order
 
-Start with direct data-loss and wrong-output paths (1, 2, 6, 13, 16, 17, 20), then establish ownership and bounded shutdown for concurrent paths (3-5, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
+Start with direct data-loss and wrong-output paths (2, 6, 13, 16, 17, 20), then establish ownership and bounded shutdown for concurrent paths (3-5, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
 Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
