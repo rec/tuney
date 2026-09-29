@@ -27,13 +27,13 @@ if TYPE_CHECKING:
 
 
 class AppPlayback(AppState):
-    def on_char(self, c: CharPress) -> None:
+    def on_char(self, c: CharPress, *, release_held: bool = False) -> None:
         if not c.is_press and c.pressed_char and c.pressed_char == c.char.swapcase():
             c = CharPress(c.pressed_char, False, c.time)
         trace('char event', char=c.char, is_press=c.is_press)
         if c.char == '\b' and not c.is_press:
             self.stop_backspace_repeat()
-        if self._is_listening:
+        if self._is_listening or (release_held and not c.is_press):
             history = self.main_window.history
             recorder = history.recorder_state()
             recorded = self.key_recorder.recorded_char_press(
