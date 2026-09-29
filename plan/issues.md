@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 23. Close errors use the wrong action in their message
-
-`MidiOut.close` logs “Could not open MIDI output” for a close failure ([tuney/midi/midi.py](../tuney/midi/midi.py), lines 142-146). Report “close” and include the selected port, so troubleshooting points at the actual operation.
-
 ## P3: structure, reuse, and verification
 
 ### 24. Large UI classes concentrate unrelated responsibilities
