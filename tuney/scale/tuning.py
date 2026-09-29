@@ -63,12 +63,13 @@ class Computed(BaseModel):
 
 class Tuning(BaseModel, arbitrary_types_allowed=True):
     """
-    A generalization of equal temperament, where the default values
-    are the same as classic twelve-tone equal temperament (12-tet) but
-    can be customized.
+    Convert note numbers to frequencies using a selected tuning source.
+
+    The default computed source uses twelve equal divisions per octave.
     """
 
-    #: Which tuning source to use
+    #: Use computed, table, or ratios; None selects computed. A missing selected
+    #: source is allowed while editing and raises an error when used.
     type: Annotated[TuningSource | None, Display(column=0, row=0)] = (
         TuningSource.computed
     )

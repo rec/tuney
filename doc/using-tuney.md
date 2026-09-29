@@ -131,8 +131,10 @@ tuning, a ratio tuning, a finite frequency table, or a Scala tuning. A finite
 table has a fixed range, but Tuney wraps instrument keys before using it so
 typing remains playable.
 
-The selected tuning source is used as chosen. You can leave its fields empty
-while editing, but playback reports an error if that source has no tuning data.
+The `tuning.type` setting selects `computed`, `table`, or `ratios`. Leaving it
+unset selects `computed`. Tuney retains inactive source data when switching
+sources. You can leave the selected source empty while editing, but playback
+reports an error if it has no tuning data.
 
 Ratio expressions support numeric `math.*` and `random.*` functions. Random
 expressions can produce different pitches when the tuning is evaluated again.

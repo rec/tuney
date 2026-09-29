@@ -1,4 +1,4 @@
-description = "Tuney is the top-level data representation for the tuny program\n\nUse positional `TEXT` to play characters as notes, then tune the scale,\naudio, MIDI, and timing from the same config model."
+description = "Tuney is the top-level data representation for the tuney program.\n\nUse positional `TEXT` to play characters as notes, then tune the scale,\naudio, MIDI, and timing from the same config model."
 title = "Tuney"
 type = "object"
 
@@ -570,7 +570,7 @@ type = "number"
 type = "null"
 
 ["$defs".Tuning]
-description = "A generalization of equal temperament, where the default values\nare the same as classic twelve-tone equal temperament (12-tet) but\ncan be customized."
+description = "Convert note numbers to frequencies using a selected tuning source.\n\nThe default computed source uses twelve equal divisions per octave."
 title = "Tuning"
 type = "object"
 
