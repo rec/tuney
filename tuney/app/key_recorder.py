@@ -5,11 +5,17 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 from reccy.configuration.units import Milliseconds, Seconds
 
-from ..audio.speech import PHRASE_PUNCTUATION, SpeechPhrase, SpeechPlayback
+from ..audio.speech import (
+    PHRASE_PUNCTUATION,
+    SpeechPhrase,
+    SpeechPlayback,
+    render_speech,
+)
 from ..time.char_press import CharPress
 from ..time.sequencer import Sequencer
 from ..time.units import to_ms
-from .platform_info import instrument
+from .platform_info import instrument, report_error
+from .runnable import start_thread
 
 if TYPE_CHECKING:
     from .app import App
@@ -87,14 +93,6 @@ class KeyRecorder(BaseModel):
         if state.main_window.is_replaying:
             char_presses = state.replay_char_presses()
             instrument('key recorder replay events', count=len(char_presses))
-            state.main_window.ui.start_loop_clock()
-            if state.use_speech and char_presses:
-                self.speech = state.player.start_speech(
-                    speech_phrases(char_presses, state.use_phrase_mode),
-                    state.speech_level,
-                    state.speech_speed,
-                    state.speech_voice,
-                )
             active_indexes = text_timing_active_indexes(char_presses)
             if state.show_text_timings:
                 state.main_window.update_text_display()
@@ -132,8 +130,57 @@ class KeyRecorder(BaseModel):
                 char_presses=char_presses,
                 callback=callback,
             )
-            instrument('key recorder sequencer start')
-            self.sequencer.start()
+
+            def start_replay() -> None:
+                state.main_window.ui.start_loop_clock()
+                instrument('key recorder sequencer start')
+                sequencer.start()
+
+            if state.use_speech and char_presses:
+                request = state.player.speech_request(
+                    speech_phrases(char_presses, state.use_phrase_mode),
+                    state.speech_level,
+                    state.speech_speed,
+                    state.speech_voice,
+                )
+                if speech := state.player.prepared_speech.take(request):
+                    self.speech = speech
+                    state.player.play_speech(speech)
+                    start_replay()
+                else:
+
+                    def ready(speech: SpeechPlayback | None, error: str | None) -> None:
+                        if (
+                            self.sequencer is not sequencer
+                            or not state.main_window.is_replaying
+                        ):
+                            return
+                        if error is not None:
+                            report_error(f'Could not prepare speech: {error}')
+                            state.stop_replaying()
+                            return
+                        if speech is not None:
+                            self.speech = speech
+                            state.player.play_speech(speech)
+                        start_replay()
+
+                    def prepare() -> None:
+                        try:
+                            speech = render_speech(request)
+                        except (
+                            ImportError,
+                            OSError,
+                            RuntimeError,
+                            ValueError,
+                            MemoryError,
+                        ) as error:
+                            state.main_window.after(0, ready, None, str(error))
+                        else:
+                            state.main_window.after(0, ready, speech, None)
+
+                    start_thread(prepare)
+            else:
+                start_replay()
         else:
             state.main_window.update_text_display()
             state.main_window.ui.set_play_cursor(None)

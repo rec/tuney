@@ -10,7 +10,7 @@ from tuney.app.app import App
 from tuney.app.key_recorder import speech_phrases
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
-from tuney.audio.speech import SpeechPhrase
+from tuney.audio.speech import SpeechPhrase, SpeechRequest
 from tuney.midi import port
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.time.char_press import CharPress
@@ -527,27 +527,44 @@ def test_replay_starts_speech(monkeypatch) -> None:
     class FakePlayer:
         def __init__(self) -> None:
             self.speech: list[tuple[list[SpeechPhrase], float, float, str | None]] = []
+            self.prepared_speech = self
 
         @staticmethod
         def stop_all() -> None:
             pass
 
-        def start_speech(
+        def speech_request(
             self,
             phrases: list[SpeechPhrase],
             level: float,
             speed: float,
             voice: str | None,
-        ) -> None:
+        ) -> SpeechRequest:
             self.speech.append((phrases, level, speed, voice))
+            return SpeechRequest(
+                phrases=phrases,
+                sample_rate=48_000,
+                level=level,
+                speed=speed,
+                voice=voice,
+            )
+
+        @staticmethod
+        def take(_request: SpeechRequest) -> None:
+            return None
+
+        @staticmethod
+        def play_speech(_speech: object) -> None:
+            pass
 
     class FakeSequencer:
+        started = 0
+
         def __init__(self, *_: object, **__: object) -> None:
             pass
 
-        @staticmethod
-        def start() -> None:
-            pass
+        def start(self) -> None:
+            type(self).started += 1
 
     app = App(
         gui=True,
@@ -567,10 +584,19 @@ def test_replay_starts_speech(monkeypatch) -> None:
     player = FakePlayer()
     app.__dict__['player'] = player
     monkeypatch.setattr('tuney.app.key_recorder.Sequencer', FakeSequencer)
+    jobs = []
+    monkeypatch.setattr('tuney.app.key_recorder.start_thread', jobs.append)
+    monkeypatch.setattr('tuney.app.key_recorder.render_speech', lambda _: None)
 
     app.key_recorder.on_replay(app)
 
     assert player.speech == [([SpeechPhrase(text='ab', start=0.0)], 0.5, 0.8, 'Alex')]
+    assert len(jobs) == 1
+    assert FakeSequencer.started == 0
+    jobs.pop()()
+    _, _, callback, args = main_window.after_calls.pop()
+    callback(*args)
+    assert FakeSequencer.started == 1
 
 
 def test_speech_phrases_split_on_punctuation_and_align_to_note_starts() -> None:
