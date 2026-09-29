@@ -8,6 +8,7 @@ from pydantic import TypeAdapter, ValidationError
 from PySide6.QtCore import QFile, QMimeData, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QMessageBox
+from reccy.runtime.files import atomic_output
 
 from ..app.platform_info import instrument
 from ..presets.preset import delete_presets, preset_names, read_file, write_preset
@@ -249,12 +250,13 @@ def on_swap_with_autosave(main_window: MainWindow, *_: object) -> None:
         return
     try:
         main_window.history.checkpoint_undo()
-        main_window.app._autosave.save(main_window.app.save_autosave)
-        main_window.app.restore_data(data)
+        with atomic_output(path) as staged:
+            main_window.app.save_autosave(staged)
+            main_window.app.restore_data(data)
+            main_window.sync_config_actions()
+            main_window.ui.rebuild_control_panel()
+            main_window.ui.rebuild_note_grid()
+            main_window.update_text_display()
     except (OSError, ValueError, ValidationError) as error:
         QMessageBox.critical(main_window, 'Swap with autosave', str(error))
         return
-    main_window.sync_config_actions()
-    main_window.ui.rebuild_control_panel()
-    main_window.ui.rebuild_note_grid()
-    main_window.update_text_display()
