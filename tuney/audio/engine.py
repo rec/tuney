@@ -5,6 +5,7 @@ from collections.abc import Callable
 from functools import cached_property
 from queue import Empty, SimpleQueue
 from threading import Event
+from time import monotonic
 from typing import Protocol, runtime_checkable
 
 import numpy as np
@@ -20,6 +21,9 @@ from .recording import Recording
 from .speech import SpeechPlayback
 from .voice import Voice
 
+AUDIO_CALLBACK_STALL_SECONDS = 5.0
+AUDIO_CALLBACK_POLL_SECONDS = 1.0
+
 
 @runtime_checkable
 class Stream(Protocol):
@@ -30,6 +34,8 @@ class Stream(Protocol):
     def start(self) -> None: ...
 
     def stop(self) -> None: ...
+
+    def abort(self) -> None: ...
 
     def close(self) -> None: ...
 
@@ -69,6 +75,7 @@ class AudioEngine(BaseModel):
     recorder: Recording | None = Field(default=None, exclude=True)
     speech: SpeechPlayback | None = Field(default=None, exclude=True)
     stop_when_silent: bool = False
+    last_callback_at: float = Field(default_factory=monotonic, exclude=True)
 
     @cached_property
     def commands(self) -> SimpleQueue[PreparedNote | Configure | PlaySpeech | StopAll]:
@@ -182,6 +189,7 @@ class AudioEngine(BaseModel):
             return
         try:
             instrument('audio stream start', **_stream_info(self.stream))
+            self.last_callback_at = monotonic()
             self.stream.start()
             instrument('audio stream started', **_stream_info(self.stream))
         except Exception as error:
@@ -211,17 +219,40 @@ class AudioEngine(BaseModel):
             self.start()
 
     def wait(self, timeout: float | None = None) -> None:
+        timed_out = False
         if (stream := self.__dict__.get('stream')) is not None:
             if stream.active:
                 instrument('audio stream wait', timeout=timeout)
-                completed = self.playback_complete.wait(timeout)
-                if not completed:
-                    instrument('audio stream wait timeout')
-                stream.stop()
+                interrupted = False
+                try:
+                    if timeout is None:
+                        while not self.playback_complete.wait(
+                            AUDIO_CALLBACK_POLL_SECONDS
+                        ):
+                            if (
+                                monotonic() - self.last_callback_at
+                                > AUDIO_CALLBACK_STALL_SECONDS
+                            ):
+                                timed_out = True
+                                break
+                    else:
+                        timed_out = not self.playback_complete.wait(timeout)
+                    if timed_out:
+                        instrument('audio stream wait timeout')
+                except KeyboardInterrupt:
+                    interrupted = True
+                    raise
+                finally:
+                    if timed_out or interrupted:
+                        stream.abort()
+                    else:
+                        stream.stop()
                 instrument('audio stream stopped after wait')
         self.process_notifications()
         if timeout is None and self.diagnostics.callback_errors:
             raise RuntimeError('; '.join(self.diagnostics.callback_errors))
+        if timed_out:
+            raise TimeoutError('Audio playback did not finish; audio may be incomplete')
 
     def callback(
         self, out: np.ndarray, frame_size: int, time: object, status: object
@@ -241,6 +272,7 @@ class AudioEngine(BaseModel):
             out[:] = mixed.astype(out.dtype, copy=False)
             if (recorder := self.recorder) is not None:
                 recorder.write(out)
+            self.last_callback_at = monotonic()
             if self.stop_when_silent and not self.mixer.voices and self.speech is None:
                 self.playback_complete.set()
             completed = True

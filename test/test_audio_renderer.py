@@ -375,6 +375,7 @@ class _EngineStream(Stream):
         self.callback = callback
         self.active = False
         self.closed = False
+        self.aborted = False
         self.samplerate = 44_100
         self.channels = 1
         self.options = _
@@ -388,6 +389,10 @@ class _EngineStream(Stream):
         self.active = True
 
     def stop(self) -> None:
+        self.active = False
+
+    def abort(self) -> None:
+        self.aborted = True
         self.active = False
 
     def close(self) -> None:
@@ -1184,9 +1189,27 @@ def test_engine_wait_timeout_stops_stream_without_callback(monkeypatch) -> None:
     engine.submit(StopAll())
     engine.start()
 
-    engine.wait(0.01)
+    with pytest.raises(TimeoutError, match='audio may be incomplete'):
+        engine.wait(0.01)
 
     assert not engine.stream.active
+    assert engine.stream.aborted
+
+
+def test_engine_wait_detects_stalled_audio_callback(monkeypatch) -> None:
+    _EngineStream.instances.clear()
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    monkeypatch.setattr('tuney.audio.engine.AUDIO_CALLBACK_POLL_SECONDS', 0.01)
+    monkeypatch.setattr('tuney.audio.engine.AUDIO_CALLBACK_STALL_SECONDS', 0.01)
+    engine = AudioEngine(mixer=_mixer())
+    engine.start()
+    engine.last_callback_at = 0
+
+    with pytest.raises(TimeoutError, match='audio may be incomplete'):
+        engine.wait()
+
+    assert not engine.stream.active
+    assert engine.stream.aborted
 
 
 def test_engine_wait_ignores_inactive_stream(monkeypatch) -> None:

@@ -20,6 +20,8 @@ from .app_state import AppState
 from .key_recorder import last_char_index, speech_phrases
 from .platform_info import exit_with_message, report_error, trace
 
+CLI_CLEANUP_TIMEOUT_SECONDS = 5.0
+
 if TYPE_CHECKING:
     from .app import App
 
@@ -187,7 +189,10 @@ class AppPlayback(AppState):
                             self.player.stop_all(finish_speech=True)
                         else:
                             self.player.stop_all()
-                        self.player.wait()
+                        if completed:
+                            self.player.wait()
+                        else:
+                            self.player.wait(CLI_CLEANUP_TIMEOUT_SECONDS)
                     finally:
                         try:
                             if output:
