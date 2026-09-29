@@ -1,6 +1,6 @@
 class Tuney:
     """
-    Tuney is the top-level data representation for the tuny program
+    Tuney is the top-level data representation for the tuney program.
 
     Use positional `TEXT` to play characters as notes, then tune the scale,
     audio, MIDI, and timing from the same config model.
@@ -73,11 +73,12 @@ class Computed:
 
 class Tuning:
     """
-    A generalization of equal temperament, where the default values
-    are the same as classic twelve-tone equal temperament (12-tet) but
-    can be customized.
+    Convert note numbers to frequencies using a selected tuning source.
+
+    The default computed source uses twelve equal divisions per octave.
     """
-    #: Which tuning source to use
+    #: Use computed, table, or ratios; None selects computed. A missing selected
+    #: source is allowed while editing and raises an error when used.
     type: TuningSource | None = TuningSource.computed
 
     #: Computed tuning parameters

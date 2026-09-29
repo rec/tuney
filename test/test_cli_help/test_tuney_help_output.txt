@@ -94,7 +94,8 @@ Turn text into music. Use positional `TEXT` to play characters as notes, then tu
   Convert note numbers into frequencies
   ----------------------------------------------------------------------------------------------------------------------
   --tuning.type {None,computed,table,ratios}
-        Which tuning source to use (default: computed)
+        Use computed, table, or ratios; None selects computed. A missing selected source is allowed while editing and
+        raises an error when used. (default: computed)
   -T CENTS, --detune CENTS
         Detune everything, in cents of an octave division (default: 0)
   -U HERTZ, --root-frequency HERTZ
