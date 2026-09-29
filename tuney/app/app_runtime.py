@@ -4,7 +4,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Protocol, cast
 
 from ..audio.player import Player
-from ..config.text_file import read_text_file
+from ..config.text_file import TextFileError, read_text_file
 from ..config.tuney import Tuney
 from ..keyboard.listener import KeyboardListener
 from ..midi.listener import MidiListener
@@ -14,7 +14,6 @@ from ..ui import startup
 from .audio_recorder import AudioRecorder
 from .global_config import GlobalConfig
 from .key_recorder import KeyRecorder
-from .platform_info import report_error
 from .text_timing import text_timing_rows
 
 if TYPE_CHECKING:
@@ -93,8 +92,10 @@ class AppRuntime(Tuney):
                 return list(
                     self.text_timings.char_presses(read_text_file(self.text_file))
                 )
-            except Exception as e:
-                report_error(str(e))
+            except (OSError, UnicodeError, LookupError, ValueError) as error:
+                raise TextFileError(
+                    f'Could not load text file {self.text_file}: {error}'
+                ) from error
         if self.text is None:
             return []
         if isinstance(self.text, list):
