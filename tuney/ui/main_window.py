@@ -196,8 +196,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def start_midi_device_monitor(self) -> None:
         if self._midi_device_thread is not None:
             return
-        self._midi_device_stop.clear()
-        self._midi_device_thread = start_thread(self._watch_midi_devices)
+        self._midi_device_stop = Event()
+        stop_event = self._midi_device_stop
+        self._midi_device_thread = start_thread(
+            lambda: self._watch_midi_devices(stop_event)
+        )
 
     def sync_midi_device_monitor(self) -> None:
         if self.app.midi.input.enable or self.app.midi.output.enable:
@@ -205,18 +208,22 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self._stop_midi_device_monitor()
 
-    def _watch_midi_devices(self) -> None:
+    def _watch_midi_devices(self, stop_event: Event) -> None:
         names = midi_names()
         names = [
             new if new is not None else old
             for new, old in zip(probe_midi_names(), names, strict=True)
         ]
+        if stop_event.is_set():
+            return
         midi_names.replace(names)
-        while not self._midi_device_stop.wait(MIDI_DEVICE_POLL_IN_SECONDS):
+        while not stop_event.wait(MIDI_DEVICE_POLL_IN_SECONDS):
             updated = [
                 new if new is not None else old
                 for new, old in zip(probe_midi_names(), names, strict=True)
             ]
+            if stop_event.is_set():
+                return
             if updated != names:
                 names = updated
                 midi_names.replace(updated)

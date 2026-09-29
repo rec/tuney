@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from pathlib import Path
 from queue import Queue
+from threading import Event
 
 import mido
 import pytest
@@ -197,6 +198,10 @@ def test_midi_monitor_preserves_names_on_probe_failure(
     class Stop:
         waits = 0
 
+        @staticmethod
+        def is_set() -> bool:
+            return False
+
         def wait(self, timeout: float) -> bool:
             assert timeout == 2
             self.waits += 1
@@ -220,10 +225,68 @@ def test_midi_monitor_preserves_names_on_probe_failure(
     monkeypatch.setattr(main_window, 'midi_names', names)
     monkeypatch.setattr(main_window, 'probe_midi_names', probe)
 
-    MainWindow._watch_midi_devices(window)
+    MainWindow._watch_midi_devices(window, window._midi_device_stop)
 
     assert names.names == [[], []]
     assert queue.get_nowait() == [[], []]
+    assert queue.empty()
+
+
+def test_midi_monitor_restart_keeps_stopped_worker_stopped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Thread:
+        @staticmethod
+        def join(timeout: float) -> None:
+            assert timeout == 1
+
+    old_stop = Event()
+    window = type(
+        'Window',
+        (),
+        {
+            '_midi_device_stop': old_stop,
+            '_midi_device_thread': Thread(),
+            '_watch_midi_devices': lambda self, stop: None,
+        },
+    )()
+    monkeypatch.setattr(main_window, 'start_thread', lambda _target: Thread())
+
+    MainWindow._stop_midi_device_monitor(window)
+    MainWindow.start_midi_device_monitor(window)
+
+    assert old_stop.is_set()
+    assert window._midi_device_stop is not old_stop
+    assert not window._midi_device_stop.is_set()
+
+
+def test_midi_monitor_does_not_publish_probe_after_stop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Names:
+        names = [['keyboard'], ['synth']]
+
+        def __call__(self) -> list[list[str]]:
+            return self.names
+
+        def replace(self, names: list[list[str]]) -> None:
+            self.names = names
+
+    stop = Event()
+    names = Names()
+    queue = Queue[list[list[str]]]()
+    window = type('Window', (), {'midi_device_queue': queue})()
+
+    def probe() -> list[list[str] | None]:
+        stop.set()
+        return [[], []]
+
+    monkeypatch.setattr(main_window, 'midi_names', names)
+    monkeypatch.setattr(main_window, 'probe_midi_names', probe)
+
+    MainWindow._watch_midi_devices(window, stop)
+
+    assert names.names == [['keyboard'], ['synth']]
     assert queue.empty()
 
 
