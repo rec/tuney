@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable
+from _thread import LockType
+from collections import deque
+from collections.abc import Callable, Sequence
 from functools import cached_property
 from queue import Empty, SimpleQueue
-from threading import Event
+from threading import Event, Lock
 from time import monotonic
 from typing import Protocol, runtime_checkable
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from ufor.number import NoteNumber
 
 from ..app.platform_info import instrument, trace
@@ -23,6 +25,8 @@ from .voice import Voice
 
 AUDIO_CALLBACK_STALL_SECONDS = 5.0
 AUDIO_CALLBACK_POLL_SECONDS = 1.0
+MAX_AUDIO_COMMANDS = 256
+COMMANDS_PER_CALLBACK = 32
 
 
 @runtime_checkable
@@ -66,6 +70,8 @@ class PlaySpeech(BaseModel, frozen=True):
 class AudioEngine(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    _command_lock: LockType = PrivateAttr(default_factory=Lock)
+
     mixer: Mixer
     master_gain: float = 1.0
     buffer_size: int = 32
@@ -78,8 +84,8 @@ class AudioEngine(BaseModel):
     last_callback_at: float = Field(default_factory=monotonic, exclude=True)
 
     @cached_property
-    def commands(self) -> SimpleQueue[PreparedNote | Configure | PlaySpeech | StopAll]:
-        return SimpleQueue()
+    def commands(self) -> deque[PreparedNote | Configure | PlaySpeech | StopAll]:
+        return deque()
 
     @cached_property
     def notifications(self) -> SimpleQueue[tuple[bool, str]]:
@@ -127,18 +133,58 @@ class AudioEngine(BaseModel):
             self.diagnostics.record_stream_error(str(error))
             raise
 
-    def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> None:
-        trace('audio command submit', command=type(command).__name__)
-        if isinstance(command, Configure):
-            self.__dict__['voice_maker'] = command.voice_maker
-        if isinstance(command, NotePress):
-            voice = self.voice_maker(command.note_number) if command.is_press else None
-            if voice is not None:
-                # Validate and prepare the cached definition on the submitting thread.
-                _ = voice.definition
-            self.commands.put(PreparedNote(note=command, voice=voice))
-        else:
-            self.commands.put(command)
+    def submit(self, command: NotePress | Configure | PlaySpeech | StopAll) -> bool:
+        return self.submit_batch([command])
+
+    def submit_batch(
+        self, commands: Sequence[NotePress | Configure | PlaySpeech | StopAll]
+    ) -> bool:
+        prepared: list[PreparedNote | Configure | PlaySpeech | StopAll] = []
+        voice_maker = self.voice_maker
+        for command in commands:
+            trace('audio command submit', command=type(command).__name__)
+            if isinstance(command, Configure):
+                voice_maker = command.voice_maker
+                prepared.append(command)
+            elif isinstance(command, NotePress):
+                voice = voice_maker(command.note_number) if command.is_press else None
+                if voice is not None:
+                    # Prepare the cached definition on the submitting thread.
+                    _ = voice.definition
+                prepared.append(PreparedNote(note=command, voice=voice))
+            else:
+                prepared.append(command)
+        with self._command_lock:
+            queue = self.commands
+            if len(queue) + len(prepared) > MAX_AUDIO_COMMANDS:
+                if any(
+                    isinstance(c, PreparedNote) and c.note.is_press for c in prepared
+                ):
+                    return False
+                for command in prepared:
+                    while len(queue) >= MAX_AUDIO_COMMANDS:
+                        for index, queued in enumerate(queue):
+                            if (
+                                isinstance(queued, PreparedNote)
+                                and queued.note.is_press
+                            ):
+                                del queue[index]
+                                break
+                        else:
+                            queue.clear()
+                            queue.append(StopAll(finish_speech=True))
+                            if isinstance(command, (StopAll, PreparedNote)):
+                                break
+                    if (
+                        isinstance(command, StopAll)
+                        and len(queue) >= MAX_AUDIO_COMMANDS
+                    ):
+                        queue.clear()
+                    queue.append(command)
+            else:
+                queue.extend(prepared)
+            self.__dict__['voice_maker'] = voice_maker
+        return True
 
     def process_notifications(self) -> None:
         if (recorder := self.recorder) is not None:
@@ -289,11 +335,11 @@ class AudioEngine(BaseModel):
                     self.notifications.put((True, f'{type(error).__name__}: {error}'))
 
     def _drain_commands(self) -> None:
-        while True:
-            try:
-                command = self.commands.get_nowait()
-            except Empty:
-                return
+        for _ in range(COMMANDS_PER_CALLBACK):
+            with self._command_lock:
+                if not self.commands:
+                    return
+                command = self.commands.popleft()
 
             if isinstance(command, PreparedNote):
                 self.stop_when_silent = False
