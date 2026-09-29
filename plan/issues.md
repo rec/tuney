@@ -1,513 +1,135 @@
-# Tuney issues
-
-Reviewed 2026-09-16 against Tuney commit `1aab15a` by reading implementation,
-tests, documentation, dependency declarations, and release configuration.
-Implementation authorized on 2026-09-16. All 24 review items are now addressed.
-Completed items retain their original
-evidence below and are marked with their resolution.
-
-Evidence below is from source inspection unless stated otherwise. No application,
-hardware test, release build, or test suite was run for this documentation-only
-review. Previous passing suites do not establish that the edge cases below work.
-The remote issue tracker was not reconciled. This is a broad review, not an
-exhaustive audit of every file.
-
-P1 means potential data loss or an important runtime defect; P2 means a behavioral
-bug, usability trap, or material performance risk; P3 means maintenance or naming
-debt. Each item includes a next step, which still needs implementation review.
-
-Tuney's permissive scale editing behavior is authoritative. Accepting zero
-intervals and retaining unknown note text for UI feedback are intentional, not
-issues to fix by reinstating stricter Ufor validation.
-
-## P1: data safety and runtime correctness
-
-### 1. Failed CLI export can delete an existing destination
-
-**Resolved:** CLI audio/MIDI and GUI exports use temporary destination-side
-files and replace the destination only after successful writer cleanup.
-Recorded-audio Save preserves the source and destination if copying fails.
-Regression tests cover failures before writing, during writing/cleanup, and at
-replacement; existing outputs survive and temporary files are removed.
-
-**Evidence:** [AppPlayback.run_cli](../tuney/app/app_playback.py) unlinks
-`self.output` whenever `completed` remains false. That includes failures before a
-writer has opened the file. [AudioFileWriter and render_file](../tuney/audio/output_file.py)
-also open their destination directly with `mode='w'`.
-
-**Trigger/impact:** Export over an existing file and fail during stream setup,
-voice construction, or rendering. The previous file can be deleted or truncated,
-even if no replacement was successfully produced. GUI export also writes
-directly to the destination.
-
-**Next step:** Write replacement exports to a temporary sibling and replace the
-destination only after success. Cleanup must only remove files created by the
-current export. Test failure before opening and midway through writing.
-
-### 2. Undo can delete presets unrelated to the action being undone
-
-**Resolved:** Only explicit preset edits capture preset files, and only changed
-files enter undo history. Undo/redo verifies expected contents and reports a
-conflict rather than overwriting external changes. Writes are staged before
-replacement; ordinary text/settings history does no preset I/O. Tests cover
-undo/redo isolation, conflicts, and a failure while writing restored files.
-
-**Evidence:** [History.restore](../tuney/ui/history.py) always calls
-`restore_user_preset_snapshot`. That function in
-[preset.py](../tuney/presets/preset.py) deletes every TOML/JSON file in the preset
-directory and then writes the snapshot back.
-
-**Trigger/impact:** Make an ordinary text/settings edit, add or edit a preset
-externally, then undo the original edit. Undo removes the new preset or overwrites
-the external change. A write failure during restoration leaves a partially
-destroyed preset collection.
-
-**Next step:** Limit preset undo to the preset files changed by the corresponding
-operation. Preserve unrelated files and avoid deleting the collection first.
-
-### 3. Audio callback performs disk writes, logging, and model construction
-
-**Resolved:** Voice models are prepared at submission. Recording uses a bounded
-queue and a writer thread; stopping drains and closes it, propagating failures.
-Callback diagnostics and settings persistence are deferred to GUI polling or CLI
-cleanup. Tests check thread ownership, sample preservation, writer failure,
-overload, and stopping during a write. Hardware latency remains unmeasured.
-
-**Evidence:** [AudioEngine.callback and _drain_commands](../tuney/audio/engine.py)
-write recorded blocks synchronously, log status/commands, and call `Mixer.apply`.
-[Mixer.apply](../tuney/audio/mixer.py) calls `voice_maker` and constructs
-`VoiceState`; [Player.voice_maker](../tuney/audio/player.py) performs tuning
-calculations and creates a Pydantic `Voice`. On underflow,
-[GlobalConfig.increase_buffer_size](../tuney/app/global_config.py) writes TOML
-to disk from that same callback.
-
-**Impact:** Slow storage, expensive tuning, or a burst of commands can exceed the
-audio deadline. The underflow response itself adds disk I/O. This contradicts the
-callback boundary described in [Maintaining Tuney](../doc/maintaining-tuney.md).
-The deadline risk is clear from the call path; its severity needs measurement.
-
-**Next step:** Prepare voices before enqueueing, move persistence and recording
-I/O out of the callback, and measure callback duration under realistic load.
-
-### 4. Retriggering a note during its release tail loses the new press
-
-**Resolved:** Only a still-held note rejects a duplicate press. A new press after
-release replaces that note's fading voice with a fresh attack. The regression
-covers press/release/repress before minimum duration, duplicate held presses,
-and the subsequent release, with a one-second WAV fixture.
-
-**Evidence:** [Mixer.apply](../tuney/audio/mixer.py) rejects a press whenever
-the note exists in `voices`, even when it has already been removed from
-`pressed_notes` and is merely fading out. [Player.start](../tuney/audio/player.py)
-accepts the new press because its own pressed-note list no longer contains it.
+# tuney issues
 
-**Trigger/impact:** Press, release, and quickly press the same note again before
-the minimum duration/release tail finishes. The new press is accepted upstream
-but discarded by the mixer. A subsequent release does not create the missing
-attack. The existing duplicate-press test covers a held note, not this case.
+Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the production code, tests, configuration, documentation, and release workflow, with local reccy source checked for reusable facilities. No application, hardware, or test suite was run. Findings labelled **risk** describe plausible failure paths that need a reproducer; the others follow directly from the current code. P1 means potential data loss, unbounded resource use, or an important runtime failure; P2 means a behavioral or usability defect; P3 means maintainability or coverage debt.
 
-**Next step:** Define retrigger behavior for released voices and test that exact
-event sequence, including overlapping characters mapped to the same note.
+## P1: data and runtime safety
 
-## P2: behavior and user traps
+### 1. Scala export can truncate an existing file
 
-### 5. Reported buffer growth does not resize the active audio stream
+`Ratios.write_scala_file` writes directly with `Path.write_text` ([tuney/scale/ratios.py](../tuney/scale/ratios.py), lines 72-73). The UI allows an existing destination ([tuney/ui/tuning_files.py](../tuney/ui/tuning_files.py), lines 39-56). A disk-full or interrupted write can leave a partial file. Use reccy's `atomic_output`, already used elsewhere in tuney, and cover a failed write to an existing destination.
 
-**Resolved:** Deferred underflow handling recreates an existing stream with the
-new block size, preserving mixer voices, queued commands, and recording. A batch
-of underflows increases the setting once. GUI polling or subsequent playback
-submission applies it outside the callback. A fake-stream test verifies actual
-block size and uninterrupted synthesized samples across stream replacement.
+### 2. Preset snapshot restore is only individually atomic
 
-**Evidence:** [AudioEngine.stream](../tuney/audio/engine.py) reads `buffer_size`
-only when constructing the cached stream. Underflow handling changes the Python
-field and saves it, but does not replace the active stream.
+`restore_user_preset_snapshot` stages multiple `atomic_output` contexts and publishes them as the `ExitStack` closes ([tuney/presets/preset.py](../tuney/presets/preset.py), lines 100-120). If publication of a later file fails, earlier files have already changed. The current failure test injects a staging write error, not a later replacement error ([test/test_history.py](../test/test_history.py)). Decide whether this operation promises all-or-nothing restore; if so, add rollback or a single authoritative snapshot and test a failure during the second publication.
 
-**Impact:** Logs report a larger buffer while the stream continues with its old
-block size. Repeated underflows can keep persisting larger settings without
-improving the current session. The test checks the field and log, not the stream.
+### 3. Replay can race with GUI-owned player and MIDI state (risk)
 
-**Next step:** Schedule any stream reconfiguration outside the callback and
-distinguish requested settings from the active stream's actual configuration.
+`KeyRecorder.on_replay` starts a `Sequencer` worker whose callback calls `state.play_char`, while GUI actions can mutate or close the same player and MIDI output ([tuney/app/key_recorder.py](../tuney/app/key_recorder.py), lines 72-135). `sequencer.stop()` does not wait for the worker to finish. An in-flight callback can therefore run after stop, restart, or close. Define one owner for playback mutations, or join the worker before reusing and closing its targets. Reproduce with repeated rapid replay and shutdown.
 
-### 6. Recording stop can race with callback writes
+### 4. Shutdown can wait indefinitely on native or worker I/O (risk)
 
-**Resolved with issue 3:** The callback retains a local recording reference.
-Recording serializes queue submission and stop, then joins the writer before
-closing its file. Late submissions are ignored after stop. A test holds a write
-in progress while another thread stops, and verifies intact recorded samples.
+`Recording.close` blocks on a queue put and then joins its writer without a deadline ([tuney/audio/recording.py](../tuney/audio/recording.py), lines 33-42). `ExportJob.close` terminates and joins its process without a deadline ([tuney/app/export_job.py](../tuney/app/export_job.py), lines 118-122), and the GUI calls it during shutdown ([tuney/ui/export_dialog.py](../tuney/ui/export_dialog.py), lines 64-66). CLI playback also waits without a deadline ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Stalled disk, decoder, or native audio operations could freeze exit or ignore Ctrl-C after cleanup begins. Define bounded waits and an explicit forced-exit policy, then test stalled workers. No lock-cycle deadlock was established by this review.
 
-**Evidence:** [Player.stop_recording](../tuney/audio/player.py) detaches and closes
-the writer directly. [AudioEngine.callback](../tuney/audio/engine.py) checks
-`self.recorder` and then separately dereferences it to write, with no ownership
-handoff protocol.
+### 5. Failed shutdown step can skip the remaining cleanup
 
-**Impact:** The UI can clear or close the recorder while the callback is using it.
-This can produce an exception or a write against a closed file. This is a
-source-level concurrency risk; an interleaving test is needed.
+`MainWindow._close_app` isolates autosave errors but then closes the recorder, MIDI, player, keyboard, and monitor sequentially without protecting later steps ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 282-300). A native close exception can leave the other resources open. `App.run` marks the session's clean exit only after the event loop returns ([tuney/app/app.py](../tuney/app/app.py), lines 47-51). Attempt each independent close, report failures, and mark a clean exit only after required cleanup succeeds.
 
-**Next step:** Give one component ownership of writer lifetime and acknowledge
-recording stop before closing it.
+### 6. A transient MIDI discovery failure can erase the saved output choice
 
-### 7. Offline rendering allocates an entire gap between events
+`direct_midi_names` turns discovery exceptions into an empty device list ([tuney/midi/ports.py](../tuney/midi/ports.py), lines 42-46 and 82-88). The monitor publishes that list, and the UI clears and autosaves a selected output that is missing ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 206-214 and 609-625). A temporary backend error is indistinguishable from a genuine unplug and can permanently lose the choice. Preserve the last successful list on probe failure, with a test that distinguishes failure from an empty successful scan.
 
-**Resolved:** Every inter-event interval uses blocks of at most 1,024 frames,
-including a shorter final block at each exact event boundary. A WAV regression
-checks onset and silence positions and rejects oversized render requests.
+### 7. MIDI send errors after opening can escape into the GUI or replay thread
 
-**Evidence:** [render_file](../tuney/audio/output_file.py) passes
-`frame - rendered` to `Mixer.render` as a single allocation. `BLOCK_SIZE` is used
-only for the final release tail.
+`MidiOut.send_message` and `send_note` call `port.send` without handling a device disappearing after open ([tuney/midi/midi.py](../tuney/midi/midi.py), lines 155-182). The open failure path disables the output, but later send failures do not. Close or disable the failed port, report the error once, and allow playback to continue where appropriate. Exercise failure on a send, not only on open.
 
-**Trigger/impact:** An imported performance with a long silent gap or very slow
-timing can allocate hundreds of megabytes or more for one interval, with
-additional arrays per voice. Export size should not determine peak working
-memory this way.
+### 8. Speech replay allocates for the entire timeline
 
-**Next step:** Render every interval in bounded blocks while preserving exact
-event-frame boundaries.
+Speech loading and resampling build full arrays and then allocate a zero-filled timeline for the full duration ([tuney/audio/speech.py](../tuney/audio/speech.py), lines 54-69 and 127-169). `KeyRecorder.on_replay` starts speech synchronously on the GUI thread before replay. Long text, a large input, or a phrase scheduled far in the future can cause a long UI freeze or memory exhaustion. Stream or chunk speech against the playhead, or impose a documented duration/memory limit. Test a sparse long timeline.
 
-### 8. Ordinary audio exports omit speech
+### 9. Audio callback commands have no bound or time budget (risk)
 
-**Resolved:** Audio exports and CLI playback include enabled speech. Natural
-completion lets speech finish, and GUI loops wait for it before restarting.
-Explicit Stop still cancels speech. Tests cover exported speech tails, callback
-completion, CLI routing, and replay/loop completion. Speech synthesis is mocked;
-WAV fixtures verify the mixing and completion behavior at 48 kHz.
+`AudioEngine.commands` is a `SimpleQueue`, and the PortAudio callback drains it until empty ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 72-74, 122-134, 249-269). Producers can grow memory or keep the callback processing commands past its audio deadline. Bound the queue or the work per callback, with a policy for coalescing or rejecting excess commands; stress test producer bursts.
 
-**Evidence:** Speech replay is started in
-[KeyRecorder.on_replay](../tuney/app/key_recorder.py). Both GUI Save as Audio
-and silent CLI output use [Player.render_file](../tuney/audio/player.py), which
-only renders note events through `Mixer`. `use_speech` is not consulted there or
-in `AppPlayback.play_cli`. Test-sheet export has its own speech path.
+### 10. Unexpected audio callback errors can strand CLI waiting (risk)
 
-**Impact:** A GUI performance with spoken text exports without that speech;
-CLI speech options also do not reach speech playback. This makes identical
-configuration produce different results across interfaces.
+The callback catches only `ArithmeticError`, `RuntimeError`, `TypeError`, and `ValueError` ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 240-245). Other failures, including allocation or backend failures, may leave `playback_complete` unset while CLI playback waits indefinitely ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Ensure all callback termination paths signal the waiter and surface a useful error, without masking the original failure.
 
-**Next step:** Define which outputs include speech and either implement parity
-or explicitly reject/document unsupported combinations. Test ordinary export,
-not only test sheets.
+### 11. GUI input queues can grow without bound and starve event processing (risk)
 
-### 9. MIDI-only CLI playback is rejected by the silent-mode guard
+The main window and MIDI listener use unbounded queues, and their GUI handlers drain until empty ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 94-96 and 595-606; [tuney/midi/listener.py](../tuney/midi/listener.py), lines 21 and 40-45). A sustained keyboard or MIDI flood can grow memory and prevent paint, close, and timer events. Bound backlog and work per GUI tick, with an explicit drop policy for stale input.
 
-**Resolved:** Silent CLI playback accepts enabled MIDI output. A regression
-checks MIDI press/release delivery without constructing an audio player.
+### 12. MIDI monitor restart can create two workers (risk)
 
-**Evidence:** [AppPlayback.run_cli](../tuney/app/app_playback.py) rejects
-`silent=True` without a file, regardless of MIDI output being enabled.
+`_stop_midi_device_monitor` joins for one second and drops the thread reference even if it remains alive ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 296-300). Restart clears the same stop event ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 194-198), so a stalled old worker can resume alongside the new worker. Retain the old worker until it exits, or use a fresh stop event per generation; test a blocked probe across stop and restart.
 
-**Impact:** A user enabling MIDI and explicitly disabling synthesized sound gets
-`CLI mode requires sound`, even though MIDI is a valid destination. Meanwhile
-MIDI's separate `mute_audio_when_midi_enabled` option offers another muting path.
+## P2: behavior and user-facing traps
 
-**Next step:** Validate whether any selected output can consume the performance,
-and make the two muting controls' relationship clear.
+### 13. Text-file errors silently change what is played
 
-### 10. Wall-clock changes affect performance timing
+`AppRuntime.char_presses` catches every `Exception` while loading text or timing, logs it, and falls back to the inline text or an empty sequence ([tuney/app/app_runtime.py](../tuney/app/app_runtime.py), lines 89-102). A missing, unreadable, or malformed requested file can produce the wrong music or an unrelated “missing TEXT” error. Fail the requested operation with the file path and cause; reserve fallback for an explicitly optional source.
 
-**Resolved:** Sequencer uses monotonic time. A deterministic clock test jumps
-wall time forward and backward while checking exact event deadlines and waits.
+### 14. Pasted timing data bypasses chronological validation
 
-**Evidence:** [Sequencer._run](../tuney/time/sequencer.py) computes elapsed time
-with `time.time()`.
+The custom clipboard path checks that values are `CharPress` objects but does not check ordering ([tuney/ui/file_commands.py](../tuney/ui/file_commands.py), lines 208-227). Config-loaded text gets an ordering check through `Sequencer` ([tuney/config/tuney.py](../tuney/config/tuney.py), lines 162-169), and later replay and MIDI export assume order. Apply the same validation at paste and explain an invalid clipboard to the user.
 
-**Impact:** A system clock correction can make playback pause unexpectedly or
-dispatch many events immediately. Sequencing depends on elapsed time, not the
-calendar clock.
+### 15. Expression evaluation permits expensive and stateful calls
 
-**Next step:** Use a monotonic time source for scheduling, with a deterministic
-clock-jump test.
+The scale expression evaluator exposes public callables from `math` and `random`, plus `operator.pow` ([tuney/scale/evaluate.py](../tuney/scale/evaluate.py), lines 78-108 and 127-136). An accidental huge exponent or factorial can consume substantial CPU or memory; random functions can make a tuning nondeterministic. Document whether nondeterminism is intended, and bound work or narrow the allowed functions for interactive editing.
 
-### 11. Restored zero loop tempo reaches division by zero
+### 16. Failed recording start can leave a saveable empty file
 
-**Resolved:** LoopState requires a positive, finite tempo. GUI edits use that
-validation before creating undo history. Invalid saved tempo reports a restore
-error and uses the default while retaining valid text; tests cover zero,
-negative values, infinities, and NaN.
+`AudioRecorder.start` creates or touches its temporary path before `Player.start_recording` succeeds ([tuney/app/audio_recorder.py](../tuney/app/audio_recorder.py), lines 55-69). The save path can later copy that file ([tuney/app/audio_recorder.py](../tuney/app/audio_recorder.py), lines 74-82). Treat the recorder as started only after the player accepts it, and discard the failed attempt's temporary artifact through the existing lifecycle. Test a start failure followed by Save.
 
-**Evidence:** [LoopState.tempo](../tuney/ui/history.py) is an unconstrained float;
-autosave validates against this model. The GUI edit callback rejects nonpositive
-values, but [AppPlayback.replay_char_presses](../tuney/app/app_playback.py)
-divides event times by restored `loop_tempo`.
+### 17. Swap with autosave can destroy the previous autosave before restore succeeds
 
-**Trigger/impact:** A saved `[loop]` section containing `tempo = 0` passes model
-validation and fails when replay is prepared. GUI-only validation does not cover
-restoration.
+`on_swap_with_autosave` validates first, writes the current state over the autosave, then restores the old data ([tuney/ui/file_commands.py](../tuney/ui/file_commands.py), lines 238-253). If restore fails during player or device reconfiguration, the old autosave is gone. Stage both states until the UI transition succeeds, or provide rollback. Test a restore failure after the write.
 
-**Next step:** Put the positive, finite tempo requirement on the persisted model
-and test autosave recovery from an invalid value.
+### 18. Losing keyboard focus can leave a note held (risk)
 
-### 12. Configuration and preset writes are not atomic
+The key event handler caches a pressed character until release ([tuney/ui/key_events.py](../tuney/ui/key_events.py), lines 50-76). `MainWindow.focusOutEvent` does not release or clear held keys ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 534-536). If the key is released after focus moves, the window can miss it and sustain the note. Release held keys on focus loss and verify focus-switch behavior with the global keyboard listener.
 
-**Resolved:** Configuration, autosave, global settings, and preset saves serialize
-first, write a temporary sibling, and atomically replace the destination. Tests
-inject a partial write failure into each path and verify the old file survives.
+### 19. Live recording and display work grows with session length
 
-**Evidence:** [AppState.save/save_autosave](../tuney/app/app_state.py),
-[GlobalConfig.save](../tuney/app/global_config.py), and
-[write_preset](../tuney/presets/preset.py) use direct `write_text` replacement.
+`KeyRecorder.recorded_char_press` scans recorded presses to determine held notes on each key event ([tuney/app/key_recorder.py](../tuney/app/key_recorder.py), lines 29-63). `AppPlayback.on_char` rebuilds the displayed text from the full sequence on each press ([tuney/app/app_playback.py](../tuney/app/app_playback.py), lines 28-55). These operations become progressively slower in long sessions. Maintain current held state and append only the new display segment; measure latency on a long recording before and after.
 
-**Impact:** Interruption or a disk write failure can destroy the previous valid
-state. Tolerant autosave parsing cannot recover a file truncated before its data
-was written.
+### 20. Requested tuning source can silently change
 
-**Next step:** Replace individual files atomically after serialization and writing
-succeed. Test failure without modifying the last valid file.
+`Tuning.active` falls back to another populated source, or a fresh computed tuning, if the selected `type` has no value ([tuney/scale/tuning.py](../tuney/scale/tuning.py), lines 110-115). A configuration requesting a table can therefore play a different tuning without an error. Either reject the incomplete selection at load or make the fallback an explicit user choice.
 
-### 13. Saving a preset silently overwrites an existing preset
+### 21. MIDI input open failures leave an apparently enabled listener
 
-**Resolved:** Reusing a user or built-in preset name asks for confirmation,
-defaulting to No. Accepted replacements use the targeted preset undo from issue
-2. Tests cover refusal, confirmation, and undo for both kinds of preset.
+`MidiListener.start` logs an input-open failure and returns ([tuney/midi/listener.py](../tuney/midi/listener.py), lines 23-29). The enabled setting remains true and the device monitor does not retry that listener. Show a failed state or retry on a real device change, with a test for an input that appears after initial failure.
 
-**Evidence:** [preset_name](../tuney/ui/preset_dialogs.py) only asks for a name.
-[on_save_preset](../tuney/ui/file_commands.py) immediately writes it without an
-overwrite prompt or its own undo checkpoint.
+### 22. Configuration labels have different meanings across flows
 
-**Impact:** Reusing a name destroys its earlier settings; undo behavior depends
-on whatever unrelated checkpoint happened previously.
+`silent` controls live playback behavior while offline export still renders audio; “omni” means all channels for input but channel 1 for output. These distinctions are present in code but easy to misread in configuration and UI. Rename the labels or add concise help at the control where users choose them. Keep the underlying MIDI channel semantics explicit in tests.
 
-**Next step:** Make replacement explicit and establish a preset-specific undo
-checkpoint before writing.
+### 23. Close errors use the wrong action in their message
 
-### 14. Undo cost grows with every recorded event
+`MidiOut.close` logs “Could not open MIDI output” for a close failure ([tuney/midi/midi.py](../tuney/midi/midi.py), lines 142-146). Report “close” and include the selected port, so troubleshooting points at the actual operation.
 
-**Resolved:** Text operations retain the changed event slice and recorder timing
-state. Normal recording appends take constant-sized undo entries; backspace,
-paste, file loading, timing edits, and timing randomization use the same edit
-representation. Full configuration changes still use whole-state snapshots.
-Undo depth remains unlimited. Tests cover every-event undo/redo, interleaved
-settings, out-of-order events, backspace, and empty-text persistence.
+## P3: structure, reuse, and verification
 
-A focused 400-event history measurement fell from 79,800 retained event copies
-and 17.00 MiB to no duplicated events in the undo entries and 0.69 MiB. Measured
-checkpoint time fell from 1.691 s to 0.014 s before final review; these are local
-unit measurements, not GUI latency guarantees.
+### 24. Large UI classes concentrate unrelated responsibilities
 
-**Evidence:** [AppPlayback.on_char](../tuney/app/app_playback.py) checkpoints
-presses and releases. [History.state](../tuney/ui/history.py) deep-copies the
-whole configuration and recorded text and rereads every user preset from disk.
-The undo stack has no bound.
+[tuney/ui/control_panel.py](../tuney/ui/control_panel.py) is about 1,331 lines and [tuney/ui/main_window.py](../tuney/ui/main_window.py) about 665. They combine widget construction, signal wiring, state mutation, device lifecycle, and persistence, making shutdown and state-transition changes hard to review. Split by an existing responsibility boundary when modifying those paths; avoid a speculative rewrite. The biggest tests, [test/test_control_panel.py](../test/test_control_panel.py) (about 1,753 lines), [test/test_audio_renderer.py](../test/test_audio_renderer.py) (about 1,210), and [test/_test_app_keys.py](../test/_test_app_keys.py) (about 1,189), have similar navigation costs.
 
-**Impact:** Recording N events retains approximately quadratic event history,
-plus repeated copies and disk reads of presets. Long sessions can consume large
-amounts of memory and stall keyboard handling.
+### 25. Two tiny single-use modules add indirection
 
-**Next step:** Measure long sessions, group related edits, avoid rereading
-unchanged preset files for text operations, and choose a history retention policy.
+[tuney/error.py](../tuney/error.py) defines `TuneyError` but has no references in the repository. [tuney/ui/platform.py](../tuney/ui/platform.py) contains one five-line `command_key` helper used only by layout. Remove the unused error type and consider placing the helper at its sole call site during nearby work. Other small modules such as time units and UI constants have multiple consumers and are serving a useful shared role.
 
-### 15. Export blocks the GUI until rendering finishes
+### 26. Reccy reuse is broad, with one remaining output gap
 
-**Resolved:** GUI audio and test-sheet exports run in a spawned process with
-progress and cancellation. Text, settings, and presets are captured at launch.
-Only the parent publishes completed output; cancellation, worker failure, and
-replacement failure preserve existing files. Shutdown terminates the worker and
-removes temporary output and speech files. Tests cover worker rendering and
-snapshot isolation, cancellation, failures, and Qt dialog lifecycle. Native
-speech and frozen builds still require platform validation.
+Tuney already uses reccy's atomic output, validated updates, unit types, resource claims, and logging. Scala export in finding 1 is a concrete duplicate of the atomic-output service. The mutable, appendable live WAV recorder has different requirements from reccy's capture and asset-store facilities; replacing it on name similarity alone would change behavior. No further direct duplicate of a suitable reccy service was established by this review.
 
-**Evidence:** [on_save_as_audio/on_save_test_sheet](../tuney/ui/file_commands.py)
-perform the complete render synchronously in the menu callback.
+### 27. Failure-path tests miss the most consequential interleavings
 
-**Impact:** Long text or multiple test-sheet presets leave the window
-unresponsive with no progress or cancellation. Large allocations in issue 7
-compound this.
+The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise publication failure after the first preset file, replay callback overlap with stop/close, a blocked monitor across restart, stalled writer/process shutdown, late MIDI send failure, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
 
-**Next step:** Provide bounded rendering work with progress and cancellation,
-keeping Qt mutations on the GUI thread.
+### 28. Some test files overlap and packaged behavior remains unverified
 
-### 16. MIDI callbacks bypass the documented input queue boundary
+Audio renderer and voice-envelope tests both cover envelope, binaural, and phase behavior at different layers; control-panel and layout tests also overlap in widget assertions. Review duplicated assertions when editing those files, while preserving their distinct integration coverage. The release workflow runs headless tests and builds packages, but does not launch a packaged GUI or validate physical audio, MIDI, or global keyboard input ([.github/workflows/release-builds.yml](../.github/workflows/release-builds.yml)). Keep those as explicit release checks rather than treating CI success as hardware validation.
 
-**Resolved:** MIDI callbacks only enqueue messages. The GUI timer handles input
-filtering, note conversion, and playback. Closing a listener discards queued
-messages. MIDI input retains direct-note playback without generating text.
-Tests verify ordered dispatch on the consuming thread and pending-message cleanup.
+### 29. Small naming and documentation inaccuracies remain
 
-**Evidence:** The original [runtime MIDI listener](../tuney/app/app_runtime.py) connected
-the MIDI callback directly to `play_note`; [MidiListener.on_message](../tuney/midi/listener.py)
-invokes it directly. That reaches mutable `Player` state and stream startup.
-The maintenance guide says MIDI callbacks enqueue character presses for Qt.
+The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/config/tuney.py), line 27). Generic `Tuning.type` gives little hint of its available sources or fallback behavior. Correct the typo and document the chosen source semantics when addressing finding 20.
 
-**Impact:** MIDI input and GUI edits can manipulate playback state from different
-threads; MIDI input also bypasses character recording/UI feedback. The exact
-hardware-thread interleavings need runtime validation.
+## Scope and suggested order
 
-**Next step:** Establish the intended MIDI event route and thread ownership,
-then align the code and documentation.
+Start with direct data-loss and wrong-output paths (1, 2, 6, 13, 16, 17, 20), then establish ownership and bounded shutdown for concurrent paths (3-5, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
-### 17. Missing or malformed configuration gets inconsistent CLI errors
+Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
-**Resolved:** Expected file and parse errors during configuration/preset loading
-use the existing concise exit-message path. Tests cover missing files, malformed
-TOML/JSON, invalid document shape, unknown extensions/presets, and propagation of
-unexpected runtime errors. The new catch is limited to reading startup inputs.
+## Additional work beyond the prompt
 
-**Evidence:** [main](../tuney/app/main.py) catches `ValidationError` and
-`FileExistsError`, but [read_file/read_preset](../tuney/presets/preset.py) can
-raise `FileNotFoundError`, TOML/JSON parse errors, or plain `ValueError` for an
-unknown preset or extension.
-
-**Impact:** Common user input mistakes escape the normal concise error path as
-tracebacks. Catching `FileExistsError` does not cover a missing input file.
-
-**Next step:** Handle expected input-file and parse errors consistently without
-masking programming errors.
-
-### 18. Local dependency success does not establish release compatibility
-
-**Resolved:** Tuney uses Ufor's current API through its existing configuration
-models, including an explicitly composed oscillator. Ufor, Reccy, and Enge are
-pinned to verified public source archives; the latter two are absent from PyPI.
-All 583 tests passed both locally and in a separate checkout installed with
-`--no-sources`. Public CLI/configuration and audio fixtures remain unchanged.
-Native hardware and packaged executables were not exercised.
-
-**Evidence:** [pyproject.toml](../pyproject.toml) uses editable `../reccy`,
-`../ufor`, and `../enge`, while pinning installed Ufor to archive `9fa9d39...`
-and leaving Reccy/Enge versions unspecified. The
-[release workflow](../.github/workflows/release-builds.yml) sets `UV_NO_SOURCES=1`.
-The new help test also needs `reccy.pytest_plugin`.
-
-**Impact:** Local tests exercise a different library set from releases. Recent
-sibling API/behavior changes and the plugin may be unavailable in the versions
-resolved for packaging. This is a verified dependency divergence, not a claim
-that a release build was reproduced failing.
-
-**Next step:** Verify the supported published dependency set in isolation and
-declare the minimum/pinned versions actually required. Keep dependency changes
-in their own commit.
-
-## P3: documentation, naming, and maintenance
-
-### 19. The consolidated guides contain misleading instructions
-
-**Resolved:** The guides now show the actual root-frequency option, preset path,
-file-menu capabilities, MIDI input behavior, three editable sibling checkouts,
-and Enge waveform ownership. Installation instructions establish Python and
-pipx first and explicitly check the interpreter version.
-
-**Evidence:** [Using Tuney](../doc/using-tuney.md) shows
-`--tuning.root-frequency`; the committed
-[help fixture](../test/test_cli_help/test_tuney_help_output.txt) exposes
-`--root-frequency`. It describes a platform configuration directory for presets,
-but `USER_PRESETS` is always `~/.config/tuney/presets`. It claims File can load a
-configuration, whereas the [menu](../tuney/ui/main_menu.py) exposes text opening,
-state paste/swap, and saving rather than a configuration-open dialog.
-
-The maintenance guide says NumPy waveform generation remains local, but
-[Oscillator](../tuney/audio/oscillator.py) now delegates it to Enge. Its
-development setup mentions only the Ufor checkout despite three editable siblings.
-The user guide also puts `pipx install tuney` before pipx installation and omits
-the old explicit Python-version check for distribution-provided Python.
-
-**Next step:** Correct examples against the help fixture and menus, document
-actual paths and sibling setup, and order installation instructions by prerequisites.
-
-### 20. Copying text records timing metadata that pasting ignores
-
-**Resolved:** Paste uses and validates Tuney's event metadata when present,
-preserving press/release timing. External plain text retains generated timings.
-Invalid event metadata reports an error without changing text or undo history.
-Tests cover a copy/paste round trip, plain text, and malformed metadata.
-
-**Evidence:** [on_copy_text](../tuney/ui/file_commands.py) writes a custom
-`application/x-tuney-char-presses+json` payload. `on_paste_text` reads only plain
-text and generates fresh timings; no other consumer reads that MIME type.
-
-**Impact:** Copy/paste within Tuney loses recorded timing even though the copy
-implementation appears designed to preserve it.
-
-**Next step:** Decide whether timing-preserving paste is intended; implement and
-test it or remove the unused payload and explain timing regeneration.
-
-### 21. Large modules concentrate unrelated responsibilities
-
-**Resolved by responsibility, not a size limit:** Control-panel parsing and
-field/enum help now live in the existing metadata module. The former 2,800-line
-application test file is split into platform/startup, persistence, playback,
-and editing tests with one shared harness. Test count and fixtures are unchanged.
-The remaining Qt window/layout and control-panel modules retain their widget
-coordination role; splitting those solely to meet a line count would add indirection.
-
-**Measured:** [control_panel.py](../tuney/ui/control_panel.py) has 1,432 lines,
-[main_window.py](../tuney/ui/main_window.py) 659, and
-[layout.py](../tuney/ui/layout.py) 604. Control-panel code combines generic widget
-construction, value parsing, model mutation, cache invalidation, MIDI lifecycle,
-and scale-error presentation despite existing helper modules.
-
-[test_tuney.py](../test/test_tuney.py) has 2,720 lines,
-[test_control_panel.py](../test/test_control_panel.py) 1,740, and
-[_test_app_keys.py](../test/_test_app_keys.py) 1,130.
-
-**Next step:** Split only along demonstrated ownership boundaries when working
-on those areas. Avoid arbitrary line-count limits or a broad refactor merely to
-shorten files. Directory inventory found 29 direct tracked files in `tuney/ui`
-and 33 in `test`; those counts alone do not justify additional nesting.
-
-### 22. Qt tests are hidden inside one subprocess test
-
-**Resolved:** Each of the 18 checks is a separate selectable pytest parameter
-and runs in its own child process. Children execute a test module directly,
-have a 30-second timeout, and report captured stdout/stderr on failure.
-
-**Evidence:** [test_app_keys.py](../test/test_app_keys.py) runs 17 named checks
-through a hard-coded subprocess script, all reported as `test_app_keys`.
-`subprocess.run` captures output and has no timeout.
-
-**Impact:** Individual checks cannot be selected normally with pytest; the first
-failure prevents later checks from running, and a hung child can hang the suite.
-Captured child details are not deliberately presented on failure.
-
-**Next step:** Preserve process isolation but expose individually selectable
-cases, report child diagnostics, and bound subprocess execution time.
-
-### 23. Obsolete waveform code and a test-only production wrapper remain
-
-**Resolved:** Removed the unused copied waveform functions and `OfflineRenderer`.
-Repository and sibling source searches found no production consumers. Tests now
-exercise `Mixer` directly, alongside the existing production file-rendering tests;
-the existing WAV fixtures remain unchanged.
-
-**Evidence:** The removed `audio/scipy.py` contained copied
-waveform implementations, but a repository Python-reference search found no
-consumer after Enge adoption. The removed `OfflineRenderer` was
-only used by `test_audio_renderer.py`; production file rendering uses
-`output_file.render_file` directly.
-
-**Impact:** The apparent rendering entry points make ownership unclear and can
-lead maintainers to fix or test a path the application does not use.
-
-**Next step:** Verify there are no supported external consumers, remove obsolete
-waveforms, and test the production rendering path directly or make the wrapper
-an explicitly test-local helper.
-
-### 24. Ambiguous names obscure units, roles, and destinations
-
-**Resolved:** Internal names are now `effective_timings`, `AppRuntime`, and
-`TuningSource`. Help explains live muting versus offline rendering, supported
-MIDI filename extensions, and output `omni` meaning channel 1. Scale documentation
-separates naming/intervals from tuning and denominator approximation. Existing
-public option names and saved values are preserved; help/schema fixtures are updated.
-
-**Evidence:** `TextTimings.timings_` means effective durations, distinct from
-`timings`; `AppMembers` gives little indication that it constructs runtime
-services; tuning's generic enum `Type` obscures what is selected. `Scale`'s
-docstring still says `N-just limit`, although `Computed.limit` is a maximum
-rational denominator. `MidiOut.channel='omni'` means default output channel,
-whereas MIDI input uses the same word for all channels. `output` is described as
-an audio file although MIDI extensions select another format, and `silent`
-selects offline synthesis when a file is requested rather than suppressing it.
-
-**Next step:** Clarify help and labels first. Consider focused internal names
-such as effective timings and tuning source; treat public option renames as
-separate interface decisions, not cosmetic cleanup.
-
-## Suggested order
-
-Address output and preset data safety first, then callback ownership and note
-retriggering. Resolve dependency/release divergence before packaging. Follow with
-timing/export behavior and documentation corrections. Organize large modules
-only as needed for those fixes.
-
-Additional work beyond the prompt: None.
+None.
