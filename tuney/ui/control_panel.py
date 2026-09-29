@@ -673,7 +673,12 @@ def _add_option_control(
     options: Options,
     option_controls: list[_OptionControl],
 ) -> None:
-    frame, layout, _ = _add_labeled_control_frame(parent, name)
+    frame, layout, label = _add_labeled_control_frame(parent, name)
+    if name == 'channel' and isinstance(data, MidiIn | MidiOut):
+        label.setText(
+            'Channel (omni: all)' if isinstance(data, MidiIn) else 'Channel (omni: 1)'
+        )
+        control_panel_sizing._configure_label(label)
     menu = QtWidgets.QComboBox(frame)
     width = control_panel_sizing._entry_width(
         name,
@@ -839,7 +844,12 @@ def _rebuild_note_grid(parent: QtWidgets.QWidget) -> None:
 def _add_bool_control(
     parent: QtWidgets.QWidget, data: BaseModel, name: str, value: bool
 ) -> None:
-    check = QtWidgets.QCheckBox(control_panel_sizing._display_label(name), parent)
+    label = (
+        'Mute live audio'
+        if name == 'silent'
+        else control_panel_sizing._display_label(name)
+    )
+    check = QtWidgets.QCheckBox(label, parent)
     check.setMinimumWidth(check.sizeHint().width())
     check.setSizePolicy(
         QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
