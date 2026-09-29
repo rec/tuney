@@ -2,6 +2,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import pytest
+
 from tuney.app import platform_info
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
@@ -438,7 +440,7 @@ def test_restore_autosave_defaults_invalid_nested_scale(monkeypatch) -> None:
     assert 'root must be present in note_names' in str(error)
 
 
-def test_restore_autosave_defaults_empty_ratios(monkeypatch) -> None:
+def test_restore_autosave_keeps_empty_ratios_editable(monkeypatch) -> None:
     with temporary_path() as tmp_path:
         path = tmp_path / 'state.toml'
         set_autosave_file(monkeypatch, path)
@@ -457,7 +459,8 @@ def test_restore_autosave_defaults_empty_ratios(monkeypatch) -> None:
         error = app._autosave.restore(app)
 
         assert app.tuning.ratios is None
-        assert app.tuning(69) == 440
+        with pytest.raises(ValueError, match='No ratios tuning configured'):
+            app.tuning(69)
     assert error is not None
     assert f'Could not restore fields from {path}' in str(error)
     assert 'No tuning ratios configured' in str(error)

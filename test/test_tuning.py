@@ -59,6 +59,20 @@ def test_tuning_keeps_inactive_values() -> None:
     assert tuning.ratios == Ratios(text='3; 2')
 
 
+@pytest.mark.parametrize('source', list(TuningSource))
+def test_missing_selected_tuning_fails_only_when_used(source: TuningSource) -> None:
+    tuning = Tuning.model_validate(
+        {
+            'type': source,
+            source.value: None,
+            'table': Table(text='440') if source != TuningSource.table else None,
+        }
+    )
+
+    with pytest.raises(ValueError, match=f'No {source.value} tuning configured'):
+        tuning(69)
+
+
 def test_computed_exports_one_octave_of_ratios() -> None:
     assert Computed(notes_per_octave=3, octave_ratio=8).as_ratios().ratios == (
         pytest.approx([2, 4, 8])

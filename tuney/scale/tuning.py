@@ -109,10 +109,10 @@ class Tuning(BaseModel, arbitrary_types_allowed=True):
 
     @property
     def active(self) -> Computed | Ratios | Table:
-        default = getattr(self, self.type.name) if self.type else None
-        if p := default or self.table or self.ratios or self.computed:
-            return p
-        return Computed()
+        source = self.type or TuningSource.computed
+        if (active := getattr(self, source.value)) is None:
+            raise ValueError(f'No {source.value} tuning configured')
+        return active
 
     @property
     def definition(self) -> tuning.Tuning:
