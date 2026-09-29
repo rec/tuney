@@ -158,8 +158,8 @@ class MidiOut(MidiBase):
         return mido.Message(message_type, time=time, **kwargs)
 
     def send_message(self, message_type: str, time: int = 0, **kwargs) -> None:
-        if self.port:
-            self.port.send(self.message(message_type, time=time, **kwargs))
+        if (self.enable or 'port' in self.__dict__) and self.port:
+            self._send(self.message(message_type, time=time, **kwargs))
 
     def send_program_change(self, time: int = 0) -> None:
         if self.program is not None:
@@ -170,7 +170,7 @@ class MidiOut(MidiBase):
 
     def send_tuning_dump(self, scale: Scale, tuning: Tuning) -> None:
         if self.enable and self.send_tuning and self.port:
-            self.port.send(tuning_dump(scale, tuning, self.note_offset))
+            self._send(tuning_dump(scale, tuning, self.note_offset))
 
     def send_note(
         self, note_number: int, is_press: bool, use_note_offs: bool = False
@@ -180,6 +180,16 @@ class MidiOut(MidiBase):
             velocity = max(0, min(127, is_press * self.velocity))
             note = self.midi_note(note_number)
             self.send_message(t, note=note, velocity=velocity)
+
+    def _send(self, message: mido.Message) -> None:
+        if (port := self.port) is None:
+            return
+        try:
+            port.send(message)
+        except (OSError, RuntimeError, SystemError) as error:
+            self.enable = False
+            report_error(f'Could not send to MIDI output {self.name}: {error}')
+            self.close()
 
 
 class Midi(BaseModel):
