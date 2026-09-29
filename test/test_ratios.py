@@ -28,3 +28,24 @@ def test_scala_files_round_trip(filename: str, tmp_path) -> None:
         [float(r) for r in ratios.ratios],
         abs=1e-8,
     )
+
+
+def test_failed_scala_export_preserves_existing_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    destination = tmp_path / 'scale.scl'
+    destination.write_text('original')
+    write_text = Path.write_text
+
+    def fail_after_partial_write(
+        self: Path, data: str, encoding: str = 'latin-1'
+    ) -> int:
+        write_text(self, data[:8], encoding=encoding)
+        raise OSError('disk full')
+
+    monkeypatch.setattr(Path, 'write_text', fail_after_partial_write)
+    with pytest.raises(OSError, match='disk full'):
+        Ratios(text='2').write_scala_file(destination)
+
+    assert destination.read_text() == 'original'
+    assert list(tmp_path.iterdir()) == [destination]
