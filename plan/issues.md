@@ -12,10 +12,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 `Recording.close` blocks on a queue put and then joins its writer without a deadline ([tuney/audio/recording.py](../tuney/audio/recording.py), lines 33-42). `ExportJob.close` terminates and joins its process without a deadline ([tuney/app/export_job.py](../tuney/app/export_job.py), lines 118-122), and the GUI calls it during shutdown ([tuney/ui/export_dialog.py](../tuney/ui/export_dialog.py), lines 64-66). CLI playback also waits without a deadline ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Stalled disk, decoder, or native audio operations could freeze exit or ignore Ctrl-C after cleanup begins. Define bounded waits and an explicit forced-exit policy, then test stalled workers. No lock-cycle deadlock was established by this review.
 
-### 7. MIDI send errors after opening can escape into the GUI or replay thread
-
-`MidiOut.send_message` and `send_note` call `port.send` without handling a device disappearing after open ([tuney/midi/midi.py](../tuney/midi/midi.py), lines 155-182). The open failure path disables the output, but later send failures do not. Close or disable the failed port, report the error once, and allow playback to continue where appropriate. Exercise failure on a send, not only on open.
-
 ### 8. Speech replay allocates for the entire timeline
 
 Speech loading and resampling build full arrays and then allocate a zero-filled timeline for the full duration ([tuney/audio/speech.py](../tuney/audio/speech.py), lines 54-69 and 127-169). `KeyRecorder.on_replay` starts speech synchronously on the GUI thread before replay. Long text, a large input, or a phrase scheduled far in the future can cause a long UI freeze or memory exhaustion. Stream or chunk speech against the playhead, or impose a documented duration/memory limit. Test a sparse long timeline.
@@ -94,7 +90,7 @@ The key event handler caches a pressed character until release ([tuney/ui/key_ev
 
 ### 27. Failure-path tests miss the most consequential interleavings
 
-The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise publication failure after the first preset file, a blocked monitor across restart, stalled writer/process shutdown, late MIDI send failure, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
+The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise publication failure after the first preset file, a blocked monitor across restart, stalled writer/process shutdown, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
 
 ### 28. Some test files overlap and packaged behavior remains unverified
 
