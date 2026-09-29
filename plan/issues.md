@@ -4,10 +4,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P1: data and runtime safety
 
-### 8. Speech replay allocates for the entire timeline
-
-Speech loading and resampling build full arrays and then allocate a zero-filled timeline for the full duration ([tuney/audio/speech.py](../tuney/audio/speech.py), lines 54-69 and 127-169). `KeyRecorder.on_replay` starts speech synchronously on the GUI thread before replay. Long text, a large input, or a phrase scheduled far in the future can cause a long UI freeze or memory exhaustion. Stream or chunk speech against the playhead, or impose a documented duration/memory limit. Test a sparse long timeline.
-
 ### 9. Audio callback commands have no bound or time budget (risk)
 
 `AudioEngine.commands` is a `SimpleQueue`, and the PortAudio callback drains it until empty ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 72-74, 122-134, 249-269). Producers can grow memory or keep the callback processing commands past its audio deadline. Bound the queue or the work per callback, with a policy for coalescing or rejecting excess commands; stress test producer bursts.
