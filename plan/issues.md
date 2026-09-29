@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 22. Configuration labels have different meanings across flows
-
-`silent` controls live playback behavior while offline export still renders audio; “omni” means all channels for input but channel 1 for output. These distinctions are present in code but easy to misread in configuration and UI. Rename the labels or add concise help at the control where users choose them. Keep the underlying MIDI channel semantics explicit in tests.
-
 ### 23. Close errors use the wrong action in their message
 
 `MidiOut.close` logs “Could not open MIDI output” for a close failure ([tuney/midi/midi.py](../tuney/midi/midi.py), lines 142-146). Report “close” and include the selected port, so troubleshooting points at the actual operation.
