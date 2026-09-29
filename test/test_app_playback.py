@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
+from queue import Queue
 
 import mido
 import pytest
@@ -179,6 +180,51 @@ def test_midi_device_change_clears_missing_selected_output(monkeypatch) -> None:
     assert ui.refresh_count == 2
     assert messages == ['Output device Old Synth no longer exists']
     assert app._autosave.save_count == 1
+
+
+def test_midi_monitor_preserves_names_on_probe_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Names:
+        names = [['keyboard'], ['synth']]
+
+        def __call__(self) -> list[list[str]]:
+            return self.names
+
+        def replace(self, names: list[list[str]]) -> None:
+            self.names = names
+
+    class Stop:
+        waits = 0
+
+        def wait(self, timeout: float) -> bool:
+            assert timeout == 2
+            self.waits += 1
+            return self.waits == 2
+
+    probes: list[list[list[str] | None]] = [[None, None], [[], []]]
+    names = Names()
+    queue = Queue[list[list[str]]]()
+    window = type(
+        'Window',
+        (),
+        {'_midi_device_stop': Stop(), 'midi_device_queue': queue},
+    )()
+
+    def probe() -> list[list[str] | None]:
+        if len(probes) == 1:
+            assert names.names == [['keyboard'], ['synth']]
+            assert queue.empty()
+        return probes.pop(0)
+
+    monkeypatch.setattr(main_window, 'midi_names', names)
+    monkeypatch.setattr(main_window, 'probe_midi_names', probe)
+
+    MainWindow._watch_midi_devices(window)
+
+    assert names.names == [[], []]
+    assert queue.get_nowait() == [[], []]
+    assert queue.empty()
 
 
 def test_finished_replay_restarts_when_looping(monkeypatch) -> None:

@@ -184,6 +184,7 @@ def test_midi_names_json_handles_output_probe_failure(monkeypatch, caplog):
     monkeypatch.setattr(ports.mido, 'get_output_names', get_output_names)
 
     assert ports.midi_names_json() == json.dumps([['keyboard'], []], indent=2)
+    assert ports.probe_midi_names() == [['keyboard'], None]
     assert any(
         'Could not list MIDI outputs: MIDI unavailable' in message
         for message in caplog.messages
