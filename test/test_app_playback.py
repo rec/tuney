@@ -345,6 +345,75 @@ def test_replay_dispatches_playback_to_gui_and_ignores_stopped_events(
     assert played == [press]
 
 
+def test_shutdown_closes_remaining_resources_after_midi_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    errors: list[str] = []
+
+    class Resource:
+        def __init__(self, name: str, fail: bool = False) -> None:
+            self.name = name
+            self.fail = fail
+
+        def close(self) -> None:
+            calls.append(self.name)
+            if self.fail:
+                raise OSError('device removed')
+
+        def stop(self) -> None:
+            calls.append(self.name)
+
+        def stop_all(self) -> None:
+            calls.append('stop audio')
+
+        def wait(self, timeout: float) -> None:
+            assert timeout == 2.0
+            calls.append('wait for audio')
+
+    class Autosave:
+        @staticmethod
+        def save(_callback: object) -> None:
+            pass
+
+    class ControlPanel:
+        @staticmethod
+        def save_state() -> None:
+            pass
+
+    class AppState:
+        _autosave = Autosave()
+        midi_listener = Resource('MIDI input', fail=True)
+        midi = type('Midi', (), {'output': Resource('MIDI output')})()
+        player = Resource('audio')
+
+        @staticmethod
+        def save_autosave(_path: object) -> None:
+            pass
+
+    app = AppState()
+    app.__dict__['keyboard_listener'] = Resource('keyboard')
+    window = type(
+        'Window',
+        (),
+        {'app': app, 'ui': type('Ui', (), {'control_panel': ControlPanel()})()},
+    )()
+    monkeypatch.setattr(main_window, 'report_error', errors.append)
+
+    MainWindow._close_app(window)
+
+    assert calls == [
+        'keyboard',
+        'MIDI input',
+        'MIDI output',
+        'stop audio',
+        'wait for audio',
+        'audio',
+    ]
+    assert window._shutdown_failed
+    assert errors == ['Could not close MIDI input during shutdown: device removed']
+
+
 def test_replay_starts_speech(monkeypatch) -> None:
     class FakePlayer:
         def __init__(self) -> None:

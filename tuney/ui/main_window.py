@@ -108,6 +108,8 @@ class MainWindow(QtWidgets.QMainWindow):
         r += n > (r * c)
         self.rows, self.columns = r, c
         self._is_replaying = False
+        self._shutdown_failed = False
+        self._shutdown_complete = False
         self.history = History(self)
         self._is_saving = False
         self.export_dialog: ExportDialog | None = None
@@ -275,7 +277,11 @@ class MainWindow(QtWidgets.QMainWindow):
         instrument('close event start')
         self.is_replaying = False
         if self.export_dialog is not None:
-            self.export_dialog.shutdown()
+            try:
+                self.export_dialog.shutdown()
+            except (OSError, RuntimeError, SystemError, ValueError) as error:
+                self._shutdown_failed = True
+                report_error(f'Could not stop export during shutdown: {error}')
         self._close_app()
         super().closeEvent(event)
         instrument('close event end')
@@ -286,13 +292,30 @@ class MainWindow(QtWidgets.QMainWindow):
             self.app._autosave.save(self.app.save_autosave)
         except (OSError, ValueError) as error:
             QtWidgets.QMessageBox.critical(self, 'Could not save state', str(error))
-        self.app.midi_listener.close()
+        actions: list[tuple[str, Callable[[], object]]] = []
+        if listener := self.app.__dict__.get('keyboard_listener'):
+            actions.append(('stop keyboard listener', listener.stop))
+        actions.append(('close MIDI input', self.app.midi_listener.close))
         if hasattr(self, '_stop_midi_device_monitor'):
-            self._stop_midi_device_monitor()
-        self.app.midi.output.close()
-        self.app.player.stop_all()
-        self.app.player.wait(SHUTDOWN_AUDIO_WAIT_SECONDS)
-        self.app.player.close()
+            actions.append(('stop MIDI monitor', self._stop_midi_device_monitor))
+        actions.extend(
+            [
+                ('close MIDI output', self.app.midi.output.close),
+                ('stop audio', self.app.player.stop_all),
+                (
+                    'wait for audio',
+                    lambda: self.app.player.wait(SHUTDOWN_AUDIO_WAIT_SECONDS),
+                ),
+                ('close audio', self.app.player.close),
+            ]
+        )
+        for action, close in actions:
+            try:
+                close()
+            except (OSError, RuntimeError, SystemError, ValueError) as error:
+                self._shutdown_failed = True
+                report_error(f'Could not {action} during shutdown: {error}')
+        self._shutdown_complete = True
 
     def _stop_midi_device_monitor(self) -> None:
         self._midi_device_stop.set()

@@ -45,7 +45,8 @@ class App(AppPlayback):
                 self.start()
                 platform_info.instrument('mainloop start')
                 main_window.mainloop()
-                platform_info.mark_session_clean_exit()
+                if main_window._shutdown_complete and not main_window._shutdown_failed:
+                    platform_info.mark_session_clean_exit()
                 platform_info.instrument('mainloop end')
             finally:
                 platform_info.release_single_instance()
