@@ -3,7 +3,6 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from queue import SimpleQueue
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -11,6 +10,7 @@ from reccy.runtime.claims import ResourceClaim
 
 from tuney.app import platform_info
 from tuney.app.app import App
+from tuney.app.input_queue import InputQueue
 from tuney.midi.listener import MidiListener
 from tuney.midi.midi import Midi
 from tuney.time.char_press import CharPress
@@ -452,8 +452,8 @@ def test_audio_diagnostics_use_reportable_dialog() -> None:
         midi_listener = MidiListener(Midi(), lambda note, is_press: None)
 
     class FakeWindow:
-        key_queue = SimpleQueue()
-        queue = SimpleQueue()
+        key_queue = InputQueue[CharPress](256, lambda c: c.is_press, lambda c: c.char)
+        queue = InputQueue[CharPress](256, lambda c: c.is_press, lambda c: c.char)
         app = FakeApp()
         errors: list[str] = []
 

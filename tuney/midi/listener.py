@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
 import mido
 
+from ..app.input_queue import INPUT_EVENTS_PER_TICK, INPUT_QUEUE_CAPACITY, InputQueue
 from ..app.platform_info import report_error
 from .port import InputPort
 
@@ -18,7 +18,11 @@ class MidiListener:
         self.midi = midi
         self.callback = callback
         self.port: mido.InputPort | None = None
-        self.messages = SimpleQueue[mido.Message]()
+        self.messages = InputQueue[mido.Message](
+            INPUT_QUEUE_CAPACITY,
+            lambda m: m.type == 'note_on' and m.velocity > 0,
+            lambda m: m.note,
+        )
 
     def start(self) -> None:
         if (input := self.midi.input).enable and self.port is None:
@@ -31,15 +35,13 @@ class MidiListener:
         if self.port is not None:
             self.port.close()
             self.port = None
-        while not self.messages.empty():
-            self.messages.get()
+        self.messages.clear()
 
     def on_message(self, m: mido.Message) -> None:
-        self.messages.put(m)
+        if self.midi.input.accepts(m) and m.type.startswith('note_'):
+            self.messages.put(m)
 
-    def dispatch_pending(self) -> None:
-        while not self.messages.empty():
-            m = self.messages.get()
-            if self.midi.input.accepts(m) and m.type.startswith('note_'):
-                is_on = m.type == 'note_on' and m.velocity > 0
-                self.callback(self.midi.output.tuney_note(m.note), is_on)
+    def dispatch_pending(self, limit: int = INPUT_EVENTS_PER_TICK) -> None:
+        for m in self.messages.take(limit):
+            is_on = m.type == 'note_on' and m.velocity > 0
+            self.callback(self.midi.output.tuney_note(m.note), is_on)

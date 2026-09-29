@@ -42,3 +42,21 @@ def test_closing_midi_input_discards_pending_messages() -> None:
     listener.close()
     listener.dispatch_pending()
     assert played == []
+
+
+def test_midi_burst_bounds_backlog_and_keeps_release() -> None:
+    played: list[tuple[int, bool]] = []
+    listener = MidiListener(
+        Midi(), lambda note, pressed: played.append((note, pressed))
+    )
+    for i in range(300):
+        listener.on_message(mido.Message('note_on', note=i % 128))
+    listener.on_message(mido.Message('note_off', note=60))
+
+    assert len(listener.messages) == 256
+    listener.dispatch_pending()
+    assert len(played) == 32
+    for _ in range(8):
+        listener.dispatch_pending()
+    assert (60, False) in played
+    assert len(played) == 256
