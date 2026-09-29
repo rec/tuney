@@ -24,10 +24,6 @@ The callback catches only `ArithmeticError`, `RuntimeError`, `TypeError`, and `V
 
 The main window and MIDI listener use unbounded queues, and their GUI handlers drain until empty ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 94-96 and 595-606; [tuney/midi/listener.py](../tuney/midi/listener.py), lines 21 and 40-45). A sustained keyboard or MIDI flood can grow memory and prevent paint, close, and timer events. Bound backlog and work per GUI tick, with an explicit drop policy for stale input.
 
-### 12. MIDI monitor restart can create two workers (risk)
-
-`_stop_midi_device_monitor` joins for one second and drops the thread reference even if it remains alive ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 296-300). Restart clears the same stop event ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 194-198), so a stalled old worker can resume alongside the new worker. Retain the old worker until it exits, or use a fresh stop event per generation; test a blocked probe across stop and restart.
-
 ## P2: behavior and user-facing traps
 
 ### 13. Text-file errors silently change what is played
@@ -86,7 +82,7 @@ The key event handler caches a pressed character until release ([tuney/ui/key_ev
 
 ### 27. Failure-path tests miss the most consequential interleavings
 
-The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise a blocked monitor across restart, stalled writer/process shutdown, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
+The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise stalled writer/process shutdown, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
 
 ### 28. Some test files overlap and packaged behavior remains unverified
 
@@ -98,7 +94,7 @@ The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/co
 
 ## Scope and suggested order
 
-Start with direct data-loss and wrong-output paths (13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
+Start with direct data-loss and wrong-output paths (13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-11, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
 Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
