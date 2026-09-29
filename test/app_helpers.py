@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -5,9 +6,12 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QMimeData
+from PySide6.QtWidgets import QApplication
 
 from tuney.app.app import App
 from tuney.app.key_recorder import KeyRecorder
+from tuney.audio import device
+from tuney.midi import ports
 from tuney.time.char_press import CharPress
 from tuney.ui import startup
 from tuney.ui.main_window import MainWindow
@@ -18,6 +22,24 @@ from tuney.ui.state import Action, State, StateChange
 def temporary_path() -> Iterator[Path]:
     with tempfile.TemporaryDirectory() as directory:
         yield Path(directory)
+
+
+@pytest.fixture
+def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
+    ports.midi_names.cache_clear()
+    device.device_names.cache_clear()
+    monkeypatch.setattr(
+        ports.subprocess,
+        'run',
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[[], []]', ''),
+    )
+    monkeypatch.setattr(device.sounddevice, 'query_devices', lambda: [])
+
+
+def ensure_qt_app() -> object:
+    if (app := QApplication.instance()) is None:
+        app = QApplication([])
+    return app
 
 
 def on_transport_state(
