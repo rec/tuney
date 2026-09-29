@@ -12,6 +12,7 @@ import pytest
     'name',
     [
         'test_qt_key_events',
+        'test_incremental_text_display',
         'test_macos_option_composed_characters',
         'test_macos_option_special_keys_remain_ignored',
         'test_non_macos_alt_characters_remain_ignored',

@@ -117,7 +117,16 @@ class Layout(QtWidgets.QWidget):
         self.text_stack.setCurrentWidget(self.textbox)
         self.textbox.setPlainText(s)
         self.textbox.moveCursor(self.textbox.textCursor().MoveOperation.End)
+        self._text_character_count = len(s)
         self.count_label.setText(f'Chars: {len(s)}')
+
+    def append_text(self, s: str) -> None:
+        cursor = self.textbox.textCursor()
+        cursor.movePosition(cursor.MoveOperation.End)
+        cursor.insertText(s)
+        self.textbox.setTextCursor(cursor)
+        self._text_character_count += len(s)
+        self.count_label.setText(f'Chars: {self._text_character_count}')
 
     def set_text_timings(self, rows: list[list[str]]) -> None:
         trace('layout set text timings', rows=len(rows))

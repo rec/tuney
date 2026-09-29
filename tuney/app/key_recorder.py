@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from reccy.configuration.units import Milliseconds, Seconds
 
 from ..audio.speech import (
@@ -23,6 +23,10 @@ if TYPE_CHECKING:
 
 class KeyRecorder(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    _scanned_presses: list[CharPress] | None = PrivateAttr(None)
+    _scanned_count: int = PrivateAttr(0)
+    _held_notes: dict[str, bool] = PrivateAttr(default_factory=dict)
 
     sequencer: Sequencer | None = Field(default=None, exclude=True)
     speech: SpeechPlayback | None = Field(default=None, exclude=True)
@@ -60,13 +64,24 @@ class KeyRecorder(BaseModel):
         return CharPress(c.char, c.is_press, recorded_time)
 
     def recorded_notes_on(self, char_presses: list[CharPress]) -> set[str]:
-        result = set()
-        for c in char_presses:
+        if (
+            char_presses is not self._scanned_presses
+            or len(char_presses) < self._scanned_count
+        ):
+            self.invalidate_held_notes()
+            self._scanned_presses = char_presses
+        for c in char_presses[self._scanned_count :]:
             if c.is_press:
-                result.add(c.char)
+                self._held_notes[c.char] = True
             else:
-                result.discard(c.char)
-        return result
+                self._held_notes.pop(c.char, None)
+        self._scanned_count = len(char_presses)
+        return set(self._held_notes)
+
+    def invalidate_held_notes(self) -> None:
+        self._scanned_presses = None
+        self._scanned_count = 0
+        self._held_notes.clear()
 
     def delete_last_char(self, char_presses: list[CharPress]) -> None:
         instrument('key recorder delete last char', count=len(char_presses))
@@ -74,6 +89,7 @@ class KeyRecorder(BaseModel):
         if char_presses and char_presses[index].is_press:
             self.insert_time = char_presses[index].time
         del char_presses[index:]
+        self.invalidate_held_notes()
 
     def on_replay(self, state: App) -> None:
         from .text_timing import text_timing_active_indexes
@@ -222,6 +238,7 @@ class KeyRecorder(BaseModel):
 
     def clear(self) -> None:
         instrument('key recorder clear')
+        self.invalidate_held_notes()
         self.start_time = None
         self.time_offset = 0.0
         self.insert_time = None

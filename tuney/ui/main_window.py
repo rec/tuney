@@ -456,6 +456,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             with self.history.text_edit():
                 edit_text_timing(self.app.char_presses, row, column, text)
+                self.app.key_recorder.invalidate_held_notes()
         except ValueError as error:
             QtWidgets.QMessageBox.critical(self, 'Show Text Timings', str(error))
         self.update_text_display()
@@ -547,10 +548,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def on_swap_with_autosave(self, *_: object) -> None:
         file_commands.on_swap_with_autosave(self, *_)
 
-    def update_text_display(self) -> None:
+    def update_text_display(self, added: str | None = None) -> None:
         instrument('ui update text display', timings=self.app.show_text_timings)
         if self.app.show_text_timings:
             self.ui.set_text_timings(self.app.display_text_timings)
+        elif added is not None:
+            self.ui.append_text(added)
         else:
             self.ui.set_text(self.app.display_text)
 

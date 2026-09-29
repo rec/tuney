@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QKeySequence
-from PySide6.QtWidgets import QApplication, QPushButton, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QTextEdit, QWidget
 
 from tuney.app.app import App
 from tuney.app.export_job import ExportUpdate
@@ -134,6 +134,24 @@ def test_qt_key_events() -> None:
         CharPress('\b', time=100.5),
         CharPress('\n', time=100.75),
     ]
+
+
+def test_incremental_text_display() -> None:
+    QApplication.instance() or QApplication([])
+    textbox = QTextEdit()
+    textbox.setPlainText('ab')
+    ui = type(
+        'TextUI',
+        (),
+        {'textbox': textbox, 'count_label': QLabel(), '_text_character_count': 2},
+    )()
+
+    layout.Layout.append_text(ui, 'c')
+    layout.Layout.append_text(ui, '\nd')
+    layout.Layout.append_text(ui, '😀')
+
+    assert textbox.toPlainText() == 'abc\nd😀'
+    assert ui.count_label.text() == 'Chars: 6'
 
 
 def test_macos_option_composed_characters() -> None:
@@ -1110,7 +1128,7 @@ class HistoryApp:
         self.dark_mode_action = FakeAction()
         self.show_text_timings_action = FakeAction()
 
-    def update_text_display(self) -> None:
+    def update_text_display(self, added: str | None = None) -> None:
         if self.app.show_text_timings:
             self.ui.set_text_timings(self.app.display_text_timings)
         else:

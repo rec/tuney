@@ -46,21 +46,25 @@ class AppPlayback(AppState):
             )
             with history.text_edit(index, recorder):
                 if c.is_press:
+                    added = None
                     if c.char != '\b':
-                        self.append_char_press(recorded)
+                        added = c.char if self.append_char_press(recorded) else None
                     elif self.char_presses:
                         self.key_recorder.delete_last_char(self.char_presses)
                         self.start_backspace_repeat()
-                    self.main_window.update_text_display()
+                    self.main_window.update_text_display(added)
                 elif c.char != '\b':
                     self.append_char_press(recorded)
             self.play_char(c)
 
-    def append_char_press(self, c: CharPress) -> None:
+    def append_char_press(self, c: CharPress) -> bool:
         self.char_presses.append(c)
         if len(self.char_presses) > 1 and c < (d := self.char_presses[-2]):
             report_error(f'Out-of-order char_press: {c} follows {d}')
             self.char_presses.sort()
+            self.key_recorder.invalidate_held_notes()
+            return False
+        return True
 
     def start_backspace_repeat(self) -> None:
         self.stop_backspace_repeat()
