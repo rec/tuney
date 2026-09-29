@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 18. Losing keyboard focus can leave a note held (risk)
-
-The key event handler caches a pressed character until release ([tuney/ui/key_events.py](../tuney/ui/key_events.py), lines 50-76). `MainWindow.focusOutEvent` does not release or clear held keys ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 534-536). If the key is released after focus moves, the window can miss it and sustain the note. Release held keys on focus loss and verify focus-switch behavior with the global keyboard listener.
-
 ### 19. Live recording and display work grows with session length
 
 `KeyRecorder.recorded_char_press` scans recorded presses to determine held notes on each key event ([tuney/app/key_recorder.py](../tuney/app/key_recorder.py), lines 29-63). `AppPlayback.on_char` rebuilds the displayed text from the full sequence on each press ([tuney/app/app_playback.py](../tuney/app/app_playback.py), lines 28-55). These operations become progressively slower in long sessions. Maintain current held state and append only the new display segment; measure latency on a long recording before and after.
