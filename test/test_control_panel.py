@@ -8,9 +8,9 @@ import tomlkit
 from pydantic import BaseModel, ValidationError
 from reccy.configuration import units
 
+from test.app_helpers import ensure_qt_app, stub_external_option_probes
 from tuney.app.app import App
 from tuney.app.global_config import GlobalConfig
-from tuney.audio import device
 from tuney.audio.device import Device
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.polyphony import Polyphony
@@ -21,7 +21,6 @@ from tuney.mapper.mapper import Mapper
 from tuney.midi import port, ports
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.scale.ratios import Ratios
-from tuney.scale.scala_browser import build_trie
 from tuney.scale.scale import Scale
 from tuney.scale.table import Table
 from tuney.scale.tuning import Computed, Tuning, TuningSource
@@ -30,23 +29,12 @@ from tuney.time.text_timings import TextTimings
 from tuney.ui import (
     control_panel,
     control_panel_metadata,
-    control_panel_scala,
     control_panel_sizing,
     control_panel_spin,
     control_panel_visibility,
 )
 
-
-@pytest.fixture(autouse=True)
-def stub_external_option_probes(monkeypatch: pytest.MonkeyPatch) -> None:
-    ports.midi_names.cache_clear()
-    device.device_names.cache_clear()
-    monkeypatch.setattr(
-        ports.subprocess,
-        'run',
-        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, '[[], []]', ''),
-    )
-    monkeypatch.setattr(device.sounddevice, 'query_devices', lambda: [])
+pytestmark = pytest.mark.usefixtures(stub_external_option_probes.__name__)
 
 
 def _check_regression(file_regression, actual: Mapping[str, object]) -> None:
@@ -101,14 +89,6 @@ def _model_classes(data: BaseModel) -> list[type[BaseModel]]:
     return classes
 
 
-def _qt_app() -> object:
-    from PySide6.QtWidgets import QApplication
-
-    if (app := QApplication.instance()) is None:
-        app = QApplication([])
-    return app
-
-
 def test_set_model_value_validates_and_clears_cached_values(
     file_regression,
 ) -> None:
@@ -141,7 +121,7 @@ def test_options_accept_fixed_list() -> None:
     class Model(BaseModel):
         choice: Annotated[str, Options(options=['First', 'Second'])] = 'First'
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Model())
 
@@ -161,7 +141,7 @@ def test_options_accept_enum() -> None:
     class Model(BaseModel):
         choice: Annotated[Choice, Options(options=Choice)] = Choice.first
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     data = Model()
     panel = control_panel.ControlPanel(parent, data)
@@ -200,7 +180,7 @@ def test_speech_change_during_looped_replay_prepares_next_speech() -> None:
         ) -> None:
             self.speech.append((phrases, level, speed, voice))
 
-    _qt_app()
+    ensure_qt_app()
     app = App(
         gui=True,
         use_speech=True,
@@ -240,7 +220,7 @@ def test_speech_change_during_looped_replay_prepares_next_speech() -> None:
 def test_mapper_length_spinbox_cannot_go_below_zero() -> None:
     from PySide6.QtWidgets import QSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     mapper = Mapper()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, mapper)
@@ -414,7 +394,7 @@ def test_entry_width_uses_compact_numeric_widths(
 def test_numeric_width_sets_actual_editor_width() -> None:
     from PySide6.QtWidgets import QLineEdit, QSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     mapper = Mapper()
     scale = Scale()
     mapper_parent = QWidget()
@@ -569,7 +549,7 @@ def test_tuning_change_sends_midi_tuning_dump_when_enabled(monkeypatch) -> None:
             messages.append(message)
 
     monkeypatch.setattr(port.mido, 'open_output', lambda *_args, **_kwargs: Port())
-    _qt_app()
+    ensure_qt_app()
     app = App(gui=True, midi=Midi(output=MidiOut(enable=True, send_tuning=True)))
     app.__dict__['global_config'] = GlobalConfig()
     parent = QWidget()
@@ -584,7 +564,7 @@ def test_control_flow_layout_wraps_to_available_width() -> None:
     from PySide6.QtCore import QRect
     from PySide6.QtWidgets import QLabel, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     layout = control_panel._FlowLayout(parent)
     layout.setContentsMargins(0, 0, 0, 0)
@@ -614,7 +594,7 @@ def test_control_flow_layout_wraps_to_available_width() -> None:
 def test_tuning_stack_sizes_to_current_form() -> None:
     from PySide6.QtWidgets import QLabel, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     stack = control_panel._CurrentPageStackedWidget(parent)
     small = QLabel('small', stack)
@@ -657,7 +637,7 @@ def test_beginner_mode_filters_advanced_controls(
 def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     calls: list[bool] = []
     add_model_controls = control_panel._add_model_controls
 
@@ -693,7 +673,7 @@ def test_control_panel_reuses_mode_pages(monkeypatch) -> None:
 def test_control_panel_can_defer_page_builds(monkeypatch) -> None:
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     calls: list[bool] = []
     add_model_controls = control_panel._add_model_controls
 
@@ -734,7 +714,7 @@ def test_control_panel_can_defer_page_builds(monkeypatch) -> None:
 def test_control_panel_sections_are_collapsible() -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuney())
     button = next(
@@ -762,7 +742,7 @@ def test_control_panel_sections_are_collapsible() -> None:
 def test_control_panel_shows_general_section_for_app() -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     app = App(gui=True)
     app.__dict__['global_config'] = GlobalConfig()
@@ -780,7 +760,7 @@ def test_control_panel_shows_general_section_for_app() -> None:
 def test_control_panel_groups_midi_input_and_output_sections() -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     app = App(gui=True)
     app.__dict__['global_config'] = GlobalConfig()
@@ -806,7 +786,7 @@ def test_control_panel_groups_midi_input_and_output_sections() -> None:
 def test_control_panel_groups_device_inside_sound_section() -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuney())
     top_level = [
@@ -834,7 +814,7 @@ def test_control_panel_groups_device_inside_sound_section() -> None:
 def test_control_panel_restores_sections_and_scroll(tmp_path) -> None:
     from PySide6.QtWidgets import QToolButton, QWidget
 
-    qt_app = _qt_app()
+    qt_app = ensure_qt_app()
     app = App(gui=True)
     app.__dict__['global_config'] = GlobalConfig(
         control_panel_sections={'Sound.sound': False},
@@ -880,7 +860,7 @@ def test_control_panel_rewraps_to_viewport_without_horizontal_scrollbar(
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, App(gui=True))
     widths = [360]
@@ -914,7 +894,7 @@ def test_control_panel_rewraps_to_viewport_without_horizontal_scrollbar(
 def test_control_panel_sections_show_section_presets() -> None:
     from PySide6.QtWidgets import QComboBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuney())
     presets = [
@@ -1020,7 +1000,7 @@ def test_control_panel_labels_fit_their_text() -> None:
         QWidget,
     )
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuney())
 
@@ -1040,7 +1020,7 @@ def test_control_panel_labels_fit_their_text() -> None:
 def test_numeric_spinbox_uses_numeric_range() -> None:
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     app = Tuney()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, app)
@@ -1058,7 +1038,7 @@ def test_numeric_spinbox_uses_numeric_range() -> None:
 def test_note_number_spinboxes_use_musical_ranges() -> None:
     from PySide6.QtWidgets import QSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     app = Tuney()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, app)
@@ -1098,7 +1078,7 @@ def test_note_number_ranges_are_model_constraints(
 def test_midi_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     midi = MidiOut(enable=False)
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi)
@@ -1131,7 +1111,7 @@ def test_midi_output_open_failure_unchecks_and_disables_controls(
         def on_midi_output_failed(self, error: str) -> None:
             self.errors.append(error)
 
-    _qt_app()
+    ensure_qt_app()
     midi = MidiOut(enable=False)
     app = App(gui=True, midi=Midi(output=midi))
     main_window = MainWindow()
@@ -1173,7 +1153,7 @@ def test_midi_output_enable_control_syncs_device_monitor(
         def sync_midi_device_monitor(self) -> None:
             self.sync_count += 1
 
-    _qt_app()
+    ensure_qt_app()
     midi = MidiOut(enable=False)
     app = App(gui=True, midi=Midi(output=midi))
     main_window = MainWindow()
@@ -1216,7 +1196,7 @@ def test_midi_port_name_uses_port_menu(
         'run',
         lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, stdout, ''),
     )
-    _qt_app()
+    ensure_qt_app()
     midi = cls(enable=True)
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi)
@@ -1237,7 +1217,7 @@ def test_midi_port_name_uses_port_menu(
 def test_midi_input_enable_control_stays_enabled_when_midi_is_disabled() -> None:
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     midi = MidiIn(enable=False)
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, midi)
@@ -1259,7 +1239,7 @@ def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     float_spin = control_panel_spin._NumericDoubleSpinBox(parent, Numeric(inc=0.5))
     float_spin.setRange(-100, 100)
@@ -1295,7 +1275,7 @@ def test_numeric_spinboxes_use_modifier_steps(monkeypatch) -> None:
 def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
     from PySide6.QtWidgets import QSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     mapper = Mapper()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, mapper)
@@ -1316,7 +1296,7 @@ def test_control_panel_syncs_fixed_beginner_and_advanced_pages() -> None:
 def test_control_panel_language_menu_sets_mapper_alphabet() -> None:
     from PySide6.QtWidgets import QComboBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     mapper = Mapper()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, mapper)
@@ -1357,7 +1337,7 @@ def test_float_spinboxes_use_config_decimal_separator() -> None:
     from PySide6.QtCore import QLocale
     from PySide6.QtWidgets import QDoubleSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     original = QLocale()
     QLocale.setDefault(QLocale(QLocale.Language.French, QLocale.Country.France))
     try:
@@ -1379,7 +1359,7 @@ def test_float_spinboxes_use_config_decimal_separator() -> None:
 def test_large_seed_uses_text_entry_instead_of_spinbox() -> None:
     from PySide6.QtWidgets import QLineEdit, QSpinBox, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, TextTimings(seed=2_615_033_043))
 
@@ -1394,7 +1374,7 @@ def test_large_seed_uses_text_entry_instead_of_spinbox() -> None:
 def test_ratio_fractions_are_serialized_for_text_entry() -> None:
     from PySide6.QtWidgets import QLineEdit, QWidget
 
-    _qt_app()
+    ensure_qt_app()
     app = Tuney(tuning=Tuning(type=TuningSource.ratios, ratios=Ratios(text='3/2')))
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, app)
@@ -1453,7 +1433,7 @@ def test_tuning_type_switches_stacked_form_without_rebuild(
         rebuild_parent_control_panel,
     )
 
-    _qt_app()
+    ensure_qt_app()
     parent = QWidget()
     panel = control_panel.ControlPanel(parent, Tuning())
     stack = next(
@@ -1471,283 +1451,3 @@ def test_tuning_type_switches_stacked_form_without_rebuild(
 
     assert stack.currentWidget() is panel.findChild(QWidget, 'tuning_form_table')
     assert panel.pages[True] is panel.content.currentWidget()
-
-
-def test_scala_browser_navigates_existing_trie_nodes(monkeypatch) -> None:
-    from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QLineEdit, QWidget
-
-    ratios = {
-        'abc': Ratios(text='2', name='abc.scl', desc='first scale'),
-        'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
-        'xyz': Ratios(text='4', name='xyz.scl', desc='third scale'),
-    }
-    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-    assert browser.text() == 'abc.scl'
-    assert browser.cursorPosition() == 0
-    assert browser.isReadOnly()
-    assert browser.selectedText() == ''
-    assert 'color: #909090;' in browser.styleSheet()
-
-    _press(browser, Qt.Key.Key_A, 'a')
-    _press(browser, Qt.Key.Key_X, 'x')
-    _press(browser, Qt.Key.Key_B, 'b')
-    _press(browser, Qt.Key.Key_Down)
-
-    assert browser.text() == 'abd.scl'
-    assert browser.selectionStart() == 2
-    assert browser.selectedText() == 'd.scl'
-    assert browser.toolTip() == ''
-
-    _press(browser, Qt.Key.Key_Down)
-    assert browser.text() == 'abc.scl'
-    assert browser.selectedText() == 'c.scl'
-    assert browser.toolTip() == ''
-
-    _press(browser, Qt.Key.Key_Left)
-    _press(browser, Qt.Key.Key_Up)
-    assert browser.text() == 'xyz.scl'
-    assert browser.selectionStart() == 0
-
-    _press(browser, Qt.Key.Key_X, 'x')
-    assert browser.text() == 'xyz.scl'
-    assert browser.selectionStart() == 1
-    assert browser.selectedText() == 'yz.scl'
-
-    _press(browser, Qt.Key.Key_Down)
-    assert browser.text() == 'xyz.scl'
-    assert browser.selectionStart() == 1
-
-    _press(browser, Qt.Key.Key_Right)
-    assert browser.cursorPosition() == 7
-
-    _press(browser, Qt.Key.Key_Left)
-    assert browser.selectionStart() == 0
-    assert browser.selectedText() == 'xyz.scl'
-
-
-def test_scala_browser_is_in_tuning_section(monkeypatch) -> None:
-    from PySide6.QtWidgets import QLineEdit, QToolButton, QWidget
-
-    ratios = {'abc': Ratios(text='2', name='abc.scl', desc='first scale')}
-    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-
-    section: object = browser
-    while isinstance(section, QWidget) and section.objectName() != 'control_section':
-        section = section.parentWidget()
-
-    assert isinstance(section, QWidget)
-    button = section.findChild(QToolButton, 'control_section_disclosure')
-    assert button is not None
-    assert button.text() == 'Tuning'
-
-
-def test_scala_description_does_not_force_panel_width() -> None:
-    from PySide6.QtWidgets import QLineEdit, QSizePolicy, QWidget
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
-    description = panel.findChild(QLineEdit, 'tuning_description')
-
-    assert description is not None
-    assert description.minimumWidth() == control_panel_sizing.MIN_EDITOR_WIDTH
-    assert description.maximumWidth() == 120 * control_panel_sizing.ENTRY_CHAR_WIDTH
-    assert description.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
-
-
-def test_scala_browser_auditions_completed_tuning(monkeypatch) -> None:
-    from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QLineEdit, QWidget
-
-    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
-    app = App(gui=True)
-    original = app.tuning.model_copy(deep=True)
-    closed = []
-    app.__dict__['main_window'] = _FakeMainWindow()
-    app.__dict__['player'] = _FakePlayer(closed)
-    other_ratios = Ratios(text='2', name='xbc.scl', desc='second scale')
-    monkeypatch.setattr(
-        control_panel_scala,
-        'scala_trie',
-        lambda: build_trie({'abc': ratios, 'xbc': other_ratios}),
-    )
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, app, app=app)
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-
-    _press(browser, Qt.Key.Key_A, 'a')
-    _press(browser, Qt.Key.Key_B, 'b')
-    _press(browser, Qt.Key.Key_C, 'c')
-
-    assert app.tuning.type == TuningSource.ratios
-    assert app.tuning.ratios == ratios
-    assert closed == ['close']
-    assert 'player' not in app.__dict__
-
-    _press(browser, Qt.Key.Key_Left)
-
-    assert app.tuning.model_dump() == original.model_dump()
-    assert closed == ['close']
-
-
-def test_scala_browser_loads_selected_tuning_with_undo(monkeypatch) -> None:
-    from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QLineEdit, QMessageBox, QWidget
-
-    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
-    app = App(gui=True)
-    app.__dict__['main_window'] = _FakeMainWindow()
-    monkeypatch.setattr(
-        control_panel_scala, 'scala_trie', lambda: build_trie({'abc': ratios})
-    )
-    monkeypatch.setattr(
-        control_panel.QtWidgets.QMessageBox,
-        'question',
-        lambda *_: QMessageBox.StandardButton.Yes,
-    )
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, app, app=app)
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-    name = panel.findChild(QLineEdit, 'tuning_name')
-    description = panel.findChild(QLineEdit, 'tuning_description')
-    assert name is not None
-    assert description is not None
-
-    _press(browser, Qt.Key.Key_A, 'a')
-    _press(browser, Qt.Key.Key_B, 'b')
-    _press(browser, Qt.Key.Key_C, 'c')
-    assert name.text() == ''
-    assert description.text() == ''
-    _press(browser, Qt.Key.Key_Return)
-
-    assert app.tuning.type == TuningSource.ratios
-    assert app.tuning.ratios == ratios
-    assert app.main_window.history.undo_count == 1
-    assert app.main_window.ui.rebuild_count == 1
-    assert name.text() == 'abc.scl'
-    assert description.text() == 'first scale'
-
-
-def test_scala_browser_starts_with_first_scala_file(monkeypatch) -> None:
-    from PySide6.QtWidgets import QLineEdit, QWidget
-
-    calls = []
-    ratios = Ratios(text='3/2', name='abc.scl', desc='first scale')
-    monkeypatch.setattr(
-        control_panel_scala,
-        'scala_trie',
-        lambda: calls.append('load') or build_trie({'abc': ratios}),
-    )
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-    assert calls == ['load', 'load']
-    assert browser.text() == 'abc.scl'
-    assert browser.cursorPosition() == 0
-    assert browser.selectedText() == ''
-    assert 'color: #909090;' in browser.styleSheet()
-
-
-def test_scala_browser_keeps_current_tooltip_open_while_active(monkeypatch) -> None:
-    from PySide6.QtCore import QEvent, QPoint, Qt
-    from PySide6.QtGui import QFocusEvent
-    from PySide6.QtWidgets import QLabel, QLineEdit, QWidget
-
-    ratios = {
-        'abc': Ratios(text='2', name='abc.scl', desc='first scale'),
-        'abd': Ratios(text='3', name='abd.scl', desc='second scale'),
-    }
-    monkeypatch.setattr(control_panel_scala, 'scala_trie', lambda: build_trie(ratios))
-
-    _qt_app()
-    parent = QWidget()
-    panel = control_panel.ControlPanel(parent, Tuney())
-    browser = panel.findChild(QLineEdit, 'scala_browser')
-    assert browser is not None
-    tooltip = browser.findChild(QLabel, 'scala_browser_active_tooltip')
-    assert tooltip is not None
-
-    browser.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
-    assert browser.toolTip() == ''
-    assert tooltip.text() == 'first scale'
-    assert not tooltip.isHidden()
-    assert tooltip.pos() == browser.mapToGlobal(browser.rect().bottomLeft()) + QPoint(
-        0, 10
-    )
-
-    _press(browser, Qt.Key.Key_A, 'a')
-    _press(browser, Qt.Key.Key_B, 'b')
-    _press(browser, Qt.Key.Key_Down)
-    assert browser.toolTip() == ''
-    assert tooltip.text() == 'second scale'
-    assert not tooltip.isHidden()
-
-    browser.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut))
-    assert tooltip.isHidden()
-
-
-def _press(widget, key: object, text: str = '') -> None:
-    from PySide6.QtCore import QEvent, Qt
-    from PySide6.QtGui import QKeyEvent
-
-    assert isinstance(key, Qt.Key)
-    widget.keyPressEvent(
-        QKeyEvent(
-            QEvent.Type.KeyPress,
-            key,
-            Qt.KeyboardModifier.NoModifier,
-            text,
-        )
-    )
-
-
-class _FakeHistory:
-    def __init__(self) -> None:
-        self.undo_count = 0
-
-    def checkpoint_undo(self) -> None:
-        self.undo_count += 1
-
-
-class _FakeUi:
-    def __init__(self) -> None:
-        self.rebuild_count = 0
-
-    def rebuild_control_panel(self) -> None:
-        self.rebuild_count += 1
-
-
-class _FakeMainWindow:
-    def __init__(self) -> None:
-        self.history = _FakeHistory()
-        self.ui = _FakeUi()
-
-
-class _FakePlayer:
-    def __init__(self, closed: list[str]) -> None:
-        self.closed = closed
-
-    def close(self) -> None:
-        self.closed.append('close')

@@ -138,9 +138,19 @@ Use `-n 0` to reproduce a failure serially, or a fixed worker count such as
 `-n 2` on a constrained machine. `--force-regen` rewrites committed regression
 fixtures, so run it serially with `-n 0 --force-regen` and review its changes.
 
-The automated suite cannot prove physical audio, MIDI, global-keyboard, or
-window-manager behavior. Before a release, test typing and replay, changes to
-scale/tuning/sound/timing, preset and Scala import/export, WAV export, dark
-mode, autosave, resizing, and reconnecting MIDI devices. Check that a missing
-selected MIDI output is cleared and reported, and that an output-open failure
-disables MIDI output until it is enabled again.
+The release workflow publishes macOS, Windows, and Linux packages after headless
+tests and packaging. It does not launch the packaged application. Before
+announcing a release, extract each package on its target OS and check:
+
+- The packaged GUI opens and closes cleanly, including after an interrupted
+  export or recording.
+- Typing and replay produce audible output, and WAV export produces playable
+  audio. Change scale, tuning, sound, and timing controls while testing.
+- Presets, Scala import and export, autosave, dark mode, and window resizing
+  work in the packaged GUI.
+- With real devices, test MIDI input and output, device reconnect, and global
+  keyboard input. A missing selected MIDI output should be cleared and
+  reported; an output-open failure should disable MIDI output until re-enabled.
+
+Record which platforms and devices were checked. Headless CI cannot establish
+physical audio, MIDI, keyboard, or window-manager behavior.
