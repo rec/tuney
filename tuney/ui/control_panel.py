@@ -34,7 +34,12 @@ from . import (
     control_panel_visibility,
     theme,
 )
-from .control_panel_layout import _CurrentPageStackedWidget, _FlowLayout
+from .control_panel_layout import (
+    _add_labeled_control_frame,
+    _CurrentPageStackedWidget,
+    _FlowLayout,
+    _parent_layout,
+)
 from .control_panel_spin import _NumericDoubleSpinBox, _NumericSpinBox
 from .tooltip import Tooltip
 
@@ -344,7 +349,9 @@ def _add_tuning_controls(
         if advanced or control_panel_visibility._is_beginner_field(data, name)
     ]
     _add_control_grid(parent, data, controls, option_controls, advanced)
-    _add_scala_browser_control(parent)
+    control_panel_scala.add_scala_browser_control(
+        parent, _control_panel(parent), _set_app_tuning
+    )
 
     stack = _CurrentPageStackedWidget(parent)
     stack.setObjectName('tuning_form_stack')
@@ -630,21 +637,6 @@ def _field_widgets(parent: object) -> list[object]:
     return [widget for child in children for widget in _field_widgets(child)]
 
 
-def _add_labeled_control_frame(
-    parent: QtWidgets.QWidget,
-    name: str,
-    spacing: int = 4,
-) -> tuple[QtWidgets.QWidget, QtWidgets.QHBoxLayout, QtWidgets.QLabel]:
-    frame = QtWidgets.QWidget(parent)
-    layout = QtWidgets.QHBoxLayout(frame)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(spacing)
-    label = QtWidgets.QLabel(control_panel_sizing._display_label(name), frame)
-    control_panel_sizing._configure_label(label)
-    layout.addWidget(label)
-    return frame, layout, label
-
-
 def _add_control(
     parent: QtWidgets.QWidget,
     data: BaseModel,
@@ -709,79 +701,6 @@ def _add_option_control(
     layout.addWidget(menu)
     _parent_layout(parent).addWidget(frame)
     option_controls.append(_OptionControl(menu, data, name, options))
-
-
-def _add_scala_browser_control(parent: QtWidgets.QWidget) -> None:
-    frame, layout, _ = _add_labeled_control_frame(parent, 'scala')
-    app = _control_panel(parent).app
-    entry = control_panel_scala.ScalaBrowserEdit(
-        frame, app, _load_scala_browser_tuning, _set_app_tuning
-    )
-    control_panel_sizing._configure_editor(
-        entry, 12 * control_panel_sizing.ENTRY_CHAR_WIDTH
-    )
-    entry.setObjectName('scala_browser')
-    layout.addWidget(entry)
-    if app is not None:
-        checkbox = QtWidgets.QCheckBox('audition', frame)
-        checkbox.setChecked(app.audition_scala)
-
-        def update(checked: bool) -> None:
-            app.audition_scala = checked
-            entry.set_audition(checked)
-
-        checkbox.toggled.connect(update)
-        layout.addWidget(checkbox)
-    name = QtWidgets.QLineEdit(control_panel_scala.loaded_scala_name(app), frame)
-    name.setReadOnly(True)
-    control_panel_sizing._configure_editor(
-        name, 7 * control_panel_sizing.ENTRY_CHAR_WIDTH
-    )
-    name.setObjectName('tuning_name')
-    layout.addWidget(name)
-    description = QtWidgets.QLineEdit(
-        control_panel_scala.loaded_scala_description(app), frame
-    )
-    description.setReadOnly(True)
-    control_panel_sizing._configure_flexible_editor(
-        description, 120 * control_panel_sizing.ENTRY_CHAR_WIDTH
-    )
-    description.setObjectName('tuning_description')
-    layout.addWidget(description)
-    _parent_layout(parent).addWidget(frame)
-
-
-def _load_scala_browser_tuning(entry: control_panel_scala.ScalaBrowserEdit) -> None:
-    if (ratios := entry.selected_ratios()) is None:
-        return
-    parent = entry.parentWidget()
-    assert parent is not None
-    if (
-        QtWidgets.QMessageBox.question(
-            parent,
-            'Load Scala tuning',
-            f'Load {ratios.name}?',
-        )
-        != QtWidgets.QMessageBox.StandardButton.Yes
-    ):
-        return
-    control_panel = _control_panel(parent)
-    app = control_panel.app
-    assert app is not None
-    entry.restore_audition()
-    app.main_window.history.checkpoint_undo()
-    _set_app_tuning(app, ratios)
-    _set_loaded_scala_fields(control_panel, ratios)
-    app.main_window.ui.rebuild_control_panel()
-
-
-def _set_loaded_scala_fields(control_panel: ControlPanel, ratios: Ratios) -> None:
-    if name := control_panel.findChild(QtWidgets.QLineEdit, 'tuning_name'):
-        name.setText(ratios.name)
-    if description := control_panel.findChild(
-        QtWidgets.QLineEdit, 'tuning_description'
-    ):
-        description.setText(ratios.desc)
 
 
 def _set_app_tuning(app: App, tuning: Tuning | Ratios) -> None:
@@ -1321,15 +1240,6 @@ def _option_choices(data: BaseModel, name: str, choices: list[str]) -> list[str]
     if isinstance(data, MidiOut) and name == 'program':
         return choices
     return ['', *choices]
-
-
-def _parent_layout(parent: QtWidgets.QWidget) -> QtWidgets.QBoxLayout:
-    if (layout := parent.layout()) is None:
-        layout = QtWidgets.QVBoxLayout(parent)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
-    assert isinstance(layout, QtWidgets.QBoxLayout)
-    return layout
 
 
 def _after(

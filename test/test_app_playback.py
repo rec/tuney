@@ -20,7 +20,7 @@ from tuney.midi.listener import MidiListener
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui import key_events, main_window
+from tuney.ui import key_events, main_window, midi_devices
 from tuney.ui.main_window import MainWindow
 from tuney.ui.state import Action, State
 
@@ -263,10 +263,10 @@ def test_midi_monitor_preserves_names_on_probe_failure(
             assert queue.qsize() == 1
         return probes.pop(0)
 
-    monkeypatch.setattr(main_window, 'midi_names', names)
-    monkeypatch.setattr(main_window, 'probe_midi_names', probe)
+    monkeypatch.setattr(midi_devices, 'midi_names', names)
+    monkeypatch.setattr(midi_devices, 'probe_midi_names', probe)
 
-    MainWindow._watch_midi_devices(window, window._midi_device_stop)
+    midi_devices.watch_midi_devices(window, window._midi_device_stop)
 
     assert names.names == [[], []]
     assert queue.get_nowait() == [[], []]
@@ -288,7 +288,6 @@ def test_midi_monitor_restart_keeps_stopped_worker_stopped(
         {
             '_midi_device_stop': old_stop,
             '_midi_device_thread': Thread(),
-            '_watch_midi_devices': lambda self, stop: None,
         },
     )()
     monkeypatch.setattr(main_window, 'start_thread', lambda _target: Thread())
@@ -322,10 +321,10 @@ def test_midi_monitor_does_not_publish_probe_after_stop(
         stop.set()
         return [[], []]
 
-    monkeypatch.setattr(main_window, 'midi_names', names)
-    monkeypatch.setattr(main_window, 'probe_midi_names', probe)
+    monkeypatch.setattr(midi_devices, 'midi_names', names)
+    monkeypatch.setattr(midi_devices, 'probe_midi_names', probe)
 
-    MainWindow._watch_midi_devices(window, stop)
+    midi_devices.watch_midi_devices(window, stop)
 
     assert names.names == [['keyboard'], ['synth']]
     assert queue.empty()
