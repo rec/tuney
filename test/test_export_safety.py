@@ -122,3 +122,28 @@ def test_failed_recording_save_preserves_recording_and_destination(
     assert source.read_bytes() == recording
     assert recorder.path == source
     assert sorted(tmp_path.iterdir()) == sorted([source, destination])
+
+
+def test_failed_recording_start_cannot_be_saved(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        'tuney.app.audio_recorder.tempfile.gettempdir', lambda: str(tmp_path)
+    )
+
+    def fail(self: Player, path: Path, comment: object, append: bool) -> None:
+        path.write_bytes(b'partial')
+        raise OSError('recording failed')
+
+    monkeypatch.setattr(Player, 'start_recording', fail)
+    recorder = AudioRecorder()
+    with pytest.raises(OSError, match='recording failed'):
+        recorder.start(App(gui=True).player, lambda: lambda: '')
+
+    destination = tmp_path / 'saved.wav'
+    recorder.save(destination)
+    assert not destination.exists()
+    assert recorder.path is None
+    assert recorder.comment is None
+    assert not recorder.started
+    assert list(tmp_path.iterdir()) == []
