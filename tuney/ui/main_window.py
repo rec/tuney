@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
-from queue import Queue
+from queue import Empty, Full, Queue
 from threading import Event, Thread
 from types import FrameType
 from typing import TYPE_CHECKING, Protocol
@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Protocol
 from PySide6 import QtGui, QtWidgets
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal, Slot
 
+from ..app.input_queue import INPUT_EVENTS_PER_TICK, INPUT_QUEUE_CAPACITY, InputQueue
 from ..app.platform_info import instrument, report_error, set_windows_app_user_model_id
 from ..app.runnable import start_thread
 from ..app.text_timing import edit_text_timing
@@ -91,9 +92,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.setWindowIcon(QtGui.QIcon(str(ICON_PATH)))
         self.app = app
         app.__dict__['main_window'] = self
-        self.queue = Queue[CharPress]()
-        self.key_queue = Queue[CharPress]()
-        self.midi_device_queue = Queue[list[list[str]]]()
+        self.queue = InputQueue[CharPress](
+            INPUT_QUEUE_CAPACITY, lambda c: c.is_press, lambda c: c.char
+        )
+        self.key_queue = InputQueue[CharPress](
+            INPUT_QUEUE_CAPACITY, lambda c: c.is_press, lambda c: c.char
+        )
+        self.midi_device_queue = Queue[list[list[str]]](maxsize=1)
         self._midi_device_stop = Event()
         self._midi_device_thread: Thread | None = None
         self._key_chars: dict[int, str] = {}
@@ -227,7 +232,14 @@ class MainWindow(QtWidgets.QMainWindow):
             if updated != names:
                 names = updated
                 midi_names.replace(updated)
-                self.midi_device_queue.put(updated)
+                try:
+                    self.midi_device_queue.put_nowait(updated)
+                except Full:
+                    try:
+                        self.midi_device_queue.get_nowait()
+                    except Empty:
+                        pass
+                    self.midi_device_queue.put_nowait(updated)
 
     def mainloop(self) -> None:
         instrument('qt exec enter')
@@ -631,14 +643,16 @@ class MainWindow(QtWidgets.QMainWindow):
         replay_controls.on_randomize_on_each_loop(self, checked)
 
     def _handle_queue(self) -> None:
-        self.app.midi_listener.dispatch_pending()
-        while not self.key_queue.empty():
-            self.app.on_char(self.key_queue.get())
-        while not self.queue.empty():
-            self._on_char(self.queue.get())
+        self.app.midi_listener.dispatch_pending(INPUT_EVENTS_PER_TICK)
+        for c in self.key_queue.take(INPUT_EVENTS_PER_TICK):
+            self.app.on_char(c)
+        for c in self.queue.take(INPUT_EVENTS_PER_TICK):
+            self._on_char(c)
         if midi_device_queue := getattr(self, 'midi_device_queue', None):
-            while not midi_device_queue.empty():
-                self._on_midi_devices_changed(midi_device_queue.get())
+            try:
+                self._on_midi_devices_changed(midi_device_queue.get_nowait())
+            except Empty:
+                pass
         if engine := self.app.player.__dict__.get('engine'):
             engine.process_notifications()
             for error in engine.diagnostics.take_errors():

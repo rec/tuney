@@ -7,6 +7,7 @@ import mido
 import pytest
 
 from tuney.app.app import App
+from tuney.app.input_queue import INPUT_EVENTS_PER_TICK, InputQueue
 from tuney.app.key_recorder import speech_phrases
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
@@ -209,7 +210,8 @@ def test_midi_monitor_preserves_names_on_probe_failure(
 
     probes: list[list[list[str] | None]] = [[None, None], [[], []]]
     names = Names()
-    queue = Queue[list[list[str]]]()
+    queue = Queue[list[list[str]]](maxsize=1)
+    queue.put([['stale input'], ['stale output']])
     window = type(
         'Window',
         (),
@@ -219,7 +221,7 @@ def test_midi_monitor_preserves_names_on_probe_failure(
     def probe() -> list[list[str] | None]:
         if len(probes) == 1:
             assert names.names == [['keyboard'], ['synth']]
-            assert queue.empty()
+            assert queue.qsize() == 1
         return probes.pop(0)
 
     monkeypatch.setattr(main_window, 'midi_names', names)
@@ -288,6 +290,54 @@ def test_midi_monitor_does_not_publish_probe_after_stop(
 
     assert names.names == [['keyboard'], ['synth']]
     assert queue.empty()
+
+
+def test_gui_input_burst_bounds_work_and_preserves_release() -> None:
+    class IdlePlayer:
+        pass
+
+    class Listener:
+        @staticmethod
+        def dispatch_pending(limit: int) -> None:
+            assert limit == INPUT_EVENTS_PER_TICK
+
+    class Application:
+        midi_listener = Listener()
+        player = IdlePlayer()
+        received: list[CharPress] = []
+
+        def on_char(self, c: CharPress) -> None:
+            self.received.append(c)
+
+    class Window:
+        app = Application()
+        key_queue = InputQueue[CharPress](256, lambda c: c.is_press, lambda c: c.char)
+        queue = InputQueue[CharPress](256, lambda c: c.is_press, lambda c: c.char)
+        midi_device_queue = Queue[list[list[str]]](maxsize=1)
+        visual: list[CharPress] = []
+
+        def _on_char(self, c: CharPress) -> None:
+            self.visual.append(c)
+
+        @staticmethod
+        def _on_midi_devices_changed(_names: list[list[str]]) -> None:
+            pass
+
+    window = Window()
+    for i in range(300):
+        MainWindow.on_key(window, CharPress('a', time=i))
+        MainWindow.on_char(window, CharPress('a', time=i))
+    MainWindow.on_key(window, CharPress('a', False, time=301))
+    MainWindow.on_char(window, CharPress('a', False, time=301))
+
+    assert len(window.key_queue) == len(window.queue) == 256
+    MainWindow._handle_queue(window)
+    assert len(window.app.received) == len(window.visual) == INPUT_EVENTS_PER_TICK
+    for _ in range(8):
+        MainWindow._handle_queue(window)
+    assert len(window.app.received) == len(window.visual) == 256
+    assert not window.app.received[-1].is_press
+    assert not window.visual[-1].is_press
 
 
 def test_finished_replay_restarts_when_looping(monkeypatch) -> None:
