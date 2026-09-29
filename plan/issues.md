@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 15. Expression evaluation permits expensive and stateful calls
-
-The scale expression evaluator exposes public callables from `math` and `random`, plus `operator.pow` ([tuney/scale/evaluate.py](../tuney/scale/evaluate.py), lines 78-108 and 127-136). An accidental huge exponent or factorial can consume substantial CPU or memory; random functions can make a tuning nondeterministic. Document whether nondeterminism is intended, and bound work or narrow the allowed functions for interactive editing.
-
 ### 16. Failed recording start can leave a saveable empty file
 
 `AudioRecorder.start` creates or touches its temporary path before `Player.start_recording` succeeds ([tuney/app/audio_recorder.py](../tuney/app/audio_recorder.py), lines 55-69). The save path can later copy that file ([tuney/app/audio_recorder.py](../tuney/app/audio_recorder.py), lines 74-82). Treat the recorder as started only after the player accepts it, and discard the failed attempt's temporary artifact through the existing lifecycle. Test a start failure followed by Save.
