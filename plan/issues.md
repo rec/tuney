@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 21. MIDI input open failures leave an apparently enabled listener
-
-`MidiListener.start` logs an input-open failure and returns ([tuney/midi/listener.py](../tuney/midi/listener.py), lines 23-29). The enabled setting remains true and the device monitor does not retry that listener. Show a failed state or retry on a real device change, with a test for an input that appears after initial failure.
-
 ### 22. Configuration labels have different meanings across flows
 
 `silent` controls live playback behavior while offline export still renders audio; “omni” means all channels for input but channel 1 for output. These distinctions are present in code but easy to misread in configuration and UI. Rename the labels or add concise help at the control where users choose them. Keep the underlying MIDI channel semantics explicit in tests.
