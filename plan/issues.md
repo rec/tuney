@@ -4,10 +4,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P1: data and runtime safety
 
-### 9. Audio callback commands have no bound or time budget (risk)
-
-`AudioEngine.commands` is a `SimpleQueue`, and the PortAudio callback drains it until empty ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 72-74, 122-134, 249-269). Producers can grow memory or keep the callback processing commands past its audio deadline. Bound the queue or the work per callback, with a policy for coalescing or rejecting excess commands; stress test producer bursts.
-
 ### 11. GUI input queues can grow without bound and starve event processing (risk)
 
 The main window and MIDI listener use unbounded queues, and their GUI handlers drain until empty ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 94-96 and 595-606; [tuney/midi/listener.py](../tuney/midi/listener.py), lines 21 and 40-45). A sustained keyboard or MIDI flood can grow memory and prevent paint, close, and timer events. Bound backlog and work per GUI tick, with an explicit drop policy for stale input.
