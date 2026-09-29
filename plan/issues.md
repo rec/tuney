@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 13. Text-file errors silently change what is played
-
-`AppRuntime.char_presses` catches every `Exception` while loading text or timing, logs it, and falls back to the inline text or an empty sequence ([tuney/app/app_runtime.py](../tuney/app/app_runtime.py), lines 89-102). A missing, unreadable, or malformed requested file can produce the wrong music or an unrelated “missing TEXT” error. Fail the requested operation with the file path and cause; reserve fallback for an explicitly optional source.
-
 ### 14. Pasted timing data bypasses chronological validation
 
 The custom clipboard path checks that values are `CharPress` objects but does not check ordering ([tuney/ui/file_commands.py](../tuney/ui/file_commands.py), lines 208-227). Config-loaded text gets an ordering check through `Sequencer` ([tuney/config/tuney.py](../tuney/config/tuney.py), lines 162-169), and later replay and MIDI export assume order. Apply the same validation at paste and explain an invalid clipboard to the user.
