@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from queue import Queue
 from threading import Event
@@ -10,7 +10,7 @@ from PySide6.QtGui import QKeyEvent
 
 from tuney.app.app import App
 from tuney.app.input_queue import INPUT_EVENTS_PER_TICK, InputQueue
-from tuney.app.key_recorder import speech_phrases
+from tuney.app.key_recorder import KeyRecorder, speech_phrases
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.audio.speech import SpeechPhrase, SpeechRequest
@@ -827,7 +827,7 @@ def test_on_char_ignores_input_with_control_panel_focus():
 
 
 def test_focus_loss_releases_local_key_without_suppressing_global_release(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     midi_events: list[tuple[int, bool]] = []
     monkeypatch.setattr(
@@ -862,6 +862,32 @@ def test_focus_loss_releases_local_key_without_suppressing_global_release(
     assert midi_events == [(20, True), (20, False)]
     assert [c.is_press for c in global_events] == [True, False]
     assert window._key_chars == {}
+
+
+def test_held_note_checks_scan_only_new_recording_events() -> None:
+    class CountingPresses(list[CharPress]):
+        scanned = 0
+
+        def __iter__(self) -> Iterator[CharPress]:
+            for c in super().__iter__():
+                self.scanned += 1
+                yield c
+
+        def __getitem__(self, index: int | slice) -> CharPress | list[CharPress]:
+            value = super().__getitem__(index)
+            if isinstance(index, slice):
+                self.scanned += len(value)
+            return value
+
+    recorder = KeyRecorder()
+    presses = CountingPresses()
+    for i in range(5_000):
+        press = CharPress('a', i % 2 == 0, time=i / 1000)
+        recorder.recorded_char_press(press, presses, 1.0)
+        presses.append(press)
+
+    assert presses.scanned <= 5_000
+    assert recorder.recorded_notes_on(presses) == set()
 
 
 def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:

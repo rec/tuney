@@ -92,7 +92,7 @@ class FakeApp:
 
     ui = layout
 
-    def update_text_display(self) -> None:
+    def update_text_display(self, added: str | None = None) -> None:
         pass
 
     def sync_config_actions(self) -> None:
@@ -182,7 +182,7 @@ class _TextClipboardWindow:
         self.checkpoint_undo()
         yield
 
-    def update_text_display(self) -> None:
+    def update_text_display(self, added: str | None = None) -> None:
         self.update_count += 1
 
 

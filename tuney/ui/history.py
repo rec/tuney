@@ -265,6 +265,7 @@ class History:
 
     def _restore_recorder(self, recorder: KeyRecorder) -> None:
         current = self.main_window.app.key_recorder
+        current.invalidate_held_notes()
         current.start_time = recorder.start_time
         current.time_offset = recorder.time_offset
         current.insert_time = recorder.insert_time
