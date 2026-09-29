@@ -910,6 +910,25 @@ def test_cli_mode_prints_newline_before_keyboard_interrupt(
     ]
 
 
+def test_cli_interrupt_bounds_audio_cleanup_wait(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    waits: list[float | None] = []
+
+    def interrupt(_app: App) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(App, 'play_cli', interrupt)
+    monkeypatch.setattr(Player, 'stop_all', lambda *_: None)
+    monkeypatch.setattr(Player, 'wait', lambda _, timeout: waits.append(timeout))
+    monkeypatch.setattr(Player, 'close', lambda *_: None)
+
+    with pytest.raises(KeyboardInterrupt):
+        App(text='a').run_cli()
+
+    assert waits == [5.0]
+
+
 def test_cli_mode_requires_text() -> None:
     with pytest.raises(SystemExit) as exc_info:
         App().run()
