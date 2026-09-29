@@ -528,6 +528,25 @@ def test_midi_output_send_failure_disables_output(
     )
 
 
+def test_midi_output_close_error_names_port_and_operation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class FailingPort:
+        def close(self) -> None:
+            raise OSError('device removed')
+
+    midi = MidiOut(name='synth')
+    midi.__dict__['port'] = FailingPort()
+
+    midi.close()
+
+    assert 'port' not in midi.__dict__
+    assert any(
+        'Could not close MIDI output synth: device removed' in message
+        for message in caplog.messages
+    )
+
+
 def test_oscillator_uses_one_cycle_per_note_period():
     actual = Oscillator(waveform=Waveform.sine)(start=0, length=8, period=8)
     expected = np.sin(np.linspace(0, 2 * np.pi, 8, endpoint=False))
