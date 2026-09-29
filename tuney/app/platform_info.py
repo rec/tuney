@@ -75,7 +75,10 @@ def instance_lock_path() -> Path:
 
 def configure_logging() -> None:
     if is_frozen():
-        logging.configure(log_path(), service_name='tuney')
+        try:
+            logging.configure(log_path(), service_name='tuney')
+        except ResourceClaimConflict:
+            logging.configure()
         return
     logging.configure()
 
