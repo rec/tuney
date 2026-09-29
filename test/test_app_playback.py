@@ -290,6 +290,61 @@ def test_replay_moves_cursor_as_text_is_played(monkeypatch) -> None:
     assert main_window.ui.cursor == [0, 1, 2]
 
 
+def test_replay_dispatches_playback_to_gui_and_ignores_stopped_events(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakePlayer:
+        @staticmethod
+        def stop_all() -> None:
+            pass
+
+    class FakeSequencer:
+        def __init__(
+            self,
+            char_presses: list[CharPress],
+            callback: Callable[[CharPress | None], object],
+        ) -> None:
+            self.char_presses = char_presses
+            self.callback = callback
+
+        def start(self) -> None:
+            self.callback(self.char_presses[0])
+
+        @staticmethod
+        def stop() -> None:
+            pass
+
+    press = CharPress('a', time=0)
+    app = App(gui=True, text=[press])
+    window = FakeApp()
+    window.is_replaying = True
+    app.__dict__['main_window'] = window
+    app.__dict__['player'] = FakePlayer()
+    played: list[CharPress] = []
+    monkeypatch.setattr('tuney.app.key_recorder.Sequencer', FakeSequencer)
+    monkeypatch.setattr(App, 'play_char', lambda _, c: played.append(c))
+
+    app.key_recorder.on_replay(app)
+
+    assert played == []
+    assert len(window.after_calls) == 1
+    _, _, old_deliver, old_args = window.after_calls[0]
+    assert callable(old_deliver)
+
+    app.key_recorder.on_replay(app)
+    old_deliver(*old_args)
+    assert played == []
+    _, _, deliver, args = window.after_calls[1]
+    assert callable(deliver)
+    deliver(*args)
+    assert played == [press]
+
+    window.is_replaying = False
+    app.key_recorder.on_replay(app)
+    deliver(*args)
+    assert played == [press]
+
+
 def test_replay_starts_speech(monkeypatch) -> None:
     class FakePlayer:
         def __init__(self) -> None:

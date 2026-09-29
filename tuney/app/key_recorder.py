@@ -76,13 +76,12 @@ class KeyRecorder(BaseModel):
             'key recorder replay start',
             is_replaying=state.main_window.is_replaying,
         )
-        state.player.stop_all()
-        self.speech = None
-
         sequencer, self.sequencer = self.sequencer, None
         if sequencer:
             instrument('key recorder stop old sequencer')
             sequencer.stop()
+        state.player.stop_all()
+        self.speech = None
 
         self.replay_text = ''
         if state.main_window.is_replaying:
@@ -104,30 +103,32 @@ class KeyRecorder(BaseModel):
                 state.main_window.ui.set_text(self.replay_text)
                 state.main_window.ui.set_play_cursor(0)
 
-            def callback(char_press: CharPress | None) -> None:
+            def deliver(char_press: CharPress | None) -> None:
+                if (
+                    self.sequencer is not sequencer
+                    or not state.main_window.is_replaying
+                ):
+                    return
                 if char_press:
                     if state.show_text_timings:
-                        state.main_window.after(
-                            0,
-                            state.main_window.ui.set_active_text_timing,
+                        state.main_window.ui.set_active_text_timing(
                             active_indexes.get(id(char_press)),
                         )
                     if char_press.is_press:
                         self.replay_text += char_press.char
                         if not state.show_text_timings:
-                            state.main_window.after(
-                                0, state.main_window.ui.set_text, self.replay_text
-                            )
-                            state.main_window.after(
-                                0,
-                                state.main_window.ui.set_play_cursor,
+                            state.main_window.ui.set_text(self.replay_text)
+                            state.main_window.ui.set_play_cursor(
                                 len(self.replay_text),
                             )
                     state.play_char(char_press)
-                elif state.main_window.is_replaying and self.sequencer is not None:
-                    state.main_window.after(0, self.finish_replay, state)
+                else:
+                    self.finish_replay(state)
 
-            self.sequencer = Sequencer(
+            def callback(char_press: CharPress | None) -> None:
+                state.main_window.after(0, deliver, char_press)
+
+            sequencer = self.sequencer = Sequencer(
                 char_presses=char_presses,
                 callback=callback,
             )
