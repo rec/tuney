@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 14. Pasted timing data bypasses chronological validation
-
-The custom clipboard path checks that values are `CharPress` objects but does not check ordering ([tuney/ui/file_commands.py](../tuney/ui/file_commands.py), lines 208-227). Config-loaded text gets an ordering check through `Sequencer` ([tuney/config/tuney.py](../tuney/config/tuney.py), lines 162-169), and later replay and MIDI export assume order. Apply the same validation at paste and explain an invalid clipboard to the user.
-
 ### 15. Expression evaluation permits expensive and stateful calls
 
 The scale expression evaluator exposes public callables from `math` and `random`, plus `operator.pow` ([tuney/scale/evaluate.py](../tuney/scale/evaluate.py), lines 78-108 and 127-136). An accidental huge exponent or factorial can consume substantial CPU or memory; random functions can make a tuning nondeterministic. Document whether nondeterminism is intended, and bound work or narrow the allowed functions for interactive editing.
