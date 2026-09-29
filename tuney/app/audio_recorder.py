@@ -55,16 +55,20 @@ class AudioRecorder(BaseModel):
         self, player: Player, comment_factory: Callable[[], Callable[[], str]]
     ) -> None:
         instrument('audio recorder start', has_path=self.path is not None)
-        if self.path is None:
-            self.path = Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
-            self.path.touch()
-            self.comment = comment_factory()
-        assert self.path is not None
-        player.start_recording(
-            self.path,
-            self.comment,
-            append=self.started,
-        )
+        is_new = self.path is None
+        path = self.path or Path(tempfile.gettempdir()) / f'tuney-{uuid.uuid4()}.wav'
+        comment = comment_factory() if is_new else self.comment
+        if is_new:
+            path.touch()
+        started = False
+        try:
+            player.start_recording(path, comment, append=self.started)
+            started = True
+        finally:
+            if is_new and not started:
+                path.unlink(missing_ok=True)
+        self.path = path
+        self.comment = comment
         self.started = True
 
     def stop(self, player: Player) -> None:
