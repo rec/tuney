@@ -6,6 +6,7 @@ import tyro
 from pydantic import ValidationError
 from reccy.runtime import logging
 
+from ..config.text_file import TextFileError
 from ..midi.ports import midi_names_json
 from ..presets.preset import merged_data, read_file, read_preset
 from ..ui import startup
@@ -49,7 +50,7 @@ def main() -> None:
                 print(midi_names_json())
                 sys.exit()
         result = app.run()
-    except (ValidationError, FileExistsError) as e:
+    except (ValidationError, FileExistsError, TextFileError) as e:
         result = e
     if result is None:
         sys.exit()

@@ -6,6 +6,7 @@ from PySide6.QtCore import QMimeData
 
 from tuney.app.app import App
 from tuney.app.text_timing import edit_text_timing
+from tuney.config.text_file import TextFileError
 from tuney.scale.tuning import Computed, TuningSource
 from tuney.time.char_press import CharPress
 from tuney.time.sequencer import Sequencer
@@ -280,6 +281,16 @@ def test_text_file_loads_non_utf8_char_presses(tmp_path) -> None:
     )
 
     assert app.display_text == 'café'
+
+
+def test_missing_requested_text_file_does_not_play_inline_text(tmp_path) -> None:
+    path = tmp_path / 'missing.txt'
+    app = App(text='fallback', text_file=path)
+
+    with pytest.raises(TextFileError, match='Could not load text file') as error:
+        _ = app.char_presses
+
+    assert str(path) in str(error.value)
 
 
 def test_load_text_file_replaces_char_presses(tmp_path) -> None:

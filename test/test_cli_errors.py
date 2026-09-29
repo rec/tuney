@@ -48,5 +48,19 @@ def test_unexpected_runtime_error_is_not_hidden(monkeypatch) -> None:
         main()
 
 
+def test_requested_text_file_failure_exits_with_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    path = tmp_path / 'missing.txt'
+    app = App(text='fallback', text_file=path)
+    monkeypatch.setattr('tuney.app.main.parse_cli', lambda: (False, app))
+    monkeypatch.setattr(App, 'run', lambda self: self.display_text)
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    assert str(path) in str(error.value.code)
+
+
 def unexpected_run(self: App) -> None:
     raise AssertionError('Invalid input must not start the application')

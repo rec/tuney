@@ -5,6 +5,10 @@ from pathlib import Path
 import chardet
 
 
+class TextFileError(ValueError):
+    pass
+
+
 def read_text_file(path: Path) -> str:
     data = path.read_bytes()
     encoding = chardet.detect(data).get('encoding')
