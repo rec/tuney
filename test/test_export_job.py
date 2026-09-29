@@ -8,7 +8,7 @@ import pytest
 import soundfile
 
 from tuney.app.app import App
-from tuney.app.export_job import ExportJob
+from tuney.app.export_job import ExportJob, ExportUpdate
 from tuney.time.char_press import CharPress
 
 
@@ -119,3 +119,53 @@ def test_publish_failure_preserves_destination(monkeypatch, tmp_path: Path) -> N
         job.close()
     assert path.read_bytes() == b'original'
     assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize('kill_works', [True, False])
+def test_close_bounds_stalled_export_worker(
+    monkeypatch: pytest.MonkeyPatch, kill_works: bool
+) -> None:
+    calls: list[object] = []
+
+    class Process:
+        alive = True
+
+        def is_alive(self) -> bool:
+            return self.alive
+
+        def terminate(self) -> None:
+            calls.append('terminate')
+
+        def join(self, timeout: float) -> None:
+            calls.append(('join', timeout))
+
+        def kill(self) -> None:
+            calls.append('kill')
+            if kill_works:
+                self.alive = False
+
+    def poll(self: ExportJob) -> bool:
+        calls.append('poll')
+        self.finished = True
+        return True
+
+    job = ExportJob.__new__(ExportJob)
+    job.finished = False
+    job.cancelled = False
+    job.update = ExportUpdate()
+    job.process = Process()
+    monkeypatch.setattr('tuney.app.export_job.EXPORT_CANCEL_TIMEOUT_SECONDS', 0.01)
+    monkeypatch.setattr('tuney.app.export_job.EXPORT_KILL_TIMEOUT_SECONDS', 0.02)
+    monkeypatch.setattr(ExportJob, 'poll', poll)
+
+    if kill_works:
+        job.close()
+        assert job.finished
+        assert job.update.error == 'Export worker was killed; export is incomplete'
+        assert calls[-1] == 'poll'
+    else:
+        with pytest.raises(TimeoutError, match='may be incomplete'):
+            job.close()
+        assert not job.finished
+    assert job.cancelled
+    assert calls[:4] == ['terminate', ('join', 0.01), 'kill', ('join', 0.02)]
