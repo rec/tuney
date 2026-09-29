@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 20. Requested tuning source can silently change
-
-`Tuning.active` falls back to another populated source, or a fresh computed tuning, if the selected `type` has no value ([tuney/scale/tuning.py](../tuney/scale/tuning.py), lines 110-115). A configuration requesting a table can therefore play a different tuning without an error. Either reject the incomplete selection at load or make the fallback an explicit user choice.
-
 ### 21. MIDI input open failures leave an apparently enabled listener
 
 `MidiListener.start` logs an input-open failure and returns ([tuney/midi/listener.py](../tuney/midi/listener.py), lines 23-29). The enabled setting remains true and the device monitor does not retry that listener. Show a failed state or retry on a real device change, with a test for an input that appears after initial failure.
