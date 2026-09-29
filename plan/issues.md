@@ -12,10 +12,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 `Recording.close` blocks on a queue put and then joins its writer without a deadline ([tuney/audio/recording.py](../tuney/audio/recording.py), lines 33-42). `ExportJob.close` terminates and joins its process without a deadline ([tuney/app/export_job.py](../tuney/app/export_job.py), lines 118-122), and the GUI calls it during shutdown ([tuney/ui/export_dialog.py](../tuney/ui/export_dialog.py), lines 64-66). CLI playback also waits without a deadline ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Stalled disk, decoder, or native audio operations could freeze exit or ignore Ctrl-C after cleanup begins. Define bounded waits and an explicit forced-exit policy, then test stalled workers. No lock-cycle deadlock was established by this review.
 
-### 5. Failed shutdown step can skip the remaining cleanup
-
-`MainWindow._close_app` isolates autosave errors but then closes the recorder, MIDI, player, keyboard, and monitor sequentially without protecting later steps ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 282-300). A native close exception can leave the other resources open. `App.run` marks the session's clean exit only after the event loop returns ([tuney/app/app.py](../tuney/app/app.py), lines 47-51). Attempt each independent close, report failures, and mark a clean exit only after required cleanup succeeds.
-
 ### 6. A transient MIDI discovery failure can erase the saved output choice
 
 `direct_midi_names` turns discovery exceptions into an empty device list ([tuney/midi/ports.py](../tuney/midi/ports.py), lines 42-46 and 82-88). The monitor publishes that list, and the UI clears and autosaves a selected output that is missing ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 206-214 and 609-625). A temporary backend error is indistinguishable from a genuine unplug and can permanently lose the choice. Preserve the last successful list on probe failure, with a test that distinguishes failure from an empty successful scan.
@@ -114,7 +110,7 @@ The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/co
 
 ## Scope and suggested order
 
-Start with direct data-loss and wrong-output paths (2, 6, 13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 5, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
+Start with direct data-loss and wrong-output paths (2, 6, 13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
 Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
