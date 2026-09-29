@@ -582,6 +582,8 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
 
         class FakeWindow:
             error: BaseException | None = None
+            _shutdown_failed = False
+            _shutdown_complete = True
 
             def show_restore_error(self, error: BaseException) -> None:
                 calls.append('error')
@@ -611,7 +613,15 @@ def test_run_restores_autosave_before_constructing_window_and_continues(
         assert calls == ['restore', 'window', 'error', 'mainloop']
 
 
-def test_run_reports_previous_gui_crash(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ('shutdown_complete', 'shutdown_failed'),
+    [(True, False), (True, True), (False, False)],
+)
+def test_run_reports_previous_gui_crash(
+    monkeypatch: pytest.MonkeyPatch,
+    shutdown_complete: bool,
+    shutdown_failed: bool,
+) -> None:
     with temporary_path() as tmp_path:
         monkeypatch.setenv('XDG_STATE_HOME', str(tmp_path))
         platform_info.crash_marker_path().parent.mkdir(parents=True)
@@ -624,6 +634,9 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
                 calls.append('restore')
 
         class FakeWindow:
+            _shutdown_failed = shutdown_failed
+            _shutdown_complete = shutdown_complete
+
             @staticmethod
             def show_crash_report() -> None:
                 calls.append('crash')
@@ -645,4 +658,6 @@ def test_run_reports_previous_gui_crash(monkeypatch) -> None:
         App.run(FakeApp())
 
         assert calls == ['restore', 'crash', 'mainloop']
-        assert not platform_info.crash_marker_path().exists()
+        assert platform_info.crash_marker_path().exists() is (
+            shutdown_failed or not shutdown_complete
+        )
