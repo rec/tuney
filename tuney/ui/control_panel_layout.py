@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from PySide6 import QtWidgets
 from PySide6.QtCore import QPoint, QRect, QSize, Qt
 from PySide6.QtWidgets import QLayout, QLayoutItem, QStackedWidget, QWidget
+
+from . import control_panel_sizing
 
 
 class _FlowLayout(QLayout):
@@ -85,3 +88,27 @@ class _CurrentPageStackedWidget(QStackedWidget):
         if current := self.currentWidget():
             return current.minimumSizeHint()
         return super().minimumSizeHint()
+
+
+def _add_labeled_control_frame(
+    parent: QWidget,
+    name: str,
+    spacing: int = 4,
+) -> tuple[QWidget, QtWidgets.QHBoxLayout, QtWidgets.QLabel]:
+    frame = QWidget(parent)
+    layout = QtWidgets.QHBoxLayout(frame)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(spacing)
+    label = QtWidgets.QLabel(control_panel_sizing._display_label(name), frame)
+    control_panel_sizing._configure_label(label)
+    layout.addWidget(label)
+    return frame, layout, label
+
+
+def _parent_layout(parent: QWidget) -> QtWidgets.QBoxLayout:
+    if (layout := parent.layout()) is None:
+        layout = QtWidgets.QVBoxLayout(parent)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+    assert isinstance(layout, QtWidgets.QBoxLayout)
+    return layout
