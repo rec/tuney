@@ -6,10 +6,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P2: behavior and user-facing traps
 
-### 19. Live recording and display work grows with session length
-
-`KeyRecorder.recorded_char_press` scans recorded presses to determine held notes on each key event ([tuney/app/key_recorder.py](../tuney/app/key_recorder.py), lines 29-63). `AppPlayback.on_char` rebuilds the displayed text from the full sequence on each press ([tuney/app/app_playback.py](../tuney/app/app_playback.py), lines 28-55). These operations become progressively slower in long sessions. Maintain current held state and append only the new display segment; measure latency on a long recording before and after.
-
 ### 20. Requested tuning source can silently change
 
 `Tuning.active` falls back to another populated source, or a fresh computed tuning, if the selected `type` has no value ([tuney/scale/tuning.py](../tuney/scale/tuning.py), lines 110-115). A configuration requesting a table can therefore play a different tuning without an error. Either reject the incomplete selection at load or make the fallback an explicit user choice.
