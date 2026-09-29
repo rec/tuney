@@ -11,6 +11,9 @@ from pydantic import BaseModel
 from ..audio.test_sheet import prepare_test_sheet, render_test_sheet
 from .app import App
 
+EXPORT_CANCEL_TIMEOUT_SECONDS = 5.0
+EXPORT_KILL_TIMEOUT_SECONDS = 1.0
+
 
 class ExportRequest(BaseModel, frozen=True):
     output: Path
@@ -118,8 +121,23 @@ class ExportJob:
     def close(self) -> None:
         if not self.finished:
             self.cancel()
-            self.process.join()
+            self.process.join(EXPORT_CANCEL_TIMEOUT_SECONDS)
+            timed_out = self.process.is_alive()
+            if timed_out:
+                try:
+                    self.process.kill()
+                except ProcessLookupError:
+                    pass
+                self.process.join(EXPORT_KILL_TIMEOUT_SECONDS)
+            if self.process.is_alive():
+                raise TimeoutError(
+                    'Export worker did not stop; export may be incomplete'
+                )
             self.poll()
+            if timed_out and not self.update.error:
+                self.update = self.update.model_copy(
+                    update={'error': 'Export worker was killed; export is incomplete'}
+                )
 
     def _read_updates(self) -> None:
         while self.receiver.poll():

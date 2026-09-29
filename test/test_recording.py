@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import soundfile
 
+from tuney.audio import recording
 from tuney.audio.engine import AudioEngine
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.output_file import AudioFileWriter
@@ -90,6 +91,39 @@ def test_recording_write_failure_reaches_caller(tmp_path: Path) -> None:
     with pytest.raises(OSError, match='disk full'):
         recording.close()
     assert recording.writer.file.closed
+
+
+def test_recording_close_times_out_and_writer_keeps_file_until_finished(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    entered, release = Event(), Event()
+    path = tmp_path / 'stalled.wav'
+
+    class Writer(AudioFileWriter):
+        def write(self, block: np.ndarray) -> None:
+            entered.set()
+            assert release.wait(5)
+            super().write(block)
+
+    monkeypatch.setattr(recording, 'RECORDING_CLOSE_TIMEOUT_SECONDS', 0.01)
+    writer = Writer(path, 48_000, 1)
+    worker_recording = Recording(writer)
+    worker_recording.write(np.full((48_000, 1), 0.25))
+    assert entered.wait(5)
+
+    with pytest.raises(TimeoutError, match='recording may be incomplete'):
+        worker_recording.close()
+
+    assert worker_recording.worker.is_alive()
+    assert worker_recording.worker.daemon
+    assert not writer.file.closed
+    release.set()
+    worker_recording.worker.join(5)
+    assert not worker_recording.worker.is_alive()
+    assert writer.file.closed
+    audio, rate = soundfile.read(path)
+    assert rate == 48_000
+    np.testing.assert_array_equal(audio, np.full(48_000, 0.25))
 
 
 def test_voice_preparation_runs_on_submitting_thread(

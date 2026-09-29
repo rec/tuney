@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QMessageBox, QProgressDialog
 
 from ..app.export_job import ExportJob
+from ..app.platform_info import report_error
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -63,4 +64,7 @@ class ExportDialog(QProgressDialog):
 
     def shutdown(self) -> None:
         self.timer.stop()
+        was_finished = self.job.finished
         self.job.close()
+        if not was_finished and self.job.update.error:
+            report_error(f'Export incomplete: {self.job.update.error}')
