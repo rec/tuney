@@ -4,10 +4,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P1: data and runtime safety
 
-### 2. Preset snapshot restore is only individually atomic
-
-`restore_user_preset_snapshot` stages multiple `atomic_output` contexts and publishes them as the `ExitStack` closes ([tuney/presets/preset.py](../tuney/presets/preset.py), lines 100-120). If publication of a later file fails, earlier files have already changed. The current failure test injects a staging write error, not a later replacement error ([test/test_history.py](../test/test_history.py)). Decide whether this operation promises all-or-nothing restore; if so, add rollback or a single authoritative snapshot and test a failure during the second publication.
-
 ### 4. Shutdown can wait indefinitely on native or worker I/O (risk)
 
 `Recording.close` blocks on a queue put and then joins its writer without a deadline ([tuney/audio/recording.py](../tuney/audio/recording.py), lines 33-42). `ExportJob.close` terminates and joins its process without a deadline ([tuney/app/export_job.py](../tuney/app/export_job.py), lines 118-122), and the GUI calls it during shutdown ([tuney/ui/export_dialog.py](../tuney/ui/export_dialog.py), lines 64-66). CLI playback also waits without a deadline ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Stalled disk, decoder, or native audio operations could freeze exit or ignore Ctrl-C after cleanup begins. Define bounded waits and an explicit forced-exit policy, then test stalled workers. No lock-cycle deadlock was established by this review.
@@ -90,7 +86,7 @@ The key event handler caches a pressed character until release ([tuney/ui/key_ev
 
 ### 27. Failure-path tests miss the most consequential interleavings
 
-The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise publication failure after the first preset file, a blocked monitor across restart, stalled writer/process shutdown, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
+The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise a blocked monitor across restart, stalled writer/process shutdown, sparse long speech, or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
 
 ### 28. Some test files overlap and packaged behavior remains unverified
 
@@ -102,7 +98,7 @@ The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/co
 
 ## Scope and suggested order
 
-Start with direct data-loss and wrong-output paths (2, 13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
+Start with direct data-loss and wrong-output paths (13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-12, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
 Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
