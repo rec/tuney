@@ -2,6 +2,8 @@ import math
 import random
 from fractions import Fraction
 
+import pytest
+
 from tuney.scale.evaluate import evaluate
 
 
@@ -24,3 +26,28 @@ def test_evaluate_math_and_random_functions(monkeypatch) -> None:
     monkeypatch.setattr(random, 'random', lambda: 0.25)
 
     assert evaluate('math.sqrt(random.random()) ** 1.5') == 0.3535533905932738
+
+
+@pytest.mark.parametrize(
+    ('expression', 'message'),
+    [
+        ('2**1000000000', 'Exponent is too large'),
+        ('(2**256)**256', 'Power result is too large'),
+        ('math.factorial(1000000000)', 'Function argument is too large'),
+        ('random.getrandbits(1000000000)', 'Function argument is too large'),
+        ('1+' * 600 + '1', 'Expression is too long'),
+        ('1+' * 70 + '1', 'Expression is too complex'),
+    ],
+)
+def test_expensive_expressions_are_rejected(expression: str, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        evaluate(expression)
+
+
+def test_stateful_random_calls_are_rejected_before_execution(monkeypatch) -> None:
+    monkeypatch.setattr(
+        random, 'seed', lambda *_: pytest.fail('random.seed was called')
+    )
+
+    with pytest.raises(ValueError, match='Unsupported random function'):
+        evaluate('random.seed(1)')

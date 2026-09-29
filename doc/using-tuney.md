@@ -131,6 +131,11 @@ tuning, a ratio tuning, a finite frequency table, or a Scala tuning. A finite
 table has a fixed range, but Tuney wraps instrument keys before using it so
 typing remains playable.
 
+Ratio expressions support numeric `math.*` and `random.*` functions. Random
+expressions can produce different pitches when the tuning is evaluated again.
+Tuney rejects unusually large or complex expressions, including expensive
+powers and factorials.
+
 The sound controls select the oscillator and its gain, polyphony, minimum note
 duration, binaural beats, and output level. Enabled speech accompanies GUI replay,
 CLI playback, and audio exports. Speech finishes even when it outlasts the notes;

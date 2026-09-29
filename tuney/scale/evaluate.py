@@ -10,6 +10,12 @@ from ufor.number import PitchNumber, cents_to_ratio
 
 MODULES = {'math': math, 'random': random}
 FUNCTIONS = {'cents': cents_to_ratio}
+MAX_EXPRESSION_LENGTH = 1024
+MAX_EXPRESSION_NODES = 128
+MAX_ARGUMENT = 10_000
+MAX_FACTORIAL_ARGUMENT = 1_000
+MAX_POWER_EXPONENT = 256
+MAX_RESULT_BITS = 4_096
 
 
 def evaluate(expression: str) -> PitchNumber:
@@ -38,9 +44,14 @@ class _Evaluate:
 
     @cached_property
     def root(self) -> ast.AST:
-        return ast.parse(
+        if len(self.expression) > MAX_EXPRESSION_LENGTH:
+            raise ValueError('Expression is too long')
+        root = ast.parse(
             self.expression.partition('#')[0].replace('^', '**'), mode='eval'
         )
+        if sum(1 for _ in ast.walk(root)) > MAX_EXPRESSION_NODES:
+            raise ValueError('Expression is too complex')
+        return root
 
     @singledispatchmethod
     def _eval(self, node: ast.AST) -> PitchNumber:
@@ -64,7 +75,19 @@ class _Evaluate:
             raise ValueError(
                 f'Unsupported binary operator {node.op.__class__.__name__}'
             )
-        return operation(self._eval(node.left), self._eval(node.right))
+        left, right = self._eval(node.left), self._eval(node.right)
+        if isinstance(node.op, ast.Pow):
+            if abs(right) > MAX_POWER_EXPONENT:
+                raise ValueError('Exponent is too large')
+            if (
+                isinstance(left, Fraction)
+                and isinstance(right, Fraction)
+                and right.denominator == 1
+            ):
+                bits = max(left.numerator.bit_length(), left.denominator.bit_length())
+                if bits * abs(right.numerator) > MAX_RESULT_BITS:
+                    raise ValueError('Power result is too large')
+        return self.checked(operation(left, right))
 
     @_eval.register
     def _(self, node: ast.UnaryOp) -> PitchNumber:
@@ -72,7 +95,7 @@ class _Evaluate:
         if isinstance(node.op, ast.UAdd):
             return value
         if isinstance(node.op, ast.USub):
-            return -value
+            return self.checked(-value)
         raise ValueError(f'Unsupported unary operator {node.op.__class__.__name__}')
 
     @_eval.register
@@ -84,7 +107,7 @@ class _Evaluate:
             args = (self._eval(a) for a in node.args)
             result = FUNCTIONS[f.id](*args)
             if isinstance(result, (float, Fraction)):
-                return result
+                return self.checked(result)
             raise TypeError(f'Function returned unsupported value {result!r}')
 
         if not (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)):
@@ -93,6 +116,8 @@ class _Evaluate:
             raise ValueError(f'Private attributes {f.attr!r} are not allowed')
         if f.value.id not in MODULES:
             raise NameError(f'Unknown module {f.value.id!r}')
+        if f.value.id == 'random' and f.attr not in RANDOM_FUNCTIONS:
+            raise ValueError(f'Unsupported random function {f.attr!r}')
 
         func = getattr(MODULES[f.value.id], f.attr)
         if not callable(func):
@@ -100,9 +125,20 @@ class _Evaluate:
 
         def convert(node: ast.AST) -> PitchNumber:
             v = float(self._eval(node))
+            if not math.isfinite(v) or abs(v) > MAX_ARGUMENT:
+                raise ValueError('Function argument is too large')
             return int(v) if v.is_integer() else v
 
-        result = func(*(convert(a) for a in node.args))
+        args = [convert(a) for a in node.args]
+        if (
+            f.attr in {'factorial', 'comb', 'perm'}
+            and args
+            and args[0] > MAX_FACTORIAL_ARGUMENT
+        ):
+            raise ValueError('Factorial argument is too large')
+        if f.attr == 'pow' and len(args) > 1 and abs(args[1]) > MAX_POWER_EXPONENT:
+            raise ValueError('Exponent is too large')
+        result = func(*args)
         if isinstance(result, PitchNumber):
             return self.number(result)
         raise TypeError(f'Function returned unsupported value {result!r}')
@@ -121,7 +157,25 @@ class _Evaluate:
         raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
 
     def number(self, v: PitchNumber) -> PitchNumber:
-        return Fraction(str(v)) if isinstance(v, float) else Fraction(v)
+        result = Fraction(str(v)) if isinstance(v, float) else Fraction(v)
+        return self.checked(result)
+
+    def checked(self, v: object) -> PitchNumber:
+        if isinstance(v, complex):
+            raise ValueError('Expression result must be real')
+        if isinstance(v, float):
+            if not math.isfinite(v):
+                raise ValueError('Expression result must be finite')
+            return v
+        if not isinstance(v, (int, Fraction)):
+            raise TypeError(f'Expression returned unsupported value {v!r}')
+        result = Fraction(v)
+        if (
+            result.numerator.bit_length() > MAX_RESULT_BITS
+            or result.denominator.bit_length() > MAX_RESULT_BITS
+        ):
+            raise ValueError('Expression result is too large')
+        return v
 
 
 BINARY_OPERATORS: dict[
@@ -133,4 +187,22 @@ BINARY_OPERATORS: dict[
     ast.Div: operator.truediv,
     ast.Mod: operator.mod,
     ast.Pow: operator.pow,
+}
+
+RANDOM_FUNCTIONS = {
+    'random',
+    'uniform',
+    'triangular',
+    'randint',
+    'randrange',
+    'gauss',
+    'normalvariate',
+    'expovariate',
+    'betavariate',
+    'gammavariate',
+    'lognormvariate',
+    'vonmisesvariate',
+    'paretovariate',
+    'weibullvariate',
+    'getrandbits',
 }
