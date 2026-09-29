@@ -16,6 +16,7 @@ from tuney.audio.player import Player
 from tuney.audio.speech import SpeechPhrase, SpeechRequest
 from tuney.keyboard.listener import KeyboardListener
 from tuney.midi import port
+from tuney.midi.listener import MidiListener
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
@@ -185,6 +186,41 @@ def test_midi_device_change_clears_missing_selected_output(monkeypatch) -> None:
     assert ui.refresh_count == 2
     assert messages == ['Output device Old Synth no longer exists']
     assert app._autosave.save_count == 1
+
+
+def test_midi_input_retries_when_device_appears(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts: list[str] = []
+    opened = object()
+
+    def open_input(self: port.InputPort, callback: object) -> object:
+        attempts.append(self.name or '')
+        if len(attempts) == 1:
+            raise OSError('device unavailable')
+        return opened
+
+    monkeypatch.setattr(port.InputPort, '__call__', open_input)
+    monkeypatch.setattr('tuney.midi.listener.report_error', lambda message: None)
+    app = App(midi=Midi(input=MidiIn(enable=True, name='keyboard')))
+    listener = MidiListener(app.midi, lambda note, is_press: None)
+    app.__dict__['midi_listener'] = listener
+    window = type(
+        'Window',
+        (),
+        {
+            'app': app,
+            'ui': type('UI', (), {'refresh_midi_devices': lambda self: None})(),
+        },
+    )()
+
+    listener.start()
+    assert listener.port is None
+    MainWindow._on_midi_devices_changed(window, [[], []])
+    assert attempts == ['keyboard']
+    MainWindow._on_midi_devices_changed(window, [['keyboard'], []])
+    assert listener.port is opened
+    assert attempts == ['keyboard', 'keyboard']
 
 
 def test_midi_monitor_preserves_names_on_probe_failure(

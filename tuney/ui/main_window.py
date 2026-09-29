@@ -665,6 +665,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_midi_devices_changed(self, names: list[list[str]]) -> None:
         output_name = self.app.midi.output.name
         self.ui.refresh_midi_devices()
+        input = self.app.midi.input
+        if (
+            input.enable
+            and self.app.midi_listener.port is None
+            and (input.name is None or input.name in names[0])
+        ):
+            self.app.midi_listener.start()
         if output_name and output_name not in names[1]:
             self.app.midi.output.close()
             self.app.midi.output.name = None

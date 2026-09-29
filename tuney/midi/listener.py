@@ -28,7 +28,7 @@ class MidiListener:
         if (input := self.midi.input).enable and self.port is None:
             try:
                 self.port = InputPort(name=input.name)(callback=self.on_message)
-            except (OSError, RuntimeError) as error:
+            except (OSError, RuntimeError, SystemError) as error:
                 report_error(f'Could not open MIDI input: {error}')
 
     def close(self) -> None:
