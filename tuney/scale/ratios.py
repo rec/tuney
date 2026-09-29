@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, model_validator
+from reccy.runtime.files import atomic_output
 from ufor.number import PitchNumber
 from ufor.scala import parse_scala, scala_text
 from ufor.tuning import RatioTable
@@ -70,7 +71,8 @@ class Ratios(BaseModel):
         return Ratios(text='; '.join(strings), name=name, desc=desc)
 
     def write_scala_file(self, path: Path, encoding: str = 'latin-1') -> None:
-        path.write_text(scala_text(self.definition), encoding=encoding)
+        with atomic_output(path) as output:
+            output.write_text(scala_text(self.definition), encoding=encoding)
 
 
 def _split_expression_text(text: str) -> list[str]:
