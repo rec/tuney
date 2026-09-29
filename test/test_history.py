@@ -293,3 +293,34 @@ def test_preset_restore_write_failure_preserves_all_existing_files(
     assert first.read_text() == 'max_gap = 3.0'
     assert second.read_text() == 'max_gap = 4.0'
     assert sorted(tmp_path.iterdir()) == [first, second]
+
+
+def test_preset_restore_replace_failure_rolls_back_published_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(preset, 'USER_PRESETS', tmp_path)
+    first = tmp_path / 'first.toml'
+    second = tmp_path / 'second.toml'
+    first.write_text('max_gap = 1.0')
+    second.write_text('max_gap = 2.0')
+    before = preset.user_preset_snapshot(['first', 'second'])
+    first.write_text('max_gap = 3.0')
+    second.write_text('max_gap = 4.0')
+    after = preset.user_preset_snapshot(['first', 'second'])
+    replace = Path.replace
+    failed = False
+
+    def fail_later_replace(self: Path, target: Path) -> Path:
+        nonlocal failed
+        if target == first and not failed:
+            failed = True
+            raise OSError('replace failed')
+        return replace(self, target)
+
+    monkeypatch.setattr(Path, 'replace', fail_later_replace)
+    with pytest.raises(OSError, match='replace failed'):
+        preset.restore_user_preset_snapshot(before, after)
+
+    assert first.read_text() == 'max_gap = 3.0'
+    assert second.read_text() == 'max_gap = 4.0'
+    assert sorted(tmp_path.iterdir()) == [first, second]

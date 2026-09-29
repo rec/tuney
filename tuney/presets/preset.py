@@ -110,14 +110,31 @@ def restore_user_preset_snapshot(
                 f'Preset {name} changed outside this edit; undo/redo cancelled'
             )
     USER_PRESETS.mkdir(parents=True, exist_ok=True)
-    with ExitStack() as writers:
+    try:
+        with ExitStack() as writers:
+            for name, data in snapshot.items():
+                if data is not None and data != expected[name]:
+                    output = writers.enter_context(atomic_output(USER_PRESETS / name))
+                    output.write_bytes(data)
         for name, data in snapshot.items():
-            if data is not None:
-                output = writers.enter_context(atomic_output(USER_PRESETS / name))
-                output.write_bytes(data)
-    for name, data in snapshot.items():
-        if data is None:
-            (USER_PRESETS / name).unlink(missing_ok=True)
+            if data is None and data != expected[name]:
+                (USER_PRESETS / name).unlink(missing_ok=True)
+    except OSError as error:
+        rollback_errors: list[str] = []
+        for name in snapshot:
+            try:
+                path = USER_PRESETS / name
+                current = path.read_bytes() if path.exists() else None
+                if current != expected[name]:
+                    _replace_preset_file(path, expected[name])
+            except OSError as rollback_error:
+                rollback_errors.append(f'{name}: {rollback_error}')
+        if rollback_errors:
+            raise OSError(
+                f'Preset restore failed: {error}; '
+                f'rollback was incomplete for {", ".join(rollback_errors)}'
+            ) from error
+        raise
 
 
 def read_preset(name: str) -> dict[str, object]:
@@ -172,6 +189,14 @@ def _user_preset_path(name: str) -> Path:
 def _user_preset_paths(name: str) -> list[Path]:
     _validate_preset_name(name)
     return [USER_PRESETS / f'{name}{suffix}' for suffix in PRESET_SUFFIXES]
+
+
+def _replace_preset_file(path: Path, data: bytes | None) -> None:
+    if data is None:
+        path.unlink(missing_ok=True)
+    else:
+        with atomic_output(path) as output:
+            output.write_bytes(data)
 
 
 def _validate_preset_name(name: str) -> None:
