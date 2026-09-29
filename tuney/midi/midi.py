@@ -143,7 +143,9 @@ class MidiOut(MidiBase):
             try:
                 self.port.close()
             except Exception as error:
-                report_error(f'Could not open MIDI output: {error}')
+                report_error(
+                    f'Could not close MIDI output {self.name or "default"}: {error}'
+                )
             del self.port
 
     def midi_note(self, note_number: int) -> int:
