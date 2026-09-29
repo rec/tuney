@@ -17,7 +17,7 @@ from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer, Signal, Slot
 from ..app.platform_info import instrument, report_error, set_windows_app_user_model_id
 from ..app.runnable import start_thread
 from ..app.text_timing import edit_text_timing
-from ..midi.ports import direct_midi_names, midi_names
+from ..midi.ports import midi_names, probe_midi_names
 from ..time.char_press import CharPress
 from . import (
     error_dialogs,
@@ -206,10 +206,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self._stop_midi_device_monitor()
 
     def _watch_midi_devices(self) -> None:
-        names = direct_midi_names()
+        names = midi_names()
+        names = [
+            new if new is not None else old
+            for new, old in zip(probe_midi_names(), names, strict=True)
+        ]
         midi_names.replace(names)
         while not self._midi_device_stop.wait(MIDI_DEVICE_POLL_IN_SECONDS):
-            updated = direct_midi_names()
+            updated = [
+                new if new is not None else old
+                for new, old in zip(probe_midi_names(), names, strict=True)
+            ]
             if updated != names:
                 names = updated
                 midi_names.replace(updated)

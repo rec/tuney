@@ -40,6 +40,10 @@ def midi_names_json() -> str:
 
 
 def direct_midi_names() -> list[list[str]]:
+    return [names if names is not None else [] for names in probe_midi_names()]
+
+
+def probe_midi_names() -> list[list[str] | None]:
     return [
         _direct_port_names(mido.get_input_names, 'inputs'),
         _direct_port_names(mido.get_output_names, 'outputs'),
@@ -79,12 +83,12 @@ def _subprocess_midi_names() -> list[list[str]]:
     ]
 
 
-def _direct_port_names(names: Callable[[], list[str]], kind: str) -> list[str]:
+def _direct_port_names(names: Callable[[], list[str]], kind: str) -> list[str] | None:
     try:
         result = names()
-    except (OSError, RuntimeError) as error:
+    except (OSError, RuntimeError, SystemError) as error:
         report_error(f'Could not list MIDI {kind}: {error}')
-        result = []
+        return None
     return [name for name in result if isinstance(name, str)]
 
 
