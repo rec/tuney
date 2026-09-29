@@ -582,6 +582,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().focusInEvent(event)
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        key_events.release_held_keys(self)
         self._has_focus = self.isActiveWindow()
         super().focusOutEvent(event)
 

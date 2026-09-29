@@ -79,6 +79,15 @@ def on_key_event(main_window: MainWindow, event: QKeyEvent, is_press: bool) -> b
     return False
 
 
+def release_held_keys(main_window: MainWindow) -> None:
+    chars = tuple(main_window._key_chars.values())
+    main_window._key_chars.clear()
+    for c in chars:
+        main_window.app.on_char(
+            CharPress(c, False, time=time.time()), release_held=True
+        )
+
+
 def _handle_text_shortcut(
     main_window: MainWindow, event: QKeyEvent, is_press: bool
 ) -> bool:

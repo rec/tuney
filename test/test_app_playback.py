@@ -5,6 +5,8 @@ from threading import Event
 
 import mido
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QKeyEvent
 
 from tuney.app.app import App
 from tuney.app.input_queue import INPUT_EVENTS_PER_TICK, InputQueue
@@ -12,11 +14,12 @@ from tuney.app.key_recorder import speech_phrases
 from tuney.audio.mixer import NotePress
 from tuney.audio.player import Player
 from tuney.audio.speech import SpeechPhrase, SpeechRequest
+from tuney.keyboard.listener import KeyboardListener
 from tuney.midi import port
 from tuney.midi.midi import Midi, MidiIn, MidiOut
 from tuney.time.char_press import CharPress
 from tuney.time.text_timings import TextTimings
-from tuney.ui import main_window
+from tuney.ui import key_events, main_window
 from tuney.ui.main_window import MainWindow
 from tuney.ui.state import Action, State
 
@@ -821,6 +824,44 @@ def test_on_char_ignores_input_with_control_panel_focus():
     app.on_char(CharPress('a', time=100.0))
 
     assert app.char_presses == []
+
+
+def test_focus_loss_releases_local_key_without_suppressing_global_release(
+    monkeypatch,
+) -> None:
+    midi_events: list[tuple[int, bool]] = []
+    monkeypatch.setattr(
+        MidiOut,
+        'send_note',
+        lambda _, note, is_press: midi_events.append((note, is_press)),
+    )
+    app = App(gui=True, silent=True, midi=Midi(output=MidiOut(enable=True)))
+    window = FakeApp()
+    window.app = app
+    window._key_chars = {Qt.Key.Key_A: 'a'}
+    app.__dict__['main_window'] = window
+    global_events: list[CharPress] = []
+    listener = KeyboardListener(global_events.append)
+    key = type('Key', (), {'char': 'a'})()
+
+    app.on_char(CharPress('a', time=100.0))
+    listener._on(key, True)
+    window.has_focus = False
+    key_events.release_held_keys(window)
+    listener._on(key, False)
+    key_events.on_key_event(
+        window,
+        QKeyEvent(QKeyEvent.Type.KeyRelease, Qt.Key.Key_A, Qt.NoModifier),
+        False,
+    )
+
+    assert [(c.char, c.is_press) for c in app.char_presses] == [
+        ('a', True),
+        ('a', False),
+    ]
+    assert midi_events == [(20, True), (20, False)]
+    assert [c.is_press for c in global_events] == [True, False]
+    assert window._key_chars == {}
 
 
 def test_cli_mode_plays_recorded_events_without_gui(monkeypatch) -> None:
