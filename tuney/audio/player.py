@@ -200,30 +200,34 @@ class Player(BaseModel, frozen=True):
         if note_number in self.pressed_notes:
             return False
         self.sync_engine_device()
+        remaining = self.pressed_notes.copy()
         stolen_notes: list[NoteNumber] = []
         voice_count = 2 if self.sound.binaural.enable else 1
         while (
-            self.pressed_notes
-            and len(self.pressed_notes) * voice_count + voice_count
+            remaining
+            and len(remaining) * voice_count + voice_count
             > self.sound.polyphony.max_voices
         ):
-            stolen_notes.append(self.pressed_notes.pop(0))
-        self.pressed_notes.append(note_number)
+            stolen_notes.append(remaining.pop(0))
         try:
             voice_maker = partial(
                 self.voice_maker,
                 sample_rate=int(self.engine.stream.samplerate),
             )
-            self.engine.submit(
+            commands: list[NotePress | Configure] = [
                 Configure(
                     voice_maker=voice_maker,
                     polyphony=self.sound.polyphony,
                     synchronize_oscillators=self.sound.synchronize_oscillators,
                 )
+            ]
+            commands.extend(
+                NotePress(stolen_note, False) for stolen_note in stolen_notes
             )
-            for stolen_note in stolen_notes:
-                self.engine.submit(NotePress(stolen_note, False))
-            self.engine.submit(NotePress(note_number))
+            commands.append(NotePress(note_number))
+            if not self.engine.submit_batch(commands):
+                return False
+            self.pressed_notes[:] = [*remaining, note_number]
             self.engine.start()
             return True
         except Exception as e:
@@ -234,9 +238,7 @@ class Player(BaseModel, frozen=True):
                 note=note_number,
                 error=str(e),
             )
-            self.pressed_notes.remove(note_number)
-            for stolen_note in reversed(stolen_notes):
-                self.pressed_notes.insert(0, stolen_note)
+            self.pressed_notes[:] = [*stolen_notes, *remaining]
             self.engine.close()
             return False
 

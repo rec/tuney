@@ -17,7 +17,15 @@ from ufor.oscillator import Waveform
 from tuney.app.app import App
 from tuney.audio import device, speech, test_sheet
 from tuney.audio.device import Device
-from tuney.audio.engine import AudioEngine, Configure, PlaySpeech, StopAll, Stream
+from tuney.audio.engine import (
+    COMMANDS_PER_CALLBACK,
+    MAX_AUDIO_COMMANDS,
+    AudioEngine,
+    Configure,
+    PlaySpeech,
+    StopAll,
+    Stream,
+)
 from tuney.audio.mixer import Mixer, NotePress
 from tuney.audio.oscillator import Oscillator
 from tuney.audio.output_file import AudioFileWriter
@@ -619,6 +627,38 @@ def test_player_steals_oldest_voice_at_max_polyphony(monkeypatch) -> None:
     assert player.engine.mixer.pressed_notes == [7]
     assert player.engine.mixer.voices[0].release_frame is not None
     assert 7 in player.engine.mixer.voices
+
+
+def test_audio_command_overflow_rejects_press_but_keeps_release_and_stop(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(sounddevice, 'OutputStream', _EngineStream)
+    player = Player()
+    engine = player.engine
+    configure = Configure(
+        voice_maker=player.voice_maker, polyphony=player.sound.polyphony
+    )
+    for _ in range(MAX_AUDIO_COMMANDS):
+        assert engine.submit(configure)
+
+    assert not player.start(0)
+    assert player.pressed_notes == []
+    assert engine.submit(NotePress(0, False))
+    assert engine.submit(StopAll())
+    assert len(engine.commands) <= MAX_AUDIO_COMMANDS
+
+
+def test_audio_callback_processes_bounded_command_batch() -> None:
+    engine = AudioEngine(mixer=_mixer())
+    configure = Configure(voice_maker=engine.voice_maker, polyphony=Polyphony())
+    for _ in range(COMMANDS_PER_CALLBACK + 1):
+        assert engine.submit(configure)
+
+    engine.callback(np.zeros((32, 1)), 32, None, None)
+
+    assert len(engine.commands) == 1
+    engine.callback(np.zeros((32, 1)), 32, None, None)
+    assert not engine.commands
 
 
 def test_player_counts_binaural_notes_as_two_voices(monkeypatch) -> None:
