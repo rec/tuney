@@ -16,10 +16,6 @@ Speech loading and resampling build full arrays and then allocate a zero-filled 
 
 `AudioEngine.commands` is a `SimpleQueue`, and the PortAudio callback drains it until empty ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 72-74, 122-134, 249-269). Producers can grow memory or keep the callback processing commands past its audio deadline. Bound the queue or the work per callback, with a policy for coalescing or rejecting excess commands; stress test producer bursts.
 
-### 10. Unexpected audio callback errors can strand CLI waiting (risk)
-
-The callback catches only `ArithmeticError`, `RuntimeError`, `TypeError`, and `ValueError` ([tuney/audio/engine.py](../tuney/audio/engine.py), lines 240-245). Other failures, including allocation or backend failures, may leave `playback_complete` unset while CLI playback waits indefinitely ([tuney/app/app_playback.py](../tuney/app/app_playback.py), line 190). Ensure all callback termination paths signal the waiter and surface a useful error, without masking the original failure.
-
 ### 11. GUI input queues can grow without bound and starve event processing (risk)
 
 The main window and MIDI listener use unbounded queues, and their GUI handlers drain until empty ([tuney/ui/main_window.py](../tuney/ui/main_window.py), lines 94-96 and 595-606; [tuney/midi/listener.py](../tuney/midi/listener.py), lines 21 and 40-45). A sustained keyboard or MIDI flood can grow memory and prevent paint, close, and timer events. Bound backlog and work per GUI tick, with an explicit drop policy for stale input.
@@ -94,7 +90,7 @@ The `Tuney` model docstring says “tuny” ([tuney/config/tuney.py](../tuney/co
 
 ## Scope and suggested order
 
-Start with direct data-loss and wrong-output paths (13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8-11, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
+Start with direct data-loss and wrong-output paths (13, 16, 17, 20), then establish bounded shutdown for concurrent paths (4, 8, 9, 11, 18), then address UI/API clarity and maintenance findings. The risks marked above need focused reproduction or failure injection before choosing an implementation.
 
 Tuney has no production HTTP or socket request path in this review, so there is no runtime network-retry mechanism to assess. Its relevant intermittent external interfaces are MIDI/audio devices, speech input, and the filesystem, including removable or full volumes. Dependency downloads and Git operations in development and CI are separate from user-facing runtime behavior.
 
