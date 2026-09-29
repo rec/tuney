@@ -8,10 +8,6 @@ Reviewed on 2026-09-29 at commit `becadd8`. This is a source review of the produ
 
 ## P3: structure, reuse, and verification
 
-### 25. Two tiny single-use modules add indirection
-
-[tuney/error.py](../tuney/error.py) defines `TuneyError` but has no references in the repository. [tuney/ui/platform.py](../tuney/ui/platform.py) contains one five-line `command_key` helper used only by layout. Remove the unused error type and consider placing the helper at its sole call site during nearby work. Other small modules such as time units and UI constants have multiple consumers and are serving a useful shared role.
-
 ### 27. Failure-path tests miss the most consequential interleavings
 
 The test suite has substantial CLI, GUI, MIDI, and WAV regression coverage, but does not exercise sparse long speech or GUI queue saturation. Add focused tests at the relevant boundaries before changing those paths. These are coverage gaps, not evidence that each risk is currently reproduced.
