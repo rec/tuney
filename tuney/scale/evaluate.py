@@ -139,7 +139,7 @@ class _Evaluate:
         if f.attr == 'pow' and len(args) > 1 and abs(args[1]) > MAX_POWER_EXPONENT:
             raise ValueError('Exponent is too large')
         result = func(*args)
-        if isinstance(result, PitchNumber):
+        if isinstance(result, (float, int, Fraction)):
             return self.number(result)
         raise TypeError(f'Function returned unsupported value {result!r}')
 
@@ -152,7 +152,7 @@ class _Evaluate:
         if node.value.id not in MODULES:
             raise NameError(f'Unknown name {node.value.id!r}')
         value = getattr(MODULES[node.value.id], node.attr)
-        if isinstance(value, PitchNumber):
+        if isinstance(value, (float, int, Fraction)):
             return self.number(value)
         raise TypeError(f'Attribute {ast.unparse(node)} is not numeric')
 

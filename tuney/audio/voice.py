@@ -6,7 +6,8 @@ from functools import cached_property
 from enge.synth import PreparedVoice
 from pydantic import BaseModel, Field, field_validator
 from reccy.configuration.units import Hertz, Seconds
-from ufor.envelope import Envelope, Segment
+from ufor.envelope import VoiceEnvelope
+from ufor.segments import Segment
 
 from .oscillator import Oscillator
 from .sound import Binaural
@@ -50,9 +51,9 @@ class Voice(BaseModel, frozen=True):
         return PreparedVoice(
             sample_rate=self.sample_rate,
             oscillator=self.oscillator.definition,
-            envelope=Envelope(
-                segments=[Segment(duration=Fraction(str(self.fade_in)), target=1)],
-                release=[Segment(duration=Fraction(str(self.fade_out)), target=0)],
+            envelope=VoiceEnvelope(
+                segments=[Segment(duration=Fraction(str(self.fade_in)), to=1)],
+                release=[Segment(duration=Fraction(str(self.fade_out)), to=0)],
             ),
             frequencies=frequencies,
             routes=routes,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from fractions import Fraction
 from functools import cached_property
 from typing import Annotated
 
@@ -43,7 +44,7 @@ def _evaluate_text(text: str) -> list[PitchNumber]:
 def _evaluate_frequency(expression: str) -> PitchNumber:
     try:
         value = units.magnitude(expression, 'hertz')
-        if not isinstance(value, (Decimal, float, int)):
+        if not isinstance(value, (Decimal, Fraction, float, int)):
             raise ValueError('Expected a hertz quantity')
         return float(value)
     except ValueError:

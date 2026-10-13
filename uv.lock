@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.13"
 
 [options]
-exclude-newer = "2026-09-10T09:39:54.942496Z"
+exclude-newer = "2026-10-06T15:12:00.259878Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -175,11 +175,23 @@ wheels = [
 
 [[package]]
 name = "enge"
-version = "0.1.0"
-source = { git = "https://github.com/rec/enge.git?branch=main#75bf0f617af41973b519930164f99dd97889b8b6" }
+version = "0.2.0"
+source = { git = "ssh://git@github.com/rec/enge.git?branch=main#334a166c984686ba3fb5bf7fec6ed6fe7439bbb2" }
 dependencies = [
+    { name = "envelfo" },
+    { name = "mido" },
     { name = "numpy" },
     { name = "pydantic" },
+    { name = "reccy" },
+    { name = "tyro" },
+    { name = "ufor" },
+]
+
+[[package]]
+name = "envelfo"
+version = "0.1.0"
+source = { git = "ssh://git@github.com/rec/envelfo.git?branch=main#cf44fd231cc0e763a615720df0f8a546849b7c2b" }
+dependencies = [
     { name = "ufor" },
 ]
 
@@ -3281,8 +3293,8 @@ wheels = [
 
 [[package]]
 name = "reccy"
-version = "0.1.0"
-source = { git = "https://github.com/rec/reccy.git?branch=main#1299805ccfbaa3eb6c2ee82994554c0284a85e6b" }
+version = "0.2.0"
+source = { git = "https://github.com/rec/reccy.git?branch=main#1a54501bd37514d9aa75d11e76f5d02e0813abce" }
 dependencies = [
     { name = "pint" },
     { name = "pydantic" },
@@ -3437,7 +3449,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "chardet", specifier = ">=7.4.3" },
-    { name = "enge", git = "https://github.com/rec/enge.git?branch=main" },
+    { name = "enge", git = "ssh://git@github.com/rec/enge.git?branch=main" },
     { name = "mido", specifier = ">=1.3.3" },
     { name = "numpy", specifier = ">=2.4.1" },
     { name = "pydantic", specifier = ">=2.13.3" },
@@ -3450,7 +3462,7 @@ requires-dist = [
     { name = "soundfile", specifier = ">=0.13.1" },
     { name = "tomlkit", specifier = ">=0.15.0" },
     { name = "tyro", specifier = ">=1.0.13" },
-    { name = "ufor", git = "https://github.com/rec/ufor.git?branch=main" },
+    { name = "ufor", git = "ssh://git@github.com/rec/ufor.git?branch=main" },
 ]
 
 [package.metadata.requires-dev]
@@ -3525,23 +3537,24 @@ wheels = [
 
 [[package]]
 name = "tyro"
-version = "1.0.13"
+version = "1.0.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "typeguard" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/d6/7126f9e7de139632134d59b5d1972e93c610ee2cb13829e8f4f48f6613cb/tyro-1.0.13.tar.gz", hash = "sha256:731a90c9836b77fffe7c3fa0477ef2d3b6fa91252ddc0bb4d32dadd4fcc143d4", size = 489479, upload-time = "2026-04-14T18:21:52.888Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/83/4008dff806dc894fc0422017316982d3f14709046bcb0dfa720cb64501aa/tyro-1.0.16.tar.gz", hash = "sha256:edf23c9c3eecba5a2b5af152df8f34a723b689a001ff5b7311f93eff1893a636", size = 603382, upload-time = "2026-08-23T01:19:26.643Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/93/4f/c43a0a8f0c66fd40a1d6cc47332a5a1d1043e9b331f7070ea701b91a7598/tyro-1.0.13-py3-none-any.whl", hash = "sha256:a0bdb8462c551dd84fc00a76916ce4d37e879c84eefaf34e2165312407cc6c09", size = 185221, upload-time = "2026-04-14T18:21:54.328Z" },
+    { url = "https://files.pythonhosted.org/packages/23/d9/ea12ca0392c9eaeff7421efcc665f350dbc2ef30a113ee13c7afea21cf37/tyro-1.0.16-py3-none-any.whl", hash = "sha256:2f9087196113699647190459a12b6b4f2784dd0703c50ab1f7bf0f85a3a794ea", size = 216925, upload-time = "2026-08-23T01:19:25.168Z" },
 ]
 
 [[package]]
 name = "ufor"
-version = "0.1.0"
-source = { git = "https://github.com/rec/ufor.git?branch=main#3b3c2ec16052d90ed6afed0ca49ad5d435bcd91d" }
+version = "0.2.0"
+source = { git = "ssh://git@github.com/rec/ufor.git?branch=main#2644dca402e56fee6dadc501b0bcfa7fff66d4bb" }
 dependencies = [
     { name = "pydantic" },
+    { name = "reccy" },
     { name = "tomlkit" },
 ]
