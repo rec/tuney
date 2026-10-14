@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.13"
 
 [options]
-exclude-newer = "2026-10-07T10:09:11.886548Z"
+exclude-newer = "2026-10-07T11:17:41.497715Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -176,7 +176,7 @@ wheels = [
 [[package]]
 name = "enge"
 version = "0.2.0"
-source = { git = "ssh://git@github.com/rec/enge.git?branch=main#646b169a9fcab3012efa0444fb9c7447dc3f3a1a" }
+source = { git = "ssh://git@github.com/rec/enge.git?branch=main#28e9f6959d8d184e8ddc1ae35a148ed27561f721" }
 dependencies = [
     { name = "envelfo" },
     { name = "mido" },
@@ -190,7 +190,7 @@ dependencies = [
 [[package]]
 name = "envelfo"
 version = "0.1.0"
-source = { git = "ssh://git@github.com/rec/envelfo.git?branch=main#171e2aeb36a62966cdd80d5e73a5615c2a2d4ff1" }
+source = { git = "ssh://git@github.com/rec/envelfo.git?branch=main#9e03aac4b8868dc7632b826c64650c1b3100b5f3" }
 dependencies = [
     { name = "ufor" },
 ]
@@ -3552,7 +3552,7 @@ wheels = [
 [[package]]
 name = "ufor"
 version = "0.2.0"
-source = { git = "ssh://git@github.com/rec/ufor.git?branch=main#7ff1bf8984a45c5e1a34d6e52885560be62628ed" }
+source = { git = "ssh://git@github.com/rec/ufor.git?branch=main#862e2c142d19547729cab019ed75ed13ff1bc6c8" }
 dependencies = [
     { name = "pydantic" },
     { name = "reccy" },
