@@ -168,7 +168,7 @@ tuney --preset white-notes "text"
 
 Presets do not contain text. User presets are stored in `~/.config/tuney/presets`
 on every platform, where `~` means your home directory; built-in presets remain available
-as fallbacks. The generated [configuration model](../schema.md) gives the full
+as fallbacks. The generated [configuration model](https://github.com/rec/tuney/blob/main/schema.md) gives the full
 data shape for hand-written configuration files.
 
 ## Packaged releases and problem reports
