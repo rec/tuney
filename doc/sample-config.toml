@@ -1,0 +1,7 @@
+control_panel_scroll = 0
+buffer_size = 32
+theme = "light"
+
+[directories]
+
+[control_panel_sections]
